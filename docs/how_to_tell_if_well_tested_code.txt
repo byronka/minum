@@ -1,0 +1,12 @@
+how to tell if code is well tested?
+
+run a test.  Count the number of lines run. Fewer lines being run by a test is better than more lines.
+for a given line, how many times is it touched when all the tests run - overall, being called more may correlate to better testing
+for a given function, how many times is it called? overall, being called more may correlate to better testing
+for a given statement, how many mutations will cause its test to break?
+for a given predicate, what percentage of MC/DC coverage are we hitting?
+what is the overall code coverage
+what is the mutation-affected code coverage?
+for a parameter's type, how many of the basic boundary values are hit by the tests?  How many of the edges of the boundaries? if nullable, is a null sent? if a container, is an empty container sent? if a string, is an empty string sent? and so on.  Consider basic negative tests for various types.
+on top of several statistics, how to counter gaming (creating loops to call methods / lines many times to raise the value).  Perhaps it is a matter of weighing each dimension properly, to prevent any one dimension from controlling.
+
