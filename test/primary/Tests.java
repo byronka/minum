@@ -23,12 +23,12 @@ class Tests {
 
     // test client / server
     {
-     // Client client = Comms.startClient();
-     // Server server = Comms.startServerWithWait();
-     // client.connectTo(server);
-     // client.send("hello");
-     // String result = server.receive();
-     // assertEquals("hello", result);
+      Web.Client client = Web.startClient();
+      Web.Server server = Web.startServerWithWait();
+      client.connectTo(server);
+      client.send("hello");
+      String result = server.receive();
+      assertEquals("hello", result);
     }
   }
 
@@ -37,6 +37,12 @@ class Tests {
     */
   private static void assertEquals(int left, int right) {
     if (left != right) {
+      throw new RuntimeException("Not equal! left: " + left + " right: " + right);
+    }
+  }
+
+  private static void assertEquals(String left, String right) {
+    if (!left.equals(right)) {
       throw new RuntimeException("Not equal! left: " + left + " right: " + right);
     }
   }
