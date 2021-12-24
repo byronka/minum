@@ -3,3 +3,7 @@
 
 # the directory for the code coverage report
 coveragereport
+
+# don't want to commit any Intellij config files
+.idea
+*.iml
