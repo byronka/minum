@@ -1,7 +1,5 @@
 package primary;
 
-import foo.Second;
-
 /**
   * first stabs at a homemade Java program
   */
@@ -15,10 +13,6 @@ public class Main {
     */
   public static int add(int a, int b) {
     return a + b;
-  }
-
-  public static int bar() {
-    return Second.subtract(3,1);
   }
 
 }
