@@ -23,12 +23,11 @@ class Tests {
 
     // test client / server
     {
-      Web.Client client = Web.startClient();
-      Web.Server server = Web.startServerWithWait();
-      client.connectTo(server);
-      client.send("hello");
-      String result = server.receive();
-      assertEquals("hello", result);
+      Web.Server server = Web.startServer();
+      Web.Client client = Web.startClient(server);
+      client.send("hello foo!\n");
+      String result = server.readLine();
+      assertEquals("hello foo!", result);
     }
   }
 
