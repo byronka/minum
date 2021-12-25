@@ -23,12 +23,37 @@ class Tests {
 
     // test client / server
     {
-      Web.Server server = Web.startServer();
-      Web.Client client = Web.startClient(server);
-      client.send("hello foo!\n");
-      String result = server.readLine();
-      assertEquals("hello foo!", result);
+      try (Web.Server server = Web.startServer()) {
+        Web.Client client = Web.startClient(server);
+        client.send("hello foo!\n");
+        String result = server.readLine();
+        assertEquals("hello foo!", result);
+      }
     }
+
+    // test client / server with more conversation
+    {
+      String msg1 = "hello foo!";
+      String msg2 = "and how are you?";
+      String msg3 = "oh, fine";
+
+      try (Web.Server server = Web.startServer()) {
+        Web.Client client = Web.startClient(server);
+
+        // client sends, server receives
+        client.send(withNewline(msg1));
+        assertEquals(msg1, server.readLine());
+
+        // server sends, client receives
+        server.send(withNewline(msg2));
+        assertEquals(msg2, client.readLine());
+
+        // client sends, server receives
+        client.send(withNewline(msg3));
+        assertEquals(msg3, server.readLine());
+      }
+    }
+
   }
 
   /**
@@ -44,6 +69,10 @@ class Tests {
     if (!left.equals(right)) {
       throw new RuntimeException("Not equal! left: " + left + " right: " + right);
     }
+  }
+
+  private static String withNewline(String msg) {
+    return msg +"\n";
   }
 
 }

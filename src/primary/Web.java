@@ -8,7 +8,7 @@ import java.io.OutputStream;
 
 public class Web {
 
-  static class Server {
+  static class Server implements AutoCloseable{
     private String name;
     private ServerSocket serverSocket;
     private Socket socket;
@@ -37,7 +37,15 @@ public class Web {
         }
       });
       t.start();
-    } 
+    }
+
+    public void close() {
+      try {
+        serverSocket.close();
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+    }
 
     public String getHost() {
       return serverSocket.getInetAddress().getHostName();
