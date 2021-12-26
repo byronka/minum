@@ -99,7 +99,7 @@ test: all $(TST_CLS)
 	    $(JAVA) -cp $(OUT_DIR) primary.Tests
 
 # run the tests and open a port for debugging.
-testdebug: all
+testdebug: all $(TST_CLS)
 	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(OUT_DIR) primary.Tests
 
 # If you want to obtain code coverage from running the tests

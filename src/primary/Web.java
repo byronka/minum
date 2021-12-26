@@ -1,5 +1,6 @@
 package primary;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.BufferedReader;
@@ -8,31 +9,70 @@ import java.io.OutputStream;
 
 public class Web {
 
-  static class Server implements AutoCloseable{
-    private String name;
-    private ServerSocket serverSocket;
-    private Socket socket;
-    private int port;
-    private OutputStream writer;
-    private BufferedReader reader;
+  /**
+   * This wraps Sockets to make them simpler / more particular to our use case
+   */
+  static class SocketWrapper implements AutoCloseable {
 
-    public Server(String name, int port) {
+    private final Socket socket;
+    private final OutputStream writer;
+    private final BufferedReader reader;
+
+    public SocketWrapper(Socket socket) {
+      this.socket = socket;
       try {
-        this.name = name;
-        this.port = port;
-        serverSocket = new ServerSocket(port);  
-      } catch (Exception ex) {
+        writer = socket.getOutputStream();
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
+    }
+
+    public void send(String msg) {
+      try {
+        writer.write(msg.getBytes());
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+    public String readLine() {
+      try {
+        return reader.readLine();
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+    @Override
+    public void close() throws Exception {
+      socket.close();
+    }
+  }
+
+  /**
+   * The purpose here is to make it marginally easier to
+   * work with a ServerSocket.
+   *
+   * First, instantiate this class using a running serverSocket
+   * Then, by running the start method, we gain access to
+   * the server's socket.  This way we can easily test / control
+   * the server side but also tie it in with an ExecutorService
+   * for controlling lots of server threads.
+   */
+  static class Server implements AutoCloseable{
+    private final ServerSocket serverSocket;
+    private SocketWrapper sw;
+
+    public Server(ServerSocket ss) {
+      this.serverSocket = ss;
     }
 
     public void start() {
       Thread t = new Thread(() -> {
         try {
-          socket = serverSocket.accept();
-          writer = socket.getOutputStream();
-          reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        } catch (Exception ex) {
+          sw = new SocketWrapper(serverSocket.accept());
+        } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
       });
@@ -42,7 +82,7 @@ public class Web {
     public void close() {
       try {
         serverSocket.close();
-      } catch (Exception ex) {
+      } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
     }
@@ -52,76 +92,39 @@ public class Web {
     }
 
     public int getPort() {
-      return port;
+      return serverSocket.getLocalPort();
     }
 
     public void send(String msg) {
-      try {
-        writer.write(msg.getBytes());
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
+      sw.send(msg);
     }
 
     public String readLine() {
-      try {
-        return reader.readLine();
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
-  }
-
-  static class Client {
-    private String name;
-    private Thread myThread;
-    private Socket socket;
-    private OutputStream writer;
-    private BufferedReader reader;
-
-    public Client(String name, Socket socket) {
-      this.name = name;
-      this.socket = socket;
-      try {
-        writer = socket.getOutputStream();
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
+      return sw.readLine();
     }
 
-    public void send(String msg) {
-      try {
-        writer.write(msg.getBytes());
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
-
-    public String readLine() {
-      try {
-        return reader.readLine();
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
   }
 
   public static Web.Server startServer() {
     int port = 8080;
-    Server server = new Server("myserver", port);
-    server.start();
-    return server;
+    try {
+      ServerSocket ss = new ServerSocket(port);
+      Server server = new Server(ss);
+      server.start();
+      return server;
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
-  public static Web.Client startClient(Server server) {
+  public static Web.SocketWrapper startClient(Server server) {
     Socket socket;
     try {
       socket = new Socket(server.getHost(), server.getPort());
-    } catch (Exception ex) {
+    } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
-    return new Client("client", socket);
+    return new SocketWrapper(socket);
   }
 
 }

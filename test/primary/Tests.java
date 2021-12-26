@@ -24,7 +24,7 @@ class Tests {
     // test client / server
     {
       try (Web.Server server = Web.startServer()) {
-        Web.Client client = Web.startClient(server);
+        Web.SocketWrapper client = Web.startClient(server);
         client.send("hello foo!\n");
         String result = server.readLine();
         assertEquals("hello foo!", result);
@@ -38,7 +38,7 @@ class Tests {
       String msg3 = "oh, fine";
 
       try (Web.Server server = Web.startServer()) {
-        Web.Client client = Web.startClient(server);
+        Web.SocketWrapper client = Web.startClient(server);
 
         // client sends, server receives
         client.send(withNewline(msg1));
