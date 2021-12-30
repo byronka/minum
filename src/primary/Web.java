@@ -1,13 +1,15 @@
 package primary;
 
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.*;
 
 public class Web {
+
+  public final String HTTP_CRLF = "\r\n";
 
   /**
    * This wraps Sockets to make them simpler / more particular to our use case
@@ -44,9 +46,25 @@ public class Web {
       }
     }
 
+    public String getLocalAddr() {
+      return socket.getLocalAddress().getHostAddress();
+    }
+
+    public int getLocalPort() {
+      return socket.getLocalPort();
+    }
+
+    public SocketAddress getRemoteAddr() {
+      return socket.getRemoteSocketAddress();
+    }
+
     @Override
-    public void close() throws Exception {
-      socket.close();
+    public void close() {
+      try {
+        socket.close();
+      } catch(Exception ex) {
+        throw new RuntimeException(ex);
+      }
     }
   }
 
@@ -62,16 +80,26 @@ public class Web {
    */
   static class Server implements AutoCloseable{
     private final ServerSocket serverSocket;
-    private SocketWrapper sw;
+    private List<SocketWrapper> socketWrappers;
 
     public Server(ServerSocket ss) {
       this.serverSocket = ss;
+      socketWrappers = new ArrayList<>();
     }
 
     public void start() {
       Thread t = new Thread(() -> {
         try {
-          sw = new SocketWrapper(serverSocket.accept());
+          while (true) {
+            SocketWrapper sw = new SocketWrapper(serverSocket.accept());
+            socketWrappers.add(sw);
+          }
+        } catch (SocketException ex) {
+          if (ex.getMessage().contains("Socket closed")) {
+            // just swallow the complaint.  accept always
+            // throw this exception when we run close()
+            // on the server socket
+          }
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
@@ -88,23 +116,32 @@ public class Web {
     }
 
     public String getHost() {
-      return serverSocket.getInetAddress().getHostName();
+      return serverSocket.getInetAddress().getHostAddress();
     }
 
     public int getPort() {
       return serverSocket.getLocalPort();
     }
 
-    public void send(String msg) {
-      sw.send(msg);
-    }
-
-    public String readLine() {
-      return sw.readLine();
+    public SocketWrapper getSocketWrapperByRemoteAddr(String addr, int port) {
+      List<SocketWrapper> wrappers = socketWrappers
+              .stream()
+              .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(addr, port)))
+              .toList();
+      if (wrappers.size() > 1) {
+        throw new RuntimeException("Too many sockets found with that address");
+      } else if (wrappers.size() == 1) {
+        return wrappers.get(0);
+      } else {
+        throw new RuntimeException("No socket found with that address");
+      }
     }
 
   }
 
+  /**
+   * Create a listening server
+   */
   public static Web.Server startServer() {
     int port = 8080;
     try {

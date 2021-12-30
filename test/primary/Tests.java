@@ -23,8 +23,9 @@ class Tests {
 
     // test client / server
     {
-      try (Web.Server server = Web.startServer()) {
-        Web.SocketWrapper client = Web.startClient(server);
+      try (Web.Server primaryServer = Web.startServer()) {
+        Web.SocketWrapper client = Web.startClient(primaryServer);
+        Web.SocketWrapper server = primaryServer.getSocketWrapperByRemoteAddr(client.getLocalAddr(), client.getLocalPort());
         client.send("hello foo!\n");
         String result = server.readLine();
         assertEquals("hello foo!", result);
@@ -37,20 +38,35 @@ class Tests {
       String msg2 = "and how are you?";
       String msg3 = "oh, fine";
 
-      try (Web.Server server = Web.startServer()) {
-        Web.SocketWrapper client = Web.startClient(server);
+      try (Web.Server primaryServer = Web.startServer()) {
+        Web.SocketWrapper client = Web.startClient(primaryServer);
+        Web.SocketWrapper server = primaryServer.getSocketWrapperByRemoteAddr(client.getLocalAddr(), client.getLocalPort());
 
-        // client sends, server receives
+        System.out.println("client sends, server receives");
         client.send(withNewline(msg1));
         assertEquals(msg1, server.readLine());
 
-        // server sends, client receives
+        System.out.println("server sends, client receives");
         server.send(withNewline(msg2));
         assertEquals(msg2, client.readLine());
 
-        // client sends, server receives
+        System.out.println("client sends, server receives");
         client.send(withNewline(msg3));
         assertEquals(msg3, server.readLine());
+      }
+    }
+
+    // test like we're a web server
+    {
+      try (Web.Server primaryServer = Web.startServer()) {
+        Web.SocketWrapper client = Web.startClient(primaryServer);
+        Web.SocketWrapper server = primaryServer.getSocketWrapperByRemoteAddr(client.getLocalAddr(), client.getLocalPort());
+
+        // send a GET request
+        client.send("GET /index.html HTTP/1.1\r\n");
+        client.send("cookie: abc=123\r\n");
+        client.send("\r\n");
+        server.send("HTTP/1.1 200 OK\r\n");
       }
     }
 
