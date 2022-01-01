@@ -1,75 +1,97 @@
 package primary;
 
+import java.util.concurrent.*;
+
 class Tests {
 
   public static void main(String[] args) {
-    // testing a happy path
-    {
-      int result = Main.add(2,3);
-      assertEquals(result, 5);
-    }
 
-    // testing a couple negatives
-    {
-      int result = Main.add(-2,-3);
-      assertEquals(result, -5);
-    }
-
-    // testing with zeros
-    {
-      int result = Main.add(0,0);
-      assertEquals(result, 0);
-    }
-
-    // test client / server
-    {
-      try (Web.Server primaryServer = Web.startServer()) {
-        Web.SocketWrapper client = Web.startClient(primaryServer);
-        Web.SocketWrapper server = primaryServer.getSocketWrapperByRemoteAddr(client.getLocalAddr(), client.getLocalPort());
-        client.send("hello foo!\n");
-        String result = server.readLine();
-        assertEquals("hello foo!", result);
+//    ExecutorService es = Executors.newCachedThreadPool();
+    ExecutorService es = new ExtendedExecutor(0, Integer.MAX_VALUE,
+            60L, TimeUnit.SECONDS,
+            new SynchronousQueue<>(),
+            Executors.defaultThreadFactory());
+    Logger logger = new Logger(es).initialize();
+    Web web = new Web(logger);
+    try {
+      logger.test("a happy path");
+      {
+        int result = Main.add(2, 3);
+        assertEquals(result, 5);
       }
-    }
 
-    // test client / server with more conversation
-    {
-      String msg1 = "hello foo!";
-      String msg2 = "and how are you?";
-      String msg3 = "oh, fine";
-
-      try (Web.Server primaryServer = Web.startServer()) {
-        Web.SocketWrapper client = Web.startClient(primaryServer);
-        Web.SocketWrapper server = primaryServer.getSocketWrapperByRemoteAddr(client.getLocalAddr(), client.getLocalPort());
-
-        System.out.println("client sends, server receives");
-        client.send(withNewline(msg1));
-        assertEquals(msg1, server.readLine());
-
-        System.out.println("server sends, client receives");
-        server.send(withNewline(msg2));
-        assertEquals(msg2, client.readLine());
-
-        System.out.println("client sends, server receives");
-        client.send(withNewline(msg3));
-        assertEquals(msg3, server.readLine());
+      logger.test("a couple negatives");
+      {
+        int result = Main.add(-2, -3);
+        assertEquals(result, -5);
       }
-    }
 
-    // test like we're a web server
-    {
-      try (Web.Server primaryServer = Web.startServer()) {
-        Web.SocketWrapper client = Web.startClient(primaryServer);
-        Web.SocketWrapper server = primaryServer.getSocketWrapperByRemoteAddr(client.getLocalAddr(), client.getLocalPort());
-
-        // send a GET request
-        client.send("GET /index.html HTTP/1.1\r\n");
-        client.send("cookie: abc=123\r\n");
-        client.send("\r\n");
-        server.send("HTTP/1.1 200 OK\r\n");
+      logger.test("with zeros");
+      {
+        int result = Main.add(0, 0);
+        assertEquals(result, 0);
       }
-    }
 
+      logger.test("client / server");
+      {
+        try (Web.Server primaryServer = web.startServer(es)) {
+          try (Web.SocketWrapper client = web.startClient(primaryServer)) {
+            try (Web.SocketWrapper server = primaryServer.getServer(client)) {
+
+              client.send("hello foo!\n");
+              String result = server.readLine();
+              assertEquals("hello foo!", result);
+            }
+          }
+        }
+      }
+
+      logger.test("client / server with more conversation");
+      {
+        String msg1 = "hello foo!";
+        String msg2 = "and how are you?";
+        String msg3 = "oh, fine";
+
+        try (Web.Server primaryServer = web.startServer(es)) {
+          try (Web.SocketWrapper client = web.startClient(primaryServer)) {
+            try (Web.SocketWrapper server = primaryServer.getServer(client)) {
+
+              // client sends, server receives
+              client.send(withNewline(msg1));
+              assertEquals(msg1, server.readLine());
+
+              // server sends, client receives
+              server.send(withNewline(msg2));
+              assertEquals(msg2, client.readLine());
+
+              // client sends, server receives
+              client.send(withNewline(msg3));
+              assertEquals(msg3, server.readLine());
+            }
+          }
+        }
+      }
+
+      logger.test("like we're a web server");
+      {
+        try (Web.Server primaryServer = web.startServer(es)) {
+          try (Web.SocketWrapper client = web.startClient(primaryServer)) {
+            try (Web.SocketWrapper server = primaryServer.getServer(client)) {
+              // send a GET request
+              client.send("GET /index.html HTTP/1.1\r\n");
+              client.send("cookie: abc=123\r\n");
+              client.send("\r\n");
+              server.send("HTTP/1.1 200 OK\r\n");
+            }
+          }
+        }
+      }
+
+    } catch (Exception ex) {
+      logger.logDebug(() -> Logger.printStackTrace(ex));
+    }
+    logger.stop();
+    es.shutdownNow();
   }
 
   /**

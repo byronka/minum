@@ -6,19 +6,32 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 
 public class Web {
 
+  private ILogger logger;
   public final String HTTP_CRLF = "\r\n";
+
+  public Web(ILogger logger) {
+    if (logger == null) {
+      this.logger = msg -> System.out.println(msg.get());
+      this.logger.logDebug(() -> "Using a local logger");
+    } else {
+      this.logger = logger;
+      this.logger.logDebug(() -> "Using a supplied logger");
+    }
+  }
 
   /**
    * This wraps Sockets to make them simpler / more particular to our use case
    */
-  static class SocketWrapper implements AutoCloseable {
+  class SocketWrapper implements AutoCloseable {
 
     private final Socket socket;
     private final OutputStream writer;
     private final BufferedReader reader;
+    private SimpleConcurrentSet<SocketWrapper> setOfServers;
 
     public SocketWrapper(Socket socket) {
       this.socket = socket;
@@ -28,6 +41,11 @@ public class Web {
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
+    }
+
+    public SocketWrapper(Socket socket, SimpleConcurrentSet<SocketWrapper> scs) {
+      this(socket);
+      this.setOfServers = scs;
     }
 
     public void send(String msg) {
@@ -62,6 +80,9 @@ public class Web {
     public void close() {
       try {
         socket.close();
+        if (setOfServers != null) {
+          setOfServers.remove(this);
+        }
       } catch(Exception ex) {
         throw new RuntimeException(ex);
       }
@@ -78,33 +99,37 @@ public class Web {
    * the server side but also tie it in with an ExecutorService
    * for controlling lots of server threads.
    */
-  static class Server implements AutoCloseable{
+  class Server implements AutoCloseable{
     private final ServerSocket serverSocket;
-    private List<SocketWrapper> socketWrappers;
+    private SimpleConcurrentSet<SocketWrapper> setOfServers;
 
     public Server(ServerSocket ss) {
       this.serverSocket = ss;
-      socketWrappers = new ArrayList<>();
+      setOfServers = new SimpleConcurrentSet<>();
     }
 
-    public void start() {
+    public void start(ExecutorService es) {
       Thread t = new Thread(() -> {
         try {
           while (true) {
-            SocketWrapper sw = new SocketWrapper(serverSocket.accept());
-            socketWrappers.add(sw);
+            logger.logDebug(() -> "server waiting to accept connection");
+            SocketWrapper sw = new SocketWrapper(serverSocket.accept(), setOfServers);
+            logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));
+            setOfServers.add(sw);
           }
         } catch (SocketException ex) {
           if (ex.getMessage().contains("Socket closed")) {
             // just swallow the complaint.  accept always
             // throw this exception when we run close()
             // on the server socket
+          } else {
+            throw new RuntimeException(ex);
           }
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
       });
-      t.start();
+      es.submit(t);
     }
 
     public void close() {
@@ -123,18 +148,48 @@ public class Web {
       return serverSocket.getLocalPort();
     }
 
-    public SocketWrapper getSocketWrapperByRemoteAddr(String addr, int port) {
-      List<SocketWrapper> wrappers = socketWrappers
-              .stream()
-              .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(addr, port)))
-              .toList();
-      if (wrappers.size() > 1) {
-        throw new RuntimeException("Too many sockets found with that address");
-      } else if (wrappers.size() == 1) {
-        return wrappers.get(0);
-      } else {
-        throw new RuntimeException("No socket found with that address");
+    /**
+     * This is a helper method to find the server SocketWrapper
+     * connected to a client SocketWrapper.
+     */
+    public SocketWrapper getServer(SocketWrapper sw) {
+      return getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
+    }
+
+
+    /**
+     * This is a program used during testing so we can find the server
+     * socket that corresponds to a particular client socket.
+     *
+     * Due to the circumstances of the TCP handshake, there's a bit of
+     * time where the server might still be "figuring things out", and
+     * when we come through here the server hasn't yet finally come
+     * out of "accept" and been put into the list of current server sockets.
+     *
+     * For that reason, if we come in here and don't find it initially, we'll
+     * sleep and then try again, up to three times.
+     */
+    private SocketWrapper getSocketWrapperByRemoteAddr(String address, int port) {
+      int maxLoops = 3;
+      for (int loopCount = 0; loopCount < maxLoops; loopCount++ ) {
+        List<SocketWrapper> servers = setOfServers
+                .asStream()
+                .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(address, port)))
+                .toList();
+        if (servers.size() > 1) {
+          throw new RuntimeException("Too many sockets found with that address");
+        } else if (servers.size() == 1) {
+          return servers.get(0);
+        }
+        int finalLoopCount = loopCount;
+        logger.logDebug(() -> String.format("no server found, sleeping on it... (attempt %d)", finalLoopCount + 1));
+        try {
+          Thread.sleep(10);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
+      throw new RuntimeException("No socket found with that address");
     }
 
   }
@@ -142,26 +197,27 @@ public class Web {
   /**
    * Create a listening server
    */
-  public static Web.Server startServer() {
-    int port = 8080;
+  public Web.Server startServer(ExecutorService es) {
     try {
+      int port = 8080;
       ServerSocket ss = new ServerSocket(port);
+      logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
       Server server = new Server(ss);
-      server.start();
+      server.start(es);
       return server;
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  public static Web.SocketWrapper startClient(Server server) {
-    Socket socket;
+  public Web.SocketWrapper startClient(Server server) {
     try {
-      socket = new Socket(server.getHost(), server.getPort());
-    } catch (IOException ex) {
+      Socket socket = new Socket(server.getHost(), server.getPort());
+      logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+      return new SocketWrapper(socket);
+    } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    return new SocketWrapper(socket);
   }
 
 }
