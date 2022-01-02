@@ -7,8 +7,9 @@ class Tests {
   public static void main(String[] args) {
 
     ExecutorService es = ExtendedExecutor.makeExecutorService();
-    Logger logger = new Logger(es).initialize();
+    Logger logger = new Logger(es).initialize().turnOff(Logger.Type.DEBUG);
     Web web = new Web(logger);
+
     try {
       logger.test("a happy path");
       {
@@ -68,6 +69,11 @@ class Tests {
         }
       }
 
+      logger.test("What happens if we throw an exception in a thread");
+      {
+        es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
+      }
+
       logger.test("like we're a web server");
       {
         try (Web.Server primaryServer = web.startServer(es)) {
@@ -82,6 +88,8 @@ class Tests {
           }
         }
       }
+
+
 
     } catch (Exception ex) {
       logger.logDebug(() -> Logger.printStackTrace(ex));

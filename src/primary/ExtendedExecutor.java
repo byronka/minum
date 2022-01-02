@@ -10,23 +10,22 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
 
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
-        if (t == null && r instanceof Future<?>) {
+        if (t == null
+                && r instanceof Future<?>
+                && ((Future<?>)r).isDone()) {
             try {
-                Future<?> future = (Future<?>) r;
-                if (future.isDone()) {
-                    future.get();
-                }
+                Object result = ((Future<?>) r).get();
             } catch (CancellationException ce) {
                 t = ce;
             } catch (ExecutionException ee) {
                 t = ee.getCause();
             } catch (InterruptedException ie) {
+                // ignore/reset
                 Thread.currentThread().interrupt();
             }
         }
-        if (t != null) {
-            throw new RuntimeException(t);
-        }
+        if (t != null)
+            t.printStackTrace();
     }
 
     public static ExecutorService makeExecutorService() {
