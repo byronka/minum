@@ -6,11 +6,7 @@ class Tests {
 
   public static void main(String[] args) {
 
-//    ExecutorService es = Executors.newCachedThreadPool();
-    ExecutorService es = new ExtendedExecutor(0, Integer.MAX_VALUE,
-            60L, TimeUnit.SECONDS,
-            new SynchronousQueue<>(),
-            Executors.defaultThreadFactory());
+    ExecutorService es = ExtendedExecutor.makeExecutorService();
     Logger logger = new Logger(es).initialize();
     Web web = new Web(logger);
     try {

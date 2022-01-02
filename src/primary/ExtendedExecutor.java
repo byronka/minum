@@ -28,4 +28,11 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
             throw new RuntimeException(t);
         }
     }
+
+    public static ExecutorService makeExecutorService() {
+        return new ExtendedExecutor(0, Integer.MAX_VALUE,
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                Executors.defaultThreadFactory());
+    }
 }
