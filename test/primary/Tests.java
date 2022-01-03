@@ -7,7 +7,7 @@ class Tests {
   public static void main(String[] args) {
 
     ExecutorService es = ExtendedExecutor.makeExecutorService();
-    Logger logger = new Logger(es).initialize().turnOff(Logger.Type.DEBUG);
+    Logger logger = new Logger(es).initialize(); //.turnOff(Logger.Type.DEBUG);
     Web web = new Web(logger);
 
     logger.test("a happy path");
@@ -68,9 +68,11 @@ class Tests {
       }
     }
 
-    logger.test("What happens if we throw an exception in a thread");
+    // no need to run this every time.  Feel free to uncomment this and make
+    // sure it works, but seeing exceptions in the output from tests is disconcerting.
+    // logger.test("What happens if we throw an exception in a thread");
     {
-      es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
+      // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
     }
 
     logger.test("like we're a web server");

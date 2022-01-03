@@ -13,6 +13,18 @@ public class Web {
   private ILogger logger;
   public final String HTTP_CRLF = "\r\n";
 
+  private void addToSetOfServers(SimpleConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
+    setOfServers.add(sw);
+    int size = setOfServers.size();
+    logger.logDebug(() -> "added " + sw + " to setOfServers. size: " + size);
+  }
+
+  private void removeFromSetOfServers(SimpleConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
+    setOfServers.remove(sw);
+    int size = setOfServers.size();
+    logger.logDebug(() -> "removed " + sw + " from setOfServers. size: " + size);
+  }
+
   public Web(ILogger logger) {
     if (logger == null) {
       this.logger = msg -> System.out.println(msg.get());
@@ -81,7 +93,8 @@ public class Web {
       try {
         socket.close();
         if (setOfServers != null) {
-          setOfServers.remove(this);
+
+          removeFromSetOfServers(setOfServers, this);
         }
       } catch(Exception ex) {
         throw new RuntimeException(ex);
@@ -115,7 +128,7 @@ public class Web {
             logger.logDebug(() -> "server waiting to accept connection");
             SocketWrapper sw = new SocketWrapper(serverSocket.accept(), setOfServers);
             logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));
-            setOfServers.add(sw);
+            addToSetOfServers(setOfServers, sw);
           }
         } catch (SocketException ex) {
           if (ex.getMessage().contains("Socket closed")) {
