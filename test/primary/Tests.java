@@ -1,6 +1,7 @@
 package primary;
 
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 
 class Tests {
 
@@ -90,6 +91,38 @@ class Tests {
       }
     }
 
+    /**
+     * If we provide some code to handle things on the server
+     * side when it accepts a connection, then it will more
+     * truly act like the web server we want it to be.
+     */
+    logger.test("starting server with a handler");
+    {
+      /**
+       * Simplistic proof-of-concept of the primary server
+       * handler.  The socket has been created and as new
+       * clients call it, this method handles each request.
+       *
+       * There's nothing to prevent us using this as the entire
+       * basis of a web framework.
+       */
+      Consumer<Web.SocketWrapper> handler = (sw) -> logger.logDebug(sw::readLine);
+
+      try (Web.Server primaryServer = web.startServer(es, handler)) {
+        try (Web.SocketWrapper client = web.startClient(primaryServer)) {
+          // send a GET request
+          client.send("GET /index.html HTTP/1.1\r\n");
+
+          // give the server time to run code from the handler,
+          // then shut down.
+          primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+        } catch (Exception ex) {
+          // do nothing
+        }
+      }
+    }
+
+    // final shutdown pieces
     logger.stop();
     es.shutdownNow();
   }

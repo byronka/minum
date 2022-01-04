@@ -6,7 +6,10 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 public class Web {
 
@@ -116,19 +119,29 @@ public class Web {
     private final ServerSocket serverSocket;
     private SimpleConcurrentSet<SocketWrapper> setOfServers;
 
+    /**
+     * This is the future returned when we submitted the
+     * thread for the central server loop to the ExecutorService
+     */
+    public Future<?> centralLoopFuture;
+
     public Server(ServerSocket ss) {
       this.serverSocket = ss;
       setOfServers = new SimpleConcurrentSet<>();
     }
 
-    public void start(ExecutorService es) {
+    public void start(ExecutorService es, Consumer<SocketWrapper> handler) {
       Thread t = new Thread(() -> {
         try {
           while (true) {
             logger.logDebug(() -> "server waiting to accept connection");
-            SocketWrapper sw = new SocketWrapper(serverSocket.accept(), setOfServers);
+            Socket freshSocket = serverSocket.accept();
+            SocketWrapper sw = new SocketWrapper(freshSocket, setOfServers);
             logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));
             addToSetOfServers(setOfServers, sw);
+            if (handler != null) {
+              es.submit(new Thread(() -> handler.accept(sw)));
+            }
           }
         } catch (SocketException ex) {
           if (ex.getMessage().contains("Socket closed")) {
@@ -142,7 +155,7 @@ public class Web {
           throw new RuntimeException(ex);
         }
       });
-      es.submit(t);
+      this.centralLoopFuture = es.submit(t);
     }
 
     public void close() {
@@ -207,20 +220,24 @@ public class Web {
 
   }
 
-  /**
-   * Create a listening server
-   */
-  public Web.Server startServer(ExecutorService es) {
+  public Web.Server startServer(ExecutorService es, Consumer<SocketWrapper> handler) {
     try {
       int port = 8080;
       ServerSocket ss = new ServerSocket(port);
       logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
       Server server = new Server(ss);
-      server.start(es);
+      server.start(es, handler);
       return server;
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
+  }
+
+  /**
+   * Create a listening server
+   */
+  public Web.Server startServer(ExecutorService es) {
+    return startServer(es, null);
   }
 
   public Web.SocketWrapper startClient(Server server) {
