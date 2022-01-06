@@ -112,13 +112,39 @@ class Tests {
         try (Web.SocketWrapper client = web.startClient(primaryServer)) {
           // send a GET request
           client.send("GET /index.html HTTP/1.1\r\n");
-
-          // give the server time to run code from the handler,
-          // then shut down.
-          primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-        } catch (Exception ex) {
-          // do nothing
         }
+        // give the server time to run code from the handler,
+        // then shut down.
+        primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+      } catch (Throwable ex) {
+        // do nothing
+      }
+    }
+
+    logger.test("Let's create a class that just talks");
+    {
+      Consumer<Web.SocketWrapper> handler = socketWrapper -> {
+        Web.Talker talker = web.makeTalker(socketWrapper);
+
+        String result = talker.readLine();
+        assertEquals(result, "GET /index.html HTTP/1.1");
+
+        talker.sendLine("hello");
+      };
+
+      try (Web.Server primaryServer = web.startServer(es, handler)) {
+        try (Web.SocketWrapper client = web.startClient(primaryServer)) {
+          Web.Talker clientTalker = web.makeTalker(client);
+          // send a GET request
+          clientTalker.sendLine("GET /index.html HTTP/1.1");
+          String result = clientTalker.readLine();
+          assertEquals(result, "hello");
+        }
+        // give the server time to run code from the handler,
+        // then shut down.
+        primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+      } catch (Throwable ex) {
+        // do nothing
       }
     }
 

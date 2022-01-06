@@ -220,6 +220,39 @@ public class Web {
 
   }
 
+
+  /**
+   * Encapsulates the idea of a program that only has
+   * mechanisms for speaking and listening.  Its interface is
+   * purely about that, with an emphasis on the kinds of
+   * speaking and listening that a web server considers important.
+   *
+   * For example, in HTTP, each new line must end with CR + LF,
+   * per the various appropriate RFC's.
+   * See https://datatracker.ietf.org/doc/html/rfc2616
+   *
+   * With this class, we can avoid some of those considerations. maybe.
+   *
+   * On the other hand maybe I'm abstracting too soon.  Well,
+   * it *is* 11:43 at night, I probably am.
+   */
+  class Talker {
+
+    private final SocketWrapper sw;
+
+    public Talker(SocketWrapper sw) {
+      this.sw = sw;
+    }
+
+    public void sendLine(String s) {
+      sw.send(s + HTTP_CRLF);
+    }
+
+    public String readLine() {
+      return sw.readLine();
+    }
+  }
+
   public Web.Server startServer(ExecutorService es, Consumer<SocketWrapper> handler) {
     try {
       int port = 8080;
@@ -248,6 +281,10 @@ public class Web {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
+  }
+
+  public Web.Talker makeTalker(SocketWrapper sw) {
+    return new Talker(sw);
   }
 
 }
