@@ -37,6 +37,22 @@ public class Web {
     }
   }
 
+  public interface ISocketWrapper extends AutoCloseable {
+    void send(String msg);
+
+    void sendHttpLine(String msg);
+
+    String readLine();
+
+    String getLocalAddr();
+
+    int getLocalPort();
+
+    SocketAddress getRemoteAddr();
+
+    void close();
+  }
+
   /**
    * This wraps Sockets to make them simpler / more particular to our use case
    */

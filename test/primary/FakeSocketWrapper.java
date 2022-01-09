@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 /**
  * A fake of {@link primary.Web.SocketWrapper} used in tests
  */
-public class FakeSocketWrapper implements ISocketWrapper {
+public class FakeSocketWrapper implements Web.ISocketWrapper {
 
     Consumer<String> sendAction;
     Consumer<String> sendHttpLineAction;

@@ -130,7 +130,7 @@ class Tests {
       sw.sendHttpLineAction = s -> result.set(s);
 
       // this is what we're really going to test
-      Consumer<ISocketWrapper> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
+      Consumer<Web.ISocketWrapper> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
       handler.accept(sw);
 
       assertEquals("this is a test", result.get());
