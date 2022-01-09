@@ -3,6 +3,16 @@ package primary;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * This class provides the ability to pop items into
+ * a queue thread-safely and know they'll happen later.
+ *
+ * For example, this is helpful for logging, or passing
+ * functions to a database.  It lets us run a bit faster,
+ * since the I/O actions are happening on a separate
+ * thread and the only time required is passing the
+ * function of what we want to run later.
+ */
 public class ActionQueue {
     private String name;
     private ExecutorService queueExecutor;

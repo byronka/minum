@@ -6,7 +6,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -16,13 +15,13 @@ public class Web {
   private ILogger logger;
   public final String HTTP_CRLF = "\r\n";
 
-  private void addToSetOfServers(SimpleConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
+  private void addToSetOfServers(ConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
     setOfServers.add(sw);
     int size = setOfServers.size();
     logger.logDebug(() -> "added " + sw + " to setOfServers. size: " + size);
   }
 
-  private void removeFromSetOfServers(SimpleConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
+  private void removeFromSetOfServers(ConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
     setOfServers.remove(sw);
     int size = setOfServers.size();
     logger.logDebug(() -> "removed " + sw + " from setOfServers. size: " + size);
@@ -41,12 +40,12 @@ public class Web {
   /**
    * This wraps Sockets to make them simpler / more particular to our use case
    */
-  class SocketWrapper implements AutoCloseable {
+  class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final OutputStream writer;
     private final BufferedReader reader;
-    private SimpleConcurrentSet<SocketWrapper> setOfServers;
+    private ConcurrentSet<SocketWrapper> setOfServers;
 
     public SocketWrapper(Socket socket) {
       this.socket = socket;
@@ -58,11 +57,12 @@ public class Web {
       }
     }
 
-    public SocketWrapper(Socket socket, SimpleConcurrentSet<SocketWrapper> scs) {
+    public SocketWrapper(Socket socket, ConcurrentSet<SocketWrapper> scs) {
       this(socket);
       this.setOfServers = scs;
     }
 
+    @Override
     public void send(String msg) {
       try {
         writer.write(msg.getBytes());
@@ -71,6 +71,12 @@ public class Web {
       }
     }
 
+    @Override
+    public void sendHttpLine(String msg) {
+      send(msg + HTTP_CRLF);
+    }
+
+    @Override
     public String readLine() {
       try {
         return reader.readLine();
@@ -79,14 +85,17 @@ public class Web {
       }
     }
 
+    @Override
     public String getLocalAddr() {
       return socket.getLocalAddress().getHostAddress();
     }
 
+    @Override
     public int getLocalPort() {
       return socket.getLocalPort();
     }
 
+    @Override
     public SocketAddress getRemoteAddr() {
       return socket.getRemoteSocketAddress();
     }
@@ -117,7 +126,7 @@ public class Web {
    */
   class Server implements AutoCloseable{
     private final ServerSocket serverSocket;
-    private SimpleConcurrentSet<SocketWrapper> setOfServers;
+    private ConcurrentSet<SocketWrapper> setOfServers;
 
     /**
      * This is the future returned when we submitted the
@@ -127,7 +136,7 @@ public class Web {
 
     public Server(ServerSocket ss) {
       this.serverSocket = ss;
-      setOfServers = new SimpleConcurrentSet<>();
+      setOfServers = new ConcurrentSet<>();
     }
 
     public void start(ExecutorService es, Consumer<SocketWrapper> handler) {
@@ -220,39 +229,6 @@ public class Web {
 
   }
 
-
-  /**
-   * Encapsulates the idea of a program that only has
-   * mechanisms for speaking and listening.  Its interface is
-   * purely about that, with an emphasis on the kinds of
-   * speaking and listening that a web server considers important.
-   *
-   * For example, in HTTP, each new line must end with CR + LF,
-   * per the various appropriate RFC's.
-   * See https://datatracker.ietf.org/doc/html/rfc2616
-   *
-   * With this class, we can avoid some of those considerations. maybe.
-   *
-   * On the other hand maybe I'm abstracting too soon.  Well,
-   * it *is* 11:43 at night, I probably am.
-   */
-  class Talker {
-
-    private final SocketWrapper sw;
-
-    public Talker(SocketWrapper sw) {
-      this.sw = sw;
-    }
-
-    public void sendLine(String s) {
-      sw.send(s + HTTP_CRLF);
-    }
-
-    public String readLine() {
-      return sw.readLine();
-    }
-  }
-
   public Web.Server startServer(ExecutorService es, Consumer<SocketWrapper> handler) {
     try {
       int port = 8080;
@@ -281,10 +257,6 @@ public class Web {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-  }
-
-  public Web.Talker makeTalker(SocketWrapper sw) {
-    return new Talker(sw);
   }
 
 }

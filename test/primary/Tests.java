@@ -1,6 +1,7 @@
 package primary;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 class Tests {
@@ -82,10 +83,10 @@ class Tests {
         try (Web.SocketWrapper client = web.startClient(primaryServer)) {
           try (Web.SocketWrapper server = primaryServer.getServer(client)) {
             // send a GET request
-            client.send("GET /index.html HTTP/1.1\r\n");
-            client.send("cookie: abc=123\r\n");
-            client.send("\r\n");
-            server.send("HTTP/1.1 200 OK\r\n");
+            client.sendHttpLine("GET /index.html HTTP/1.1");
+            client.sendHttpLine("cookie: abc=123");
+            client.sendHttpLine("");
+            server.sendHttpLine("HTTP/1.1 200 OK");
           }
         }
       }
@@ -111,41 +112,28 @@ class Tests {
       try (Web.Server primaryServer = web.startServer(es, handler)) {
         try (Web.SocketWrapper client = web.startClient(primaryServer)) {
           // send a GET request
-          client.send("GET /index.html HTTP/1.1\r\n");
+          client.sendHttpLine("GET /index.html HTTP/1.1");
+
+          // give the server time to run code from the handler,
+          // then shut down.
+          primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+        } catch (Exception ex) {
+          // do nothing
         }
-        // give the server time to run code from the handler,
-        // then shut down.
-        primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-      } catch (Throwable ex) {
-        // do nothing
       }
     }
 
-    logger.test("Let's create a class that just talks");
+    logger.test("TDD of a handler");
     {
-      Consumer<Web.SocketWrapper> handler = socketWrapper -> {
-        Web.Talker talker = web.makeTalker(socketWrapper);
+      FakeSocketWrapper sw = new FakeSocketWrapper();
+      AtomicReference<String> result = new AtomicReference<>();
+      sw.sendHttpLineAction = s -> result.set(s);
 
-        String result = talker.readLine();
-        assertEquals(result, "GET /index.html HTTP/1.1");
+      // this is what we're really going to test
+      Consumer<ISocketWrapper> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
+      handler.accept(sw);
 
-        talker.sendLine("hello");
-      };
-
-      try (Web.Server primaryServer = web.startServer(es, handler)) {
-        try (Web.SocketWrapper client = web.startClient(primaryServer)) {
-          Web.Talker clientTalker = web.makeTalker(client);
-          // send a GET request
-          clientTalker.sendLine("GET /index.html HTTP/1.1");
-          String result = clientTalker.readLine();
-          assertEquals(result, "hello");
-        }
-        // give the server time to run code from the handler,
-        // then shut down.
-        primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-      } catch (Throwable ex) {
-        // do nothing
-      }
+      assertEquals("this is a test", result.get());
     }
 
     // final shutdown pieces

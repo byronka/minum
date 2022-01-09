@@ -11,13 +11,13 @@ import java.util.stream.StreamSupport;
  * the data in the keys only.  We provide some syntactic sugar
  * so this seems similar to using a Set.
  *
- * This set is simpler than [MutableConcurrentSet] - it stores the data in the keys.
+ * This is a thread-safe data structure.
  */
-public class SimpleConcurrentSet<T> implements Iterable<T> {
+public class ConcurrentSet<T> implements Iterable<T> {
 
     private ConcurrentHashMap<T, NullEnum> map;
 
-    public SimpleConcurrentSet() {
+    public ConcurrentSet() {
         this.map = new ConcurrentHashMap<>();
     }
 
