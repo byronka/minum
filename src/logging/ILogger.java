@@ -1,4 +1,4 @@
-package primary;
+package logging;
 
 import java.util.function.Supplier;
 

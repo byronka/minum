@@ -1,4 +1,6 @@
-package primary;
+package logging;
+
+import utils.ActionQueue;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

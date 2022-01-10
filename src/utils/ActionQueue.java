@@ -1,4 +1,4 @@
-package primary;
+package utils;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
