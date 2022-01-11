@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.stream.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -229,7 +230,7 @@ public class Web {
         List<SocketWrapper> servers = setOfServers
                 .asStream()
                 .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(address, port)))
-                .toList();
+                .collect(Collectors.toList());
         if (servers.size() > 1) {
           throw new RuntimeException("Too many sockets found with that address");
         } else if (servers.size() == 1) {

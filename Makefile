@@ -72,10 +72,12 @@ all: $(CLS)
 
 # here is the target for the application code
 $(CLS): $(OUT_DIR)/%.class: $(SRC_DIR)/%.java
+	    @mkdir -p $(OUT_DIR)
 	    $(JC) -d $(OUT_DIR)/ -cp $(SRC_DIR)/ $<
 
 # here is the target for the test code
 $(TST_CLS): $(OUT_DIR)/%.class: $(TST_SRC_DIR)/%.java
+	    @mkdir -p $(OUT_DIR)
 	    $(JC) -d $(OUT_DIR)/ -cp $(SRC_DIR)/ -cp $(TST_SRC_DIR)/ -cp $(OUT_DIR) $<
 
 
