@@ -156,6 +156,31 @@ class Tests {
         assertTrue(m.matches());
       }
 
+      logger.test("playing around with how we could determine testedness of a function");
+      {
+        int score = 0;
+
+        // for a pretend method, add(int a, int b)... let's play
+        // e.g. add(2, 3)
+        int a = 2;
+        int b = 3;
+        // make sure we hit less than zero, on zero, greater-than zero, both params
+        if (a > 0) score++;if (a < 0) score++;if (a == 0) score++;
+        if (b > 0) score++;if (b < 0) score++;if (b == 0) score++;
+        // make sure we hit max and min
+        if (a == Integer.MAX_VALUE) score++; if (a == Integer.MIN_VALUE) score++;
+        if (b == Integer.MAX_VALUE) score++; if (b == Integer.MIN_VALUE) score++;
+        // now we've dealt with each individually, let's think how they act as pairs
+        if (a < 0 && b < 0) score++; if (a > 0 && b > 0) score++; if (a == 0 && b == 0) score++;
+        if (a < 0 && b > 0) score++; if (a > 0 && b < 0) score++; if (a == 0 && b != 0) score++;
+        if (a != 0 && b == 0) score++;
+        if (a == Integer.MAX_VALUE && b == Integer.MAX_VALUE) score++;
+        if (a == Integer.MIN_VALUE && b == Integer.MIN_VALUE) score++;
+
+        int finalScore = score;
+        logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
+      }
+
 
     } finally {
       // final shutdown pieces
