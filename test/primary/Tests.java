@@ -3,11 +3,16 @@ package primary;
 import logging.Logger;
 import utils.ExtendedExecutor;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static primary.Web.HttpUtils.startLineRegex;
 
 class Tests {
 
@@ -131,6 +136,38 @@ class Tests {
         }
       }
 
+      logger.test("starting server with a handler part 2");
+      {
+
+        try (Web.Server primaryServer = web.startServer(es, Web.HttpUtils.serverHandler)) {
+          try (Web.SocketWrapper client = web.startClient(primaryServer)) {
+            // send a GET request
+            client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
+            client.sendHttpLine("Host: localhost:8080");
+            client.sendHttpLine("");
+
+            String statusLine = client.readLine();
+
+            assertEquals(statusLine, "HTTP/1.1 200 OK");
+
+            List<String> headers = Web.HttpUtils.readHeaders(client);
+
+            List<String> expectedResponseHeaders = Arrays.asList(
+                    "Server: atqa",
+                    "Date: Sun, 16 Jan 2022 19:30:06 GMT",
+                    "Content-Type: text/html; charset=UTF-8");
+
+            assertEquals(headers, expectedResponseHeaders);
+
+            // give the server time to run code from the handler,
+            // then shut down.
+            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+          } catch (Exception ex) {
+            // do nothing
+          }
+        }
+      }
+
       // Just a simple test while controlling the fake socket wrapper
       logger.test("TDD of a handler");
       {
@@ -151,7 +188,6 @@ class Tests {
       // 3. the HTTP version (e.g. HTTP/1.1)
       logger.test("We should be able to pull valuable information from the start line");
       {
-        Pattern startLineRegex = Pattern.compile("(GET|POST) /(.*) HTTP/(?:1.1|1.0)");
         Matcher m = startLineRegex.matcher("GET /index.html HTTP/1.1");
         assertTrue(m.matches());
       }
@@ -258,6 +294,40 @@ class Tests {
   private static void assertEquals(String left, String right) {
     if (!left.equals(right)) {
       throw new RuntimeException("Not equal! left: " + left + " right: " + right);
+    }
+  }
+
+  /**
+   * asserts two lists are equal, ignoring the order.
+   * For example, (a, b) is equal to (b, a)
+   */
+  private static <T> void assertEqualsDisregardOrder(List<T> left, List<T> right) {
+    if (left.size() != right.size()) {
+      throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
+    }
+    List<T> orderedLeft = left.stream().sorted().collect(Collectors.toList());
+    List<T> orderedRight = right.stream().sorted().collect(Collectors.toList());
+    for (int i = 0; i < left.size(); i++) {
+      if (orderedLeft.get(i) != orderedRight.get(i)) {
+        throw new RuntimeException(String.format("different values: left: %s right: %s", left.get(i), right.get(i)));
+      }
+    }
+  }
+
+  /**
+   * asserts that two lists are equal in value and order.
+   * For example, (a, b) is equal to (a, b)
+   * Does not expect null as an input value.
+   * Two empty lists are considered equal.
+   */
+  private static <T> void assertEquals(List<T> left, List<T> right) {
+    if (left.size() != right.size()) {
+      throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
+    }
+    for (int i = 0; i < left.size(); i++) {
+      if (left.get(i) != right.get(i)) {
+        throw new RuntimeException(String.format("different values: left: %s right: %s", left.get(i), right.get(i)));
+      }
     }
   }
 

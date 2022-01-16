@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -93,6 +94,7 @@ public class Web {
 
     @Override
     public void sendHttpLine(String msg) {
+      logger.logDebug(() -> String.format("socket sending: %s", msg));
       send(msg + HTTP_CRLF);
     }
 
@@ -131,6 +133,39 @@ public class Web {
       } catch(Exception ex) {
         throw new RuntimeException(ex);
       }
+    }
+  }
+
+  static class HttpUtils {
+
+    public static Pattern startLineRegex = Pattern.compile("(GET|POST) /(.*) HTTP/(?:1.1|1.0)");
+
+    public static Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
+      String firstLine = sw.readLine();
+      List<String> headers = readHeaders(sw);
+
+      sw.sendHttpLine("HTTP/1.1 200 OK");
+      sw.sendHttpLine("Server: atqa");
+      sw.sendHttpLine("Content-Type: text/html; charset=UTF-8");
+      sw.sendHttpLine("");
+    };
+
+    /**
+     * Loops through reading text lines from the socket wrapper,
+     * returning a list of what it has found when it hits an empty line.
+     * This is the HTTP convention.
+     */
+    public static List<String> readHeaders(SocketWrapper sw) {
+      List<String> headers = new ArrayList<>();
+      while(true) {
+        String value = sw.readLine();
+        if (value.trim().isEmpty()) {
+          break;
+        } else {
+          headers.add(value);
+        }
+      }
+      return headers;
     }
   }
 
