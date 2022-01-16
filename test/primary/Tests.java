@@ -181,6 +181,63 @@ class Tests {
         logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
       }
 
+      /**
+       * If we can basically just try casting to things and making comparisons, then we might
+       * get a leg up for those situations where we deal with non-typed params
+       */
+      logger.test("how do we test non-typed code? a single param that turns out to be an int");
+      {
+        int score = 0;
+
+        // pretend method: foo(Object a)
+        Object a = 42;
+
+        // make sure we hit less than zero, on zero, greater-than zero, both params
+        try {
+          int stuff = (int) a;
+          if (stuff > 0) score++;
+          if (stuff < 0) score++;
+          if (stuff == 0) score++;
+        } catch (ClassCastException ex) {
+          logger.logDebug(() -> "this is not an int");
+        }
+        try {
+          long stuff = (long) a;
+          if (stuff > 0) score++;
+          if (stuff < 0) score++;
+          if (stuff == 0) score++;
+        } catch (ClassCastException ex) {
+          logger.logDebug(() -> "this is not a long");
+        }
+
+        int finalScore = score;
+        logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
+
+      }
+
+      logger.test("some more exotic type tests");
+      {
+        int score = 0;
+
+        // pretend method: foo(String[] a, Foobar b)
+        String[] a = {"a", "b", "c"};
+        class Foobar {
+          public Foobar() {}
+          public int bar() {return 42;}
+        }
+        Foobar f = new Foobar();
+
+        if (a.length == 0) score++;
+        if (a.length > 0) score++;
+        if (a == null) score++;
+        if (a.length == 1) score++;
+
+        if (f == null) score++;
+
+        int finalScore = score;
+        logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
+      }
+
 
     } finally {
       // final shutdown pieces
