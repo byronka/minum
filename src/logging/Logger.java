@@ -56,11 +56,13 @@ public class Logger implements ILogger {
         System.out.println(msg);
     }
 
+    private int testCount = 1;
+
     /**
      * A little helper function to log a test title prefixed with "TEST:"
      */
     public void test(String msg) {
-        loggerPrinter.enqueue(() -> printf("TEST: %s%n", msg));
+        loggerPrinter.enqueue(() -> printf("%n+*************%n| TEST %d: %s%n+*************%n%n", testCount++, msg));
     }
 
     public static void printf(String msg, Object ...args) {
