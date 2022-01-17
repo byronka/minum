@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 
 public class Web {
 
-  private ILogger logger;
+  private final ILogger logger;
   public final String HTTP_CRLF = "\r\n";
 
   private void addToSetOfServers(ConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
@@ -138,9 +138,9 @@ public class Web {
 
   static class HttpUtils {
 
-    public static Pattern startLineRegex = Pattern.compile("(GET|POST) /(.*) HTTP/(?:1.1|1.0)");
+    public static final Pattern startLineRegex = Pattern.compile("(GET|POST) /(.*) HTTP/(?:1.1|1.0)");
 
-    public static Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
+    public static final Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
       String firstLine = sw.readLine();
       List<String> headers = readHeaders(sw);
 
@@ -181,7 +181,7 @@ public class Web {
    */
   class Server implements AutoCloseable{
     private final ServerSocket serverSocket;
-    private ConcurrentSet<SocketWrapper> setOfServers;
+    private final ConcurrentSet<SocketWrapper> setOfServers;
 
     /**
      * This is the future returned when we submitted the

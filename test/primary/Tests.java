@@ -9,7 +9,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static primary.Web.HttpUtils.startLineRegex;
@@ -105,20 +104,20 @@ class Tests {
         }
       }
 
-      /**
-       * If we provide some code to handle things on the server
-       * side when it accepts a connection, then it will more
-       * truly act like the web server we want it to be.
+      /*
+        If we provide some code to handle things on the server
+        side when it accepts a connection, then it will more
+        truly act like the web server we want it to be.
        */
       logger.test("starting server with a handler");
       {
-        /**
-         * Simplistic proof-of-concept of the primary server
-         * handler.  The socket has been created and as new
-         * clients call it, this method handles each request.
-         *
-         * There's nothing to prevent us using this as the entire
-         * basis of a web framework.
+        /*
+          Simplistic proof-of-concept of the primary server
+          handler.  The socket has been created and as new
+          clients call it, this method handles each request.
+
+          There's nothing to prevent us using this as the entire
+          basis of a web framework.
          */
         Consumer<Web.SocketWrapper> handler = (sw) -> logger.logDebug(sw::readLine);
 
@@ -217,9 +216,9 @@ class Tests {
         logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
       }
 
-      /**
-       * If we can basically just try casting to things and making comparisons, then we might
-       * get a leg up for those situations where we deal with non-typed params
+      /*
+        If we can basically just try casting to things and making comparisons, then we might
+        get a leg up for those situations where we deal with non-typed params
        */
       logger.test("how do we test non-typed code? a single param that turns out to be an int");
       {

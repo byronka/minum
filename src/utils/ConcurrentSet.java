@@ -15,7 +15,7 @@ import java.util.stream.StreamSupport;
  */
 public class ConcurrentSet<T> implements Iterable<T> {
 
-    private ConcurrentHashMap<T, NullEnum> map;
+    private final ConcurrentHashMap<T, NullEnum> map;
 
     public ConcurrentSet() {
         this.map = new ConcurrentHashMap<>();

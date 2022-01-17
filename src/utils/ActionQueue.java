@@ -14,9 +14,9 @@ import java.util.concurrent.LinkedBlockingQueue;
  * function of what we want to run later.
  */
 public class ActionQueue {
-    private String name;
-    private ExecutorService queueExecutor;
-    private LinkedBlockingQueue<Runnable> queue;
+    private final String name;
+    private final ExecutorService queueExecutor;
+    private final LinkedBlockingQueue<Runnable> queue;
     private boolean stop = false;
 
     public ActionQueue(String name, ExecutorService queueExecutor) {

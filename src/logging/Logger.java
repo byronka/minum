@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Logger implements ILogger {
-    private ExecutorService es;
+    private final ExecutorService es;
     private ActionQueue loggerPrinter;
     private Map<Type, Boolean> toggles;
 
