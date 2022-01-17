@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 public class Logger implements ILogger {
     private final ExecutorService es;
-    private ActionQueue loggerPrinter;
+    protected ActionQueue loggerPrinter;
     private Map<Type, Boolean> toggles;
 
     public String getTimestamp() {
@@ -24,12 +24,8 @@ public class Logger implements ILogger {
 
     public Logger(ExecutorService es) {
         this.es = es;
-    }
-
-    public Logger initialize() {
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
         toggleDefaultLogging();
-        return this;
     }
 
     /**
@@ -50,19 +46,6 @@ public class Logger implements ILogger {
         if (toggles.get(Type.DEBUG)) {
             loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), msg.get()));
         }
-    }
-
-    public static void println(String msg) {
-        System.out.println(msg);
-    }
-
-    private int testCount = 1;
-
-    /**
-     * A little helper function to log a test title prefixed with "TEST:"
-     */
-    public void test(String msg) {
-        loggerPrinter.enqueue(() -> printf("%n+*************%n| TEST %d: %s%n+*************%n%n", testCount++, msg));
     }
 
     public static void printf(String msg, Object ...args) {

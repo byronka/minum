@@ -1,6 +1,6 @@
 package primary;
 
-import logging.Logger;
+import logging.TestLogger;
 import utils.ExtendedExecutor;
 
 import java.util.Arrays;
@@ -18,7 +18,7 @@ class Tests {
   public static void main(String[] args) {
 
     ExecutorService es = ExtendedExecutor.makeExecutorService();
-    Logger logger = new Logger(es).initialize(); //.turnOff(Logger.Type.DEBUG);
+    TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
 
     try {
 
