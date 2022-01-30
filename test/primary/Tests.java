@@ -1,6 +1,7 @@
 package primary;
 
 import logging.TestLogger;
+import primary.web.HttpUtils;
 import primary.web.StatusLine;
 import primary.web.Web;
 import utils.ExtendedExecutor;
@@ -141,7 +142,7 @@ class Tests {
       logger.test("starting server with a handler part 2");
       {
 
-        try (Web.Server primaryServer = web.startServer(es, Web.HttpUtils.serverHandler)) {
+        try (Web.Server primaryServer = web.startServer(es, HttpUtils.serverHandler)) {
           try (Web.SocketWrapper client = web.startClient(primaryServer)) {
             // send a GET request
             client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
@@ -163,7 +164,7 @@ class Tests {
 
             assertEqualsDisregardOrder(hi.rawValues, expectedResponseHeaders);
 
-            String body = Web.HttpUtils.readBody(client, hi.contentLength);
+            String body = HttpUtils.readBody(client, hi.contentLength);
 
             assertEquals(body, "86");
 

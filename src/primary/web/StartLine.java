@@ -7,7 +7,7 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static primary.web.Web.HttpUtils.decode;
+import static primary.web.HttpUtils.decode;
 import static utils.Invariants.require;
 
 /**
