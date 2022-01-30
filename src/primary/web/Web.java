@@ -17,10 +17,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
+import static utils.Invariants.mustBeFalse;
+
 /**
  * This class contains the basic internet capabilities
  */
 public class Web {
+
+  public Web() {
+    this(null);
+  }
 
   public Web(ILogger logger) {
     this(logger, null);
@@ -169,12 +175,8 @@ public class Web {
       char[] cb = new char[length];
       try {
         int countOfBytesRead = reader.read(cb, 0, length);
-        if (countOfBytesRead == -1) {
-          throw new RuntimeException("end of file hit");
-        }
-        if (countOfBytesRead != length) {
-          throw new RuntimeException(String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
-        }
+        mustBeFalse (countOfBytesRead == -1, "end of file hit");
+        mustBeFalse (countOfBytesRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
         return new String(cb);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -275,9 +277,8 @@ public class Web {
                 .asStream()
                 .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(address, port)))
                 .toList();
-        if (servers.size() > 1) {
-          throw new RuntimeException("Too many sockets found with that address");
-        } else if (servers.size() == 1) {
+        mustBeFalse(servers.size() > 1, "Too many sockets found with that address");
+        if (servers.size() == 1) {
           return servers.get(0);
         }
         int finalLoopCount = loopCount;

@@ -4,7 +4,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-import static utils.Invariants.requireNotNull;
+import static utils.Invariants.mustNotBeNull;
 
 public class HttpUtils {
 
@@ -23,7 +23,7 @@ public class HttpUtils {
      * Decodes URL-encoded UTF-8 text
      */
     public static String decode(String str) {
-        requireNotNull(str);
+        mustNotBeNull(str);
         return URLDecoder.decode(str, StandardCharsets.UTF_8);
     }
 }

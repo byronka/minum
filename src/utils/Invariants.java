@@ -10,15 +10,26 @@ public class Invariants {
      * @param predicate the boolean expression that must be true at this point
      * @param message a message that will be included in the exception if this is false
      */
-    public static void require(boolean predicate, String message) {
+    public static void mustBeTrue(boolean predicate, String message) {
         if (!predicate) {
-            throw new RuntimeException(message);
+            throw new InvariantException(message);
         }
     }
 
-    public static void requireNotNull(Object object) {
+    /**
+     * Specify something which must be false
+     * @param predicate the boolean expression that must be false at this point
+     * @param message a message that will be included in the exception if this is true
+     */
+    public static void mustBeFalse(boolean predicate, String message) {
+        if (predicate) {
+            throw new InvariantException(message);
+        }
+    }
+
+    public static void mustNotBeNull(Object object) {
         if (object == null) {
-            throw new RuntimeException(object.toString() + " must not be null");
+            throw new InvariantException("value must not be null");
         }
     }
 }

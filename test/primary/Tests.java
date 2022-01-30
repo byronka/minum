@@ -1,22 +1,22 @@
 package primary;
 
 import logging.TestLogger;
-import primary.web.HeaderInformation;
-import primary.web.HttpUtils;
-import primary.web.StatusLine;
-import primary.web.Web;
+import primary.web.*;
 import utils.ExtendedExecutor;
+import utils.InvariantException;
 
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 
+import static framework.TestFramework.*;
 import static primary.web.StartLine.startLineRegex;
 
 class Tests {
@@ -48,6 +48,20 @@ class Tests {
         int result = Main.add(0, 0);
         assertEquals(result, 0);
       }
+
+      /*
+
+ /$$      /$$           /$$               /$$                           /$$
+| $$  /$ | $$          | $$              | $$                          | $$
+| $$ /$$$| $$  /$$$$$$ | $$$$$$$        /$$$$$$    /$$$$$$   /$$$$$$$ /$$$$$$   /$$$$$$$
+| $$/$$ $$ $$ /$$__  $$| $$__  $$      |_  $$_/   /$$__  $$ /$$_____/|_  $$_/  /$$_____/
+| $$$$_  $$$$| $$$$$$$$| $$  \ $$        | $$    | $$$$$$$$|  $$$$$$   | $$   |  $$$$$$
+| $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
+| $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
+|__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |_______/
+       */
+
+      // region Web tests section
 
       logger.test("client / server");
       {
@@ -208,6 +222,92 @@ class Tests {
         assertTrue(m.matches());
       }
 
+      logger.test("Running Web with real (uncontrolled) date and time and null logger");
+      {
+        Web myWeb = new Web();
+        try (Web.Server primaryServer = myWeb.startServer(es, myWeb.serverHandler)) {
+          try (Web.SocketWrapper client = myWeb.startClient(primaryServer)) {
+            // send a GET request
+            client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
+            client.sendHttpLine("Host: localhost:8080");
+            client.sendHttpLine("");
+
+            StatusLine.extractStatusLine(client.readLine());
+
+            HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
+
+            assertTrue(hi.rawValues.stream().anyMatch(x -> x.startsWith("Date:")));
+
+            // give the server time to run code from the handler,
+            // then shut down.
+            try {
+              primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+              // do nothing
+            }
+          }
+        }
+      }
+
+      logger.test("alternate case for extractStartLine - POST");
+      {
+        StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.1");
+        assertEquals(sl.verb, StartLine.Verb.POST);
+      }
+
+      logger.test("negative cases for extractStartLine");
+      {
+        // missing verb
+        assertThrows(InvariantException.class, "/something HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("/something HTTP/1.1"));
+        // missing path
+        assertThrows(InvariantException.class, "GET HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET HTTP/1.1"));
+        // missing HTTP version
+        assertThrows(InvariantException.class, "GET /something must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something"));
+        // invalid HTTP version
+        assertThrows(InvariantException.class, "GET /something HTTP/1.2 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something HTTP/1.2"));
+        // invalid HTTP version syntax
+        assertThrows(InvariantException.class, "GET /something HTTP/ must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something HTTP/"));
+      }
+
+      logger.test("positive test for extractStatusLine");
+      {
+        StatusLine sl = StatusLine.extractStatusLine("HTTP/1.1 200 OK");
+        assertEquals(sl.status, StatusLine.Status._200_OK);
+      }
+
+      logger.test("negative tests for extractStatusLine");
+      {
+        // missing status description
+        assertThrows(InvariantException.class, "HTTP/1.1 200 must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.1 200"));
+        // missing status code
+        assertThrows(InvariantException.class, "HTTP/1.1  OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.1  OK"));
+        // missing HTTP version
+        assertThrows(InvariantException.class, "HTTP 200 OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP 200 OK"));
+        // invalid HTTP version
+        assertThrows(InvariantException.class, "HTTP/1.3 200 OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.3 200 OK"));
+        // invalid status code
+        assertThrows(NoSuchElementException.class, "No value present", () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
+      }
+
+      // endregion
+
+      /*
+
+ /$$$$$$$$                    /$$                                         /$$                     /$$
+|__  $$__/                   | $$                                        | $$                    |__/
+   | $$  /$$$$$$   /$$$$$$$ /$$$$$$          /$$$$$$  /$$$$$$$   /$$$$$$ | $$ /$$   /$$  /$$$$$$$ /$$  /$$$$$$$
+   | $$ /$$__  $$ /$$_____/|_  $$_/         |____  $$| $$__  $$ |____  $$| $$| $$  | $$ /$$_____/| $$ /$$_____/
+   | $$| $$$$$$$$|  $$$$$$   | $$            /$$$$$$$| $$  \ $$  /$$$$$$$| $$| $$  | $$|  $$$$$$ | $$|  $$$$$$
+   | $$| $$_____/ \____  $$  | $$ /$$       /$$__  $$| $$  | $$ /$$__  $$| $$| $$  | $$ \____  $$| $$ \____  $$
+   | $$|  $$$$$$$ /$$$$$$$/  |  $$$$/      |  $$$$$$$| $$  | $$|  $$$$$$$| $$|  $$$$$$$ /$$$$$$$/| $$ /$$$$$$$/
+   |__/ \_______/|_______/    \___/         \_______/|__/  |__/ \_______/|__/ \____  $$|_______/ |__/|_______/
+                                                                              /$$  | $$
+                                                                             |  $$$$$$/
+                                                                              \______/
+
+       */
+      // region Test Analysis section
+
       logger.test("playing around with how we could determine testedness of a function");
       {
         int score = 0;
@@ -290,81 +390,13 @@ class Tests {
         logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
       }
 
-      // TODO: test extractStartLine - GET /something HTTP/1.1
-      // TODO: test extractStartLine - POST /something HTTP/1.0
-      // TODO: test failure extractStartLine -  /something HTTP/1.1
-      // TODO: test failure extractStartLine - GET HTTP/1.1
-      // TODO: test failure extractStartLine - GET /something
-      // TODO: test failure extractStartLine - GET /something HTTP/1.2
-      // TODO: test failure extractStartLine - GET /something HTTP/
+      // endregion
 
-      // TODO test extractStatusLine - HTTP/1.1 200 OK
-      // TODO test failure extractStatusLine - HTTP/1.1 200
-      // TODO test failure extractStatusLine - HTTP/1.1  OK
-      // TODO test failure extractStatusLine - HTTP 200 OK
-      // TODO test failure extractStatusLine - HTTP/1.3 200 OK
-      // TODO test failure extractStatusLine - HTTP/1.1 199 OK
 
     } finally {
       // final shutdown pieces
       logger.stop();
       es.shutdownNow();
-    }
-  }
-
-  /**
-    * A helper for testing - assert two integers are equal
-    */
-  private static void assertEquals(int left, int right) {
-    if (left != right) {
-      throw new RuntimeException("Not equal! left: " + left + " right: " + right);
-    }
-  }
-
-  private static void assertEquals(String left, String right) {
-    if (!left.equals(right)) {
-      throw new RuntimeException("Not equal! left: " + left + " right: " + right);
-    }
-  }
-
-  /**
-   * asserts two lists are equal, ignoring the order.
-   * For example, (a, b) is equal to (b, a)
-   */
-  private static <T> void assertEqualsDisregardOrder(List<T> left, List<T> right) {
-    if (left.size() != right.size()) {
-      throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
-    }
-    List<T> orderedLeft = left.stream().sorted().toList();
-    List<T> orderedRight = right.stream().sorted().toList();
-
-    for (int i = 0; i < left.size(); i++) {
-      if (!orderedLeft.get(i).equals(orderedRight.get(i))) {
-        throw new RuntimeException(String.format("different values: left: %s right: %s", orderedLeft.get(i), orderedRight.get(i)));
-      }
-    }
-  }
-
-  /**
-   * asserts that two lists are equal in value and order.
-   * For example, (a, b) is equal to (a, b)
-   * Does not expect null as an input value.
-   * Two empty lists are considered equal.
-   */
-  private static <T> void assertEquals(List<T> left, List<T> right) {
-    if (left.size() != right.size()) {
-      throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
-    }
-    for (int i = 0; i < left.size(); i++) {
-      if (!left.get(i).equals(right.get(i))) {
-        throw new RuntimeException(String.format("different values: left: %s right: %s", left.get(i), right.get(i)));
-      }
-    }
-  }
-
-  private static void assertTrue(boolean value) {
-    if (!value) {
-      throw new RuntimeException("value was unexpectedly false");
     }
   }
 

@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static utils.Invariants.require;
+import static utils.Invariants.mustBeTrue;
 
 /**
  * Details extracted from the headers.  For example,
@@ -45,11 +45,11 @@ public class HeaderInformation {
 
     private static int extractContentLength(List<String> headers) {
         List<String> cl = headers.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
-        require(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
+        mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
         int contentLength = 0;
         if (!cl.isEmpty()) {
             Matcher clMatcher = contentLengthRegex.matcher(cl.get(0));
-            require(clMatcher.matches(), "The content length header value must match the contentLengthRegex");
+            mustBeTrue(clMatcher.matches(), "The content length header value must match the contentLengthRegex");
             contentLength = Integer.parseInt(clMatcher.group(1));
         }
         return contentLength;

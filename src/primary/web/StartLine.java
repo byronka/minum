@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static primary.web.HttpUtils.decode;
-import static utils.Invariants.require;
+import static utils.Invariants.mustBeTrue;
 
 /**
  * This class holds data and methods for dealing with the
@@ -25,8 +25,8 @@ public class StartLine {
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
      */
-    public static final Pattern startLineRegex =
-            Pattern.compile("^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
+    public static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
+    public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
     public final Verb verb;
     public final String path;
@@ -43,7 +43,7 @@ public class StartLine {
         return new HashMap<>(queryString);
     }
 
-    enum Verb {
+    public enum Verb {
         GET, POST
     }
 
@@ -58,7 +58,7 @@ public class StartLine {
 
     public static StartLine extractStartLine(String value) {
         Matcher m = StartLine.startLineRegex.matcher(value);
-        require(m.matches(), String.format("%s must match the startLineRegex", value));
+        mustBeTrue(m.matches(), String.format("%s must match the startLinePattern: %s", value, startLinePattern));
 
         Verb verb = extractVerb(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
@@ -114,7 +114,7 @@ public class StartLine {
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
-            require(equalSignLocation > 0, "There must be an equals sign");
+            mustBeTrue(equalSignLocation > 0, "There must be an equals sign");
             String key = currentKeyValue.substring(0, equalSignLocation);
             String value = decode(currentKeyValue.substring(equalSignLocation + 1));
             queryStrings.put(key, value);
