@@ -7,6 +7,9 @@ import primary.web.StatusLine;
 import primary.web.Web;
 import utils.ExtendedExecutor;
 
+import java.time.Month;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
@@ -22,10 +25,11 @@ class Tests {
 
     ExecutorService es = ExtendedExecutor.makeExecutorService();
     TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+    ZonedDateTime zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
 
     try {
 
-      Web web = new Web(logger);
+      Web web = new Web(logger, zdt);
 
       logger.test("a happy path");
       {
@@ -133,8 +137,8 @@ class Tests {
             // then shut down.
             try {
               primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-              e.printStackTrace();
+            } catch (Exception e) {
+              // do nothing
             }
           }
         }
@@ -143,7 +147,7 @@ class Tests {
       logger.test("starting server with a handler part 2");
       {
 
-        try (Web.Server primaryServer = web.startServer(es, HttpUtils.serverHandler)) {
+        try (Web.Server primaryServer = web.startServer(es, web.serverHandler)) {
           try (Web.SocketWrapper client = web.startClient(primaryServer)) {
             // send a GET request
             client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
@@ -158,7 +162,7 @@ class Tests {
 
             List<String> expectedResponseHeaders = Arrays.asList(
                     "Server: atqa",
-                    "Date: Sun, 16 Jan 2022 19:30:06 GMT",
+                    "Date: Tue, 4 Jan 2022 09:25:00 GMT",
                     "Content-Type: text/plain; charset=UTF-8",
                     "Content-Length: 2"
                     );
@@ -173,8 +177,8 @@ class Tests {
             // then shut down.
             try {
               primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-              e.printStackTrace();
+            } catch (Exception e) {
+              // do nothing
             }
           }
         }

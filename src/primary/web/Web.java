@@ -23,13 +23,45 @@ import java.util.function.Consumer;
 import static utils.Invariants.require;
 import static utils.Invariants.requireNotNull;
 
+/**
+ * This class contains the basic internet capabilities
+ */
 public class Web {
+
+  public Web(ILogger logger) {
+    this(logger, null);
+  }
+
+  /**
+   * This constructor allows us to set the zoned date/time, to
+   * better control the system during testing
+   */
+  public Web(ILogger logger, ZonedDateTime zdt) {
+    if (logger == null) {
+      this.logger = msg -> System.out.println(msg.get());
+      this.logger.logDebug(() -> "Using a local logger");
+    } else {
+      this.logger = logger;
+      this.logger.logDebug(() -> "Using a supplied logger");
+    }
+    this.zdt = zdt;
+  }
 
   enum HttpVersion {
     ONE_DOT_ZERO, ONE_DOT_ONE;
   }
+
   private final ILogger logger;
   public final String HTTP_CRLF = "\r\n";
+  private final ZonedDateTime zdt;
+
+  private ZonedDateTime getZonedDateTimeNow() {
+    if (zdt != null) {
+      return zdt;
+    } else {
+      return ZonedDateTime.now(ZoneId.of("UTC"));
+    }
+  }
 
   private void addToSetOfServers(ConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
     setOfServers.add(sw);
@@ -41,16 +73,6 @@ public class Web {
     setOfServers.remove(sw);
     int size = setOfServers.size();
     logger.logDebug(() -> "removed " + sw + " from setOfServers. size: " + size);
-  }
-
-  public Web(ILogger logger) {
-    if (logger == null) {
-      this.logger = msg -> System.out.println(msg.get());
-      this.logger.logDebug(() -> "Using a local logger");
-    } else {
-      this.logger = logger;
-      this.logger.logDebug(() -> "Using a supplied logger");
-    }
   }
 
   public interface ISocketWrapper extends AutoCloseable {
@@ -304,5 +326,27 @@ public class Web {
       throw new RuntimeException(ex);
     }
   }
+
+  /**
+   * This is the brains of how the server responds to web clients
+   */
+  public final Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
+    StartLine sl = StartLine.extractStartLine(sw.readLine());
+    HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
+
+    int aValue = Integer.parseInt(sl.getQueryString().get("a"));
+    int bValue = Integer.parseInt(sl.getQueryString().get("b"));
+    int sum = aValue + bValue;
+    String sumString = String.valueOf(sum);
+
+    sw.sendHttpLine("HTTP/1.1 200 OK");
+    String date = getZonedDateTimeNow().format(DateTimeFormatter.RFC_1123_DATE_TIME);
+    sw.sendHttpLine("Date: " + date);
+    sw.sendHttpLine("Server: atqa");
+    sw.sendHttpLine("Content-Type: text/plain; charset=UTF-8");
+    sw.sendHttpLine("Content-Length: " + sumString.length());
+    sw.sendHttpLine("");
+    sw.sendHttpLine(sumString);
+  };
 
 }
