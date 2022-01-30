@@ -17,7 +17,7 @@ public class HttpUtils {
      */
     public static final Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
         StartLine sl = StartLine.extractStartLine(sw.readLine());
-        Web.HeaderInformation hi = Web.HeaderInformation.extractHeaderInformation(sw);
+        HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
 
         int aValue = Integer.parseInt(sl.getQueryString().get("a"));
         int bValue = Integer.parseInt(sl.getQueryString().get("b"));

@@ -1,6 +1,7 @@
 package primary;
 
 import logging.TestLogger;
+import primary.web.HeaderInformation;
 import primary.web.HttpUtils;
 import primary.web.StatusLine;
 import primary.web.Web;
@@ -153,7 +154,7 @@ class Tests {
 
             assertEquals(statusLine.rawValue, "HTTP/1.1 200 OK");
                        
-            Web.HeaderInformation hi = Web.HeaderInformation.extractHeaderInformation(client);
+            HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
 
             List<String> expectedResponseHeaders = Arrays.asList(
                     "Server: atqa",
