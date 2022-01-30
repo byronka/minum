@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 
-import static primary.web.Web.StartLine.startLineRegex;
+import static primary.web.StartLine.startLineRegex;
 
 class Tests {
 
