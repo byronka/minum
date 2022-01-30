@@ -19,7 +19,7 @@ public class HeaderInformation {
      * Used for extracting the length of the body, in POSTs and
      * responses from servers
      */
-    static Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
+    static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
 
     public final List<String> rawValues;
     public final int contentLength;

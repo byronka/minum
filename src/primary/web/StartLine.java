@@ -44,7 +44,7 @@ public class StartLine {
     }
 
     enum Verb {
-        GET, POST;
+        GET, POST
     }
 
     public StartLine(Verb verb, String path, Web.HttpVersion version, String rawQueryString, Map<String, String> queryString, String rawStartLine) {
@@ -126,12 +126,11 @@ public class StartLine {
      * Extract the HTTP version from the start line
      */
     private static Web.HttpVersion getHttpVersion(String version) {
-        Web.HttpVersion httpVersion = switch (version) {
+        return switch (version) {
             case "1.1" -> Web.HttpVersion.ONE_DOT_ONE;
             case "1.0" -> Web.HttpVersion.ONE_DOT_ZERO;
             default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
         };
-        return httpVersion;
     }
 
 }

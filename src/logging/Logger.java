@@ -12,8 +12,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Logger implements ILogger {
-    private final ExecutorService es;
-    protected ActionQueue loggerPrinter;
+    protected final ActionQueue loggerPrinter;
     private Map<Type, Boolean> toggles;
 
     public String getTimestamp() {
@@ -21,7 +20,6 @@ public class Logger implements ILogger {
     }
 
     public Logger(ExecutorService es) {
-        this.es = es;
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
         toggleDefaultLogging();
     }
@@ -42,9 +40,7 @@ public class Logger implements ILogger {
     @Override
     public void logDebug(Supplier<String> msg) {
         if (toggles.get(Type.DEBUG)) {
-            String text = showWhiteSpace(msg.get());
-            String finalText = text;
-            loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), finalText));
+            loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(msg.get())));
         }
     }
 

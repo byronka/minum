@@ -9,19 +9,13 @@ import java.net.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
-
-import static utils.Invariants.require;
-import static utils.Invariants.requireNotNull;
 
 /**
  * This class contains the basic internet capabilities
@@ -48,7 +42,7 @@ public class Web {
   }
 
   enum HttpVersion {
-    ONE_DOT_ZERO, ONE_DOT_ONE;
+    ONE_DOT_ZERO, ONE_DOT_ONE
   }
 
   private final ILogger logger;
@@ -174,7 +168,13 @@ public class Web {
     public String readByLength(int length) {
       char[] cb = new char[length];
       try {
-        reader.read(cb, 0, length);
+        int countOfBytesRead = reader.read(cb, 0, length);
+        if (countOfBytesRead == -1) {
+          throw new RuntimeException("end of file hit");
+        }
+        if (countOfBytesRead != length) {
+          throw new RuntimeException(String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
+        }
         return new String(cb);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -221,11 +221,7 @@ public class Web {
             }
           }
         } catch (SocketException ex) {
-          if (ex.getMessage().contains("Socket closed")) {
-            // just swallow the complaint.  accept always
-            // throw this exception when we run close()
-            // on the server socket
-          } else {
+          if (!ex.getMessage().contains("Socket closed")) {
             throw new RuntimeException(ex);
           }
         } catch (IOException ex) {

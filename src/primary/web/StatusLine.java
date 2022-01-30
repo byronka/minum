@@ -32,7 +32,7 @@ public class StatusLine {
             return Arrays.stream(Status.values())
                     .filter(x -> x.statusCode == code)
                     .findFirst()
-                    .get();
+                    .orElseThrow();
         }
     }
 
