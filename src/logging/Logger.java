@@ -2,8 +2,6 @@ package logging;
 
 import utils.ActionQueue;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -44,19 +42,30 @@ public class Logger implements ILogger {
     @Override
     public void logDebug(Supplier<String> msg) {
         if (toggles.get(Type.DEBUG)) {
-            loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), msg.get()));
+            String text = showWhiteSpace(msg.get());
+            String finalText = text;
+            loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), finalText));
         }
+    }
+
+    /**
+     * Given a string that may have whitespace chars, render it in a way we can see
+     */
+    public static String showWhiteSpace(String msg) {
+        // if we have tabs, returns, newlines in the text, show them
+        String text = msg
+                .replace("\t", "(TAB)")
+                .replace("\r", "(RETURN)")
+                .replace("\n", "(NEWLINE)");
+        // if the text is an empty string, render that
+        text = text.isEmpty() ? "(EMPTY)" : text;
+        // if the text is nothing but whitespace, show that
+        text = text.isBlank() ? "(BLANK)" : text;
+        return text;
     }
 
     public static void printf(String msg, Object ...args) {
         System.out.printf(msg, args);
-    }
-
-    public static String printStackTrace(Throwable ex) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        ex.printStackTrace(pw);
-        return sw.toString();
     }
 
     enum Type {

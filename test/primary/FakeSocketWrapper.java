@@ -15,6 +15,7 @@ public class FakeSocketWrapper implements Web.ISocketWrapper {
     Supplier<String> getLocalAddrAction;
     Supplier<Integer> getLocalPortAction;
     Supplier<SocketAddress> getRemoteAddrAction;
+    Supplier<String> readByLengthAction;
 
     @Override
     public void send(String msg) {
@@ -47,7 +48,10 @@ public class FakeSocketWrapper implements Web.ISocketWrapper {
     }
 
     @Override
-    public void close() {
+    public void close() {}
 
+    @Override
+    public String readByLength(int length) {
+        return readByLengthAction.get();
     }
 }

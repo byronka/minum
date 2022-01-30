@@ -1,6 +1,7 @@
 package primary;
 
 import logging.ILogger;
+import logging.Logger;
 import utils.ConcurrentSet;
 
 import java.io.IOException;
@@ -8,15 +9,27 @@ import java.net.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
+import static primary.Web.HttpUtils.decode;
+import static utils.Invariants.require;
+import static utils.Invariants.requireNotNull;
+
 public class Web {
 
+  enum HttpVersion {
+    ONE_DOT_ZERO, ONE_DOT_ONE;
+  }
   private final ILogger logger;
   public final String HTTP_CRLF = "\r\n";
 
@@ -56,6 +69,8 @@ public class Web {
     SocketAddress getRemoteAddr();
 
     void close();
+
+    String readByLength(int length);
   }
 
   /**
@@ -94,7 +109,7 @@ public class Web {
 
     @Override
     public void sendHttpLine(String msg) {
-      logger.logDebug(() -> String.format("socket sending: %s", msg));
+      logger.logDebug(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
       send(msg + HTTP_CRLF);
     }
 
@@ -134,28 +149,240 @@ public class Web {
         throw new RuntimeException(ex);
       }
     }
+
+    @Override
+    public String readByLength(int length) {
+      char[] cb = new char[length];
+      try {
+        reader.read(cb, 0, length);
+        return new String(cb);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
-  static class HttpUtils {
+  static class StatusLine {
 
-    public static final Pattern startLineRegex = Pattern.compile("(GET|POST) /(.*) HTTP/(?:1.1|1.0)");
+    /**
+     * This is the regex used to analyze a status line sent by the server and
+     * read by the client.  Servers will send messages like: "HTTP/1.1 200 OK" or "HTTP/1.1 500 Internal Server Error"
+     */
+    public static final Pattern statusLineRegex =
+            Pattern.compile("^HTTP/(1.1|1.0) (\\d{3}) (.*)$");
 
-    public static final Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
-      String firstLine = sw.readLine();
-      List<String> headers = readHeaders(sw);
+    public final Status status;
+    public final HttpVersion version;
+    public final String rawValue;
 
-      sw.sendHttpLine("HTTP/1.1 200 OK");
-      sw.sendHttpLine("Server: atqa");
-      sw.sendHttpLine("Content-Type: text/html; charset=UTF-8");
-      sw.sendHttpLine("");
-    };
+    enum Status {
+      _200_OK(200);
+
+      private final int statusCode;
+
+      Status(int statusCode) {
+        this.statusCode = statusCode;
+      }
+
+      static Status findByCode(int code) {
+        return Arrays.stream(Status.values())
+                .filter(x -> x.statusCode == code)
+                .findFirst()
+                .get();
+      }
+    }
+
+    public StatusLine(Status status, HttpVersion version, String rawValue) {
+      this.status = status;
+      this.version = version;
+      this.rawValue = rawValue;
+    }
+
+    public static StatusLine extractStatusLine(String value) {
+      Matcher mr = StatusLine.statusLineRegex.matcher(value);
+      require(mr.matches(), "status line matcher did not match on " + value);
+      String version = mr.group(1);
+      Web.HttpVersion httpVersion = switch (version) {
+        case "1.1" -> HttpVersion.ONE_DOT_ONE;
+        case "1.0" -> HttpVersion.ONE_DOT_ZERO;
+        default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
+      };
+      Web.StatusLine.Status status = StatusLine.Status.findByCode(Integer.parseInt(mr.group(2)));
+
+      return new StatusLine(status, httpVersion, value);
+    }
+  }
+
+  /**
+   * This class holds data and methods for dealing with the
+   * "start line" in an HTTP request.  For example,
+   *    GET /foo HTTP/1.1
+   */
+  static class StartLine {
+
+    /**
+     * This is our regex for looking at a client's request
+     * and determining what to send them.  For example,
+     * if they send GET /sample.html HTTP/1.1, we send them sample.html
+     *
+     * On the other hand if it's not a well-formed request, or
+     * if we don't have that file, we reply with an error page
+     */
+    public static final Pattern startLineRegex =
+            Pattern.compile("^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
+
+    public final Verb verb;
+    public final String path;
+    public final HttpVersion version;
+
+    /**
+     * The raw value given by the server for status
+     */
+    public final String rawValue;
+    private final String rawQuery;
+    private final Map<String, String> query;
+
+    enum Verb {
+      GET, POST;
+    }
+
+    public StartLine(Verb verb, String path, HttpVersion version, String rawQuery, Map<String, String> query, String rawStartLine) {
+      this.verb = verb;
+      this.path = path;
+      this.version = version;
+      this.rawQuery = rawQuery;
+      this.query = query;
+      this.rawValue = rawStartLine;
+    }
+
+    public static StartLine extractStartLine(String value) {
+      Matcher m = StartLine.startLineRegex.matcher(value);
+      require(m.matches(), String.format("%s must match the startLineRegex", value));
+
+      Verb verb = extractVerb(m.group(1));
+      PathDetails pd = extractPathDetails(m.group(2));
+      HttpVersion httpVersion = getHttpVersion(m.group(3));
+
+      return new StartLine(verb, pd.isolatedPath, httpVersion, pd.rawQuery, pd.query, value);
+    }
+
+    private static Verb extractVerb(String verbString) {
+      return Verb.valueOf(verbString.toUpperCase(Locale.ROOT));
+    }
+
+    private static PathDetails extractPathDetails(String path) {
+      PathDetails pd = new PathDetails();
+      int locationOfQueryBegin = path.indexOf("?");
+      if (locationOfQueryBegin > 0) {
+        // in this case, we found a question mark, suggesting that a query string exists
+        pd.rawQuery = path.substring(locationOfQueryBegin + 1);
+        pd.isolatedPath = path.substring(0,locationOfQueryBegin);
+        pd.query = extractMapFromQueryString(pd.rawQuery);
+      } else {
+        // in this case, no question mark was found, thus no query string
+        pd.rawQuery = null;
+        pd.isolatedPath = path;
+      }
+      return pd;
+    }
+
+    /**
+     * Some essential characteristics of the path portion of the start line
+     */
+    private static class PathDetails {
+      // the isolated path is found after removing the query string
+      String isolatedPath;
+
+      // the raw query is the string after a question mark (if it exists - it's optional)
+      // if there is no query string, then we leave rawQuery as a null value
+      String rawQuery;
+
+      // the query is a map of the keys -> values found in the query string
+      Map<String, String> query;
+    }
+
+    /**
+     * Given a string containing the combined key-values in
+     * a query string (e.g. foo=bar&name=alice), split that
+     * into a map of the key to value (e.g. foo to bar, and name to alice)
+     */
+    private static Map<String, String> extractMapFromQueryString(String rawQueryString) {
+      Map<String, String> queryStrings = new HashMap<>();
+      StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
+      while(tokenizer.hasMoreTokens()) {
+        // this should give us a key and value joined with an equal sign, e.g. foo=bar
+        String currentKeyValue = tokenizer.nextToken();
+        int equalSignLocation = currentKeyValue.indexOf("=");
+        require(equalSignLocation > 0, "There must be an equals sign");
+        String key = currentKeyValue.substring(0, equalSignLocation);
+        String value = decode(currentKeyValue.substring(equalSignLocation + 1));
+        queryStrings.put(key, value);
+      }
+      return queryStrings;
+    }
+
+    /**
+     * Extract the HTTP version from the start line
+     */
+    private static HttpVersion getHttpVersion(String version) {
+      HttpVersion httpVersion = switch (version) {
+        case "1.1" -> HttpVersion.ONE_DOT_ONE;
+        case "1.0" -> HttpVersion.ONE_DOT_ZERO;
+        default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
+      };
+      return httpVersion;
+    }
+
+  }
+
+  /**
+   * Details extracted from the headers.  For example,
+   * is this a keep-alive connection? what is the content-length,
+   * and so on.
+   */
+  static class HeaderInformation {
+
+    /**
+     * Used for extracting the length of the body, in POSTs and
+     * responses from servers
+     */
+    static Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
+
+    public final List<String> rawValues;
+    public final int contentLength;
+
+
+    public HeaderInformation(int contentLength, List<String> rawValues) {
+      this.contentLength = contentLength;
+      this.rawValues = rawValues;
+    }
+
 
     /**
      * Loops through reading text lines from the socket wrapper,
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public static List<String> readHeaders(SocketWrapper sw) {
+    public static HeaderInformation extractHeaderInformation(SocketWrapper sw) {
+      List<String> headers = getAllHeaders(sw);
+      int contentLength = extractContentLength(headers);
+
+      return new HeaderInformation(contentLength, headers);
+    }
+
+    private static int extractContentLength(List<String> headers) {
+      List<String> cl = headers.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
+      require(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
+      int contentLength = 0;
+      if (!cl.isEmpty()) {
+        Matcher clMatcher = contentLengthRegex.matcher(cl.get(0));
+        require(clMatcher.matches(), "The content length header value must match the contentLengthRegex");
+        contentLength = Integer.parseInt(clMatcher.group(1));
+      }
+      return contentLength;
+    }
+
+    private static List<String> getAllHeaders(SocketWrapper sw) {
       List<String> headers = new ArrayList<>();
       while(true) {
         String value = sw.readLine();
@@ -166,6 +393,50 @@ public class Web {
         }
       }
       return headers;
+    }
+  }
+
+  static class HttpUtils {
+
+    /**
+     * This is the brains of how the server responds to web clients
+     */
+    public static final Consumer<Web.SocketWrapper> serverHandler = (sw) -> {
+      StartLine sl = StartLine.extractStartLine(sw.readLine());
+      HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
+
+      int aValue = Integer.parseInt(sl.query.get("a"));
+      int bValue = Integer.parseInt(sl.query.get("b"));
+      int sum = aValue + bValue;
+      String sumString = String.valueOf(sum);
+
+      sw.sendHttpLine("HTTP/1.1 200 OK");
+      String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+      sw.sendHttpLine("Date: " + date);
+      sw.sendHttpLine("Server: atqa");
+      sw.sendHttpLine("Content-Type: text/plain; charset=UTF-8");
+      sw.sendHttpLine("Content-Length: " + sumString.length());
+      sw.sendHttpLine("");
+      sw.sendHttpLine(sumString);
+    };
+
+    public static String readBody(SocketWrapper sw, int length) {
+      return sw.readByLength(length);
+    }
+
+    /**
+     * Encodes UTF-8 text using URL-encoding
+     */
+    public static String encode(String str) {
+      return URLEncoder.encode(str, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Decodes URL-encoded UTF-8 text
+     */
+    public static String decode(String str) {
+      requireNotNull(str);
+      return URLDecoder.decode(str, StandardCharsets.UTF_8);
     }
   }
 
@@ -265,7 +536,7 @@ public class Web {
         List<SocketWrapper> servers = setOfServers
                 .asStream()
                 .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(address, port)))
-                .collect(Collectors.toList());
+                .toList();
         if (servers.size() > 1) {
           throw new RuntimeException("Too many sockets found with that address");
         } else if (servers.size() == 1) {

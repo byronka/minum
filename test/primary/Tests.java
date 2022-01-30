@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
-import static primary.Web.HttpUtils.startLineRegex;
+import static primary.Web.StartLine.startLineRegex;
 
 class Tests {
 
@@ -84,9 +84,9 @@ class Tests {
 
       // no need to run this every time.  Feel free to uncomment this and make
       // sure it works, but seeing exceptions in the output from tests is disconcerting.
-      // logger.test("What happens if we throw an exception in a thread");
+      logger.testSkip("What happens if we throw an exception in a thread");
       {
-        // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
+         // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
       }
 
       logger.test("like we're a web server");
@@ -128,9 +128,11 @@ class Tests {
 
             // give the server time to run code from the handler,
             // then shut down.
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception ex) {
-            // do nothing
+            try {
+              primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+              e.printStackTrace();
+            }
           }
         }
       }
@@ -145,24 +147,32 @@ class Tests {
             client.sendHttpLine("Host: localhost:8080");
             client.sendHttpLine("");
 
-            String statusLine = client.readLine();
+            Web.StatusLine statusLine = Web.StatusLine.extractStatusLine(client.readLine());
 
-            assertEquals(statusLine, "HTTP/1.1 200 OK");
-
-            List<String> headers = Web.HttpUtils.readHeaders(client);
+            assertEquals(statusLine.rawValue, "HTTP/1.1 200 OK");
+                       
+            Web.HeaderInformation hi = Web.HeaderInformation.extractHeaderInformation(client);
 
             List<String> expectedResponseHeaders = Arrays.asList(
                     "Server: atqa",
                     "Date: Sun, 16 Jan 2022 19:30:06 GMT",
-                    "Content-Type: text/html; charset=UTF-8");
+                    "Content-Type: text/plain; charset=UTF-8",
+                    "Content-Length: 2"
+                    );
 
-            assertEquals(headers, expectedResponseHeaders);
+            assertEqualsDisregardOrder(hi.rawValues, expectedResponseHeaders);
+
+            String body = Web.HttpUtils.readBody(client, hi.contentLength);
+
+            assertEquals(body, "86");
 
             // give the server time to run code from the handler,
             // then shut down.
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception ex) {
-            // do nothing
+            try {
+              primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+              e.printStackTrace();
+            }
           }
         }
       }
@@ -273,6 +283,20 @@ class Tests {
         logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
       }
 
+      // TODO: test extractStartLine - GET /something HTTP/1.1
+      // TODO: test extractStartLine - POST /something HTTP/1.0
+      // TODO: test failure extractStartLine -  /something HTTP/1.1
+      // TODO: test failure extractStartLine - GET HTTP/1.1
+      // TODO: test failure extractStartLine - GET /something
+      // TODO: test failure extractStartLine - GET /something HTTP/1.2
+      // TODO: test failure extractStartLine - GET /something HTTP/
+
+      // TODO test extractStatusLine - HTTP/1.1 200 OK
+      // TODO test failure extractStatusLine - HTTP/1.1 200
+      // TODO test failure extractStatusLine - HTTP/1.1  OK
+      // TODO test failure extractStatusLine - HTTP 200 OK
+      // TODO test failure extractStatusLine - HTTP/1.3 200 OK
+      // TODO test failure extractStatusLine - HTTP/1.1 199 OK
 
     } finally {
       // final shutdown pieces
@@ -304,11 +328,12 @@ class Tests {
     if (left.size() != right.size()) {
       throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
     }
-    List<T> orderedLeft = left.stream().sorted().collect(Collectors.toList());
-    List<T> orderedRight = right.stream().sorted().collect(Collectors.toList());
+    List<T> orderedLeft = left.stream().sorted().toList();
+    List<T> orderedRight = right.stream().sorted().toList();
+
     for (int i = 0; i < left.size(); i++) {
-      if (orderedLeft.get(i) != orderedRight.get(i)) {
-        throw new RuntimeException(String.format("different values: left: %s right: %s", left.get(i), right.get(i)));
+      if (!orderedLeft.get(i).equals(orderedRight.get(i))) {
+        throw new RuntimeException(String.format("different values: left: %s right: %s", orderedLeft.get(i), orderedRight.get(i)));
       }
     }
   }
@@ -324,7 +349,7 @@ class Tests {
       throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
     }
     for (int i = 0; i < left.size(); i++) {
-      if (left.get(i) != right.get(i)) {
+      if (!left.get(i).equals(right.get(i))) {
         throw new RuntimeException(String.format("different values: left: %s right: %s", left.get(i), right.get(i)));
       }
     }
