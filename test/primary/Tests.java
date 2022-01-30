@@ -1,6 +1,7 @@
 package primary;
 
 import logging.TestLogger;
+import primary.web.Web;
 import utils.ExtendedExecutor;
 
 import java.util.Arrays;
@@ -9,9 +10,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 
-import static primary.Web.StartLine.startLineRegex;
+import static primary.web.Web.StartLine.startLineRegex;
 
 class Tests {
 

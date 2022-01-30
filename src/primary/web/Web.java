@@ -1,4 +1,4 @@
-package primary;
+package primary.web;
 
 import logging.ILogger;
 import logging.Logger;
@@ -14,14 +14,13 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
-import static primary.Web.HttpUtils.decode;
+import static primary.web.Web.HttpUtils.decode;
 import static utils.Invariants.require;
 import static utils.Invariants.requireNotNull;
 
@@ -76,7 +75,7 @@ public class Web {
   /**
    * This wraps Sockets to make them simpler / more particular to our use case
    */
-  class SocketWrapper implements ISocketWrapper {
+  public class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final OutputStream writer;
@@ -162,7 +161,7 @@ public class Web {
     }
   }
 
-  static class StatusLine {
+  public static class StatusLine {
 
     /**
      * This is the regex used to analyze a status line sent by the server and
@@ -218,7 +217,7 @@ public class Web {
    * "start line" in an HTTP request.  For example,
    *    GET /foo HTTP/1.1
    */
-  static class StartLine {
+  public static class StartLine {
 
     /**
      * This is our regex for looking at a client's request
@@ -340,7 +339,7 @@ public class Web {
    * is this a keep-alive connection? what is the content-length,
    * and so on.
    */
-  static class HeaderInformation {
+  public static class HeaderInformation {
 
     /**
      * Used for extracting the length of the body, in POSTs and
@@ -396,7 +395,7 @@ public class Web {
     }
   }
 
-  static class HttpUtils {
+  public static class HttpUtils {
 
     /**
      * This is the brains of how the server responds to web clients
@@ -450,7 +449,7 @@ public class Web {
    * the server side but also tie it in with an ExecutorService
    * for controlling lots of server threads.
    */
-  class Server implements AutoCloseable{
+  public class Server implements AutoCloseable{
     private final ServerSocket serverSocket;
     private final ConcurrentSet<SocketWrapper> setOfServers;
 

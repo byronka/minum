@@ -16,12 +16,12 @@ OUT_DIR := out
 ##
 # sources
 ##
-SRCS := $(wildcard $(SRC_DIR)/**/*.java)
+SRCS := $(shell find ${SRC_DIR} -type f -name '*.java' -print)
 
 ##
 # test sources
 ##
-TST_SRCS := $(wildcard $(TST_SRC_DIR)/**/*.java)
+TST_SRCS := $(shell find ${TST_SRC_DIR} -type f -name '*.java' -print)
 
 
 ##
@@ -72,12 +72,10 @@ all: $(CLS)
 
 # here is the target for the application code
 $(CLS): $(OUT_DIR)/%.class: $(SRC_DIR)/%.java
-	    @mkdir -p $(OUT_DIR)
 	    $(JC) -Werror -g -d $(OUT_DIR)/ -cp $(SRC_DIR)/ $<
 
 # here is the target for the test code
 $(TST_CLS): $(OUT_DIR)/%.class: $(TST_SRC_DIR)/%.java
-	    @mkdir -p $(OUT_DIR)
 	    $(JC) -Werror -g -d $(OUT_DIR)/ -cp $(SRC_DIR)/ -cp $(TST_SRC_DIR)/ -cp $(OUT_DIR) $<
 
 
@@ -109,3 +107,12 @@ testcov: all $(TST_CLS)
 	    $(JAVA) -javaagent:$(JAC_DIR)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(OUT_DIR) primary.Tests
 	    $(JAVA) -jar $(JAC_DIR)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR) --sourcefiles $(SRC_DIR)
 
+# a handy debugging tool.  If you want to see the value of any
+# variable in this file, run something like this from the
+# command line:
+#
+#     make print-CLS
+#
+# and you'll get something like: CLS = out/logging/ILogger.class out/logging/Logger.class out/primary/Main.class out/utils/ActionQueue.class
+print-%:
+	    @echo $* = $($*)

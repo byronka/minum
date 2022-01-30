@@ -1,11 +1,13 @@
 package primary;
 
+import primary.web.Web;
+
 import java.net.SocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A fake of {@link primary.Web.SocketWrapper} used in tests
+ * A fake of {@link Web.SocketWrapper} used in tests
  */
 public class FakeSocketWrapper implements Web.ISocketWrapper {
 
