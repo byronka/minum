@@ -1,6 +1,7 @@
 package primary;
 
 import logging.TestLogger;
+import primary.web.StatusLine;
 import primary.web.Web;
 import utils.ExtendedExecutor;
 
@@ -147,7 +148,7 @@ class Tests {
             client.sendHttpLine("Host: localhost:8080");
             client.sendHttpLine("");
 
-            Web.StatusLine statusLine = Web.StatusLine.extractStatusLine(client.readLine());
+            StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
 
             assertEquals(statusLine.rawValue, "HTTP/1.1 200 OK");
                        
