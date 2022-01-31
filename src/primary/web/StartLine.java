@@ -29,30 +29,26 @@ public class StartLine {
     public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
     public final Verb verb;
-    public final String path;
+    public final PathDetails pathDetails;
     public final Web.HttpVersion version;
+
+    public Map<String, String> getQueryString() {
+        return new HashMap<>(pathDetails.queryString);
+    }
 
     /**
      * The raw value given by the server for status
      */
     public final String rawValue;
-    private final String rawQueryString;
-    private final Map<String, String> queryString;
-
-    public Map<String, String> getQueryString() {
-        return new HashMap<>(queryString);
-    }
 
     public enum Verb {
         GET, POST
     }
 
-    public StartLine(Verb verb, String path, Web.HttpVersion version, String rawQueryString, Map<String, String> queryString, String rawStartLine) {
+    public StartLine(Verb verb, PathDetails pathDetails, Web.HttpVersion version, String rawStartLine) {
         this.verb = verb;
-        this.path = path;
+        this.pathDetails = pathDetails;
         this.version = version;
-        this.rawQueryString = rawQueryString;
-        this.queryString = queryString;
         this.rawValue = rawStartLine;
     }
 
@@ -64,7 +60,7 @@ public class StartLine {
         PathDetails pd = extractPathDetails(m.group(2));
         Web.HttpVersion httpVersion = getHttpVersion(m.group(3));
 
-        return new StartLine(verb, pd.isolatedPath, httpVersion, pd.rawQuery, pd.query, value);
+        return new StartLine(verb, pd, httpVersion, value);
     }
 
     private static Verb extractVerb(String verbString) {
@@ -76,12 +72,12 @@ public class StartLine {
         int locationOfQueryBegin = path.indexOf("?");
         if (locationOfQueryBegin > 0) {
             // in this case, we found a question mark, suggesting that a query string exists
-            pd.rawQuery = path.substring(locationOfQueryBegin + 1);
+            pd.rawQueryString = path.substring(locationOfQueryBegin + 1);
             pd.isolatedPath = path.substring(0, locationOfQueryBegin);
-            pd.query = extractMapFromQueryString(pd.rawQuery);
+            pd.queryString = extractMapFromQueryString(pd.rawQueryString);
         } else {
             // in this case, no question mark was found, thus no query string
-            pd.rawQuery = null;
+            pd.rawQueryString = null;
             pd.isolatedPath = path;
         }
         return pd;
@@ -96,10 +92,10 @@ public class StartLine {
 
         // the raw query is the string after a question mark (if it exists - it's optional)
         // if there is no query string, then we leave rawQuery as a null value
-        String rawQuery;
+        String rawQueryString;
 
         // the query is a map of the keys -> values found in the query string
-        Map<String, String> query;
+        Map<String, String> queryString;
     }
 
     /**
