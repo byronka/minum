@@ -68,17 +68,17 @@ public class StartLine {
     }
 
     private static PathDetails extractPathDetails(String path) {
-        PathDetails pd = new PathDetails();
+        PathDetails pd;
         int locationOfQueryBegin = path.indexOf("?");
         if (locationOfQueryBegin > 0) {
             // in this case, we found a question mark, suggesting that a query string exists
-            pd.rawQueryString = path.substring(locationOfQueryBegin + 1);
-            pd.isolatedPath = path.substring(0, locationOfQueryBegin);
-            pd.queryString = extractMapFromQueryString(pd.rawQueryString);
+            String rawQueryString = path.substring(locationOfQueryBegin + 1);
+            String isolatedPath = path.substring(0, locationOfQueryBegin);
+            Map<String, String> queryString = extractMapFromQueryString(rawQueryString);
+            pd = new PathDetails(isolatedPath, rawQueryString, queryString);
         } else {
             // in this case, no question mark was found, thus no query string
-            pd.rawQueryString = null;
-            pd.isolatedPath = path;
+            pd = new PathDetails(path, null, null);
         }
         return pd;
     }
@@ -86,17 +86,17 @@ public class StartLine {
     /**
      * Some essential characteristics of the path portion of the start line
      */
-    private static class PathDetails {
+    public record PathDetails (
         // the isolated path is found after removing the query string
-        String isolatedPath;
+        String isolatedPath,
 
         // the raw query is the string after a question mark (if it exists - it's optional)
         // if there is no query string, then we leave rawQuery as a null value
-        String rawQueryString;
+        String rawQueryString,
 
         // the query is a map of the keys -> values found in the query string
-        Map<String, String> queryString;
-    }
+        Map<String, String> queryString
+    ){}
 
     /**
      * Given a string containing the combined key-values in

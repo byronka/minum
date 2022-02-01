@@ -5,7 +5,10 @@ import logging.ILogger;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Responsible for the logistics after socket connection
@@ -25,23 +28,29 @@ public class WebFramework {
          StartLine sl = StartLine.extractStartLine(sw.readLine());
          HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
 
-         int aValue = Integer.parseInt(sl.getQueryString().get("a"));
-         int bValue = Integer.parseInt(sl.getQueryString().get("b"));
-         int sum = aValue + bValue;
-         String sumString = String.valueOf(sum);
+         Function<Request, Response> endpoint = findEndpoint(sl);
+         Response r = endpoint.apply(new Request(hi, sl));
 
          sw.sendHttpLine("HTTP/1.1 200 OK");
          String date = getZonedDateTimeNow().format(DateTimeFormatter.RFC_1123_DATE_TIME);
          sw.sendHttpLine("Date: " + date);
          sw.sendHttpLine("Server: atqa");
          sw.sendHttpLine("Content-Type: text/plain; charset=UTF-8");
-         sw.sendHttpLine("Content-Length: " + sumString.length());
+         sw.sendHttpLine("Content-Length: " + r.placeholder().length());
          sw.sendHttpLine("");
-         sw.sendHttpLine(sumString);
+         sw.sendHttpLine(r.placeholder());
      };
     }
 
+    private Function<Request, Response> findEndpoint(StartLine sl) {
+        return endpoints.get(new VerbPath(sl.verb, sl.pathDetails.isolatedPath()));
+    }
+
     private final ILogger logger;
+    public record Request(HeaderInformation hi, StartLine sl) {}
+    public record Response(String placeholder) {}
+    record VerbPath(StartLine.Verb verb, String path) {}
+    private Map<VerbPath, Function<Request, Response>> endpoints;
 
     public WebFramework(ILogger logger) {
         this(logger, null);
@@ -56,6 +65,7 @@ public class WebFramework {
     public WebFramework(ILogger logger, ZonedDateTime zdt) {
         this.logger = logger;
         this.zdt = zdt;
+        this.endpoints = new HashMap<>();
     }
 
     private final ZonedDateTime zdt;
@@ -66,5 +76,9 @@ public class WebFramework {
         } else {
             return ZonedDateTime.now(ZoneId.of("UTC"));
         }
+    }
+
+    public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> functionName) {
+        endpoints.put(new VerbPath(verb, pathName), functionName);
     }
 }

@@ -152,10 +152,21 @@ class Tests {
       }
     }
 
+    class Summation {
+      static WebFramework.Response addTwoNumbers(WebFramework.Request r) {
+        int aValue = Integer.parseInt(r.sl().pathDetails.queryString().get("a"));
+        int bValue = Integer.parseInt(r.sl().pathDetails.queryString().get("b"));
+        int sum = aValue + bValue;
+        String sumString = String.valueOf(sum);
+        return new WebFramework.Response(sumString);
+      }
+    }
+
     logger.test("starting server with a handler part 2");
     {
       ZonedDateTime zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
       WebFramework wf = new WebFramework(logger, zdt);
+      wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
       try (Web.Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (Web.SocketWrapper client = web.startClient(primaryServer)) {
           // send a GET request
