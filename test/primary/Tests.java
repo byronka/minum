@@ -25,11 +25,10 @@ class Tests {
 
     ExecutorService es = ExtendedExecutor.makeExecutorService();
     TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
-    ZonedDateTime zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
 
     try {
 
-      Web web = new Web(logger, zdt);
+      Web web = new Web(logger);
 
       logger.test("a happy path");
       {
@@ -160,8 +159,9 @@ class Tests {
 
       logger.test("starting server with a handler part 2");
       {
-
-        try (Web.Server primaryServer = web.startServer(es, web.serverHandler)) {
+        ZonedDateTime zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
+        WebFramework wf = new WebFramework(logger, zdt);
+        try (Web.Server primaryServer = web.startServer(es, wf.makeHandler())) {
           try (Web.SocketWrapper client = web.startClient(primaryServer)) {
             // send a GET request
             client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
@@ -222,36 +222,9 @@ class Tests {
         assertTrue(m.matches());
       }
 
-      logger.test("Running Web with real (uncontrolled) date and time and null logger");
-      {
-        Web myWeb = new Web();
-        try (Web.Server primaryServer = myWeb.startServer(es, myWeb.serverHandler)) {
-          try (Web.SocketWrapper client = myWeb.startClient(primaryServer)) {
-            // send a GET request
-            client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
-            client.sendHttpLine("Host: localhost:8080");
-            client.sendHttpLine("");
-
-            StatusLine.extractStatusLine(client.readLine());
-
-            HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
-
-            assertTrue(hi.rawValues.stream().anyMatch(x -> x.startsWith("Date:")));
-
-            // give the server time to run code from the handler,
-            // then shut down.
-            try {
-              primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-              // do nothing
-            }
-          }
-        }
-      }
-
       logger.test("alternate case for extractStartLine - POST");
       {
-        StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.1");
+        StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.0");
         assertEquals(sl.verb, StartLine.Verb.POST);
       }
 
