@@ -21,12 +21,10 @@ import static primary.web.StartLine.startLineRegex;
 
 class Tests {
 
-  public static void main(String[] args) {
+  static ExecutorService es = ExtendedExecutor.makeExecutorService();
+  static TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
 
-    ExecutorService es = ExtendedExecutor.makeExecutorService();
-    TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
-
-    Web web = new Web(logger);
+  public static void initialTests() {
 
     logger.test("a happy path");
     {
@@ -45,20 +43,19 @@ class Tests {
       int result = Main.add(0, 0);
       assertEquals(result, 0);
     }
+  }
 
-      /*
-
- /$$      /$$           /$$               /$$                           /$$
+ /*$      /$$           /$$               /$$                           /$$
 | $$  /$ | $$          | $$              | $$                          | $$
 | $$ /$$$| $$  /$$$$$$ | $$$$$$$        /$$$$$$    /$$$$$$   /$$$$$$$ /$$$$$$   /$$$$$$$
 | $$/$$ $$ $$ /$$__  $$| $$__  $$      |_  $$_/   /$$__  $$ /$$_____/|_  $$_/  /$$_____/
 | $$$$_  $$$$| $$$$$$$$| $$  \ $$        | $$    | $$$$$$$$|  $$$$$$   | $$   |  $$$$$$
 | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
 | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
-|__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |_______/
-       */
+|__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
+  public static void webTests() {
 
-      // region Web tests section
+    Web web = new Web(logger);
 
     logger.test("client / server");
     {
@@ -85,15 +82,15 @@ class Tests {
           try (Web.SocketWrapper server = primaryServer.getServer(client)) {
 
             // client sends, server receives
-            client.send(withNewline(msg1));
+            client.sendHttpLine(msg1);
             assertEquals(msg1, server.readLine());
 
             // server sends, client receives
-            server.send(withNewline(msg2));
+            server.sendHttpLine(msg2);
             assertEquals(msg2, client.readLine());
 
             // client sends, server receives
-            client.send(withNewline(msg3));
+            client.sendHttpLine(msg3);
             assertEquals(msg3, server.readLine());
           }
         }
@@ -104,7 +101,7 @@ class Tests {
     // sure it works, but seeing exceptions in the output from tests is disconcerting.
     logger.testSkip("What happens if we throw an exception in a thread");
     {
-       // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
+      // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
     }
 
     logger.test("like we're a web server");
@@ -177,7 +174,7 @@ class Tests {
                   "Date: Tue, 4 Jan 2022 09:25:00 GMT",
                   "Content-Type: text/plain; charset=UTF-8",
                   "Content-Length: 2"
-                  );
+          );
 
           assertEqualsDisregardOrder(hi.rawValues, expectedResponseHeaders);
 
@@ -260,24 +257,23 @@ class Tests {
       assertThrows(NoSuchElementException.class, "No value present", () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
     }
 
-      // endregion
+  }
 
-      /*
+  /*$$$$$$$                    /$$                                         /$$                     /$$
+ |__  $$__/                   | $$                                        | $$                    |__/
+    | $$  /$$$$$$   /$$$$$$$ /$$$$$$          /$$$$$$  /$$$$$$$   /$$$$$$ | $$ /$$   /$$  /$$$$$$$ /$$  /$$$$$$$
+    | $$ /$$__  $$ /$$_____/|_  $$_/         |____  $$| $$__  $$ |____  $$| $$| $$  | $$ /$$_____/| $$ /$$_____/
+    | $$| $$$$$$$$|  $$$$$$   | $$            /$$$$$$$| $$  \ $$  /$$$$$$$| $$| $$  | $$|  $$$$$$ | $$|  $$$$$$
+    | $$| $$_____/ \____  $$  | $$ /$$       /$$__  $$| $$  | $$ /$$__  $$| $$| $$  | $$ \____  $$| $$ \____  $$
+    | $$|  $$$$$$$ /$$$$$$$/  |  $$$$/      |  $$$$$$$| $$  | $$|  $$$$$$$| $$|  $$$$$$$ /$$$$$$$/| $$ /$$$$$$$/
+    |__/ \_______/|_______/    \___/         \_______/|__/  |__/ \_______/|__/ \____  $$|_______/ |__/|_______/
+                                                                            /$$  | $$
+                                                                           |  $$$$$$/
+                                                                            \_____*/
+  public static void testAnalysisTests() {
 
- /$$$$$$$$                    /$$                                         /$$                     /$$
-|__  $$__/                   | $$                                        | $$                    |__/
-   | $$  /$$$$$$   /$$$$$$$ /$$$$$$          /$$$$$$  /$$$$$$$   /$$$$$$ | $$ /$$   /$$  /$$$$$$$ /$$  /$$$$$$$
-   | $$ /$$__  $$ /$$_____/|_  $$_/         |____  $$| $$__  $$ |____  $$| $$| $$  | $$ /$$_____/| $$ /$$_____/
-   | $$| $$$$$$$$|  $$$$$$   | $$            /$$$$$$$| $$  \ $$  /$$$$$$$| $$| $$  | $$|  $$$$$$ | $$|  $$$$$$
-   | $$| $$_____/ \____  $$  | $$ /$$       /$$__  $$| $$  | $$ /$$__  $$| $$| $$  | $$ \____  $$| $$ \____  $$
-   | $$|  $$$$$$$ /$$$$$$$/  |  $$$$/      |  $$$$$$$| $$  | $$|  $$$$$$$| $$|  $$$$$$$ /$$$$$$$/| $$ /$$$$$$$/
-   |__/ \_______/|_______/    \___/         \_______/|__/  |__/ \_______/|__/ \____  $$|_______/ |__/|_______/
-                                                                              /$$  | $$
-                                                                             |  $$$$$$/
-                                                                              \______/
 
-       */
-      // region Test Analysis section
+    // region Test Analysis section
 
     logger.test("playing around with how we could determine testedness of a function");
     {
@@ -361,16 +357,18 @@ class Tests {
       logger.logDebug(() -> "Looks like your testedness score is " + finalScore);
     }
 
-    // endregion
-
-
-    // final shutdown pieces
-    logger.stop();
-    es.shutdownNow();
   }
 
-  private static String withNewline(String msg) {
-    return msg +"\n";
+  public static void main(String[] args) {
+    try {
+      initialTests();
+      webTests();
+      testAnalysisTests();
+    } finally {
+      // final shutdown pieces
+      logger.stop();
+      es.shutdownNow();
+    }
   }
 
 }
