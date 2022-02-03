@@ -152,6 +152,14 @@ class Tests {
       }
     }
 
+    /*
+     * This class belongs to the test below, "starting server with a handler part 2"
+     *
+     * This represents the shape an endpoint could take. It's given a request object,
+     * we presume it has everything is needs to do its work (query strings on the path,
+     * header values, body contents, all that stuff), and it replies with a response
+     * object that gets ferried along to the client.
+     */
     class Summation {
       static WebFramework.Response addTwoNumbers(WebFramework.Request r) {
         int aValue = Integer.parseInt(r.sl().pathDetails.queryString().get("a"));
