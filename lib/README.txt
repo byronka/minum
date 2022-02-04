@@ -1,3 +1,11 @@
+These are some utilities and dependencies used by the software.
+
+H2
+--
+A performant database
+
+Jacoco
+------
 these are the Jacoco utilities, used to determine code coverage
 from our tests.
 
