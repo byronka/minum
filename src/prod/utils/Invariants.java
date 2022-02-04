@@ -32,4 +32,9 @@ public class Invariants {
             throw new InvariantException("value must not be null");
         }
     }
+
+    public static void stringMustNotBeNullOrBlank(String value) {
+        mustNotBeNull(value);
+        mustBeFalse(value.isBlank(), "string value was blank");
+    }
 }

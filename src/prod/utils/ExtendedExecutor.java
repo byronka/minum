@@ -3,7 +3,8 @@ package utils;
 import java.util.concurrent.*;
 
 /**
- * This lets us capture the stack traces thrown in a thread.
+ * This lets us capture the stack traces thrown in a thread,
+ * which the typical Executor does not.
  */
 public class ExtendedExecutor extends ThreadPoolExecutor {
 
