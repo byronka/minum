@@ -3,8 +3,7 @@ ATQA - automated test quality analyzer
 
 * To build: `make`
 * To run: `make run`
-* to run tests: `make test`
-* to run tests with code coverage: `make testcov`
+* For help: `make help`
 
 System requirements: 
 --------------------
@@ -12,7 +11,7 @@ developed on a MacBook Pro with OS 12.0.1, with OpenJDK 17.0.1 and GNU Make 3.81
 
 Directories:
 ------------
-- test: where we store all tests
-- src: all application source files
+
+- src: All the source code, including production and test code
 - docs: documentation for the project
-- utils: essential utilities, e.g. code coverage
+- lib: essential utilities and dependencies
