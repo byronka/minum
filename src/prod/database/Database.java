@@ -3,12 +3,7 @@ package database;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import javax.sql.DataSource;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -40,7 +35,7 @@ public class Database {
 
     private static JdbcConnectionPool obtainConnectionPool() {
         return JdbcConnectionPool.create(
-                "jdbc:h2:./build/db/training;AUTO_SERVER=TRUE;MODE=PostgreSQL", "", "");
+                "jdbc:h2:./out/db/training;AUTO_SERVER=TRUE;MODE=PostgreSQL", "", "");
     }
 
     /*
@@ -213,32 +208,32 @@ public class Database {
 
     // Library functions
 
-    public long saveNewBorrower(String borrowerName) {
-        stringMustNotBeNullOrBlank(borrowerName);
+    public long saveNewUser(String userName) {
+        stringMustNotBeNullOrBlank(userName);
         return executeInsertTemplate(
-                "adds a new library borrower",
-                "INSERT INTO library.borrower (name) VALUES (?);", borrowerName);
+                "adds a new user",
+                "INSERT INTO foo.users (name) VALUES (?);", userName);
     }
 
 
 
-    public void updateBorrower(long id, String borrowerName) {
+    public void updateUser(long id, String userName) {
         mustBeTrue(id > 0, "The id must be positive");
-        stringMustNotBeNullOrBlank(borrowerName);
+        stringMustNotBeNullOrBlank(userName);
         executeUpdateTemplate(
                 "Updates the borrower's data",
-                "UPDATE library.borrower SET name = ? WHERE id = ?;", borrowerName, id);
+                "UPDATE foo.users SET name = ? WHERE id = ?;", userName, id);
     }
 
 
-    public Optional<String> getBorrowerName(long id) {
+    public Optional<String> getUser(long id) {
         mustBeTrue(id > 0, "The id must be positive");
         Function<ResultSet, Optional<String>> extractor =
                 createExtractor(rs -> Optional.of(makeNotNull(rs.getString(1))));
 
         return runQuery(new SqlData<>(
-                "get a borrower's name by their id",
-                "SELECT name FROM library.borrower WHERE id = ?;",
+                "get a user by their id",
+                "SELECT name FROM foo.users WHERE id = ?;",
                 extractor, id));
     }
 
@@ -287,6 +282,63 @@ public class Database {
             throw new SqlRuntimeException(ex);
         }
     }
+
+    public void createSchema(String schemaName) {
+        try (Connection connection = dataSource.getConnection()) {
+            var st = connection.createStatement();
+            st.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
+        } catch (SQLException ex) {
+            throw new SqlRuntimeException(ex);
+        }
+    }
+
+    public void deleteSchema(String schemaName) {
+        try (Connection connection = dataSource.getConnection()) {
+            var st = connection.createStatement();
+            st.execute("DROP SCHEMA IF EXISTS " + schemaName + " CASCADE");
+        } catch (SQLException ex) {
+            throw new SqlRuntimeException(ex);
+        }
+    }
+
+    /**
+     * Call this command to change the schema.  It updates the version of
+     * the database, and if you run the command twice it shouldn't do anything
+     * the second time, since it will see that the command / version has already
+     * been run.
+     *
+     * Note that since these commands are expected to come solely from the programmer,
+     * we are not using any techniques to prevent SQL injection - we are
+     * trusting the developer not to attack their own program.
+     *
+     * @param versionNumber The new version of the database
+     * @param description a short description of the change
+     * @param sql the SQL commands to run to adjust the schema
+     */
+    public void updateSchema(int versionNumber, String description, String sql) {
+        createSchema("version");
+        try (Connection connection = dataSource.getConnection()) {
+            var st = connection.createStatement();
+            st.execute("""
+                CREATE SCHEMA IF NOT EXISTS version;
+                
+                CREATE TABLE IF NOT EXISTS version.versions(
+                    version int PRIMARY KEY,
+                    description VARCHAR(100) NOT NULL,
+                    run_on TIMESTAMP
+                );
+                """);
+            var result = st.executeQuery("select COUNT(*) = 1 from version.versions where version = " + versionNumber);
+            mustBeTrue(result.next(), "If we don't get a returned value, something is seriously wrong");
+            if (! result.getBoolean(1)) {
+                st.execute(String.format("INSERT INTO version.versions (version, description, run_on) VALUES (%d, '%s', localtimestamp());", versionNumber, description));
+                st.execute(sql);
+            }
+        } catch (SQLException ex) {
+            throw new SqlRuntimeException(ex);
+        }
+    }
+
 
 
     /*

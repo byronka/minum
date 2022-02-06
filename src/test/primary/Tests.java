@@ -1,5 +1,6 @@
 package primary;
 
+import database.DatabaseTests;
 import logging.TestLogger;
 import primary.web.*;
 import utils.ExtendedExecutor;
@@ -383,6 +384,9 @@ class Tests {
       initialTests();
       webTests();
       testAnalysisTests();
+
+      var dt = new DatabaseTests(logger);
+      dt.databaseTests();
     } finally {
       // final shutdown pieces
       logger.stop();
