@@ -7,6 +7,11 @@ import static framework.TestFramework.assertTrue;
 
 public record DatabaseTests(TestLogger logger) {
 
+    private static void reset(Database db) {
+        db.deleteSchema("foo");
+        db.deleteSchema("version");
+    }
+
     public void databaseTests() {
 
         logger.test("Connect to a database and create a schema, then delete it");
@@ -26,8 +31,7 @@ public record DatabaseTests(TestLogger logger) {
         logger.test("Update the version of our database by changing its schema");
         {
             var db = new Database();
-            db.deleteSchema("foo");
-            db.deleteSchema("version");
+            reset(db);
             db.createSchema("foo");
             db.updateSchema(1, "create a users table", """
                     create table foo.users (
@@ -38,7 +42,30 @@ public record DatabaseTests(TestLogger logger) {
             var name = db.getUser(id);
             assertTrue(name.isPresent());
             assertEquals(name.get(), "alice");
-            db.deleteSchema("foo");
+            reset(db);
+        }
+
+        logger.test("update the schema / version two times - bringing it to version 2");
+        {
+            var db = new Database();
+            reset(db);
+
+            db.createSchema("foo");
+
+            db.updateSchema(1, "create a users table", """
+                    create table foo.users (
+                        id serial PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL
+                    );""");
+
+            db.updateSchema(2,
+                    "Update the users table with a favorite color",
+                    "ALTER TABLE foo.users ADD COLUMN (favorite_color VARCHAR(100));");
+
+            var id = db.saveNewUser("alice");
+            var name = db.getUser(id);
+            assertTrue(name.isPresent());
+            assertEquals(name.get(), "alice");
         }
     }
 }
