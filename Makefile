@@ -34,6 +34,11 @@ OUT_DIR_TEST := $(OUT_DIR)/test
 LIB := lib
 
 ##
+# the utilties
+##
+UTILS := utils
+
+##
 # sources
 ##
 SRCS := $(shell find ${SRC_DIR} -type f -name '*.java' -print)
@@ -121,7 +126,7 @@ clean:
 
 #: jar up the application (See Java's jar command)
 jar: all
-	    cd $(OUT_DIR_PROD) && jar --create --file $(PROJ_NAME).jar -e primary.Main $(shell cd ${OUT_DIR_PROD} && find . -type f -name "*.class" -exec printf "'%s' " {} \;)
+	    cd $(OUT_DIR_PROD) && jar --create --file $(PROJ_NAME).jar -e primary.Main *
 
 #: run the application
 run: all
@@ -141,8 +146,8 @@ testdebug: all $(TST_CLS)
 
 #: If you want to obtain code coverage from running the tests
 testcov: all $(TST_CLS)
-	    $(JAVA) -javaagent:$(LIB)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) primary.Tests
-	    $(JAVA) -jar $(LIB)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_PROD) --sourcefiles $(SRC_DIR)
+	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) primary.Tests
+	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_PROD) --sourcefiles $(SRC_DIR)
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
