@@ -12,7 +12,7 @@ public record ExternalDatabaseTests(TestLogger logger) {
         db.deleteSchema("version");
     }
 
-    public void databaseTests() {
+    public void tests() {
 
         logger.test("Connect to a database and create a schema, then delete it");
         {

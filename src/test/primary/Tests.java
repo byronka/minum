@@ -1,5 +1,6 @@
 package primary;
 
+import database.OwnDatabaseTests;
 import database.ExternalDatabaseTests;
 import logging.TestLogger;
 import primary.web.*;
@@ -379,14 +380,17 @@ class Tests {
 
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     try {
       initialTests();
       webTests();
       testAnalysisTests();
 
-      var dt = new ExternalDatabaseTests(logger);
-      dt.databaseTests();
+      final var edt = new ExternalDatabaseTests(logger);
+      edt.tests();
+
+      final var dt = new OwnDatabaseTests(logger);
+      dt.tests();
     } finally {
       // final shutdown pieces
       logger.stop();
