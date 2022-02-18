@@ -1,6 +1,6 @@
 package primary;
 
-import database.DatabaseTests;
+import database.ExternalDatabaseTests;
 import logging.TestLogger;
 import primary.web.*;
 import utils.ExtendedExecutor;
@@ -385,7 +385,7 @@ class Tests {
       webTests();
       testAnalysisTests();
 
-      var dt = new DatabaseTests(logger);
+      var dt = new ExternalDatabaseTests(logger);
       dt.databaseTests();
     } finally {
       // final shutdown pieces

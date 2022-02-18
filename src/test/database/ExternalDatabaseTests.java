@@ -5,9 +5,9 @@ import logging.TestLogger;
 import static framework.TestFramework.assertEquals;
 import static framework.TestFramework.assertTrue;
 
-public record DatabaseTests(TestLogger logger) {
+public record ExternalDatabaseTests(TestLogger logger) {
 
-    private static void reset(Database db) {
+    private static void reset(ExternalDatabase db) {
         db.deleteSchema("foo");
         db.deleteSchema("version");
     }
@@ -16,7 +16,7 @@ public record DatabaseTests(TestLogger logger) {
 
         logger.test("Connect to a database and create a schema, then delete it");
         {
-            var db = new Database();
+            var db = new ExternalDatabase();
             db.createSchema("foo");
             db.deleteSchema("foo");
         }
@@ -30,7 +30,7 @@ public record DatabaseTests(TestLogger logger) {
          */
         logger.test("Update the version of our database by changing its schema");
         {
-            var db = new Database();
+            var db = new ExternalDatabase();
             reset(db);
             db.createSchema("foo");
             db.updateSchema(1, "create a users table", """
@@ -47,7 +47,7 @@ public record DatabaseTests(TestLogger logger) {
 
         logger.test("update the schema / version two times - bringing it to version 2");
         {
-            var db = new Database();
+            var db = new ExternalDatabase();
             reset(db);
 
             db.createSchema("foo");

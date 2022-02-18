@@ -11,7 +11,11 @@ import static utils.Invariants.mustBeTrue;
 import static utils.Invariants.stringMustNotBeNullOrBlank;
 import static utils.StringUtils.makeNotNull;
 
-public class Database {
+/**
+ * This code relates to databases that exist outside of our application.
+ * For example, perhaps it refers to the H2 or Postgres databases.
+ */
+public class ExternalDatabase {
 
     /*
      * ==========================================================
@@ -25,11 +29,11 @@ public class Database {
 
     private final DataSource dataSource;
 
-    public Database() {
+    public ExternalDatabase() {
         this(obtainConnectionPool());
     }
 
-    Database(DataSource ds) {
+    ExternalDatabase(DataSource ds) {
         dataSource = ds;
     }
 
