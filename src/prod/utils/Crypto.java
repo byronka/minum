@@ -11,22 +11,34 @@ import static utils.Invariants.stringMustNotBeNullOrBlank;
  */
 public class Crypto {
 
+    private static final MessageDigest md256;
+    private static final MessageDigest md1;
+
+    static {
+        try {
+            md256 = MessageDigest.getInstance("SHA-256");
+            md1 = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * hash a string using SHA-256
      * @param value a user's password
      * @return a hash of the password value.  a one-way function that returns a unique value,
      *          but different than the original, cannot be converted back to its original value.
      */
-    public static String hashStringSha256(String value) {
+    public static byte[] hashString(String value, MessageDigest md) {
         stringMustNotBeNullOrBlank(value);
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(
-                    value.getBytes(StandardCharsets.UTF_8));
-            return bytesToHex(encodedhash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
+        return md.digest(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static byte[] hashStringSha1(String value) {
+        return hashString(value, md1);
+    }
+    public static byte[] hashStringSha256(String value) {
+        return hashString(value, md256);
     }
 
 
@@ -35,7 +47,7 @@ public class Crypto {
      * @param bytes an array of bytes
      * @return a hex string of that array
      */
-    private static String bytesToHex(byte[] bytes) {
+    public static String bytesToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
             String hex = Integer.toHexString(0xff & b);

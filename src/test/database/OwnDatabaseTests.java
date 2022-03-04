@@ -3,8 +3,14 @@ package database;
 import logging.TestLogger;
 
 import java.io.*;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.HashMap;
+
+import static utils.Crypto.*;
 
 /**
  * Tests for our own database
@@ -48,24 +54,88 @@ public class OwnDatabaseTests {
             try {
                 final var path = Files.createFile(filePath);
                 final var bw = new BufferedWriter(new FileWriter(path.toFile()));
-                // make a big file, 10 megabytes
-                final var numberMB = 10;
-                final var fileSize = 1024 * 1024 * numberMB;
+                // make a file
+                final var fileSize = 10;
                 for (int i = 0; i < fileSize; i++) {
-                    bw.write(i);
+                    bw.write(0x0);
+
                 }
+                bw.flush();
                 final var earlier = System.currentTimeMillis();
-                final var raf = new RandomAccessFile(path.toFile(), "rw");
-                for (int i = 0; i < 128; i++) {
+                final var raf = new RandomAccessFile(path.toFile(), "rws");
+                for (int i = 0; i < 5; i++) {
                     final var pos = fileSize / 2;
                     raf.seek(pos);
-                    raf.write(i);
+                    raf.write('c');
                 }
                 final var later = System.currentTimeMillis();
+                raf.seek(fileSize);
+                // write after the end of the file
+                raf.write("this is a test".getBytes(StandardCharsets.UTF_8));
                 System.out.println(later - earlier);
             } finally {
                 Files.delete(filePath);
             }
+        }
+
+
+        /*
+         * The question is: what kind of data structure should we use?  Let's assume
+         * we'll primarily keep our data in memory for this database and occasionally
+         * write to disk.  If we make good choices about our data and don't just
+         * stuff everything in there, this should work for most situations.
+         *
+         * If we use something like a hashmap, we'll have O(1) speed for access, and
+         * if we can serialize to a form that lets us make block-level edits to a file,
+         * we can save quickly.
+         *
+         * What's the simplest approach?
+         */
+        logger.test("serialize some data");
+        {
+            record Thingamajig(String name, String favoriteColor, String favoriteIceCream) {}
+
+            // let's say we have a hash map.  that's what we'll keep in
+            // raw array
+            // hash map
+            // vectors
+            // list
+            // if we want to have random access into a file, we'll need to basically control all
+            // the data, byte for byte, precisely, right?
+
+            final var foo = new HashMap<Integer, Thingamajig>();
+        }
+
+        /*
+        Like, fo' sha
+
+        Tested out a few.
+        SHA-1: 110 millis
+        SHA-256: 90 millis
+        SHA-512: 150 millis
+
+        I guess we'll go with sha-256
+         */
+        logger.test("how fast is sha");
+        {
+            final var earlier = System.currentTimeMillis();
+            for (var i = 0; i < 100_000; i++) {
+                hashStringSha256("hello");
+            }
+            final var later = System.currentTimeMillis();
+            System.out.println("sha256 took " + (later - earlier) + " millis for 100,000 cycles");
+        }
+
+        logger.test("playing with getting a base64 value from a hash sha-256");
+        {
+            final var encodedhash = hashStringSha256("hello");
+            System.out.println(bytesToHex(encodedhash));
+        }
+
+        logger.test("playing with getting a base64 value from a hash sha-1");
+        {
+            final var encodedhash = hashStringSha1("hello");
+            System.out.println(bytesToHex(encodedhash));
         }
 
     }
