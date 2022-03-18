@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HashMap;
 
+import static framework.TestFramework.assertEquals;
 import static utils.Crypto.*;
 
 /**
@@ -128,14 +129,14 @@ public class OwnDatabaseTests {
 
         logger.test("playing with getting a base64 value from a hash sha-256");
         {
-            final var encodedhash = hashStringSha256("hello");
-            System.out.println(bytesToHex(encodedhash));
+            final var encodedhash = bytesToHex(hashStringSha256("hello"));
+            assertEquals(encodedhash, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
         }
 
         logger.test("playing with getting a base64 value from a hash sha-1");
         {
-            final var encodedhash = hashStringSha1("hello");
-            System.out.println(bytesToHex(encodedhash));
+            final var encodedhash = bytesToHex(hashStringSha1("hello"));
+            assertEquals(encodedhash, "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d");
         }
 
     }
