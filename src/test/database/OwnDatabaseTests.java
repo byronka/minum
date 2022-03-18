@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static framework.TestFramework.assertEquals;
+import static framework.TestFramework.assertTrue;
 import static utils.Crypto.*;
 
 /**
@@ -177,10 +178,30 @@ public class OwnDatabaseTests {
             record Thing(int a, String b){}
             final var db = Database.createDatabase();
             db.createNewList("things", Thing.class);
-            final Database.DbList<Thing> things = db.getList("things");
+            final Database.DbList<Thing> things = db.getList("things", Thing.class);
             things.actOn(t -> t.add(new Thing(42, "the meaning of life")));
             final var result = things.read(t -> t.stream().filter(x -> x.b.equals("the meaning of life")).toList());
             assertEquals(result.get(0).a, 42);
+        }
+
+        /*
+         * If we previously registered some data as "Thing" and we subsequently
+         * ask for it as type "Other", we should get a complaint
+         */
+        logger.test("Testing the type safety");
+        {
+            record Thing(int a, String b){}
+            record Other(int a, String b){}
+            final var db = Database.createDatabase();
+            db.createNewList("things", Thing.class);
+            try {
+                db.getList("things", Other.class);
+            } catch (RuntimeException ex) {
+                assertEquals(ex.getMessage(), "It should not be possible to have multiple matching keys here. " +
+                        "keys: " +
+                        "[NameAndType[name=things, clazz=class database.OwnDatabaseTests$3Thing], " +
+                        "NameAndType[name=things, clazz=class database.OwnDatabaseTests$2Thing]]");
+            }
         }
 
     }

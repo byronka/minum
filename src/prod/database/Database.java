@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static utils.Invariants.mustBeTrue;
+
 public class Database {
 
     static class DbList<T> {
@@ -33,7 +35,7 @@ public class Database {
     /**
      * The central data structure of our database
      */
-    private final Map<String, DbList<?>> mainMap;
+    private final Map<NameAndType<?>, DbList<?>> mainMap;
     private static Database database;
 
     private Database() {
@@ -47,16 +49,29 @@ public class Database {
         return database;
     }
 
+    record NameAndType<T>(String name, Class<T> clazz){}
+
     /**
      * Create a new named location for some data
      */
     public <T> void createNewList(String listName, Class<T> clazz) {
         final var initialValue = new DbList<>(new ArrayList<T>());
-        mainMap.put(listName, initialValue);
+        final var keyValue = new NameAndType<>(listName, clazz);
+        mainMap.put(keyValue, initialValue);
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> DbList<T> getList(String listName) {
-        return (DbList<T>) this.mainMap.get(listName);
+    public <T> DbList<T> getList(String listName, Class<T> clazz) {
+        final var matchingKeys = this.mainMap.keySet().stream().filter(k -> k.name.equals(listName)).toList();
+        NameAndType<?> validKey;
+        switch (matchingKeys.size()) {
+            case 0: return null;
+            case 1: validKey = matchingKeys.get(0);
+            break;
+            default: throw new RuntimeException("It should not be possible to have multiple matching keys here. keys: %s".formatted(String.join(";", matchingKeys.toString())));
+        }
+        final var result = this.mainMap.get(validKey);
+        mustBeTrue(validKey.clazz() == clazz, "The data was stored as %s, while you requested it as %s".formatted(validKey.clazz(), clazz));
+        //noinspection unchecked
+        return (DbList<T>) result;
     }
 }
