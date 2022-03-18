@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static framework.TestFramework.assertEquals;
 import static utils.Crypto.*;
@@ -137,6 +139,48 @@ public class OwnDatabaseTests {
         {
             final var encodedhash = bytesToHex(hashStringSha1("hello"));
             assertEquals(encodedhash, "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d");
+        }
+
+        logger.test("starting to craft a memory database similar to r3z");
+        {
+            /*
+              start with a basic hashmap, with a string as the key being
+              effectively the name of the table, and then the value being
+              a list, effectively the "rows" of the table.
+             */
+            final var db = new HashMap<String, List<?>>();
+
+            record Thing(int a, String b){}
+
+            final var a_list_of_things = List.of(new Thing(42, "the meaning of life"));
+
+            // add something to the database
+            db.put("thing", a_list_of_things);
+
+            // add another thing
+            final var a_new_thing = new Thing(1, "one is the loneliest number");
+            final var concatenatedList = Stream.concat(a_list_of_things.stream(), Stream.of(a_new_thing)).toList();
+            db.put("thing", concatenatedList);
+
+            // get all the things
+            final var things = db.get("thing");
+            assertEquals(things.toString(), "[Thing[a=42, b=the meaning of life], Thing[a=1, b=one is the loneliest number]]");
+        }
+
+        /*
+         * The database needs to use generics a bit to have some type-safety,
+         * since each of its lists will be of a different type - that is, we
+         * may have a list of dogs, of cars, of bicycles ...
+         */
+        logger.test("Creating a generic method for the database");
+        {
+            record Thing(int a, String b){}
+            final var db = Database.createDatabase();
+            db.createNewList("things", Thing.class);
+            final Database.DbList<Thing> things = db.getList("things");
+            things.actOn(t -> t.add(new Thing(42, "the meaning of life")));
+            final var result = things.read(t -> t.stream().filter(x -> x.b.equals("the meaning of life")).toList());
+            assertEquals(result.get(0).a, 42);
         }
 
     }

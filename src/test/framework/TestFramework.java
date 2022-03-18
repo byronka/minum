@@ -30,7 +30,7 @@ public class TestFramework {
      */
     public static <T> void assertEquals(T left, T right) {
         if (! left.equals(right)) {
-            throw new RuntimeException("Not equal! left: " + left + " right: " + right);
+            throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(left, right));
         }
     }
 
