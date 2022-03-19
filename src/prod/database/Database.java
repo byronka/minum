@@ -1,9 +1,6 @@
 package database;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -61,7 +58,7 @@ public class Database {
     }
 
     public <T> DbList<T> getList(String listName, Class<T> clazz) {
-        final var matchingKeys = this.mainMap.keySet().stream().filter(k -> k.name.equals(listName)).toList();
+        final var matchingKeys = this.mainMap.keySet().stream().filter(k -> k.name.equals(listName)).sorted(Comparator.comparing(NameAndType::name)).toList();
         NameAndType<?> validKey;
         switch (matchingKeys.size()) {
             case 0: return null;
