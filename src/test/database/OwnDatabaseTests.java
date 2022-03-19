@@ -199,8 +199,8 @@ public class OwnDatabaseTests {
             } catch (RuntimeException ex) {
                 assertEquals(ex.getMessage(), "It should not be possible to have multiple matching keys here. " +
                         "keys: " +
-                        "[NameAndType[name=things, clazz=class database.OwnDatabaseTests$3Thing], " +
-                        "NameAndType[name=things, clazz=class database.OwnDatabaseTests$2Thing]]");
+                        "[NameAndType[name=things, clazz=class database.OwnDatabaseTests$2Thing], " +
+                        "NameAndType[name=things, clazz=class database.OwnDatabaseTests$3Thing]]");
             }
         }
 

@@ -58,7 +58,14 @@ public class Database {
     }
 
     public <T> DbList<T> getList(String listName, Class<T> clazz) {
-        final var matchingKeys = this.mainMap.keySet().stream().filter(k -> k.name.equals(listName)).sorted(Comparator.comparing(NameAndType::name)).toList();
+        final Comparator<NameAndType<?>> comparator = Comparator.comparing(NameAndType::name);
+        final Comparator<NameAndType<?>> nameAndTypeComparator = comparator.thenComparing((NameAndType<?> nameAndType) -> nameAndType.clazz().toString());
+
+        final var matchingKeys = this.mainMap
+                .keySet().stream()
+                .filter(k -> k.name.equals(listName))
+                .sorted(nameAndTypeComparator)
+                .toList();
         NameAndType<?> validKey;
         switch (matchingKeys.size()) {
             case 0: return null;
