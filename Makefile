@@ -104,7 +104,7 @@ COV_DIR = out/coveragereport
 ##
 # targets that do not produce output files
 ##
-.PHONY: all clean run test testcov rundebug testdebug jar classes
+.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses
 
 ##
 # default target(s)
@@ -118,13 +118,18 @@ classes: $(CLS)
 	        $(JC) -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $(LIST) ; \
 	    fi
 
+testclasses: $(TST_CLS)
+	    if [ ! -z "$(LIST)" ] ; then \
+	        $(JC) -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(LIST) ; \
+	    fi
+
 # here is the target for the application code
 $(CLS): $(OUT_DIR_PROD)/%.class: $(SRC_DIR)/%.java
 	   $(eval LIST+=$$<)
 
 # here is the target for the test code
 $(TST_CLS): $(OUT_DIR_TEST)/%.class: $(TST_SRC_DIR)/%.java
-	    $(JC) -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $<
+	    $(eval LIST+=$$<)
 
 
 #: clean up any output files
@@ -144,15 +149,15 @@ rundebug: all
 	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(RUN_CP) primary.Main
 
 #: run the tests
-test: all $(TST_CLS)
+test: all testclasses
 	    $(JAVA) -cp $(TST_RUN_CP) primary.Tests
 
 #: run the tests and open a port for debugging.
-testdebug: all $(TST_CLS)
+testdebug: all testclasses
 	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(TST_RUN_CP) primary.Tests
 
 #: If you want to obtain code coverage from running the tests
-testcov: all $(TST_CLS)
+testcov: all testclasses
 	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) primary.Tests
 	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_PROD) --sourcefiles $(SRC_DIR)
 
