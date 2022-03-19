@@ -104,16 +104,23 @@ COV_DIR = out/coveragereport
 ##
 # targets that do not produce output files
 ##
-.PHONY: all clean run test testcov rundebug testdebug jar
+.PHONY: all clean run test testcov rundebug testdebug jar classes
 
 ##
 # default target(s)
 ##
-all: $(CLS)
+all: classes
+
+LIST:=
+
+classes: $(CLS)
+	    if [ ! -z "$(LIST)" ] ; then \
+	        $(JC) -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $(LIST) ; \
+	    fi
 
 # here is the target for the application code
 $(CLS): $(OUT_DIR_PROD)/%.class: $(SRC_DIR)/%.java
-	    $(JC) -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $<
+	   $(eval LIST+=$$<)
 
 # here is the target for the test code
 $(TST_CLS): $(OUT_DIR_TEST)/%.class: $(TST_SRC_DIR)/%.java
