@@ -112,6 +112,7 @@ COV_DIR = out/coveragereport
 all: classes
 
 LIST:=
+TEST_LIST:=
 
 classes: $(CLS)
 	    if [ ! -z "$(LIST)" ] ; then \
@@ -119,8 +120,8 @@ classes: $(CLS)
 	    fi
 
 testclasses: $(TST_CLS)
-	    if [ ! -z "$(LIST)" ] ; then \
-	        $(JC) -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(LIST) ; \
+	    if [ ! -z "$(TEST_LIST)" ] ; then \
+	        $(JC) -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
 	    fi
 
 # here is the target for the application code
@@ -129,8 +130,7 @@ $(CLS): $(OUT_DIR_PROD)/%.class: $(SRC_DIR)/%.java
 
 # here is the target for the test code
 $(TST_CLS): $(OUT_DIR_TEST)/%.class: $(TST_SRC_DIR)/%.java
-	    $(eval LIST+=$$<)
-
+	    $(eval TEST_LIST+=$$<)
 
 #: clean up any output files
 clean:
