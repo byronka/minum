@@ -116,12 +116,12 @@ TEST_LIST:=
 
 classes: $(CLS)
 	    if [ ! -z "$(LIST)" ] ; then \
-	        $(JC) -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $(LIST) ; \
+	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $(LIST) ; \
 	    fi
 
 testclasses: $(TST_CLS)
 	    if [ ! -z "$(TEST_LIST)" ] ; then \
-	        $(JC) -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
+	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
 	    fi
 
 # here is the target for the application code

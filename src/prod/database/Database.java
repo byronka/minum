@@ -57,6 +57,14 @@ public class Database {
         mainMap.put(keyValue, initialValue);
     }
 
+    /**
+     * Unfortunately, due to the way that Java handles generics,
+     * it isn't possible to create collections with varying types
+     * unless you use a ton of reflection magic, which ends up
+     * being a cure more deadly than the disease.  So I'm using
+     * a supression of the cast.
+     */
+    @SuppressWarnings("unchecked")
     public <T> DbList<T> getList(String listName, Class<T> clazz) {
         final Comparator<NameAndType<?>> comparator = Comparator.comparing(NameAndType::name);
         final Comparator<NameAndType<?>> nameAndTypeComparator = comparator.thenComparing((NameAndType<?> nameAndType) -> nameAndType.clazz().toString());
@@ -75,7 +83,6 @@ public class Database {
         }
         final var result = this.mainMap.get(validKey);
         mustBeTrue(validKey.clazz() == clazz, "The data was stored as %s, while you requested it as %s".formatted(validKey.clazz(), clazz));
-        //noinspection unchecked
         return (DbList<T>) result;
     }
 }
