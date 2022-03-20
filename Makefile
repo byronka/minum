@@ -114,13 +114,16 @@ all: classes
 LIST:=
 TEST_LIST:=
 
+# note that putting an @ in front of a command in a makefile
+# will cause that command not to echo out when running Make.
+
 classes: $(CLS)
-	    if [ ! -z "$(LIST)" ] ; then \
+	    @if [ ! -z "$(LIST)" ] ; then \
 	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $(LIST) ; \
 	    fi
 
 testclasses: $(TST_CLS)
-	    if [ ! -z "$(TEST_LIST)" ] ; then \
+	    @if [ ! -z "$(TEST_LIST)" ] ; then \
 	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
 	    fi
 
