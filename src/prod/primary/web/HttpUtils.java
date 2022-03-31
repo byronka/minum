@@ -12,18 +12,4 @@ public class HttpUtils {
         return sw.readByLength(length);
     }
 
-    /**
-     * Encodes UTF-8 text using URL-encoding
-     */
-    public static String encode(String str) {
-        return URLEncoder.encode(str, StandardCharsets.UTF_8);
-    }
-
-    /**
-     * Decodes URL-encoded UTF-8 text
-     */
-    public static String decode(String str) {
-        mustNotBeNull(str);
-        return URLDecoder.decode(str, StandardCharsets.UTF_8);
-    }
 }

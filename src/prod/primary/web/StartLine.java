@@ -7,8 +7,8 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static primary.web.HttpUtils.decode;
 import static utils.Invariants.mustBeTrue;
+import static utils.StringUtils.decode;
 
 /**
  * This class holds data and methods for dealing with the

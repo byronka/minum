@@ -1,5 +1,11 @@
 package utils;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+import static utils.Invariants.mustNotBeNull;
+
 /**
  * Some simple helper methods for Strings.
  */
@@ -17,6 +23,19 @@ public class StringUtils {
         return s == null ? "" : s;
     }
 
+    /**
+     * Encodes UTF-8 text using URL-encoding
+     */
+    public static String encode(String str) {
+        return URLEncoder.encode(str, StandardCharsets.UTF_8);
+    }
 
+    /**
+     * Decodes URL-encoded UTF-8 text
+     */
+    public static String decode(String str) {
+        mustNotBeNull(str);
+        return URLDecoder.decode(str, StandardCharsets.UTF_8);
+    }
 }
 
