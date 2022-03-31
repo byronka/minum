@@ -16,12 +16,12 @@ abstract class Serializable {
      * this represents the connection between a name of a property
      * and the associated value of it in this class,
      * used during the serialization process.  For example,
-     * if we think about the [coverosR3z.timerecording.types.Project] type, it has an id
-     * and a name.  Therefore, an appropriate map might
-     * be "name" to encode(ProjectName.value) and "id" to id.
+     * if we think about a type with an id
+     * and a name, an appropriate map might
+     * be "name" to encode(name) and "id" to id.
      *
-     * Note that encoding values before serialization is key -
-     * see the [coverosR3z.system.misc.utility.encode] method for details.
+     * Note that encoding values before serialization is key, so that
+     * whitespace and symbols don't cause us stomach upset when decoding.
      */
     Map<SerializationKeys, String> dataMappings;
 
