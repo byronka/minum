@@ -23,8 +23,8 @@ import static primary.web.StartLine.startLineRegex;
 
 class Tests {
 
-  static ExecutorService es = ExtendedExecutor.makeExecutorService();
-  static TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+  static final ExecutorService es = ExtendedExecutor.makeExecutorService();
+  static final TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
 
   public static void initialTests() {
 

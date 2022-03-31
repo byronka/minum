@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -50,7 +51,7 @@ public class WebFramework {
     public record Request(HeaderInformation hi, StartLine sl) {}
     public record Response(String placeholder) {}
     record VerbPath(StartLine.Verb verb, String path) {}
-    private Map<VerbPath, Function<Request, Response>> endpoints;
+    private final Map<VerbPath, Function<Request, Response>> endpoints;
 
     public WebFramework(ILogger logger) {
         this(logger, null);
@@ -59,8 +60,6 @@ public class WebFramework {
     /**
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
-     * @param logger
-     * @param zdt
      */
     public WebFramework(ILogger logger, ZonedDateTime zdt) {
         this.logger = logger;
@@ -71,11 +70,7 @@ public class WebFramework {
     private final ZonedDateTime zdt;
 
     private ZonedDateTime getZonedDateTimeNow() {
-        if (zdt != null) {
-            return zdt;
-        } else {
-            return ZonedDateTime.now(ZoneId.of("UTC"));
-        }
+        return Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC")));
     }
 
     public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> functionName) {

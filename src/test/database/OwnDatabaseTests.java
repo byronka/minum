@@ -22,7 +22,7 @@ import static utils.Crypto.*;
  * Tests for our own database
  */
 public class OwnDatabaseTests {
-    private TestLogger logger;
+    private final TestLogger logger;
 
     public OwnDatabaseTests(TestLogger logger) {
         this.logger = logger;
