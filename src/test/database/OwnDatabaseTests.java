@@ -2,14 +2,15 @@ package database;
 
 import logging.TestLogger;
 
-import java.io.*;
-import java.math.BigInteger;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static framework.TestFramework.assertEquals;
@@ -202,6 +203,38 @@ public class OwnDatabaseTests {
                         "[NameAndType[name=things, clazz=class database.OwnDatabaseTests$2Thing], " +
                         "NameAndType[name=things, clazz=class database.OwnDatabaseTests$3Thing]]");
             }
+        }
+
+        /*
+        Here, I'm wondering whether I can create separate data structures
+        that cover the data in others.  For example, if I create a list of a, b, c, can I
+        create a map that contains those values?
+
+        This is valuable in the case of our home-cooked database.  The data is stored in
+        sets, so if I am running a query that accesses data by identifier, it has to loop
+        through all the data.  If instead I create a separate hash map for the same data,
+        then I suddenly gain all the speed of a SQL indexed table lookup.
+         */
+        logger.test("can I have a hashmap that refers to the same objects in a list?");
+        {
+            // short answer: yes.  Longer answer: see below.
+            final var listOfStuff = List.of(new Object(), new Object());
+
+            Map<Integer, Object> myMap = new HashMap<>();
+            var index = 0;
+            for (var item : listOfStuff) {
+                myMap.put(index, item);
+                /*
+                check to make sure the objects being pointed to are
+                the same (note that unlike the normal case where we
+                compare values, here I'm specifically concerned
+                that the items in question are pointing to the
+                exact same object in memory
+                 */
+                assertTrue(item == myMap.get(index));
+                index += 1;
+            }
+
         }
 
     }
