@@ -1,4 +1,6 @@
-package database;
+package database.owndatabase;
+
+import database.owndatabase.IndexableSerializable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

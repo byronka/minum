@@ -1,4 +1,4 @@
-package database;
+package database.owndatabase;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -8,7 +8,7 @@ import static utils.Invariants.mustBeTrue;
 
 public class Database {
 
-    static class DbList<T> {
+    public static class DbList<T> {
         final private List<T> itemsList;
 
         private DbList(List<T> itemsList) {

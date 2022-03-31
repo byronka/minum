@@ -1,4 +1,4 @@
-package database;
+package database.owndatabase;
 
 import java.util.HashSet;
 import java.util.Map;

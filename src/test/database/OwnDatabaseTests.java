@@ -1,5 +1,6 @@
 package database;
 
+import database.owndatabase.Database;
 import logging.TestLogger;
 
 import java.io.BufferedWriter;
