@@ -1,4 +1,4 @@
-package database;
+package database.externaldb;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -11,7 +11,7 @@ import java.util.logging.Logger;
  * "empty" versions of our classes.  To create an empty String, for
  * example, is simply "".  But an empty DataSource would look like this.
  */
-class EmptyDataSource implements DataSource {
+public class EmptyDataSource implements DataSource {
     @Override
     public Connection getConnection() {
         throw new NotImplementedException();

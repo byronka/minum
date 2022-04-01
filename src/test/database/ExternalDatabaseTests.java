@@ -1,5 +1,6 @@
 package database;
 
+import database.externaldb.ExternalDatabase;
 import logging.TestLogger;
 
 import static framework.TestFramework.assertEquals;

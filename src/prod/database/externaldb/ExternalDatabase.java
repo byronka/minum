@@ -1,4 +1,4 @@
-package database;
+package database.externaldb;
 
 import org.h2.jdbcx.JdbcConnectionPool;
 

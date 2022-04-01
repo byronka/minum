@@ -1,4 +1,4 @@
-package database;
+package database.externaldb;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;

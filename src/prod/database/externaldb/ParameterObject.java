@@ -1,4 +1,4 @@
-package database;
+package database.externaldb;
 
 /**
  * a POJO container for the parameters for the {@link SqlData} object.
