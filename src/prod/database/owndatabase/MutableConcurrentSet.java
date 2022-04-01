@@ -88,15 +88,8 @@ public class MutableConcurrentSet<T extends IndexableSerializable> implements It
         myMap.clear();
     }
 
-    @Override
-    public void forEach(Consumer<? super T> action) {
-        throw new UnsupportedOperationException("Have not implemented this, not expected to be used");
-//        Iterable.super.forEach(action);
-    }
-
-    @Override
-    public Spliterator<T> spliterator() {
-        throw new UnsupportedOperationException("Have not implemented this, not expected to be used");
-//        return Iterable.super.spliterator();
+    public boolean update(T element) {
+        final var result = myMap.computeIfPresent(element.getIndex(), (a,b) ->  element );
+        return result != null;
     }
 }

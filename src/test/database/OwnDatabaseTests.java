@@ -1,7 +1,8 @@
 package database;
 
-import database.owndatabase.Database;
+import database.owndatabase.*;
 import logging.TestLogger;
+import primary.dataEntities.TestThing;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -236,6 +237,19 @@ public class OwnDatabaseTests {
                 index += 1;
             }
 
+        }
+
+        logger.test("add and get data from the database");
+        {
+
+            Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
+            data.put(TestThing.getDirectoryName(), new ChangeTrackingSet<>());
+            final var db = new PureMemoryDatabase(null, data);
+            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.getDirectoryName());
+            final var enteredThing = new TestThing(123);
+            testThingDataAccess.actOn(x -> x.add(enteredThing));
+            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
+            assertEquals(foundValue, enteredThing);
         }
 
     }

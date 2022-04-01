@@ -1,6 +1,6 @@
 package database.owndatabase;
 
-public interface IndexableSerializable {
+public abstract class IndexableSerializable extends Serializable {
     /**
      * Gets the current index of this object.  A common pattern in the
      * system is to use the [MutableConcurrentSet.nextIndex], which is an [java.util.concurrent.atomic.AtomicInteger].
@@ -8,5 +8,9 @@ public interface IndexableSerializable {
      * to get the current value and increment it in one motion, so we can avoid worrying
      * about thread safety when creating new unique id's per element
      */
-    Integer getIndex();
+    protected abstract Integer getIndex();
+
+    protected static String getDirectoryName() {
+        throw new UnsupportedOperationException("You must implement this in your entity");
+    }
 }

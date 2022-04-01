@@ -1,6 +1,7 @@
 package database.owndatabase;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -46,5 +47,19 @@ abstract class Serializable {
             mustBeTrue(validKeyRegex.matcher(x).matches(), "Serialization keys must match this regex: ${validKeyRegex.pattern}.  Your key was: ${it.keyString}");
         });
         return String.join(" , ", dataMappings.entrySet().stream().map(x -> "{ " + x.getKey().getKeyString() + ": " + encode(x.getValue()) + " }").toList());
+    }
+
+    /**
+     * The directory where this data will be stored
+     */
+    String directoryName;
+
+    /**
+     * Converts a string to a [SerializationKeys]
+     */
+    public <T extends SerializationKeys> SerializationKeys convertToKey(String s, List<T> values) {
+        final var foo = values.stream().filter(x -> x.getKeyString().equals(s)).toList();
+        mustBeTrue(foo.size() == 1, "There must be exactly one key found");
+        return foo.get(0);
     }
 }

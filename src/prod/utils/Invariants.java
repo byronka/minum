@@ -27,9 +27,11 @@ public class Invariants {
         }
     }
 
-    public static void mustNotBeNull(Object object) {
+    public static <T> T mustNotBeNull(T object) {
         if (object == null) {
             throw new InvariantException("value must not be null");
+        } else {
+            return object;
         }
     }
 
