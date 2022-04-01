@@ -1,4 +1,4 @@
-package database.owndatabase;
+package database;
 
 import java.util.*;
 import java.util.function.Consumer;
