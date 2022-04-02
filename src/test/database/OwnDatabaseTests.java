@@ -241,15 +241,20 @@ public class OwnDatabaseTests {
 
         logger.test("add and get data from the database");
         {
-
             Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
-            data.put(TestThing.getDirectoryName(), new ChangeTrackingSet<>());
+            data.put(TestThing.INSTANCE.getDirectoryName(), new ChangeTrackingSet<>());
             final var db = new PureMemoryDatabase(null, data);
-            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.getDirectoryName());
+            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDirectoryName());
             final var enteredThing = new TestThing(123);
             testThingDataAccess.actOn(x -> x.add(enteredThing));
             final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
             assertEquals(foundValue, enteredThing);
+        }
+
+        logger.test("playing with an entity - it should be able to serialize itself");
+        {
+            final var thing = new TestThing(123);
+            assertEquals(thing, TestThing.INSTANCE.deserialize(thing.serialize()));
         }
 
     }

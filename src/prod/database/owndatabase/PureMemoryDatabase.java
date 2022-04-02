@@ -55,7 +55,7 @@ public class PureMemoryDatabase {
      */
     public static PureMemoryDatabase createEmptyDatabase(DatabaseDiskPersistence diskPersistence) {
         final var dataMap = new HashMap<String, ChangeTrackingSet<?>>();
-        dataMap.put(TestThing.getDirectoryName(), new ChangeTrackingSet<TestThing>());
+        dataMap.put(TestThing.INSTANCE.getDirectoryName(), new ChangeTrackingSet<TestThing>());
         return new PureMemoryDatabase(diskPersistence, dataMap);
     }
 }
