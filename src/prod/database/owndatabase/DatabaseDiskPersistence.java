@@ -1,13 +1,20 @@
 package database.owndatabase;
 
+import primary.dataEntities.TestThing;
 import utils.ActionQueue;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import static utils.FileUtils.writeString;
 import static utils.Invariants.mustBeTrue;
+import static utils.StringUtils.decode;
 
 public class DatabaseDiskPersistence {
 
@@ -84,6 +91,27 @@ public class DatabaseDiskPersistence {
             mustBeTrue(file.exists(), "we were asked to update %s but it doesn't exist".formatted(file));
             writeString(fullPath, item.serialize());
         });
+    }
+
+
+    public static <T extends IndexableSerializable<?>> T deserialize(String serialized, Function<Map<SerializationKeys, String>, T> converter, List<SerializationKeys> serializationKeys) {
+        final var matcher = DatabaseDiskPersistence.serializedStringRegex.matcher(serialized);
+        mustBeTrue(matcher.matches(), "the saved data (%s) must match the pattern (%s)".formatted(serialized, DatabaseDiskPersistence.serializedStringRegex.pattern()));
+        mustBeTrue(matcher.groupCount() % 3 == 0, "Our regular expression returns three values each time.  The whole match, then the key, then the value.  Thus a multiple of 3");
+        var currentIndex = 0;
+        final var myMap = new HashMap<SerializationKeys, String>();
+        while(true) {
+            if (matcher.groupCount() - currentIndex >= 3) {
+                int finalCurrentIndex = currentIndex;
+                final var keys = serializationKeys.stream().filter(x -> x.getKeyString().equals(matcher.group(finalCurrentIndex + 2))).toList();
+                mustBeTrue(keys.size() == 1, "There should only be one key found");
+                myMap.put(keys.get(0), decode(matcher.group(currentIndex + 3)));
+                currentIndex += 3;
+            } else {
+                break;
+            }
+        }
+        return converter.apply(myMap);
     }
 
 }

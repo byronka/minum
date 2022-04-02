@@ -5,13 +5,8 @@ import database.owndatabase.IndexableSerializable;
 import database.owndatabase.SerializationKeys;
 
 import java.util.*;
-import java.util.regex.MatchResult;
-import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
 import static utils.Invariants.mustBeTrue;
-import static utils.Invariants.mustNotBeNull;
-import static utils.StringUtils.decode;
 import static utils.StringUtils.encode;
 
 public class TestThing extends IndexableSerializable<TestThing> {
@@ -44,7 +39,7 @@ public class TestThing extends IndexableSerializable<TestThing> {
      * See [dataMappings] to see how we map a name to a value
      */
     public String serialize() {
-        final var allKeys = getDataMappings().keySet().stream().map(x -> x.getKeyString()).toList();
+        final var allKeys = getDataMappings().keySet().stream().map(SerializationKeys::getKeyString).toList();
         allKeys.forEach(x -> {
             mustBeTrue(!x.isBlank(), "Serialization keys must match this regex: %s.  Your key was: (BLANK)".formatted(validKeyRegex.pattern()));
             mustBeTrue(validKeyRegex.matcher(x).matches(), "Serialization keys must match this regex: %s.  Your key was: %s".formatted(validKeyRegex.pattern(), x));
@@ -63,22 +58,10 @@ public class TestThing extends IndexableSerializable<TestThing> {
 
     @Override
     public TestThing deserialize(String serialized) {
-        final var matcher = DatabaseDiskPersistence.serializedStringRegex.matcher(serialized);
-        mustBeTrue(matcher.matches(), "the saved data (%s) must match the pattern (%s)".formatted(serialized, DatabaseDiskPersistence.serializedStringRegex.pattern()));
-        mustBeTrue(matcher.groupCount() % 3 == 0, "Our regular expression returns three values each time.  The whole match, then the key, then the value.  Thus a multiple of 3");
-        var currentIndex = 0;
-        final var myMap = new HashMap<SerializationKeys, String>();
-        while(true) {
-            if (matcher.groupCount() - currentIndex >= 3) {
-                int finalCurrentIndex = currentIndex;
-                final var keys = Arrays.stream(Keys.values()).filter(x -> x.getKeyString().equals(matcher.group(finalCurrentIndex + 2))).toList();
-                mustBeTrue(keys.size() == 1, "There should only be one key found");
-                myMap.put(keys.get(0), decode(matcher.group(currentIndex + 3)));
-                currentIndex += 3;
-            } else {
-                break;
-            }
-        }
+        return DatabaseDiskPersistence.deserialize(serialized, this::convertDeserializedMapToMe, Arrays.asList(Keys.values()) );
+    }
+
+    public TestThing convertDeserializedMapToMe(Map<SerializationKeys, String> myMap) {
         return new TestThing(Integer.parseInt(myMap.get(Keys.ID)));
     }
 

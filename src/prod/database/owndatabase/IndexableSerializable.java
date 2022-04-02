@@ -1,5 +1,7 @@
 package database.owndatabase;
 
+import primary.dataEntities.TestThing;
+
 public abstract class IndexableSerializable<T> extends Serializable<T> {
     /**
      * Gets the current index of this object.  A common pattern in the

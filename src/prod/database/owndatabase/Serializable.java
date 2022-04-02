@@ -43,10 +43,10 @@ abstract class Serializable<T> {
     /**
      * Converts a string to a [SerializationKeys]
      */
-    public <T extends SerializationKeys> SerializationKeys convertToKey(String s, List<T> values) {
-        final var foo = values.stream().filter(x -> x.getKeyString().equals(s)).toList();
-        mustBeTrue(foo.size() == 1, "There must be exactly one key found");
-        return foo.get(0);
+    public <K extends SerializationKeys> SerializationKeys convertToKey(String s, List<K> values) {
+        final var keys = values.stream().filter(x -> x.getKeyString().equals(s)).toList();
+        mustBeTrue(keys.size() == 1, "There must be exactly one key found");
+        return keys.get(0);
     }
 
 }
