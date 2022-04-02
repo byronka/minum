@@ -11,8 +11,8 @@ import static utils.Invariants.mustNotBeNull;
 
 public class PureMemoryDatabase {
 
-    private DatabaseDiskPersistence diskPersistence;
-    private Map<String, ChangeTrackingSet<?>> data;
+    private final DatabaseDiskPersistence diskPersistence;
+    private final Map<String, ChangeTrackingSet<?>> data;
 
     public PureMemoryDatabase(DatabaseDiskPersistence diskPersistence, Map<String, ChangeTrackingSet<?>> data) {
         this.diskPersistence = diskPersistence;

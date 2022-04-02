@@ -23,7 +23,7 @@ public class DatabaseDiskPersistence {
     public static final Pattern serializedStringRegex = Pattern.compile(" (.*?): (.*?) ");
     private final String dbDirectory;
     private final ExecutorService executorService;
-    private ActionQueue actionQueue;
+    private final ActionQueue actionQueue;
 
     public DatabaseDiskPersistence(String dbDirectory, ExecutorService executorService) {
         this.dbDirectory = dbDirectory;

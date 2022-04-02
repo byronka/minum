@@ -19,11 +19,11 @@ import java.util.function.Function;
  * T is the domain-oriented type, such as Project or Employee.
  *        The database expects all data to be a set of [ChangeTrackingSet]
  */
-public class DataAccess<T extends IndexableSerializable> {
+public class DataAccess<T extends IndexableSerializable<?>> {
 
-    private ChangeTrackingSet<T> data;
-    private DatabaseDiskPersistence dbp;
-    private String name;
+    private final ChangeTrackingSet<T> data;
+    private final DatabaseDiskPersistence dbp;
+    private final String name;
 
     public DataAccess(ChangeTrackingSet<T> data, DatabaseDiskPersistence dbp, String name) {
         this.data = data;

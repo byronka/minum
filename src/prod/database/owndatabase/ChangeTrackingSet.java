@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static database.owndatabase.ChangeTrackingSet.DataAction.*;
 
-public class ChangeTrackingSet<T extends IndexableSerializable> extends MutableConcurrentSet<T> {
+public class ChangeTrackingSet<T extends IndexableSerializable<?>> extends MutableConcurrentSet<T> {
 
     /**
      * This is used to tag what gets changed, so we
@@ -32,7 +32,7 @@ public class ChangeTrackingSet<T extends IndexableSerializable> extends MutableC
         UPDATE,
     }
 
-    public CustomConcurrentQueue<Pair<T, DataAction>> modified = new CustomConcurrentQueue<>();
+    public final CustomConcurrentQueue<Pair<T, DataAction>> modified = new CustomConcurrentQueue<>();
 
     static class CustomConcurrentQueue<T> extends ConcurrentLinkedQueue<T> {
 
@@ -100,7 +100,7 @@ public class ChangeTrackingSet<T extends IndexableSerializable> extends MutableC
     }
 
 
-    public static <K extends IndexableSerializable> ChangeTrackingSet<K> toChangeTrackingSet(List<K> myList) {
+    public static <K extends IndexableSerializable<?>> ChangeTrackingSet<K> toChangeTrackingSet(List<K> myList) {
         final var newSet = new ChangeTrackingSet<K>();
         newSet.addAll(myList);
         return newSet;
