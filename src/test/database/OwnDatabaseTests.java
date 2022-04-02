@@ -254,7 +254,9 @@ public class OwnDatabaseTests {
         logger.test("playing with an entity - it should be able to serialize itself");
         {
             final var thing = new TestThing(123);
-            assertEquals(thing, TestThing.INSTANCE.deserialize(thing.serialize()));
+            final var serialized = thing.serialize();
+            assertEquals("{ id: 123 }", serialized);
+            assertEquals(thing, TestThing.INSTANCE.deserialize(serialized));
         }
 
     }
