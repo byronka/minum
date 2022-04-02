@@ -6,9 +6,6 @@ import database.owndatabase.SerializationKeys;
 
 import java.util.*;
 
-import static utils.Invariants.mustBeTrue;
-import static utils.StringUtils.encode;
-
 public class TestThing extends IndexableSerializable<TestThing> {
 
     public static TestThing INSTANCE = new TestThing(0);
@@ -25,8 +22,8 @@ public class TestThing extends IndexableSerializable<TestThing> {
     }
 
     @Override
-    public String getDirectoryName() {
-        return "TestThingee";
+    public String getDataName() {
+        return "TestThing";
     }
 
     @Override
@@ -34,41 +31,19 @@ public class TestThing extends IndexableSerializable<TestThing> {
         return Map.of(Keys.ID, String.valueOf(id));
     }
 
-    /**
-     * converts the data in this object to a form easily written to disk.
-     * See [dataMappings] to see how we map a name to a value
-     */
-    public String serialize() {
-        final var allKeys = getDataMappings().keySet().stream().map(SerializationKeys::getKeyString).toList();
-        allKeys.forEach(x -> {
-            mustBeTrue(!x.isBlank(), "Serialization keys must match this regex: %s.  Your key was: (BLANK)".formatted(validKeyRegex.pattern()));
-            mustBeTrue(validKeyRegex.matcher(x).matches(), "Serialization keys must match this regex: %s.  Your key was: %s".formatted(validKeyRegex.pattern(), x));
-        });
-        return String.join(" , ", serializeDataMappings());
-    }
-
-    /**
-     * Loop through the data mappings for this class,
-     * serializing each one, and returning a list of
-     * them as individual strings
-     */
-    private List<String> serializeDataMappings() {
-        return getDataMappings().entrySet().stream().map(x -> "{ " + x.getKey().getKeyString() + ": " + encode(x.getValue()) + " }").toList();
-    }
-
     @Override
     public TestThing deserialize(String serialized) {
         return DatabaseDiskPersistence.deserialize(serialized, this::convertDeserializedMapToMe, Arrays.asList(Keys.values()) );
     }
 
+    @Override
     public TestThing convertDeserializedMapToMe(Map<SerializationKeys, String> myMap) {
         return new TestThing(Integer.parseInt(myMap.get(Keys.ID)));
     }
 
     enum Keys implements SerializationKeys {
 
-        ID("id"),
-        NAME("name");
+        ID("id");
 
         private final String keyString;
 

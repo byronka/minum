@@ -1,10 +1,14 @@
 package database.owndatabase;
 
+import primary.dataEntities.TestThing;
+
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import static utils.Invariants.mustBeTrue;
+import static utils.StringUtils.encode;
 
 /**
  * Serializable classes are able to [serialize] their content
@@ -32,21 +36,35 @@ abstract class Serializable<T> {
      */
     public static final Pattern validKeyRegex = Pattern.compile("[a-zA-Z]{1,10}");
 
-    public abstract String serialize();
+
+    /**
+     * converts the data in this object to a form easily written to disk.
+     * See [dataMappings] to see how we map a name to a value
+     */
+    public String serialize() {
+        final var allKeys = getDataMappings().keySet().stream().map(SerializationKeys::getKeyString).toList();
+        allKeys.forEach(x -> {
+            mustBeTrue(!x.isBlank(), "Serialization keys must match this regex: %s.  Your key was: (BLANK)".formatted(validKeyRegex.pattern()));
+            mustBeTrue(validKeyRegex.matcher(x).matches(), "Serialization keys must match this regex: %s.  Your key was: %s".formatted(validKeyRegex.pattern(), x));
+        });
+        return "{ " + String.join(" , ", serializeDataMappings(getDataMappings())) + " }";
+    }
+
+    /**
+     * Given a map of {@link SerializationKeys} to strings, return a
+     * serialized form (that is, convert it to a list of strings)
+     */
+    private List<String> serializeDataMappings(Map<SerializationKeys, String> mapOfKeysToStrings) {
+        return mapOfKeysToStrings.entrySet().stream().sorted(Comparator.comparing(x -> x.getKey().getKeyString())).map(x -> x.getKey().getKeyString() + ": " + encode(x.getValue())).toList();
+    }
+
     public abstract T deserialize(String serialized);
 
     /**
-     * The directory where this data will be stored
+     * The directory where this data will be stored. Also
+     * used to generally identify this kind of data.
      */
-    public abstract String getDirectoryName();
+    public abstract String getDataName();
 
-    /**
-     * Converts a string to a [SerializationKeys]
-     */
-    public <K extends SerializationKeys> SerializationKeys convertToKey(String s, List<K> values) {
-        final var keys = values.stream().filter(x -> x.getKeyString().equals(s)).toList();
-        mustBeTrue(keys.size() == 1, "There must be exactly one key found");
-        return keys.get(0);
-    }
-
+    public abstract T convertDeserializedMapToMe(Map<SerializationKeys, String> myMap);
 }

@@ -3,6 +3,7 @@ package database;
 import database.owndatabase.*;
 import logging.TestLogger;
 import primary.dataEntities.TestThing;
+import primary.dataEntities.TestThing2;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -242,9 +243,9 @@ public class OwnDatabaseTests {
         logger.test("add and get data from the database");
         {
             Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
-            data.put(TestThing.INSTANCE.getDirectoryName(), new ChangeTrackingSet<>());
+            data.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<>());
             final var db = new PureMemoryDatabase(null, data);
-            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDirectoryName());
+            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final var enteredThing = new TestThing(123);
             testThingDataAccess.actOn(x -> x.add(enteredThing));
             final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
@@ -257,6 +258,14 @@ public class OwnDatabaseTests {
             final var serialized = thing.serialize();
             assertEquals("{ id: 123 }", serialized);
             assertEquals(thing, TestThing.INSTANCE.deserialize(serialized));
+        }
+
+        logger.test("playing with a new entity to make sure we've abstracted properly");
+        {
+            final var thing = new TestThing2(123, "blue", "vanilla");
+            final var serialized = thing.serialize();
+            assertEquals("{ c: blue , ic: vanilla , id: 123 }", serialized);
+            assertEquals(thing, TestThing2.INSTANCE.deserialize(serialized));
         }
 
     }

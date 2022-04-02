@@ -1,7 +1,5 @@
 package database.owndatabase;
 
-import primary.dataEntities.TestThing;
-
 public abstract class IndexableSerializable<T> extends Serializable<T> {
     /**
      * Gets the current index of this object.  A common pattern in the
@@ -11,4 +9,5 @@ public abstract class IndexableSerializable<T> extends Serializable<T> {
      * about thread safety when creating new unique id's per element
      */
     protected abstract Integer getIndex();
+
 }

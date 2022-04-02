@@ -20,7 +20,7 @@ public class DatabaseDiskPersistence {
 
     static final String databaseFileSuffix = ".db";
 
-    public static final Pattern serializedStringRegex = Pattern.compile("^\\{ ((.*?): (.*?))? }$");
+    public static final Pattern serializedStringRegex = Pattern.compile(" (.*?): (.*?) ");
     private final String dbDirectory;
     private final ExecutorService executorService;
     private ActionQueue actionQueue;
@@ -96,20 +96,11 @@ public class DatabaseDiskPersistence {
 
     public static <T extends IndexableSerializable<?>> T deserialize(String serialized, Function<Map<SerializationKeys, String>, T> converter, List<SerializationKeys> serializationKeys) {
         final var matcher = DatabaseDiskPersistence.serializedStringRegex.matcher(serialized);
-        mustBeTrue(matcher.matches(), "the saved data (%s) must match the pattern (%s)".formatted(serialized, DatabaseDiskPersistence.serializedStringRegex.pattern()));
-        mustBeTrue(matcher.groupCount() % 3 == 0, "Our regular expression returns three values each time.  The whole match, then the key, then the value.  Thus a multiple of 3");
-        var currentIndex = 0;
         final var myMap = new HashMap<SerializationKeys, String>();
-        while(true) {
-            if (matcher.groupCount() - currentIndex >= 3) {
-                int finalCurrentIndex = currentIndex;
-                final var keys = serializationKeys.stream().filter(x -> x.getKeyString().equals(matcher.group(finalCurrentIndex + 2))).toList();
-                mustBeTrue(keys.size() == 1, "There should only be one key found");
-                myMap.put(keys.get(0), decode(matcher.group(currentIndex + 3)));
-                currentIndex += 3;
-            } else {
-                break;
-            }
+        while(matcher.find()) {
+            final var keys = serializationKeys.stream().filter(x -> x.getKeyString().equals(matcher.group(1))).toList();
+            mustBeTrue(keys.size() == 1, "There should only be one key found");
+            myMap.put(keys.get(0), decode(matcher.group(2)));
         }
         return converter.apply(myMap);
     }
