@@ -36,7 +36,7 @@ public class TestThing2 extends IndexableSerializable<TestThing2> {
 
     @Override
     public TestThing2 deserialize(String serialized) {
-        return DatabaseDiskPersistence.deserialize(serialized, this::convertDeserializedMapToMe, Arrays.asList(TestThing2.Keys.values()) );
+        return DatabaseDiskPersistence.deserialize(serialized, this::convertTokensToType, Arrays.asList(TestThing2.Keys.values()) );
     }
 
     @Override
@@ -45,7 +45,7 @@ public class TestThing2 extends IndexableSerializable<TestThing2> {
     }
 
     @Override
-    public TestThing2 convertDeserializedMapToMe(Map<SerializationKeys, String> myMap) {
+    public TestThing2 convertTokensToType(Map<SerializationKeys, String> myMap) {
         return new TestThing2(
                 Integer.parseInt(myMap.get(Keys.ID)),
                 myMap.get(Keys.FAVORITE_COLOR),

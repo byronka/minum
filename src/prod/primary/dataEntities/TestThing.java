@@ -33,11 +33,11 @@ public class TestThing extends IndexableSerializable<TestThing> {
 
     @Override
     public TestThing deserialize(String serialized) {
-        return DatabaseDiskPersistence.deserialize(serialized, this::convertDeserializedMapToMe, Arrays.asList(Keys.values()) );
+        return DatabaseDiskPersistence.deserialize(serialized, this::convertTokensToType, Arrays.asList(Keys.values()) );
     }
 
     @Override
-    public TestThing convertDeserializedMapToMe(Map<SerializationKeys, String> myMap) {
+    public TestThing convertTokensToType(Map<SerializationKeys, String> myMap) {
         return new TestThing(Integer.parseInt(myMap.get(Keys.ID)));
     }
 

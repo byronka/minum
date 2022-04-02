@@ -66,5 +66,5 @@ abstract class Serializable<T> {
      */
     public abstract String getDataName();
 
-    public abstract T convertDeserializedMapToMe(Map<SerializationKeys, String> myMap);
+    public abstract T convertTokensToType(Map<SerializationKeys, String> myMap);
 }
