@@ -391,7 +391,7 @@ class Tests {
       // edt.tests();
 
       final var dt = new OwnDatabaseTests(logger);
-      dt.tests();
+      dt.tests(es);
     } finally {
       // final shutdown pieces
       logger.stop();

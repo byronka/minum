@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
 import static framework.TestFramework.assertEquals;
@@ -36,7 +37,7 @@ public class OwnDatabaseTests {
     pure memory-based database with occasional file writing, directly
     controlled through Java (that is, no need for intermediating SQL language).
      */
-    public void tests() throws Exception {
+    public void tests(ExecutorService es) throws Exception {
 
 
         /*
@@ -266,6 +267,19 @@ public class OwnDatabaseTests {
             final var serialized = thing.serialize();
             assertEquals("{ c: blue , ic: vanilla , id: 123 }", serialized);
             assertEquals(thing, TestThing2.INSTANCE.deserialize(serialized));
+        }
+
+        logger.test("playing with a database that uses disk persistence");
+        {
+            Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
+            data.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<>());
+            final var ddp = new DatabaseDiskPersistence("db", es);
+            final var db = new PureMemoryDatabase(ddp, data);
+            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
+            final var enteredThing = new TestThing(123);
+            testThingDataAccess.actOn(x -> x.add(enteredThing));
+            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
+            assertEquals(foundValue, enteredThing);
         }
 
     }

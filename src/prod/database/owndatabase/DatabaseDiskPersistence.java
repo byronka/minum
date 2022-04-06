@@ -1,10 +1,8 @@
 package database.owndatabase;
 
-import primary.dataEntities.TestThing;
 import utils.ActionQueue;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,19 +20,12 @@ public class DatabaseDiskPersistence {
 
     public static final Pattern serializedStringRegex = Pattern.compile(" (.*?): (.*?) ");
     private final String dbDirectory;
-    private final ExecutorService executorService;
     private final ActionQueue actionQueue;
 
     public DatabaseDiskPersistence(String dbDirectory, ExecutorService executorService) {
         this.dbDirectory = dbDirectory;
-        this.executorService = executorService;
-        actionQueue = new ActionQueue("DatabaseWriter", executorService);
+        actionQueue = new ActionQueue("DatabaseWriter", executorService).initialize();
     }
-
-    /**
-     * Includes the version
-     */
-    private String dbDirectoryWithVersion = null;
 
     /**
      * This function will stop the database persistence cleanly.
@@ -57,7 +48,7 @@ public class DatabaseDiskPersistence {
      * @param name the name of the data
      */
     <T extends IndexableSerializable<?>> void persistToDisk(T item,String name) {
-        final var parentDirectory = "%s%s".formatted(dbDirectoryWithVersion, name);
+        final var parentDirectory = "%s/%s".formatted(dbDirectory, name);
         actionQueue.enqueue(() -> new File(parentDirectory).mkdirs());
 
         final var fullPath = "%s/%s%s".formatted(parentDirectory, item.getIndex(), databaseFileSuffix);
@@ -77,13 +68,13 @@ public class DatabaseDiskPersistence {
      * @param subDirectory the name of the data, for finding the directory
      */
     public <T extends IndexableSerializable<?>> void deleteOnDisk(T item, String subDirectory) {
-        final var fullPath = "%s%s/%s%s".formatted(dbDirectoryWithVersion, subDirectory, item.getIndex(), databaseFileSuffix);
+        final var fullPath = "%s%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
         actionQueue.enqueue(() -> new File(fullPath).delete());
         }
 
 
     public <T extends IndexableSerializable<?>> void updateOnDisk(T item, String subDirectory) {
-        final var fullPath = "%s%s/%s%s".formatted(dbDirectoryWithVersion, subDirectory, item.getIndex(), databaseFileSuffix);
+        final var fullPath = "%s%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
         final var file = new File(fullPath);
 
         actionQueue.enqueue(() -> {
