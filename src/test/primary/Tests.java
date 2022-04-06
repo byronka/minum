@@ -387,8 +387,8 @@ class Tests {
       testAnalysisTests();
 
       // commenting out for now.  We'll allow testing again if we decide to use the external database
-//      final var edt = new ExternalDatabaseTests(logger);
-//      edt.tests();
+      // final var edt = new ExternalDatabaseTests(logger);
+      // edt.tests();
 
       final var dt = new OwnDatabaseTests(logger);
       dt.tests();
