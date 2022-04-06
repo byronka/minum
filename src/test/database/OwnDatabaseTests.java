@@ -282,5 +282,9 @@ public class OwnDatabaseTests {
             assertEquals(foundValue, enteredThing);
         }
 
+        logger.test("the database should read its data at startup from the disk");
+        {
+            // TODO ...
+        }
     }
 }
