@@ -1,17 +1,22 @@
 package database.owndatabase;
 
+import logging.ILogger;
+import primary.dataEntities.TestThing;
 import utils.ActionQueue;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
 import static utils.FileUtils.writeString;
 import static utils.Invariants.mustBeTrue;
+import static utils.Invariants.mustNotBeNull;
 import static utils.StringUtils.decode;
 
 public class DatabaseDiskPersistence {
@@ -21,10 +26,12 @@ public class DatabaseDiskPersistence {
     public static final Pattern serializedStringRegex = Pattern.compile(" (.*?): (.*?) ");
     private final String dbDirectory;
     private final ActionQueue actionQueue;
+    private final ILogger logger;
 
-    public DatabaseDiskPersistence(String dbDirectory, ExecutorService executorService) {
+    public DatabaseDiskPersistence(String dbDirectory, ExecutorService executorService, ILogger logger) {
         this.dbDirectory = dbDirectory;
         actionQueue = new ActionQueue("DatabaseWriter", executorService).initialize();
+        this.logger = logger;
     }
 
     /**
@@ -95,5 +102,101 @@ public class DatabaseDiskPersistence {
         }
         return converter.apply(myMap);
     }
+
+
+    // WORK ZONE - DANGER - KOTLIN FOLLOWS
+    // WORK ZONE - DANGER - KOTLIN FOLLOWS
+    // WORK ZONE - DANGER - KOTLIN FOLLOWS
+
+    /**
+     * This factory method handles the nitty-gritty about starting
+     * the database with respect to the files on disk.  If you plan
+     * to use the database with the disk, here's a great place to
+     * start.
+     */
+    public PureMemoryDatabase startWithDiskPersistence() {
+        final var restoredPMD = deserializeFromDisk();
+        if (restoredPMD != null) {
+            return restoredPMD;
+        } else {
+            logger.logImperative("Building new database at %s".formatted(dbDirectory));
+            // if nothing is there, we build a new database
+            // and add a clean set of directories
+            final var pmd = PureMemoryDatabase.createEmptyDatabase(this);
+            logger.logImperative("Created new PureMemoryDatabase");
+            return pmd;
+        }
+    }
+
+
+    /**
+     * Deserializes the database from files, or returns null if no
+     * database directory exists
+     */
+    private PureMemoryDatabase deserializeFromDisk() {
+        final var topDirectory = new File(mustNotBeNull(dbDirectory));
+        final var innerFiles = topDirectory.listFiles();
+        if ((!topDirectory.exists()) || innerFiles == null || innerFiles.length == 0) {
+            logger.logImperative("directory %s was not found".formatted(dbDirectory));
+            return null;
+        }
+
+        // load the database from files in any other
+        final var things = readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x));
+
+        // check constraints (?)
+        // loop through all the data, checking that relations are sound
+
+        return new PureMemoryDatabase(
+                this,
+                Map.of(TestThing.INSTANCE.getDataName(), things),
+                logger
+                );
+    }
+
+    private <T extends IndexableSerializable<?>> ChangeTrackingSet<T> readAndDeserialize(String dataName, Function<String, T> deserializer) {
+        final var dataDirectory = new File("%s%s".formatted(dbDirectory, dataName));
+
+        if (! dataDirectory.exists()) {
+            logger.logDebug(() -> "%s directory missing, creating empty set of data".formatted(dataName));
+            return new ChangeTrackingSet<>();
+        }
+
+        final var data = new ChangeTrackingSet<T>();
+
+        try {
+            Files.walk(dataDirectory.toPath())
+                    .filter (Files::exists)
+                    .forEach(
+                        x -> {
+                            String fileContents = "";
+                            try {
+                                fileContents = Files.readString(x);
+                            } catch (IOException e) {
+                                // TODO: if we hit here, what then? test.
+                            }
+                            if (fileContents.isBlank()) {
+                                logger.logDebug( () -> "%s file exists but empty, skipping".formatted(x.getFileName()));
+                            } else {
+                                data.addWithoutTracking(deserializer.apply(fileContents));
+                            }
+                        }
+                );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (data.isEmpty()) {
+            data.nextIndex.set(1);
+        } else {
+            data.nextIndex.set(data.stream().max(Comparator.comparing(IndexableSerializable::getIndex)).map(x -> x.getIndex()).orElse(0) + 1);
+        }
+        return data;
+    }
+
+
+    // WORK ZONE - DANGER - KOTLIN BEFORE THIS LINE
+    // WORK ZONE - DANGER - KOTLIN BEFORE THIS LINE
+    // WORK ZONE - DANGER - KOTLIN BEFORE THIS LINE
 
 }

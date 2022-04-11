@@ -77,7 +77,7 @@ public class DataAccess<T extends IndexableSerializable<?>> {
      */
     private void handleDeletion(T item, String name, DatabaseDiskPersistence dbp, ChangeTrackingSet<T> data)  {
         dbp.deleteOnDisk(item, name);
-        final var nextIndexValue = data.stream().map(x -> x.getIndex() ).max(Integer::compare).orElse(0);
+        final var nextIndexValue = data.stream().max(Comparator.comparing(IndexableSerializable::getIndex)).map(x -> x.getIndex() ).orElse(0);
         data.nextIndex.set(nextIndexValue + 1);
     }
 

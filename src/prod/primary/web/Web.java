@@ -31,7 +31,7 @@ public class Web {
    */
   public Web(ILogger logger) {
     if (logger == null) {
-      this.logger = msg -> System.out.println(msg.get());
+      this.logger = Logger.INSTANCE;
       this.logger.logDebug(() -> "Using a local logger");
     } else {
       this.logger = logger;

@@ -10,4 +10,6 @@ public interface ILogger {
      * @param msg example: () -> "Hello"
      */
     void logDebug(Supplier<String> msg);
+
+    void logImperative(String msg);
 }

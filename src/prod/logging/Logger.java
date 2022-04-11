@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public class Logger implements ILogger {
     protected final ActionQueue loggerPrinter;
     private Map<Type, Boolean> toggles;
+    public static ILogger INSTANCE;
 
     public String getTimestamp() {
         return ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_INSTANT);
@@ -22,6 +23,9 @@ public class Logger implements ILogger {
     public Logger(ExecutorService es) {
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
         toggleDefaultLogging();
+        if (INSTANCE == null) {
+            INSTANCE = this;
+        }
     }
 
     /**
@@ -42,6 +46,11 @@ public class Logger implements ILogger {
         if (toggles.get(Type.DEBUG)) {
             loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(msg.get())));
         }
+    }
+
+    @Override
+    public void logImperative(String msg) {
+        System.out.printf("%s IMPERATIVE: %s%n", getTimestamp(), msg);
     }
 
     /**

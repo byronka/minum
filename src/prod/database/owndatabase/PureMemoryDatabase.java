@@ -1,5 +1,7 @@
 package database.owndatabase;
 
+import logging.ILogger;
+import logging.Logger;
 import primary.dataEntities.TestThing;
 
 import java.util.HashMap;
@@ -13,10 +15,12 @@ public class PureMemoryDatabase {
 
     private final DatabaseDiskPersistence diskPersistence;
     private final Map<String, ChangeTrackingSet<?>> data;
+    private final ILogger logger;
 
-    public PureMemoryDatabase(DatabaseDiskPersistence diskPersistence, Map<String, ChangeTrackingSet<?>> data) {
+    public PureMemoryDatabase(DatabaseDiskPersistence diskPersistence, Map<String, ChangeTrackingSet<?>> data, ILogger logger) {
         this.diskPersistence = diskPersistence;
         this.data = data;
+        this.logger = logger;
     }
 
 
@@ -30,7 +34,7 @@ public class PureMemoryDatabase {
                 .stream()
                 .collect(Collectors.toMap(x -> x.getKey(), x -> toChangeTrackingSet(x.getValue().stream().toList())));
 
-        return new PureMemoryDatabase(diskPersistence, copiedData);
+        return new PureMemoryDatabase(diskPersistence, copiedData, logger);
     }
 
 
@@ -56,6 +60,6 @@ public class PureMemoryDatabase {
     public static PureMemoryDatabase createEmptyDatabase(DatabaseDiskPersistence diskPersistence) {
         final var dataMap = new HashMap<String, ChangeTrackingSet<?>>();
         dataMap.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<TestThing>());
-        return new PureMemoryDatabase(diskPersistence, dataMap);
+        return new PureMemoryDatabase(diskPersistence, dataMap, Logger.INSTANCE);
     }
 }

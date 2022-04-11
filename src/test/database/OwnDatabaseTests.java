@@ -245,7 +245,7 @@ public class OwnDatabaseTests {
         {
             Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
             data.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<>());
-            final var db = new PureMemoryDatabase(null, data);
+            final var db = new PureMemoryDatabase(null, data, logger);
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final var enteredThing = new TestThing(123);
             testThingDataAccess.actOn(x -> x.add(enteredThing));
@@ -273,8 +273,8 @@ public class OwnDatabaseTests {
         {
             Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
             data.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<>());
-            final var ddp = new DatabaseDiskPersistence("db", es);
-            final var db = new PureMemoryDatabase(ddp, data);
+            final var ddp = new DatabaseDiskPersistence("db", es, logger);
+            final var db = new PureMemoryDatabase(ddp, data, logger);
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final var enteredThing = new TestThing(123);
             testThingDataAccess.actOn(x -> x.add(enteredThing));
