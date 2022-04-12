@@ -284,7 +284,12 @@ public class OwnDatabaseTests {
 
         logger.test("the database should read its data at startup from the disk");
         {
-            // TODO ...
+            final var expectedThing = new TestThing(123);
+            final var ddp = new DatabaseDiskPersistence("db", es, logger);
+            final var db = ddp.startWithDiskPersistence();
+            final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
+            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
+            assertEquals(foundValue, expectedThing);
         }
     }
 }
