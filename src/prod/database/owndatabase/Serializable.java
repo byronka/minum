@@ -1,7 +1,5 @@
 package database.owndatabase;
 
-import primary.dataEntities.TestThing;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;

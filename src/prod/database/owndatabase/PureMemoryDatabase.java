@@ -1,10 +1,7 @@
 package database.owndatabase;
 
 import logging.ILogger;
-import logging.Logger;
-import primary.dataEntities.TestThing;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 

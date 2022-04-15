@@ -1,13 +1,10 @@
 package database.owndatabase;
 
-import database.owndatabase.IndexableSerializable;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
-public class MutableConcurrentSet<T extends IndexableSerializable> implements Iterable<T>, Set<T> {
+public class MutableConcurrentSet<T extends IndexableSerializable<?>> implements Iterable<T>, Set<T> {
 
     private final ConcurrentHashMap<Integer, T> myMap  = new ConcurrentHashMap<>();
 

@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 
 import static utils.FileUtils.writeString;
 import static utils.Invariants.mustBeTrue;
-import static utils.Invariants.mustNotBeNull;
 import static utils.StringUtils.decode;
 
 public class DatabaseDiskPersistence {
