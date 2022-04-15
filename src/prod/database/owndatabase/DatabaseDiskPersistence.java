@@ -30,7 +30,7 @@ public class DatabaseDiskPersistence {
 
     public DatabaseDiskPersistence(String dbDirectory, ExecutorService executorService, ILogger logger) {
         this.dbDirectory = dbDirectory;
-        actionQueue = new ActionQueue("DatabaseWriter", executorService).initialize();
+        actionQueue = new ActionQueue("DatabaseWriter " + Integer.toHexString(hashCode()), executorService).initialize();
         this.logger = logger;
     }
 
