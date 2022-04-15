@@ -125,15 +125,15 @@ public class OwnDatabaseTests {
 
         I guess we'll go with sha-256
          */
-        logger.test("how fast is sha");
-        {
-            final var earlier = System.currentTimeMillis();
-            for (var i = 0; i < 100_000; i++) {
-                hashStringSha256("hello");
-            }
-            final var later = System.currentTimeMillis();
-            System.out.println("sha256 took " + (later - earlier) + " millis for 100,000 cycles");
-        }
+//        logger.test("how fast is sha");
+//        {
+//            final var earlier = System.currentTimeMillis();
+//            for (var i = 0; i < 100_000; i++) {
+//                hashStringSha256("hello");
+//            }
+//            final var later = System.currentTimeMillis();
+//            System.out.println("sha256 took " + (later - earlier) + " millis for 100,000 cycles");
+//        }
 
         logger.test("playing with getting a base64 value from a hash sha-256");
         {
@@ -249,7 +249,7 @@ public class OwnDatabaseTests {
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final var enteredThing = new TestThing(123);
             testThingDataAccess.actOn(x -> x.add(enteredThing));
-            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
+            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElseThrow();
             assertEquals(foundValue, enteredThing);
         }
 
@@ -278,7 +278,7 @@ public class OwnDatabaseTests {
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final var enteredThing = new TestThing(123);
             testThingDataAccess.actOn(x -> x.add(enteredThing));
-            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
+            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElseThrow();
             assertEquals(foundValue, enteredThing);
         }
 
@@ -288,7 +288,7 @@ public class OwnDatabaseTests {
             final var ddp = new DatabaseDiskPersistence("db", es, logger);
             final var db = ddp.startWithDiskPersistence();
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
-            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElse(null);
+            final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElseThrow();
             assertEquals(foundValue, expectedThing);
         }
     }
