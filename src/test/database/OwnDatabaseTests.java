@@ -284,12 +284,25 @@ public class OwnDatabaseTests {
 
         logger.test("the database should read its data at startup from the disk");
         {
-            final var expectedThing = new TestThing(123);
+            // create the persistence class
             final var ddp = new DatabaseDiskPersistence("db", es, logger);
-            final var db = ddp.startWithDiskPersistence();
+
+            // create the schema map - a map between the name of a datatype to its data
+            Map<String, ChangeTrackingSet<?>> schema = new HashMap<>();
+            schema.put(TestThing.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x)));
+            schema.put(TestThing2.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing2.INSTANCE.getDataName(), x -> TestThing2.INSTANCE.deserialize(x)));
+
+            //
+            final var db = ddp.startWithDiskPersistence(schema);
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
+            final DataAccess<TestThing2> testThing2DataAccess = db.dataAccess(TestThing2.INSTANCE.getDataName());
+
             final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElseThrow();
-            assertEquals(foundValue, expectedThing);
+            assertEquals(foundValue, new TestThing(123));
+            final var testThing2 = new TestThing2(42, "blue", "vanilla");
+            testThing2DataAccess.actOn(x -> x.add(testThing2));
+            final var foundValue2 = testThing2DataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 42)).findFirst().orElseThrow();
+            assertEquals(foundValue2, testThing2);
         }
     }
 }

@@ -23,7 +23,7 @@ public class TestThing2 extends IndexableSerializable<TestThing2> {
     }
 
     @Override
-    protected Integer getIndex() {
+    public Integer getIndex() {
         return id;
     }
 

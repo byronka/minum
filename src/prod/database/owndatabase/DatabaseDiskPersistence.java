@@ -1,19 +1,16 @@
 package database.owndatabase;
 
 import logging.ILogger;
-import primary.dataEntities.TestThing;
 import utils.ActionQueue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import static java.nio.file.FileVisitResult.CONTINUE;
 import static utils.FileUtils.writeString;
 import static utils.Invariants.mustBeTrue;
 import static utils.Invariants.mustNotBeNull;
@@ -130,8 +127,22 @@ public class DatabaseDiskPersistence {
      * to use the database with the disk, here's a great place to
      * start.
      */
-    public PureMemoryDatabase startWithDiskPersistence() {
-        final var restoredPMD = deserializeFromDisk();
+    public PureMemoryDatabase startWithDiskPersistence(Map<String, ChangeTrackingSet<?>> schema) {
+        PureMemoryDatabase restoredPMD = null;
+        final var topDirectory = new File(mustNotBeNull(dbDirectory));
+        final var innerFiles = topDirectory.listFiles();
+        if ((!topDirectory.exists()) || innerFiles == null || innerFiles.length == 0) {
+            logger.logImperative("directory %s was not found".formatted(dbDirectory));
+        } else {
+            // check constraints (?)
+            // loop through all the schema, checking that relations are sound
+            restoredPMD = new PureMemoryDatabase(
+                    this,
+                    schema,
+                    logger
+            );
+        }
+
         if (restoredPMD != null) {
             return restoredPMD;
         } else {
@@ -145,31 +156,7 @@ public class DatabaseDiskPersistence {
     }
 
 
-    /**
-     * Deserializes the database from files, or returns null if no
-     * database directory exists
-     */
-    private PureMemoryDatabase deserializeFromDisk() {
-        final var topDirectory = new File(mustNotBeNull(dbDirectory));
-        final var innerFiles = topDirectory.listFiles();
-        if ((!topDirectory.exists()) || innerFiles == null || innerFiles.length == 0) {
-            logger.logImperative("directory %s was not found".formatted(dbDirectory));
-            return null;
-        }
-
-        final var things = readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x));
-
-        // check constraints (?)
-        // loop through all the data, checking that relations are sound
-
-        return new PureMemoryDatabase(
-                this,
-                Map.of(TestThing.INSTANCE.getDataName(), things),
-                logger
-                );
-    }
-
-    private <T extends IndexableSerializable<?>> ChangeTrackingSet<T> readAndDeserialize(String dataName, Function<String, T> deserializer) {
+    public <T extends IndexableSerializable<?>> ChangeTrackingSet<T> readAndDeserialize(String dataName, Function<String, T> deserializer) {
         final var dataDirectory = new File("%s/%s".formatted(dbDirectory, dataName));
 
         if (! dataDirectory.exists()) {

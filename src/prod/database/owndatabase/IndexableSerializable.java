@@ -8,6 +8,6 @@ public abstract class IndexableSerializable<T> extends Serializable<T> {
      * to get the current value and increment it in one motion, so we can avoid worrying
      * about thread safety when creating new unique id's per element
      */
-    protected abstract Integer getIndex();
+    public abstract Integer getIndex();
 
 }
