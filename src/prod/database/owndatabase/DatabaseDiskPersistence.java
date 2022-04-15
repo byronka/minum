@@ -58,8 +58,10 @@ public class DatabaseDiskPersistence {
         final var parentDirectory = "%s/%s".formatted(dbDirectory, name);
         actionQueue.enqueue(() -> {
             try {
-                final var didSucceed = new File(parentDirectory).mkdirs();
-                if (!didSucceed) throw new Exception("Failed to build directory at " + parentDirectory);
+                if (!Files.exists(Path.of(parentDirectory))) {
+                    final var didSucceed = new File(parentDirectory).mkdirs();
+                    if (!didSucceed) throw new Exception("Did not build directory at " + parentDirectory);
+                }
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
