@@ -56,7 +56,14 @@ public class DatabaseDiskPersistence {
      */
     <T extends IndexableSerializable<?>> void persistToDisk(T item,String name) {
         final var parentDirectory = "%s/%s".formatted(dbDirectory, name);
-        actionQueue.enqueue(() -> new File(parentDirectory).mkdirs());
+        actionQueue.enqueue(() -> {
+            try {
+                final var didSucceed = new File(parentDirectory).mkdirs();
+                if (!didSucceed) throw new Exception("Failed to build directory at " + parentDirectory);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
 
         final var fullPath = "%s/%s%s".formatted(parentDirectory, item.getIndex(), databaseFileSuffix);
 
@@ -76,7 +83,14 @@ public class DatabaseDiskPersistence {
      */
     public <T extends IndexableSerializable<?>> void deleteOnDisk(T item, String subDirectory) {
         final var fullPath = "%s%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
-        actionQueue.enqueue(() -> new File(fullPath).delete());
+        actionQueue.enqueue(() -> {
+            try {
+                final var didSucceed = new File(fullPath).delete();
+                if (!didSucceed) throw new Exception("Failed to delete file at " + fullPath);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
         }
 
 
@@ -141,7 +155,6 @@ public class DatabaseDiskPersistence {
             return null;
         }
 
-        // load the database from files in any other
         final var things = readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x));
 
         // check constraints (?)
@@ -155,7 +168,7 @@ public class DatabaseDiskPersistence {
     }
 
     private <T extends IndexableSerializable<?>> ChangeTrackingSet<T> readAndDeserialize(String dataName, Function<String, T> deserializer) {
-        final var dataDirectory = new File("%s%s".formatted(dbDirectory, dataName));
+        final var dataDirectory = new File("%s/%s".formatted(dbDirectory, dataName));
 
         if (! dataDirectory.exists()) {
             logger.logDebug(() -> "%s directory missing, creating empty set of data".formatted(dataName));
@@ -166,7 +179,7 @@ public class DatabaseDiskPersistence {
 
         try {
             Files.walk(dataDirectory.toPath())
-                    .filter (Files::exists)
+                    .filter (path -> Files.exists(path) && Files.isRegularFile(path))
                     .forEach(
                         x -> {
                             String fileContents = "";
