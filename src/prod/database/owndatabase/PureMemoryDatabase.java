@@ -53,13 +53,4 @@ public class PureMemoryDatabase {
         return data.entrySet().stream().allMatch(x -> x.getValue().isEmpty());
     }
 
-
-    /**
-     * Creates a default empty database with our common data sets, empty
-     */
-    public static PureMemoryDatabase createEmptyDatabase(DatabaseDiskPersistence diskPersistence) {
-        final var dataMap = new HashMap<String, ChangeTrackingSet<?>>();
-        dataMap.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<TestThing>());
-        return new PureMemoryDatabase(diskPersistence, dataMap, Logger.INSTANCE);
-    }
 }

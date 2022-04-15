@@ -288,15 +288,17 @@ public class OwnDatabaseTests {
             final var ddp = new DatabaseDiskPersistence("db", es, logger);
 
             // create the schema map - a map between the name of a datatype to its data
+            // note that we are deserializing some data from previous tests here
             Map<String, ChangeTrackingSet<?>> schema = new HashMap<>();
             schema.put(TestThing.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x)));
             schema.put(TestThing2.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing2.INSTANCE.getDataName(), x -> TestThing2.INSTANCE.deserialize(x)));
 
-            //
-            final var db = ddp.startWithDiskPersistence(schema);
+            // create the database instance and the data accessors
+            final var db = new PureMemoryDatabase(ddp, schema, logger);
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final DataAccess<TestThing2> testThing2DataAccess = db.dataAccess(TestThing2.INSTANCE.getDataName());
 
+            // work with the data accessors to get and create data
             final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElseThrow();
             assertEquals(foundValue, new TestThing(123));
             final var testThing2 = new TestThing2(42, "blue", "vanilla");

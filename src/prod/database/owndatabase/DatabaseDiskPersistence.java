@@ -116,46 +116,6 @@ public class DatabaseDiskPersistence {
         return converter.apply(myMap);
     }
 
-
-    // WORK ZONE - DANGER - KOTLIN FOLLOWS
-    // WORK ZONE - DANGER - KOTLIN FOLLOWS
-    // WORK ZONE - DANGER - KOTLIN FOLLOWS
-
-    /**
-     * This factory method handles the nitty-gritty about starting
-     * the database with respect to the files on disk.  If you plan
-     * to use the database with the disk, here's a great place to
-     * start.
-     */
-    public PureMemoryDatabase startWithDiskPersistence(Map<String, ChangeTrackingSet<?>> schema) {
-        PureMemoryDatabase restoredPMD = null;
-        final var topDirectory = new File(mustNotBeNull(dbDirectory));
-        final var innerFiles = topDirectory.listFiles();
-        if ((!topDirectory.exists()) || innerFiles == null || innerFiles.length == 0) {
-            logger.logImperative("directory %s was not found".formatted(dbDirectory));
-        } else {
-            // check constraints (?)
-            // loop through all the schema, checking that relations are sound
-            restoredPMD = new PureMemoryDatabase(
-                    this,
-                    schema,
-                    logger
-            );
-        }
-
-        if (restoredPMD != null) {
-            return restoredPMD;
-        } else {
-            logger.logImperative("Building new database at %s".formatted(dbDirectory));
-            // if nothing is there, we build a new database
-            // and add a clean set of directories
-            final var pmd = PureMemoryDatabase.createEmptyDatabase(this);
-            logger.logImperative("Created new PureMemoryDatabase");
-            return pmd;
-        }
-    }
-
-
     public <T extends IndexableSerializable<?>> ChangeTrackingSet<T> readAndDeserialize(String dataName, Function<String, T> deserializer) {
         final var dataDirectory = new File("%s/%s".formatted(dbDirectory, dataName));
 
@@ -195,10 +155,5 @@ public class DatabaseDiskPersistence {
         }
         return data;
     }
-
-
-    // WORK ZONE - DANGER - KOTLIN BEFORE THIS LINE
-    // WORK ZONE - DANGER - KOTLIN BEFORE THIS LINE
-    // WORK ZONE - DANGER - KOTLIN BEFORE THIS LINE
 
 }
