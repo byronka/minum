@@ -4,6 +4,7 @@ import database.owndatabase.*;
 import logging.TestLogger;
 import primary.dataEntities.TestThing;
 import primary.dataEntities.TestThing2;
+import utils.FileUtils;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -271,9 +272,12 @@ public class OwnDatabaseTests {
 
         logger.test("playing with a database that uses disk persistence");
         {
+            // clean the old database in preparation for this test
+            FileUtils.deleteDirectoryWithFiles(Path.of("out/db"));
+
             Map<String, ChangeTrackingSet<?>> data = new HashMap<>();
             data.put(TestThing.INSTANCE.getDataName(), new ChangeTrackingSet<>());
-            final var ddp = new DatabaseDiskPersistence("db", es, logger);
+            final var ddp = new DatabaseDiskPersistence("out/db", es, logger);
             final var db = new PureMemoryDatabase(ddp, data, logger);
             final DataAccess<TestThing> testThingDataAccess = db.dataAccess(TestThing.INSTANCE.getDataName());
             final var enteredThing = new TestThing(123);
@@ -285,7 +289,7 @@ public class OwnDatabaseTests {
         logger.test("the database should read its data at startup from the disk");
         {
             // create the persistence class
-            final var ddp = new DatabaseDiskPersistence("db", es, logger);
+            final var ddp = new DatabaseDiskPersistence("out/db", es, logger);
 
             // create the schema map - a map between the name of a datatype to its data
             // note that we are deserializing some data from previous tests here
@@ -305,6 +309,22 @@ public class OwnDatabaseTests {
             testThing2DataAccess.actOn(x -> x.add(testThing2));
             final var foundValue2 = testThing2DataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 42)).findFirst().orElseThrow();
             assertEquals(foundValue2, testThing2);
+        }
+
+        logger.test("playing around with other functions of a database - deleting, updating");
+        {
+            /*
+            go through some edge conditions:
+            1. a file exists for a type of data, but nothing is in it
+            2. updating some data
+            3. a binary data file existing where we expect a textual file
+            4. with disk persistence on, updating existing data
+            5. with ""   "" "", deleting existing data
+            6. trying to delete data when the file it connects to is locked
+            7. trying to delete data when the file it connects to is gone
+            6. trying to update data when the file it connects to is locked
+            7. trying to update data when the file it connects to is gone
+            */
         }
     }
 }

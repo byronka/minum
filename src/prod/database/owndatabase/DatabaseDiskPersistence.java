@@ -55,6 +55,7 @@ public class DatabaseDiskPersistence {
         actionQueue.enqueue(() -> {
             try {
                 if (!Files.exists(Path.of(parentDirectory))) {
+                    // TODO this section seems unsophisticated.  Investigate.
                     final var didSucceed = new File(parentDirectory).mkdirs();
                     if (!didSucceed) throw new Exception("Did not build directory at " + parentDirectory);
                 }
@@ -80,7 +81,7 @@ public class DatabaseDiskPersistence {
      * @param subDirectory the name of the data, for finding the directory
      */
     public <T extends IndexableSerializable<?>> void deleteOnDisk(T item, String subDirectory) {
-        final var fullPath = "%s%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
+        final var fullPath = "%s/%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
         actionQueue.enqueue(() -> {
             try {
                 final var didSucceed = new File(fullPath).delete();
@@ -93,7 +94,7 @@ public class DatabaseDiskPersistence {
 
 
     public <T extends IndexableSerializable<?>> void updateOnDisk(T item, String subDirectory) {
-        final var fullPath = "%s%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
+        final var fullPath = "%s/%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
         final var file = new File(fullPath);
 
         actionQueue.enqueue(() -> {
