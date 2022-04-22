@@ -156,4 +156,7 @@ public class DatabaseDiskPersistence {
         return data;
     }
 
+    public <T extends IndexableSerializable<T>> void updateSchema(Map<String, ChangeTrackingSet<?>> schema, T dataType) {
+        schema.put(dataType.getDataName(), readAndDeserialize(dataType.getDataName(), dataType::deserialize));
+    }
 }

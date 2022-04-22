@@ -296,8 +296,8 @@ public class OwnDatabaseTests {
             // note that we are deserializing some data from previous tests here (the data
             // was written to disk in a previous test, we're reading it in now)
             Map<String, ChangeTrackingSet<?>> schema = new HashMap<>();
-            schema.put(TestThing.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x)));
-            schema.put(TestThing2.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing2.INSTANCE.getDataName(), x -> TestThing2.INSTANCE.deserialize(x)));
+            ddp.updateSchema(schema, TestThing.INSTANCE);
+            ddp.updateSchema(schema, TestThing2.INSTANCE);
 
             // create the database instance and the data accessors
             final var db = new PureMemoryDatabase(ddp, schema, logger);
@@ -323,7 +323,7 @@ public class OwnDatabaseTests {
             // 1. a file exists for a type of data, but nothing is in it
 
             Files.writeString(Path.of("out/db/TestThing2/bad.db"), "");
-            schema.put(TestThing2.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing2.INSTANCE.getDataName(), x -> TestThing2.INSTANCE.deserialize(x)));
+            ddp.updateSchema(schema, TestThing2.INSTANCE);
             Files.deleteIfExists(Path.of("out/db/TestThing2/bad.db"));
 
 
