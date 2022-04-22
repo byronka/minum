@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
@@ -292,7 +293,8 @@ public class OwnDatabaseTests {
             final var ddp = new DatabaseDiskPersistence("out/db", es, logger);
 
             // create the schema map - a map between the name of a datatype to its data
-            // note that we are deserializing some data from previous tests here
+            // note that we are deserializing some data from previous tests here (the data
+            // was written to disk in a previous test, we're reading it in now)
             Map<String, ChangeTrackingSet<?>> schema = new HashMap<>();
             schema.put(TestThing.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing.INSTANCE.getDataName(), x -> TestThing.INSTANCE.deserialize(x)));
             schema.put(TestThing2.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing2.INSTANCE.getDataName(), x -> TestThing2.INSTANCE.deserialize(x)));
@@ -313,18 +315,33 @@ public class OwnDatabaseTests {
 
         logger.test("playing around with other functions of a database - deleting, updating");
         {
-            /*
-            go through some edge conditions:
-            1. a file exists for a type of data, but nothing is in it
-            2. updating some data
-            3. a binary data file existing where we expect a textual file
-            4. with disk persistence on, updating existing data
-            5. with ""   "" "", deleting existing data
-            6. trying to delete data when the file it connects to is locked
-            7. trying to delete data when the file it connects to is gone
-            6. trying to update data when the file it connects to is locked
-            7. trying to update data when the file it connects to is gone
-            */
+            // create the persistence class
+            final var ddp = new DatabaseDiskPersistence("out/db", es, logger);
+            Map<String, ChangeTrackingSet<?>> schema = new HashMap<>();
+
+            // go through some edge conditions:
+            // 1. a file exists for a type of data, but nothing is in it
+
+            Files.writeString(Path.of("out/db/TestThing2/bad.db"), "");
+            schema.put(TestThing2.INSTANCE.getDataName(), ddp.readAndDeserialize(TestThing2.INSTANCE.getDataName(), x -> TestThing2.INSTANCE.deserialize(x)));
+            Files.deleteIfExists(Path.of("out/db/TestThing2/bad.db"));
+
+
+            // create the database instance and the data accessors
+            final var db = new PureMemoryDatabase(ddp, schema, logger);
+            final DataAccess<TestThing2> testThing2DataAccess = db.dataAccess(TestThing2.INSTANCE.getDataName());
+
+            // 2. updating some data
+            final var testThing2 = testThing2DataAccess.read(x -> x.stream().findFirst()).orElseThrow();
+            testThing2DataAccess.actOn(x -> x.update(new TestThing2(testThing2.getIndex(), "red", "chocolate")));
+
+            // 3. a binary data file existing where we expect a textual file
+            // 4. with disk persistence on, updating existing data
+            // 5. with ""   "" "", deleting existing data
+            // 6. trying to delete data when the file it connects to is locked
+            // 7. trying to delete data when the file it connects to is gone
+            // 6. trying to update data when the file it connects to is locked
+            // 7. trying to update data when the file it connects to is gone
         }
     }
 }
