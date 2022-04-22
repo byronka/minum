@@ -320,7 +320,9 @@ public class OwnDatabaseTests {
             Map<String, ChangeTrackingSet<?>> schema = new HashMap<>();
 
             // go through some edge conditions:
+            // ----------------------------------------------------------
             // 1. a file exists for a type of data, but nothing is in it
+            // ----------------------------------------------------------
 
             Files.writeString(Path.of("out/db/TestThing2/bad.db"), "");
             ddp.updateSchema(schema, TestThing2.INSTANCE);
@@ -331,26 +333,61 @@ public class OwnDatabaseTests {
             final var db = new PureMemoryDatabase(ddp, schema, logger);
             final DataAccess<TestThing2> testThing2DataAccess = db.dataAccess(TestThing2.INSTANCE.getDataName());
 
+            // ----------------------------------------------------------
             // 2. updating some data
+            // ----------------------------------------------------------
             final var testThing2 = testThing2DataAccess.read(x -> x.stream().findFirst()).orElseThrow();
             testThing2DataAccess.actOn(x -> x.update(new TestThing2(testThing2.getIndex(), "red", "chocolate")));
 
+            // ----------------------------------------------------------
             // 3. a binary data file existing where we expect a textual file
+            // ----------------------------------------------------------
 
             try {
                 Files.write(Path.of("out/db/TestThing2/bad.db"), new byte[]{1, 2, 3});
                 ddp.updateSchema(schema, TestThing2.INSTANCE);
-                Files.deleteIfExists(Path.of("out/db/TestThing2/bad.db"));
             } catch (RuntimeException e) {
                 assertEquals(e.getMessage(), "Failed to deserialize out/db/TestThing2/bad.db with data (\u0001\u0002\u0003)");
             }
+            Files.deleteIfExists(Path.of("out/db/TestThing2/bad.db"));
 
-            // 4. with disk persistence on, updating existing data
-            // 5. with ""   "" "", deleting existing data
+            // ----------------------------------------------------------
+            // 4. deleting existing data
+            // ----------------------------------------------------------
+            testThing2DataAccess.actOn(x -> x.remove(testThing2));
+
+            // ----------------------------------------------------------
+            // 5. trying to delete data when it is gone
+            // ----------------------------------------------------------
+            testThing2DataAccess.actOn(x -> x.remove(testThing2));
+
+            // ----------------------------------------------------------
+            // 6. trying to delete data when it exists in memory but file was deleted
+            // ----------------------------------------------------------
+            // note: this is for our information only.  If someone is going around wrecking
+            // the underlying data files while the program is running, cannot really
+            // recover from that kind of sabotage in a reasonable way.
+            final var testThing2_again = new TestThing2(1234, "orange", "vanilla");
+            testThing2DataAccess.actOn(x -> x.add(testThing2_again));
+            // give a little time for the write to happen before the next step
+            Thread.sleep(10);
+            Files.delete(Path.of("out/db/TestThing2/1234.db"));
+            Thread.sleep(10);
+            logger.logDebug(() -> "expect to see an error about NoSuchFileException: out/db/TestThing2/1234.db");
+            testThing2DataAccess.actOn(x -> x.remove(testThing2_again));
+
+            // ----------------------------------------------------------
             // 6. trying to delete data when the file it connects to is locked
-            // 7. trying to delete data when the file it connects to is gone
-            // 6. trying to update data when the file it connects to is locked
-            // 7. trying to update data when the file it connects to is gone
+            // ----------------------------------------------------------
+            // create the database instance and the data accessors
+
+            // ----------------------------------------------------------
+            // 7. trying to update data when the file it connects to is locked
+            // ----------------------------------------------------------
+
+            // ----------------------------------------------------------
+            // 8. trying to update data when the file it connects to is gone
+            // ----------------------------------------------------------
         }
     }
 }

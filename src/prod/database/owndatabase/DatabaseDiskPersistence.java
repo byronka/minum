@@ -84,8 +84,7 @@ public class DatabaseDiskPersistence {
         final var fullPath = "%s/%s/%s%s".formatted(dbDirectory, subDirectory, item.getIndex(), databaseFileSuffix);
         actionQueue.enqueue(() -> {
             try {
-                final var didSucceed = new File(fullPath).delete();
-                if (!didSucceed) throw new Exception("Failed to delete file at " + fullPath);
+                Files.delete(Path.of(fullPath));
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }

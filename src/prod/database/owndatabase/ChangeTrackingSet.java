@@ -79,9 +79,16 @@ public class ChangeTrackingSet<T extends IndexableSerializable<?>> extends Mutab
         return super.add(item);
     }
 
+    /**
+     * Try to remove an element.  If the element is not found in the
+     * data (by its id), do nothing and return false.
+     */
     public boolean remove(T element) {
-        modified.add(new Pair<>(element, DELETE));
-        return super.remove(element);
+        if (this.stream().anyMatch(x -> x.getIndex().equals(element.getIndex()))) {
+            modified.add(new Pair<>(element, DELETE));
+            return super.remove(element);
+        }
+        return false;
     }
 
     /**
