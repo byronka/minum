@@ -336,6 +336,15 @@ public class OwnDatabaseTests {
             testThing2DataAccess.actOn(x -> x.update(new TestThing2(testThing2.getIndex(), "red", "chocolate")));
 
             // 3. a binary data file existing where we expect a textual file
+
+            try {
+                Files.write(Path.of("out/db/TestThing2/bad.db"), new byte[]{1, 2, 3});
+                ddp.updateSchema(schema, TestThing2.INSTANCE);
+                Files.deleteIfExists(Path.of("out/db/TestThing2/bad.db"));
+            } catch (RuntimeException e) {
+                assertEquals(e.getMessage(), "Failed to deserialize out/db/TestThing2/bad.db with data (\u0001\u0002\u0003)");
+            }
+
             // 4. with disk persistence on, updating existing data
             // 5. with ""   "" "", deleting existing data
             // 6. trying to delete data when the file it connects to is locked

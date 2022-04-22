@@ -105,7 +105,15 @@ public class DatabaseDiskPersistence {
     }
 
 
-    public static <T extends IndexableSerializable<?>> T deserialize(String serialized, Function<Map<SerializationKeys, String>, T> converter, List<SerializationKeys> serializationKeys) {
+    /**
+     * Converts the data in a file to a strongly typed value
+     * @param serialized the string that is found in a file which represents the serialized form of a value
+     * @param converter a function which converts the serialized form to the type of data
+     * @param serializationKeys a list of {@link SerializationKeys} representing the key values - the data is stored in key-value pairs when serialized
+     * @param <T> the type of data to be deserialized
+     * @throws DeserializationException this must be handled - if there is bad data, we will throw this with samples of the bad data to be examined in the calling method.
+     */
+    public static <T extends IndexableSerializable<?>> T deserialize(String serialized, Function<Map<SerializationKeys, String>, T> converter, List<SerializationKeys> serializationKeys){
         final var matcher = DatabaseDiskPersistence.serializedStringRegex.matcher(serialized);
         final var myMap = new HashMap<SerializationKeys, String>();
         while(matcher.find()) {
@@ -113,6 +121,7 @@ public class DatabaseDiskPersistence {
             mustBeTrue(keys.size() == 1, "There should only be one key found");
             myMap.put(keys.get(0), decode(matcher.group(2)));
         }
+        if (myMap.size() == 0) throw new DeserializationException(serialized);
         return converter.apply(myMap);
     }
 
@@ -127,27 +136,28 @@ public class DatabaseDiskPersistence {
         final var data = new ChangeTrackingSet<T>();
 
         try {
-            Files.walk(dataDirectory.toPath())
-                    .filter (path -> Files.exists(path) && Files.isRegularFile(path))
-                    .forEach(
-                        x -> {
-                            String fileContents = "";
-                            try {
-                                fileContents = Files.readString(x);
-                            } catch (IOException e) {
-                                // TODO: if we hit here, what then? test.
-                            }
-                            if (fileContents.isBlank()) {
-                                logger.logDebug( () -> "%s file exists but empty, skipping".formatted(x.getFileName()));
-                            } else {
-                                data.addWithoutTracking(deserializer.apply(fileContents));
-                            }
-                        }
-                );
+            final var listOfPaths = Files.walk(dataDirectory.toPath())
+                    .filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
+            for (Path p : listOfPaths) {
+                String fileContents = "";
+                try {
+                    fileContents = Files.readString(p);
+                } catch (IOException e) {
+                    // TODO: if we hit here, what then? test.
+                }
+                if (fileContents.isBlank()) {
+                    logger.logDebug( () -> "%s file exists but empty, skipping".formatted(p.getFileName()));
+                } else {
+                    try {
+                        data.addWithoutTracking(deserializer.apply(fileContents));
+                    } catch (DeserializationException e) {
+                        throw new RuntimeException("Failed to deserialize %s with data (%s)".formatted(p, fileContents));
+                    }
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         if (data.isEmpty()) {
             data.nextIndex.set(1);
         } else {
@@ -158,5 +168,13 @@ public class DatabaseDiskPersistence {
 
     public <T extends IndexableSerializable<T>> void updateSchema(Map<String, ChangeTrackingSet<?>> schema, T dataType) {
         schema.put(dataType.getDataName(), readAndDeserialize(dataType.getDataName(), dataType::deserialize));
+    }
+
+    private static class DeserializationException extends RuntimeException {
+        final String serializedData;
+
+        public DeserializationException(String serializedData) {
+            this.serializedData = serializedData;
+        }
     }
 }
