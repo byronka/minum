@@ -27,10 +27,12 @@ public class FileUtils {
      */
     public static void deleteDirectoryWithFiles(Path pathToBeDeleted) throws IOException {
         if (Files.exists(pathToBeDeleted)) {
-            Files.walk(pathToBeDeleted)
+            final var files = Files.walk(pathToBeDeleted)
                     .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+                    .map(Path::toFile).toList();
+            for (File f : files) {
+                Files.delete(f.toPath());
+            }
         }
     }
 }

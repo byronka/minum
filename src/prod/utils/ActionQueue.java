@@ -1,6 +1,8 @@
 package utils;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -16,8 +18,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ActionQueue {
     private final String name;
     private final ExecutorService queueExecutor;
-    private final LinkedBlockingQueue<Runnable> queue;
+    private final LinkedBlockingQueue<Callable<Void>> queue;
     private boolean stop = false;
+    private Future<Void> primaryFuture;
 
     public ActionQueue(String name, ExecutorService queueExecutor) {
         this.name = name;
@@ -25,29 +28,34 @@ public class ActionQueue {
         this.queue = new LinkedBlockingQueue<>();
     }
 
+    // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
+    // below is an infinite loop unless there's an exception thrown, that's what it is.
+    @SuppressWarnings("InfiniteLoopStatement")
     public ActionQueue initialize() {
-        queueExecutor.execute(new Thread(() -> {
+        primaryFuture = queueExecutor.submit(() -> {
             try {
                 while (true) {
-                    Runnable action = queue.take();
-                    action.run();
+                    Callable<Void> action = queue.take();
+                    action.call();
                 }
             } catch (InterruptedException ex) {
-                /*
-                this is what we expect to happen.
-                once this happens, we just continue on.
-                this only gets called when we are trying to shut everything
-                down cleanly
-                 */
+            /*
+            this is what we expect to happen.
+            once this happens, we just continue on.
+            this only gets called when we are trying to shut everything
+            down cleanly
+             */
                 System.out.printf("ActionQueue for %s is stopped.%n", name);
-            } catch (Throwable ex) {
+            } catch (Exception ex) {
                 System.out.printf("ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
+                throw ex;
             }
-        }));
+            return null;
+        });
         return this;
     }
 
-    public void enqueue(Runnable action) {
+    public void enqueue(Callable<Void> action) {
         if (stop) {
             throw new RuntimeException("Attempting to add an action to a stopping queue");
         } else {
@@ -71,5 +79,9 @@ public class ActionQueue {
                 e.printStackTrace();
             }
         }
+    }
+
+    public Future<Void> getPrimaryFuture() {
+        return primaryFuture;
     }
 }

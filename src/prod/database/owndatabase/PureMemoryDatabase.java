@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static database.owndatabase.ChangeTrackingSet.toChangeTrackingSet;
-import static utils.Invariants.mustNotBeNull;
 
 public class PureMemoryDatabase {
 

@@ -44,7 +44,10 @@ public class Logger implements ILogger {
     @Override
     public void logDebug(Supplier<String> msg) {
         if (toggles.get(Type.DEBUG)) {
-            loggerPrinter.enqueue(() -> printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(msg.get())));
+            loggerPrinter.enqueue(() -> {
+                printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(msg.get()));
+                return null;
+            });
         }
     }
 

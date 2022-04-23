@@ -2,6 +2,7 @@ package logging;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 public class TestLogger extends Logger {
@@ -16,14 +17,20 @@ public class TestLogger extends Logger {
      * A little helper function to log a test title prefixed with "TEST:"
      */
     public void test(String msg) {
-        loggerPrinter.enqueue(() -> printf("%n+-------------%n| TEST %d: %s%n+-------------%n%n", testCount++, msg));
+        loggerPrinter.enqueue(() -> {
+            printf("%n+-------------%n| TEST %d: %s%n+-------------%n%n", testCount++, msg);
+            return null;
+        });
     }
 
     /**
      * Shows that this test is skipped
      */
     public void testSkip(String msg) {
-        loggerPrinter.enqueue(() -> printf("%n+-------------%n|  *** SKIPPED *** TEST %d: %s%n+-------------%n%n", testCount++, msg));
+        loggerPrinter.enqueue(() -> {
+            printf("%n+-------------%n|  *** SKIPPED *** TEST %d: %s%n+-------------%n%n", testCount++, msg);
+            return null;
+        });
     }
 
     public static String printStackTrace(Throwable ex) {

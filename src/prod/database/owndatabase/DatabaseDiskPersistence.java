@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -44,6 +43,9 @@ public class DatabaseDiskPersistence {
         actionQueue.stop();
     }
 
+    public ActionQueue getActionQueue() {
+        return this.actionQueue;
+    }
 
     /**
      * takes any serializable data and writes it to disk
@@ -52,22 +54,25 @@ public class DatabaseDiskPersistence {
      * @param name the name of the data
      */
     <T extends IndexableSerializable<?>> void persistToDisk(T item,String name) {
-        final var parentDirectory = "%s/%s".formatted(dbDirectory, name);
+        final var parentDirectory = Path.of("%s/%s".formatted(dbDirectory, name));
         actionQueue.enqueue(() -> {
             try {
-                if (!Files.exists(Path.of(parentDirectory))) {
-                    // TODO this section seems unsophisticated.  Investigate.
-                    final var didSucceed = new File(parentDirectory).mkdirs();
-                    if (!didSucceed) throw new Exception("Did not build directory at " + parentDirectory);
+                if (!Files.exists(parentDirectory)) {
+                    Files.createDirectories(parentDirectory);
                 }
             } catch (Exception ex) {
+                logger.logDebug(() -> "failed to create directory " + parentDirectory);
                 throw new RuntimeException(ex);
             }
+            return null;
         });
 
         final var fullPath = "%s/%s%s".formatted(parentDirectory, item.getIndex(), databaseFileSuffix);
 
-        actionQueue.enqueue(() -> writeString(fullPath, item.serialize()));
+        actionQueue.enqueue(() -> {
+            writeString(fullPath, item.serialize());
+            return null;
+        });
     }
 
     /**
@@ -87,8 +92,10 @@ public class DatabaseDiskPersistence {
             try {
                 Files.delete(Path.of(fullPath));
             } catch (Exception ex) {
+                logger.logDebug(() -> "failed to delete file %s".formatted(fullPath));
                 throw new RuntimeException(ex);
             }
+            return null;
         });
         }
 
@@ -101,6 +108,7 @@ public class DatabaseDiskPersistence {
             // if the file isn't already there, throw an exception
             mustBeTrue(file.exists(), "we were asked to update %s but it doesn't exist".formatted(file));
             writeString(fullPath, item.serialize());
+            return null;
         });
     }
 
@@ -139,11 +147,11 @@ public class DatabaseDiskPersistence {
             final var listOfPaths = Files.walk(dataDirectory.toPath())
                     .filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
             for (Path p : listOfPaths) {
-                String fileContents = "";
+                String fileContents;
                 try {
                     fileContents = Files.readString(p);
                 } catch (IOException e) {
-                    // TODO: if we hit here, what then? test.
+                    throw new RuntimeException(e);
                 }
                 if (fileContents.isBlank()) {
                     logger.logDebug( () -> "%s file exists but empty, skipping".formatted(p.getFileName()));

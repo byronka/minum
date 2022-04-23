@@ -1,6 +1,9 @@
 package database;
 
-import database.owndatabase.*;
+import database.owndatabase.ChangeTrackingSet;
+import database.owndatabase.DataAccess;
+import database.owndatabase.DatabaseDiskPersistence;
+import database.owndatabase.PureMemoryDatabase;
 import logging.TestLogger;
 import primary.dataEntities.TestThing;
 import primary.dataEntities.TestThing2;
@@ -16,7 +19,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
@@ -365,7 +368,7 @@ public class OwnDatabaseTests {
 
         }
 
-        logger.test("causing a NoSuchFileException in the actionqueue");
+        logger.test("causing a NoSuchFileException in the ActionQueue");
         {
 
             // ----------------------------------------------------------
@@ -376,12 +379,12 @@ public class OwnDatabaseTests {
             // recover from that kind of sabotage in a reasonable way.
             // create the persistence class
 
-            final var myLocalEs = ExtendedExecutor.makeExecutorService();
+            final var myLocalEs = Executors.newCachedThreadPool();
             final var myLocalLogger = new TestLogger(myLocalEs);
             final var ddp = new DatabaseDiskPersistence("out/db", myLocalEs, myLocalLogger);
             final var schema = ddp.createInitialEmptyMap();
             ddp.updateSchema(schema, TestThing2.INSTANCE);
-            final var db = new PureMemoryDatabase(ddp, schema, myLocalLogger);
+            final var db = new PureMemoryDatabase(ddp, schema, logger);
             final DataAccess<TestThing2> testThing2DataAccess = db.dataAccess(TestThing2.INSTANCE.getDataName());
 
             final var testThing2_again = new TestThing2(1234, "orange", "vanilla");
@@ -391,8 +394,12 @@ public class OwnDatabaseTests {
             Files.delete(Path.of("out/db/TestThing2/1234.db"));
             Thread.sleep(10);
 
-            logger.logDebug(() -> "expect to see an error about NoSuchFileException: out/db/TestThing2/1234.db");
             testThing2DataAccess.actOn(x -> x.remove(testThing2_again));
+            try {
+                ddp.getActionQueue().getPrimaryFuture().get();
+            } catch (ExecutionException ex) {
+                assertEquals(ex.getMessage(), "java.lang.RuntimeException: java.nio.file.NoSuchFileException: out/db/TestThing2/1234.db");
+            }
             myLocalEs.shutdownNow();
         }
 
