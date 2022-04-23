@@ -40,7 +40,11 @@ public class PureMemoryDatabase {
      */
     @SuppressWarnings("unchecked")
     public <T extends IndexableSerializable<?>> DataAccess<T> dataAccess(String directoryName) {
-        return (DataAccess<T>) new DataAccess<>(mustNotBeNull(data.get(directoryName)), diskPersistence, directoryName);
+        final ChangeTrackingSet<?> myData = data.get(directoryName);
+        if (myData == null) {
+            throw new RuntimeException("There is no data schema set up for " + directoryName);
+        }
+        return (DataAccess<T>) new DataAccess<>(myData, diskPersistence, directoryName);
     }
 
     /**

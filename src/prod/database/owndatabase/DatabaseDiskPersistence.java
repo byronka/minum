@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -167,6 +168,10 @@ public class DatabaseDiskPersistence {
 
     public <T extends IndexableSerializable<T>> void updateSchema(Map<String, ChangeTrackingSet<?>> schema, T dataType) {
         schema.put(dataType.getDataName(), readAndDeserialize(dataType.getDataName(), dataType::deserialize));
+    }
+
+    public Map<String, ChangeTrackingSet<?>> createInitialEmptyMap() {
+        return new HashMap<>();
     }
 
     private static class DeserializationException extends RuntimeException {
