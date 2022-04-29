@@ -290,6 +290,12 @@ public class OwnDatabaseTests {
             testThingDataAccess.actOn(x -> x.add(enteredThing));
             final var foundValue = testThingDataAccess.read(x -> x.stream().filter(y -> y.getIndex() == 123)).findFirst().orElseThrow();
             assertEquals(foundValue, enteredThing);
+
+            // wait a tiny bit of time for the data to become written to disk; the next test needs it there
+            // note that the database we're writing is *eventually* written to disk.  That means if you create
+            // new data it's instantly available for the next call but it might not yet be on the disk.
+            // The next test starts out by reading data from the disk - the data written during this test.
+            Thread.sleep(50);
         }
 
         logger.test("the database should read its data at startup from the disk");
