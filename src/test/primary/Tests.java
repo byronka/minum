@@ -1,5 +1,6 @@
 package primary;
 
+import database.ArrayDatabaseTests;
 import database.OwnDatabaseTests;
 import database.ExternalDatabaseTests;
 import logging.TestLogger;
@@ -390,8 +391,11 @@ class Tests {
       // final var edt = new ExternalDatabaseTests(logger);
       // edt.tests();
 
-      final var dt = new OwnDatabaseTests(logger);
-      dt.tests(es);
+//      final var dt = new OwnDatabaseTests(logger);
+//      dt.tests(es);
+
+      final var adt = new ArrayDatabaseTests(logger);
+      adt.tests(es);
     } finally {
       // final shutdown pieces
       logger.stop();
