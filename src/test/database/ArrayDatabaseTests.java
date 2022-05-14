@@ -4,6 +4,7 @@ import logging.TestLogger;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
 import static framework.TestFramework.assertEquals;
 import static framework.TestFramework.assertTrue;
@@ -103,13 +104,9 @@ public class ArrayDatabaseTests {
             database.add(new String[]{"orange", "oreo"});
 
             // search for data
-            Foo foundFoo = null;
-            for (String[] row : database) {
-                if ( "black".equals(row[0])) {
-                    foundFoo = new Foo(row[0], row[1]);
-                }
-            }
-            assertEquals(foundFoo, new Foo("black", "taffy"));
+            final var foundFoo = database.stream().filter(x -> "black".equals(x[0])).map(x -> new Foo(x[0], x[1])).toList();
+            assertEquals(foundFoo.size(), 1);
+            assertEquals(foundFoo.get(0), new Foo("black", "taffy"));
 
             // updating some data - change taffy to lemon where color
             for (String[] row : database) {
@@ -119,24 +116,16 @@ public class ArrayDatabaseTests {
             }
 
             // confirm the change
-            for (String[] row : database) {
-                if ( "black".equals(row[0])) {
-                    foundFoo = new Foo(row[0], row[1]);
-                }
-            }
-            assertEquals(foundFoo, new Foo("black", "lemon"));
+            final var foundFoo2 = database.stream().filter(x -> "black".equals(x[0])).map(x -> new Foo(x[0], x[1])).toList();
+            assertEquals(foundFoo2.size(), 1);
+            assertEquals(foundFoo2.get(0), new Foo("black", "lemon"));
 
             // delete the data at "white"
             database.removeIf(row -> "white".equals(row[0]));
 
             // confirm the delete
-            foundFoo = null;
-            for (String[] row : database) {
-                if ( "white".equals(row[0])) {
-                    foundFoo = new Foo(row[0], row[1]);
-                }
-            }
-            assertTrue(foundFoo == null);
+            final var foundFoo3 = database.stream().filter(x -> "white".equals(x[0])).map(x -> new Foo(x[0], x[1])).toList();
+            assertEquals(foundFoo3.size(), 0);
         }
     }
 }
