@@ -92,21 +92,34 @@ public class ArrayDatabaseTests {
         logger.test("using a list for the data instead of an array");
         {
             // the schema for the data
-            record Foo(String color, String flavor){}
+            record Foo(String color, String flavor){
+                public static Foo findByColor(String color, SimpleDatabase database) {
+                    final String[] foundFooRow = database.findSingle(x -> color.equals(x[0]));
+                    return new Foo(foundFooRow[0], foundFooRow[1]);
+                }
+
+                /**
+                 * This prevents us from accidentally occasionally inserting
+                 * data in the wrong order.
+                 */
+                public void persist(SimpleDatabase database) {
+                    database.add(new String[]{color, flavor});
+                }
+            }
 
             // the database itself
             var database = new SimpleDatabase();
 
             // adding some new data
-            database.add(new String[]{"orange", "vanilla"});
-            database.add(new String[]{"blue", "candy corn"});
-            database.add(new String[]{"white", "chocolate"});
-            database.add(new String[]{"black", "taffy"});
-            database.add(new String[]{"orange", "oreo"});
+            new Foo("orange", "vanilla").persist(database);
+            new Foo("blue", "candy corn").persist(database);
+            new Foo("white", "chocolate").persist(database);
+            new Foo("black", "taffy").persist(database);
+            new Foo("orange", "oreo").persist(database);
 
             // search for data
-            final String[] foundFooRow = database.findSingle(x -> "black".equals(x[0]));
-            assertEquals(new Foo(foundFooRow[0], foundFooRow[1]), new Foo("black", "taffy"));
+            Foo foundFoo = Foo.findByColor("black", database);
+            assertEquals(foundFoo, new Foo("black", "taffy"));
 
             // updating some data - change taffy to lemon where color
             database.update(x -> {
