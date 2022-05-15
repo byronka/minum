@@ -105,6 +105,7 @@ public class ArrayDatabaseTests {
                 public void persist(SimpleDatabase database) {
                     database.add(new String[]{color, flavor});
                 }
+
             }
 
             // the database itself
@@ -120,17 +121,6 @@ public class ArrayDatabaseTests {
             // search for data
             Foo foundFoo = Foo.findByColor("black", database);
             assertEquals(foundFoo, new Foo("black", "taffy"));
-
-            // updating some data - change taffy to lemon where color
-            database.update(x -> {
-                if ("taffy".equals(x[1])) {
-                    x = new String[]{"black", "lemon"};
-                }
-            });
-
-            // confirm the change
-            final String[] foundFooRow2 = database.findSingle(x -> "black".equals(x[0]));
-            assertEquals(new Foo(foundFooRow2[0], foundFooRow2[1]), new Foo("black", "lemon"));
 
             // delete the data at "white"
             database.removeIf(row -> "white".equals(row[0]));

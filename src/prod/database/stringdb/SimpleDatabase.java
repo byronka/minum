@@ -2,7 +2,6 @@ package database.stringdb;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static utils.Invariants.mustBeTrue;
@@ -30,15 +29,6 @@ public class SimpleDatabase {
         }
         mustBeTrue(foundData.size() == 1, "we must find only one row of data with this predicate");
         return foundData.get(0);
-    }
-
-    public void update(Consumer<String[]> action) {
-        database.forEach(action);
-        for (String[] row : database) {
-            if ( "taffy".equals(row[1])) {
-                row[1] = "lemon";
-            }
-        }
     }
 
     public void removeIf(Predicate<String[]> filter) {
