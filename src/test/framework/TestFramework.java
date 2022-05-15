@@ -75,4 +75,20 @@ public class TestFramework {
         }
     }
 
+    public static void assertFalse(boolean value) {
+        if (value) {
+            throw new RuntimeException("value was unexpectedly true");
+        }
+    }
+
+    /**
+     * Commonly used in try-catch to make sure we don't get past the
+     * point where an exception should have been thrown
+     * @param s
+     */
+    public static void failTest(String s) {
+        System.out.println(s);
+        System.exit(1);
+    }
+
 }

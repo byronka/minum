@@ -1,8 +1,6 @@
 package primary;
 
-import database.ArrayDatabaseTests;
-import database.OwnDatabaseTests;
-import database.ExternalDatabaseTests;
+import database.SimpleDatabaseTests;
 import logging.TestLogger;
 import primary.web.*;
 import utils.ExtendedExecutor;
@@ -383,19 +381,19 @@ class Tests {
 
   public static void main(String[] args) throws Exception {
     try {
-      initialTests();
-      webTests();
-      testAnalysisTests();
+      // initialTests();
+      // webTests();
+      // testAnalysisTests();
 
       // commenting out for now.  We'll allow testing again if we decide to use the external database
       // final var edt = new ExternalDatabaseTests(logger);
       // edt.tests();
 
-//      final var dt = new OwnDatabaseTests(logger);
-//      dt.tests(es);
+      // final var dt = new OwnDatabaseTests(logger);
+      // dt.tests(es);
 
-      final var adt = new ArrayDatabaseTests(logger);
-      adt.tests(es);
+      final var sdt = new SimpleDatabaseTests(logger);
+      sdt.tests(es);
     } finally {
       // final shutdown pieces
       logger.stop();

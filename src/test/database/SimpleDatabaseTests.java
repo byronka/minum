@@ -3,17 +3,14 @@ package database;
 import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
 
-import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Stream;
 
-import static framework.TestFramework.assertEquals;
-import static framework.TestFramework.assertTrue;
+import static framework.TestFramework.*;
 
-public class ArrayDatabaseTests {
+public class SimpleDatabaseTests {
     private final TestLogger logger;
 
-    public ArrayDatabaseTests(TestLogger logger) {
+    public SimpleDatabaseTests(TestLogger logger) {
         this.logger = logger;
     }
 
@@ -92,42 +89,66 @@ public class ArrayDatabaseTests {
         logger.test("using a list for the data instead of an array");
         {
             // the schema for the data
-            record Foo(String color, String flavor){
-                public static Foo findByColor(String color, SimpleDatabase database) {
-                    final String[] foundFooRow = database.findSingle(x -> color.equals(x[0]));
-                    return new Foo(foundFooRow[0], foundFooRow[1]);
+            record Foo(String color, String flavor) { }
+
+            class FooDatabaseAdapter {
+                private final SimpleDatabase database;
+
+                public FooDatabaseAdapter(SimpleDatabase database) {
+                    this.database = database;
                 }
 
-                /**
-                 * This prevents us from accidentally occasionally inserting
-                 * data in the wrong order.
-                 */
-                public void persist(SimpleDatabase database) {
+                public void createNew(String color, String flavor) {
                     database.add(new String[]{color, flavor});
                 }
 
+                public Foo findByColorSingle(String color) {
+                    final String[] foundFooRow = database.findSingle(x -> color.equals(x[0]));
+                    if (foundFooRow == null) {
+                        return null;
+                    } else {
+                        return new Foo(foundFooRow[0], foundFooRow[1]);
+                    }
+                }
+
+                public Foo findSingle(Foo foo) {
+                    final String[] foundFooRow = database.findSingle(x -> foo.color().equals(x[0]) && foo.flavor().equals(x[1]));
+                    if (foundFooRow == null) {
+                        return null;
+                    } else {
+                        return new Foo(foundFooRow[0], foundFooRow[1]);
+                    }
+                }
+
+                public void delete(Foo foo) {
+                    database.removeIf(row -> foo.color().equals(row[0]) && foo.flavor().equals(row[1]));
+                }
             }
 
             // the database itself
             var database = new SimpleDatabase();
 
-            // adding some new data
-            new Foo("orange", "vanilla").persist(database);
-            new Foo("blue", "candy corn").persist(database);
-            new Foo("white", "chocolate").persist(database);
-            new Foo("black", "taffy").persist(database);
-            new Foo("orange", "oreo").persist(database);
+            final var fda = new FooDatabaseAdapter(database);
+            fda.createNew("orange", "vanilla");
+            fda.createNew("blue", "candy corn");
+            fda.createNew( "white", "chocolate");
+            fda.createNew("black", "taffy");
+            fda.createNew( "orange", "oreo");
 
-            // search for data
-            Foo foundFoo = Foo.findByColor("black", database);
+            final var foundFoo = fda.findByColorSingle("black");
             assertEquals(foundFoo, new Foo("black", "taffy"));
 
-            // delete the data at "white"
-            database.removeIf(row -> "white".equals(row[0]));
+            fda.delete(foundFoo);
 
-            // confirm the delete
-            final String[] foundFooRow3 = database.findSingle(x -> "white".equals(x[0]));
-            assertTrue(foundFooRow3 == null);
+            assertTrue(fda.findSingle(foundFoo) == null);
+
+            // try to get an exception - we ask for single but there's multiple
+            try {
+                fda.findByColorSingle("orange");
+                failTest("We should not have reached this line");
+            } catch (Exception ex) {
+                assertEquals(ex.getMessage(), "we must find only one row of data with this predicate");
+            }
         }
     }
 }
