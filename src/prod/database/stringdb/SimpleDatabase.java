@@ -1,13 +1,16 @@
 package database.stringdb;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 import static utils.Invariants.mustBeTrue;
 
 public class SimpleDatabase {
     private List<String[]> database = new ArrayList<>();
+    private Map<String, String[]> databaseIndex = new HashMap<>();
 
     public SimpleDatabase() {
 
@@ -31,7 +34,15 @@ public class SimpleDatabase {
         return foundData.get(0);
     }
 
+    public String[] findByIndex(String indexValue) {
+        return databaseIndex.get(indexValue);
+    }
+
     public void removeIf(Predicate<String[]> filter) {
         database.removeIf(filter);
+    }
+
+    public void createMapForIndex(String color, String[] data) {
+        databaseIndex.put(color, data);
     }
 }

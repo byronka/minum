@@ -7,6 +7,59 @@ import java.util.concurrent.ExecutorService;
 
 import static framework.TestFramework.*;
 
+// the schema for the data
+record Foo(String color, String flavor) { }
+
+class FooDatabaseAdapter {
+    private final SimpleDatabase database;
+
+    public FooDatabaseAdapter(SimpleDatabase database) {
+        this.database = database;
+    }
+
+    public Foo createNew(String color, String flavor) {
+        final var data = new String[]{color, flavor};
+        database.add(data);
+        database.createMapForIndex(color, data);
+        return new Foo(color, flavor);
+    }
+
+    public Foo findByColorSingle(String color) {
+        final String[] foundFooRow = database.findSingle(x -> color.equals(x[0]));
+        if (foundFooRow == null) {
+            return null;
+        } else {
+            return new Foo(foundFooRow[0], foundFooRow[1]);
+        }
+    }
+
+    /**
+     * Here we search for an item in the table by its index
+     * @param color this is the index to the data
+     */
+    public Foo findByColorIndex(String color) {
+        final String[] foundFooRow = database.findByIndex(color);
+        if (foundFooRow == null) {
+            return null;
+        } else {
+            return new Foo(foundFooRow[0], foundFooRow[1]);
+        }
+    }
+
+    public Foo findSingle(Foo foo) {
+        final String[] foundFooRow = database.findSingle(x -> foo.color().equals(x[0]) && foo.flavor().equals(x[1]));
+        if (foundFooRow == null) {
+            return null;
+        } else {
+            return new Foo(foundFooRow[0], foundFooRow[1]);
+        }
+    }
+
+    public void delete(Foo foo) {
+        database.removeIf(row -> foo.color().equals(row[0]) && foo.flavor().equals(row[1]));
+    }
+}
+
 public class SimpleDatabaseTests {
     private final TestLogger logger;
 
@@ -88,42 +141,6 @@ public class SimpleDatabaseTests {
 
         logger.test("using a list for the data instead of an array");
         {
-            // the schema for the data
-            record Foo(String color, String flavor) { }
-
-            class FooDatabaseAdapter {
-                private final SimpleDatabase database;
-
-                public FooDatabaseAdapter(SimpleDatabase database) {
-                    this.database = database;
-                }
-
-                public void createNew(String color, String flavor) {
-                    database.add(new String[]{color, flavor});
-                }
-
-                public Foo findByColorSingle(String color) {
-                    final String[] foundFooRow = database.findSingle(x -> color.equals(x[0]));
-                    if (foundFooRow == null) {
-                        return null;
-                    } else {
-                        return new Foo(foundFooRow[0], foundFooRow[1]);
-                    }
-                }
-
-                public Foo findSingle(Foo foo) {
-                    final String[] foundFooRow = database.findSingle(x -> foo.color().equals(x[0]) && foo.flavor().equals(x[1]));
-                    if (foundFooRow == null) {
-                        return null;
-                    } else {
-                        return new Foo(foundFooRow[0], foundFooRow[1]);
-                    }
-                }
-
-                public void delete(Foo foo) {
-                    database.removeIf(row -> foo.color().equals(row[0]) && foo.flavor().equals(row[1]));
-                }
-            }
 
             // the database itself
             var database = new SimpleDatabase();
@@ -149,6 +166,28 @@ public class SimpleDatabaseTests {
             } catch (Exception ex) {
                 assertEquals(ex.getMessage(), "we must find only one row of data with this predicate");
             }
+        }
+
+        /*
+        What if we have a data type that has an index to it, so we can
+        quickly find it by index?  We may find it more performant to have a map
+        between the index and the values in the list, if we search by index.
+         */
+        logger.test("including a hashmap for indexed data");
+        {
+            // the database itself
+            var database = new SimpleDatabase();
+
+            // here we'll assume that color is the index
+            final var fda = new FooDatabaseAdapter(database);
+            fda.createNew("orange", "vanilla");
+            fda.createNew("blue", "candy corn");
+            fda.createNew( "white", "chocolate");
+
+            final var foundFoo = fda.findByColorIndex("blue");
+            assertEquals(foundFoo, new Foo("blue", "candy corn"));
+
+
         }
     }
 }
