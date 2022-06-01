@@ -3,6 +3,9 @@ package database;
 import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 import static framework.TestFramework.*;
@@ -186,8 +189,79 @@ public class SimpleDatabaseTests {
 
             final var foundFoo = fda.findByColorIndex("blue");
             assertEquals(foundFoo, new Foo("blue", "candy corn"));
+        }
 
+        /*
+         What if we have an interface with like, toDatabase and fromDatabase.
 
+         Maybe it's a data structure that's a pair - part a is the class, part
+         b is the map of property names to values, and all the values are strings
+         or null.
+         */
+        logger.test("playing with converting a class to and from a string-based data structure");
+        {
+            record DatabaseEntry(Class c, Map<String, String> data) {}
+            interface Databaseable<T> {
+                DatabaseEntry toDatabaseEntry();
+                T fromDatabaseEntry(DatabaseEntry m);
+            }
+
+            class DoesNotMatter implements Databaseable<DoesNotMatter> {
+
+                private final int a;
+                private final String flavor;
+                private final String color;
+
+                public DoesNotMatter(int a, String flavor, String color) {
+                    this.a = a;
+                    this.flavor = flavor;
+                    this.color = color;
+                }
+
+                @Override
+                public DatabaseEntry toDatabaseEntry() {
+                    final var innerData = new HashMap<String, String>();
+                    innerData.put("a", String.valueOf(a));
+                    innerData.put("flavor", flavor);
+                    innerData.put("color", color);
+                    return new DatabaseEntry(this.getClass(), innerData);
+                }
+
+                @Override
+                public DoesNotMatter fromDatabaseEntry(DatabaseEntry m) {
+                    return new DoesNotMatter(
+                            Integer.parseInt(m.data.get("a")),
+                            m.data.get("flavor"),
+                            m.data.get("color")
+                    );
+                }
+
+                @Override
+                public boolean equals(Object o) {
+                    if (this == o) return true;
+                    if (o == null || getClass() != o.getClass()) return false;
+                    DoesNotMatter that = (DoesNotMatter) o;
+                    return a == that.a && Objects.equals(flavor, that.flavor) && Objects.equals(color, that.color);
+                }
+
+                @Override
+                public int hashCode() {
+                    return Objects.hash(a, flavor, color);
+                }
+            }
+
+            final var a = new DoesNotMatter(42, "vanilla", "blue");
+            final var entry = a.toDatabaseEntry();
+            final var expectedInnerData = new HashMap<String, String>();
+            expectedInnerData.put("a", "42");
+            expectedInnerData.put("flavor", "vanilla");
+            expectedInnerData.put("color", "blue");
+            final var expected = new DatabaseEntry(DoesNotMatter.class, expectedInnerData);
+            assertEquals(expected, entry);
+
+            DoesNotMatter EMPTY = new DoesNotMatter(0, null, null);
+            final var dnm = EMPTY.fromDatabaseEntry(entry);
+            assertEquals(a, dnm);
         }
     }
 }
