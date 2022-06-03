@@ -1,7 +1,10 @@
 package database;
 
+import database.stringdb.DatabaseEntry;
+import database.stringdb.Databaseable;
 import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
+import utils.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +63,42 @@ class FooDatabaseAdapter {
 
     public void delete(Foo foo) {
         database.removeIf(row -> foo.color().equals(row[0]) && foo.flavor().equals(row[1]));
+    }
+}
+
+
+record DoesNotMatter(int a, String flavor, String color) implements Databaseable<DoesNotMatter> {
+    public static final DoesNotMatter EMPTY = new DoesNotMatter(0, "", "");
+
+    @Override
+    public DatabaseEntry toDatabaseEntry() {
+        final var innerData = new HashMap<String, String>();
+        innerData.put("a", String.valueOf(a));
+        innerData.put("flavor", flavor);
+        innerData.put("color", color);
+        return new DatabaseEntry(this.getClass(), innerData);
+    }
+
+    @Override
+    public DoesNotMatter fromDatabaseEntry(DatabaseEntry m) {
+        return new DoesNotMatter(
+                Integer.parseInt(m.data().get("a")),
+                m.data().get("flavor"),
+                m.data().get("color")
+        );
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DoesNotMatter that = (DoesNotMatter) o;
+        return a == that.a && Objects.equals(flavor, that.flavor) && Objects.equals(color, that.color);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(a, flavor, color);
     }
 }
 
@@ -200,56 +239,6 @@ public class SimpleDatabaseTests {
          */
         logger.test("playing with converting a class to and from a string-based data structure");
         {
-            record DatabaseEntry(Class c, Map<String, String> data) {}
-            interface Databaseable<T> {
-                DatabaseEntry toDatabaseEntry();
-                T fromDatabaseEntry(DatabaseEntry m);
-            }
-
-            class DoesNotMatter implements Databaseable<DoesNotMatter> {
-
-                private final int a;
-                private final String flavor;
-                private final String color;
-
-                public DoesNotMatter(int a, String flavor, String color) {
-                    this.a = a;
-                    this.flavor = flavor;
-                    this.color = color;
-                }
-
-                @Override
-                public DatabaseEntry toDatabaseEntry() {
-                    final var innerData = new HashMap<String, String>();
-                    innerData.put("a", String.valueOf(a));
-                    innerData.put("flavor", flavor);
-                    innerData.put("color", color);
-                    return new DatabaseEntry(this.getClass(), innerData);
-                }
-
-                @Override
-                public DoesNotMatter fromDatabaseEntry(DatabaseEntry m) {
-                    return new DoesNotMatter(
-                            Integer.parseInt(m.data.get("a")),
-                            m.data.get("flavor"),
-                            m.data.get("color")
-                    );
-                }
-
-                @Override
-                public boolean equals(Object o) {
-                    if (this == o) return true;
-                    if (o == null || getClass() != o.getClass()) return false;
-                    DoesNotMatter that = (DoesNotMatter) o;
-                    return a == that.a && Objects.equals(flavor, that.flavor) && Objects.equals(color, that.color);
-                }
-
-                @Override
-                public int hashCode() {
-                    return Objects.hash(a, flavor, color);
-                }
-            }
-
             final var a = new DoesNotMatter(42, "vanilla", "blue");
             final var entry = a.toDatabaseEntry();
             final var expectedInnerData = new HashMap<String, String>();
@@ -259,9 +248,66 @@ public class SimpleDatabaseTests {
             final var expected = new DatabaseEntry(DoesNotMatter.class, expectedInnerData);
             assertEquals(expected, entry);
 
-            DoesNotMatter EMPTY = new DoesNotMatter(0, null, null);
-            final var dnm = EMPTY.fromDatabaseEntry(entry);
+            final var dnm = DoesNotMatter.EMPTY.fromDatabaseEntry(entry);
             assertEquals(a, dnm);
+        }
+
+        /*
+        Continuing along this path, we should be able to take a DatabaseEntry and
+        serialize it, following URL encoding to prevent any issues with spaces, commas
+        or really any UTF-8 character.
+         */
+        logger.test("can serialize to / from a string (encoded of course)");
+        {
+            // first we create a database entry
+            final var expectedInnerData = new HashMap<String, String>();
+            expectedInnerData.put("a", " 2");
+            expectedInnerData.put("flavor", "   ");
+            expectedInnerData.put("color", null);
+            final var dbEntry = new DatabaseEntry(DoesNotMatter.class, expectedInnerData);
+
+            /*
+            then we serialize it to a string, encoding each value
+            what we want: class: foo.bar.Class, values: a=42, flavor=vanilla, color=blue
+
+            If the value has interesting characters (newlines, tabs, commas, etc),
+            they will get encoded by the URL-encoder we're using.
+
+            how do we differentiate between null and empty string?
+
+            we could choose for null to be represented by an extremely unusual
+            set of characters, something that cannot exist in URL encoding, like,
+            %NULL%
+
+            So, if a is newline and flavor = (lots of whitespace) and color is
+            null, we might get:
+            class: foo.bar.Class, values: a=%2a, flavor=%20%20%20, color=%NULL%
+            */
+
+            // no need to URL-encode the class
+            StringBuilder sb = new StringBuilder("class: ").append(dbEntry.c().getCanonicalName()).append(", values: ");
+
+            for (var i : dbEntry.data().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+                // no need to encode the property name
+                sb.append(i.getKey())
+                        .append("=");
+                final var value = i.getValue();
+                if (value == null) {
+                    sb.append("%NULL%, ");
+                } else {
+                    sb.append(StringUtils.encode(i.getValue()))
+                            .append(", ");
+                }
+            }
+
+            final var expected = "class: database.DoesNotMatter, values: a=+2, color=%NULL%, flavor=+++, ";
+            assertEquals(expected, sb.toString());
+
+            // and now we go the other direction.  How to serialize from the string back to the record?
+            // regex magic, of course.
+
+            // TODO
+
         }
     }
 }
