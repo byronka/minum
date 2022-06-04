@@ -37,5 +37,20 @@ public class StringUtils {
         mustNotBeNull(str);
         return URLDecoder.decode(str, StandardCharsets.UTF_8);
     }
+
+    /**
+     * Similar to {@link #decode} except that we
+     * first check if the string value is the token %NULL%,
+     * which is our way to signify null.
+     */
+    public static String decodeWithNullToken(String str) {
+        mustNotBeNull(str);
+        if (str.equals("%NULL%")) {
+            return null;
+        }
+        return URLDecoder.decode(str, StandardCharsets.UTF_8);
+    }
+
+
 }
 

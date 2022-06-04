@@ -6,10 +6,12 @@ import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
 import utils.StringUtils;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 
 import static framework.TestFramework.*;
 
@@ -261,9 +263,10 @@ public class SimpleDatabaseTests {
         {
             // first we create a database entry
             final var expectedInnerData = new HashMap<String, String>();
-            expectedInnerData.put("a", " 2");
-            expectedInnerData.put("flavor", "   ");
-            expectedInnerData.put("color", null);
+            final var initialInstance = new DoesNotMatter(2, "   ", null);
+            expectedInnerData.put("a", String.valueOf(initialInstance.a()));
+            expectedInnerData.put("flavor", initialInstance.flavor());
+            expectedInnerData.put("color", initialInstance.color());
             final var dbEntry = new DatabaseEntry(DoesNotMatter.class, expectedInnerData);
 
             /*
@@ -287,27 +290,58 @@ public class SimpleDatabaseTests {
             // no need to URL-encode the class
             StringBuilder sb = new StringBuilder("class: ").append(dbEntry.c().getCanonicalName()).append(", values: ");
 
-            for (var i : dbEntry.data().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            final var entries = dbEntry.data().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList();
+
+            var count = 0;
+            for (var i : entries) {
+                if (count != 0) {
+                    sb.append(", ");
+                }
                 // no need to encode the property name
                 sb.append(i.getKey())
                         .append("=");
                 final var value = i.getValue();
                 if (value == null) {
-                    sb.append("%NULL%, ");
+                    sb.append("%NULL%");
                 } else {
-                    sb.append(StringUtils.encode(i.getValue()))
-                            .append(", ");
+                    sb.append(StringUtils.encode(i.getValue()));
                 }
+                count++;
             }
 
-            final var expected = "class: database.DoesNotMatter, values: a=+2, color=%NULL%, flavor=+++, ";
+            final var expected = "class: database.DoesNotMatter, values: a=2, color=%NULL%, flavor=+++";
             assertEquals(expected, sb.toString());
 
             // and now we go the other direction.  How to serialize from the string back to the record?
             // regex magic, of course.
 
-            // TODO
+            // first we look for the big pieces - class, and the data
+            final Pattern databaseEntryRegex = Pattern.compile("^class: ([^ ,]*), values: (.*)$");
+            final var matcher = databaseEntryRegex.matcher(expected);
+            assertTrue(matcher.matches());
+            assertEquals("database.DoesNotMatter", matcher.group(1));
+            assertEquals("a=2, color=%NULL%, flavor=+++", matcher.group(2));
 
+            // then we look closer into the data
+            final var keyValuePairs = Arrays.stream(matcher.group(2).split(",")).toList().stream().map(String::trim).toList();
+            assertEquals(keyValuePairs.get(0), "a=2");
+            assertEquals(keyValuePairs.get(1), "color=%NULL%");
+            assertEquals(keyValuePairs.get(2), "flavor=+++");
+
+            // convert the keyValuePairs to a map for easier manipulation
+            Map<String, String> myMap = new HashMap<>();
+            for (var k : keyValuePairs) {
+                final var split = k.split("=");
+                myMap.put(split[0], StringUtils.decodeWithNullToken(split[1]));
+            }
+
+            // finally, we can recreate the instance of the class.
+            final var a = Integer.valueOf(myMap.get("a"));
+            final var color = myMap.get("color");
+            final var flavor = myMap.get("flavor");
+            final var deserializedResult = new DoesNotMatter(a, flavor, color);
+
+            assertEquals(initialInstance, deserializedResult);
         }
     }
 }
