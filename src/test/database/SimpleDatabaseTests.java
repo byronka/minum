@@ -78,7 +78,7 @@ record DoesNotMatter(int a, String flavor, String color) implements Databaseable
         innerData.put("a", String.valueOf(a));
         innerData.put("flavor", flavor);
         innerData.put("color", color);
-        return new DatabaseEntry(this.getClass(), innerData);
+        return new DatabaseEntry(this.getClass().getCanonicalName(), innerData);
     }
 
     @Override
@@ -247,7 +247,7 @@ public class SimpleDatabaseTests {
             expectedInnerData.put("a", "42");
             expectedInnerData.put("flavor", "vanilla");
             expectedInnerData.put("color", "blue");
-            final var expected = new DatabaseEntry(DoesNotMatter.class, expectedInnerData);
+            final var expected = new DatabaseEntry(DoesNotMatter.class.getCanonicalName(), expectedInnerData);
             assertEquals(expected, entry);
 
             final var dnm = DoesNotMatter.EMPTY.fromDatabaseEntry(entry);
@@ -267,7 +267,7 @@ public class SimpleDatabaseTests {
             expectedInnerData.put("a", String.valueOf(initialInstance.a()));
             expectedInnerData.put("flavor", initialInstance.flavor());
             expectedInnerData.put("color", initialInstance.color());
-            final var dbEntry = new DatabaseEntry(DoesNotMatter.class, expectedInnerData);
+            final var dbEntry = new DatabaseEntry(DoesNotMatter.class.getCanonicalName(), expectedInnerData);
 
             /*
             then we serialize it to a string, encoding each value
@@ -286,59 +286,14 @@ public class SimpleDatabaseTests {
             null, we might get:
             class: foo.bar.Class, values: a=%2a, flavor=%20%20%20, color=%NULL%
             */
-
-            // no need to URL-encode the class
-            StringBuilder sb = new StringBuilder("class: ").append(dbEntry.c().getCanonicalName()).append(", values: ");
-
-            final var entries = dbEntry.data().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList();
-
-            var count = 0;
-            for (var i : entries) {
-                if (count != 0) {
-                    sb.append(", ");
-                }
-                // no need to encode the property name
-                sb.append(i.getKey())
-                        .append("=");
-                final var value = i.getValue();
-                if (value == null) {
-                    sb.append("%NULL%");
-                } else {
-                    sb.append(StringUtils.encode(i.getValue()));
-                }
-                count++;
-            }
-
             final var expected = "class: database.DoesNotMatter, values: a=2, color=%NULL%, flavor=+++";
-            assertEquals(expected, sb.toString());
-
-            // and now we go the other direction.  How to serialize from the string back to the record?
-            // regex magic, of course.
-
-            // first we look for the big pieces - class, and the data
-            final Pattern databaseEntryRegex = Pattern.compile("^class: ([^ ,]*), values: (.*)$");
-            final var matcher = databaseEntryRegex.matcher(expected);
-            assertTrue(matcher.matches());
-            assertEquals("database.DoesNotMatter", matcher.group(1));
-            assertEquals("a=2, color=%NULL%, flavor=+++", matcher.group(2));
-
-            // then we look closer into the data
-            final var keyValuePairs = Arrays.stream(matcher.group(2).split(",")).toList().stream().map(String::trim).toList();
-            assertEquals(keyValuePairs.get(0), "a=2");
-            assertEquals(keyValuePairs.get(1), "color=%NULL%");
-            assertEquals(keyValuePairs.get(2), "flavor=+++");
-
-            // convert the keyValuePairs to a map for easier manipulation
-            Map<String, String> myMap = new HashMap<>();
-            for (var k : keyValuePairs) {
-                final var split = k.split("=");
-                myMap.put(split[0], StringUtils.decodeWithNullToken(split[1]));
-            }
+            assertEquals(expected, dbEntry.toString());
+            final var dbEntry2 = dbEntry.toDatabaseEntry(dbEntry.toString());
 
             // finally, we can recreate the instance of the class.
-            final var a = Integer.valueOf(myMap.get("a"));
-            final var color = myMap.get("color");
-            final var flavor = myMap.get("flavor");
+            final var a = Integer.valueOf(dbEntry2.data().get("a"));
+            final var color = dbEntry2.data().get("color");
+            final var flavor = dbEntry2.data().get("flavor");
             final var deserializedResult = new DoesNotMatter(a, flavor, color);
 
             assertEquals(initialInstance, deserializedResult);
