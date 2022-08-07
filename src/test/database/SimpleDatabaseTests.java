@@ -4,14 +4,12 @@ import database.stringdb.DatabaseEntry;
 import database.stringdb.Databaseable;
 import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
-import utils.StringUtils;
 
-import java.util.Arrays;
+import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.regex.Pattern;
 
 import static framework.TestFramework.*;
 
@@ -298,5 +296,53 @@ public class SimpleDatabaseTests {
 
             assertEquals(initialInstance, deserializedResult);
         }
+
+        /*
+         * My Grandad, Ellis Katz, wrote a genealogical program in Turbo Pascal called Family.
+         * In the source code, you can see how he defined the data schemas - see https://github.com/byronka/turbopascal/blob/8530a94af521817349861a868cd0d28d6f301f07/FAMILY.PAS#L11
+         *
+         * What I think is interesting here is the unconventional concept that the database
+         * and the source code are tightly intertwined.  In modern programming the idea
+         * is that they should be separate.  But at what cost?  The complexity we pay for
+         * this separation does not pay the dividends I would like to see, not even considering
+         * performance issues and security.
+         *
+         * While modularity is a valuable tool, it is not an essential good on its own.  It
+         * should be applied prudently.  Maybe, here as experiment, we'll take a look at
+         * a highly coupled database.
+         *
+         * We won't even use some of the generic type concepts seen before.  Everything
+         * is just going to be written out non-generically.
+         */
+        logger.test("back to a strongly-typed database, like Grandad's Family program");
+        {
+            // create some record types
+            record Foo(int a, String b) implements Serializable {}
+            record Bar(String c, int d){}
+
+            // instantiate a couple
+            final var foo = new Foo(123, "yay");
+            final var bar = new Bar("woot", 456);
+
+            // we can use any collection type for these, and even be heterogenuous,
+            // depending on our needs.  Maybe a Set or Map works better, sure - why not.
+            final var fooList = List.of(foo);
+            final var barList = List.of(bar);
+
+            // the class that holds all our data, the database - no generics
+            // or consistency - just describe the collections.  Heck, we may
+            // not even need collections for each data type.
+            record DatabaseTable(List<Foo> listOfFoos, List<Bar> listOfBars){}
+
+            final var myBigFatGreekDatabase = new DatabaseTable(
+                    fooList,
+                    barList
+            );
+
+            // now let's use it for some stuff.
+            assertTrue(myBigFatGreekDatabase.listOfBars().stream().anyMatch(x -> x.c().equals("woot")));
+
+        }
     }
+
 }
