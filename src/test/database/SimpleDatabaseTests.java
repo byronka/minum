@@ -324,7 +324,7 @@ public class SimpleDatabaseTests {
             final var foo = new Foo(123, "yay");
             final var bar = new Bar("woot", 456);
 
-            // we can use any collection type for these, and even be heterogenuous,
+            // we can use any collection type for these, and even be heterogeneous,
             // depending on our needs.  Maybe a Set or Map works better, sure - why not.
             final var fooList = List.of(foo);
             final var barList = List.of(bar);
@@ -341,6 +341,34 @@ public class SimpleDatabaseTests {
 
             // now let's use it for some stuff.
             assertTrue(myBigFatGreekDatabase.listOfBars().stream().anyMatch(x -> x.c().equals("woot")));
+        }
+
+        /*
+        For any given collection of data, we will need to serialize that to disk.
+        We can use some of the techniques we built up using r3z - like
+        serializing to a json-like url-encoded text, eventually synchronized
+        to disk.
+         */
+        logger.test("now let's try playing with serialization");
+        {
+            // let's define an interface for data we want to serialize.
+            interface Serializable<T> {
+                String serialize();
+                T deserialize(String serializedText);
+            }
+
+            // now let's apply that
+            record Foo(int a, String b) implements Serializable<Foo> {
+                @Override
+                public String serialize() {
+                    return null;
+                }
+
+                @Override
+                public Foo deserialize(String serializedText) {
+                    return null;
+                }
+            }
 
         }
     }
