@@ -6,6 +6,8 @@ import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
 
 import java.io.Serializable;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -359,17 +361,32 @@ public class SimpleDatabaseTests {
 
             // now let's apply that
             record Foo(int a, String b) implements Serializable<Foo> {
+
+                /**
+                 * we want this to be Foo: a=123 b=abc123
+                 */
                 @Override
                 public String serialize() {
-                    return null;
+                    return "Foo: a=" + a + " b=" + URLEncoder.encode(b, StandardCharsets.UTF_8);
                 }
 
                 @Override
                 public Foo deserialize(String serializedText) {
-                    return null;
+                    final var indexStartOfA = serializedText.indexOf('=') + 1;
+                    final var indexEndOfA = serializedText.indexOf(' ', indexStartOfA);
+                    final var indexStartOfB = serializedText.indexOf('=', indexEndOfA) + 1;
+                    final var indexEndOfB = serializedText.length();
+
+                    final var rawStringA = serializedText.substring(indexStartOfA, indexEndOfA);
+                    final var rawStringB = serializedText.substring(indexStartOfB, indexEndOfB);
+
+                    return new Foo(Integer.parseInt(rawStringA), rawStringB);
                 }
             }
 
+            final var foo = new Foo(123, "abc");
+            final var deserializedFoo = foo.deserialize(foo.serialize());
+            assertEquals(deserializedFoo, foo);
         }
     }
 
