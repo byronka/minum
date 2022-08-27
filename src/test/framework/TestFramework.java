@@ -37,6 +37,9 @@ public class TestFramework {
     /**
      * asserts two lists are equal, ignoring the order.
      * For example, (a, b) is equal to (b, a)
+     *
+     * Note that the lists must be of comparable objects, or else
+     * a ClassCastException will be thrown
      */
     public static <T> void assertEqualsDisregardOrder(List<T> left, List<T> right) {
         if (left.size() != right.size()) {
