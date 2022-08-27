@@ -1,16 +1,9 @@
 package database;
 
-import database.stringdb.DatabaseEntry;
-import database.stringdb.Databaseable;
-import database.stringdb.SimpleDatabase;
 import logging.TestLogger;
 
-import java.io.Serializable;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 import static framework.TestFramework.*;
@@ -34,9 +27,9 @@ public class SimpleDatabaseTests {
         }
 
         // now let's apply that
-        record Foo3(int a, String b) implements Serializable<Foo3> {
+        record Foo(int a, String b) implements Serializable<Foo> {
 
-            static Foo3 INSTANCE = new Foo3(0,"");
+            static Foo INSTANCE = new Foo(0,"");
 
             /**
              * we want this to be Foo: a=123 b=abc123
@@ -47,14 +40,14 @@ public class SimpleDatabaseTests {
             }
 
             @Override
-            public Foo3 deserialize(String serializedText) {
+            public Foo deserialize(String serializedText) {
                 final var indexEndOfA = serializedText.indexOf(' ');
                 final var indexStartOfB = indexEndOfA + 1;
 
                 final var rawStringA = serializedText.substring(0, indexEndOfA);
                 final var rawStringB = serializedText.substring(indexStartOfB);
 
-                return new Foo3(Integer.parseInt(rawStringA), rawStringB);
+                return new Foo(Integer.parseInt(rawStringA), rawStringB);
             }
         }
 
@@ -66,16 +59,16 @@ public class SimpleDatabaseTests {
          */
         logger.test("now let's try playing with serialization");
         {
-            final var foo = new Foo3(123, "abc");
+            final var foo = new Foo(123, "abc");
             final var deserializedFoo = foo.deserialize(foo.serialize());
             assertEquals(deserializedFoo, foo);
         }
 
         logger.test("what about serializing a collection of stuff");
         {
-            final var foos = range(1,10).mapToObj(x -> new Foo3(x, "abc"+x)).toList();
-            final var serializedFoos = foos.stream().map(Foo3::serialize).toList();
-            final var deserializedFoos = serializedFoos.stream().map(x -> Foo3.INSTANCE.deserialize(x)).toList();
+            final var foos = range(1,10).mapToObj(x -> new Foo(x, "abc"+x)).toList();
+            final var serializedFoos = foos.stream().map(Foo::serialize).toList();
+            final var deserializedFoos = serializedFoos.stream().map(x -> Foo.INSTANCE.deserialize(x)).toList();
             assertEquals(foos, deserializedFoos);
         }
     }
