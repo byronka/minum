@@ -29,7 +29,7 @@ public class SimpleDatabaseTests {
         // now let's apply that
         record Foo(int a, String b) implements Serializable<Foo> {
 
-            static Foo INSTANCE = new Foo(0,"");
+            static final Foo INSTANCE = new Foo(0,"");
 
             /**
              * we want this to be Foo: a=123 b=abc123
