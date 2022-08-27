@@ -367,18 +367,16 @@ public class SimpleDatabaseTests {
                  */
                 @Override
                 public String serialize() {
-                    return "Foo: a=" + a + " b=" + URLEncoder.encode(b, StandardCharsets.UTF_8);
+                    return a + " " + URLEncoder.encode(b, StandardCharsets.UTF_8);
                 }
 
                 @Override
                 public Foo deserialize(String serializedText) {
-                    final var indexStartOfA = serializedText.indexOf('=') + 1;
-                    final var indexEndOfA = serializedText.indexOf(' ', indexStartOfA);
-                    final var indexStartOfB = serializedText.indexOf('=', indexEndOfA) + 1;
-                    final var indexEndOfB = serializedText.length();
+                    final var indexEndOfA = serializedText.indexOf(' ');
+                    final var indexStartOfB = indexEndOfA + 1;
 
-                    final var rawStringA = serializedText.substring(indexStartOfA, indexEndOfA);
-                    final var rawStringB = serializedText.substring(indexStartOfB, indexEndOfB);
+                    final var rawStringA = serializedText.substring(0, indexEndOfA);
+                    final var rawStringB = serializedText.substring(indexStartOfB);
 
                     return new Foo(Integer.parseInt(rawStringA), rawStringB);
                 }
