@@ -1,10 +1,13 @@
 package database;
 
+import database.owndatabase.DatabaseDiskPersistenceSimpler;
+import database.owndatabase.SimpleDataType;
 import logging.TestLogger;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static framework.TestFramework.*;
 import static java.util.stream.IntStream.range;
@@ -20,34 +23,36 @@ public class SimpleDatabaseTests {
 
         // the following will be used in the subsequent tests...
 
-        // let's define an interface for data we want to serialize.
-        interface Serializable<T> {
-            String serialize();
-            T deserialize(String serializedText);
-        }
-
         // now let's apply that
-        record Foo(int a, String b) implements Serializable<Foo> {
+        record Foo(int index, int a, String b) implements SimpleDataType<Foo> {
 
-            static final Foo INSTANCE = new Foo(0,"");
+            static final Foo INSTANCE = new Foo(0,0,"");
 
             /**
              * we want this to be Foo: a=123 b=abc123
              */
             @Override
             public String serialize() {
-                return a + " " + URLEncoder.encode(b, StandardCharsets.UTF_8);
+                return index + " " + a + " " + URLEncoder.encode(b, StandardCharsets.UTF_8);
             }
 
             @Override
             public Foo deserialize(String serializedText) {
-                final var indexEndOfA = serializedText.indexOf(' ');
+                final var indexEndOfIndex = serializedText.indexOf(' ');
+                final var indexStartOfA = indexEndOfIndex + 1;
+                final var indexEndOfA = serializedText.indexOf(' ', indexStartOfA);
                 final var indexStartOfB = indexEndOfA + 1;
 
-                final var rawStringA = serializedText.substring(0, indexEndOfA);
+                final var rawStringIndex = serializedText.substring(0, indexEndOfIndex);
+                final var rawStringA = serializedText.substring(indexStartOfA, indexEndOfA);
                 final var rawStringB = serializedText.substring(indexStartOfB);
 
-                return new Foo(Integer.parseInt(rawStringA), rawStringB);
+                return new Foo(Integer.parseInt(rawStringIndex), Integer.parseInt(rawStringA), rawStringB);
+            }
+
+            @Override
+            public Long getIndex() {
+                return (long) index();
             }
         }
 
@@ -59,17 +64,35 @@ public class SimpleDatabaseTests {
          */
         logger.test("now let's try playing with serialization");
         {
-            final var foo = new Foo(123, "abc");
+            final var foo = new Foo(1, 123, "abc");
             final var deserializedFoo = foo.deserialize(foo.serialize());
             assertEquals(deserializedFoo, foo);
         }
 
         logger.test("what about serializing a collection of stuff");
         {
-            final var foos = range(1,10).mapToObj(x -> new Foo(x, "abc"+x)).toList();
+            final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var serializedFoos = foos.stream().map(Foo::serialize).toList();
-            final var deserializedFoos = serializedFoos.stream().map(x -> Foo.INSTANCE.deserialize(x)).toList();
+            final var deserializedFoos = serializedFoos.stream().map(Foo.INSTANCE::deserialize).toList();
             assertEquals(foos, deserializedFoos);
+        }
+
+        logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");
+        {
+            final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>("out/simple_db", es, logger);
+
+            for (var foo : foos) {
+                ddps.persistToDisk(foo);
+            }
+
+            // give the action queue time to save files to disk
+            // then shut down.
+            try {
+                ddps.getActionQueue().getPrimaryFuture().get(10, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                // do nothing
+            }
         }
     }
 
