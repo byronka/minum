@@ -28,9 +28,6 @@ public class SimpleDatabaseTests {
 
             static final Foo INSTANCE = new Foo(0,0,"");
 
-            /**
-             * we want this to be Foo: a=123 b=abc123
-             */
             @Override
             public String serialize() {
                 return index + " " + a + " " + URLEncoder.encode(b, StandardCharsets.UTF_8);
@@ -82,8 +79,19 @@ public class SimpleDatabaseTests {
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var ddps = new DatabaseDiskPersistenceSimpler<Foo>("out/simple_db", es, logger);
 
+            // make some files on disk
             for (var foo : foos) {
                 ddps.persistToDisk(foo);
+            }
+
+            // change those files
+            for (var foo : foos) {
+                ddps.updateOnDisk(new Foo(foo.index, foo.a + 1, foo.b + "_updated"));
+            }
+
+            // delete those files
+            for (var foo : foos) {
+                ddps.deleteOnDisk(foo);
             }
 
             // give the action queue time to save files to disk
