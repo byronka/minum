@@ -6,8 +6,10 @@ import logging.TestLogger;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static framework.TestFramework.*;
 import static java.util.stream.IntStream.range;
@@ -19,12 +21,12 @@ public class SimpleDatabaseTests {
         this.logger = logger;
     }
 
-    public void tests(ExecutorService es) {
+    public void tests(ExecutorService es) throws InterruptedException {
 
         // the following will be used in the subsequent tests...
 
         // now let's apply that
-        record Foo(int index, int a, String b) implements SimpleDataType<Foo> {
+        record Foo(int index, int a, String b) implements SimpleDataType<Foo>, Comparable<Foo> {
 
             static final Foo INSTANCE = new Foo(0,0,"");
 
@@ -51,6 +53,12 @@ public class SimpleDatabaseTests {
             public Long getIndex() {
                 return (long) index();
             }
+
+            // implementing comparator just so we can assertEqualsDisregardOrder on a collection of these
+            @Override
+            public int compareTo(Foo o) {
+                return Long.compare( o.getIndex() , this.getIndex() );
+            }
         }
 
         /*
@@ -76,31 +84,61 @@ public class SimpleDatabaseTests {
 
         logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");
         {
+            final var foosDirectory = "out/simple_db/foos";
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>("out/simple_db", es, logger);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, logger);
 
             // make some files on disk
             for (var foo : foos) {
                 ddps.persistToDisk(foo);
             }
 
-            // change those files
+            // check that the files are now there.
+            // note that since our database is *eventually* synced to disk, we need to wait a
+            // second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(50);
             for (var foo : foos) {
-                ddps.updateOnDisk(new Foo(foo.index, foo.a + 1, foo.b + "_updated"));
+                assertTrue(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
-            // delete those files
+            // rebuild some objects from what was written to disk
+            // note that since our database is *eventually* synced to disk, we need to wait a
+            // second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(50);
+            final var deserializedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
+            assertEqualsDisregardOrder(deserializedFoos, foos);
+
+            // change those files
+            final var updatedFoos = new ArrayList<Foo>();
+            for (var foo : foos) {
+                final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+                updatedFoos.add(newFoo);
+                ddps.updateOnDisk(newFoo);
+            }
+
+            // rebuild some objects from what was written to disk
+            // note that since our database is *eventually* synced to disk, we need to wait a
+            // second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(50);
+            final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
+            assertEqualsDisregardOrder(deserializedUpdatedFoos, updatedFoos);
+
+            // delete the files
             for (var foo : foos) {
                 ddps.deleteOnDisk(foo);
             }
 
+            // check that all the files are now gone
+            // note that since our database is *eventually* synced to disk, we need to wait a
+            // second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(50);
+            for (var foo : foos) {
+                assertFalse(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+            }
+
             // give the action queue time to save files to disk
             // then shut down.
-            try {
-                ddps.getActionQueue().getPrimaryFuture().get(10, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                // do nothing
-            }
+            ddps.stop();
         }
     }
 

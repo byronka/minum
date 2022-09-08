@@ -55,11 +55,18 @@ public class ActionQueue {
         return this;
     }
 
-    public void enqueue(Callable<Void> action) {
-        if (stop) {
-            throw new RuntimeException("Attempting to add an action to a stopping queue");
-        } else {
+    /**
+     * Adds something to the queue to be processed.
+     * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
+     * @return true if we successfully added something to the queue.  False if not - because if our queue is
+     * in the process of stopping, it won't allow anything new to be added.
+     */
+    public boolean enqueue(Callable<Void> action) {
+        if (! stop) {
             queue.add(action);
+            return true;
+        } else {
+            return false;
         }
     }
 

@@ -4,8 +4,12 @@ import logging.ILogger;
 import utils.ActionQueue;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static utils.FileUtils.writeString;
@@ -13,7 +17,7 @@ import static utils.Invariants.mustBeTrue;
 
 public class DatabaseDiskPersistenceSimpler<T> {
 
-    static final String databaseFileSuffix = ".db";
+    public static final String databaseFileSuffix = ".db";
 
     private final Path dbDirectory;
     private final ActionQueue actionQueue;
@@ -107,6 +111,50 @@ public class DatabaseDiskPersistenceSimpler<T> {
             // bubble exceptions back.
             return null;
         });
+    }
+
+
+    public List<T> readAndDeserialize(SimpleDataType<T> instance) {
+        if (! Files.exists(dbDirectory)) {
+            logger.logDebug(() -> "%s directory missing, creating empty list of data".formatted(dbDirectory));
+            return Collections.emptyList();
+        }
+
+        final var data = new ArrayList<T>();
+
+        try {
+            final var listOfFiles = Files.walk(dbDirectory)
+                    .filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
+            for (Path p : listOfFiles) {
+                String fileContents;
+                try {
+                    fileContents = Files.readString(p);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                if (fileContents.isBlank()) {
+                    logger.logDebug( () -> "%s file exists but empty, skipping".formatted(p.getFileName()));
+                } else {
+                    try {
+                        data.add(instance.deserialize(fileContents));
+                    } catch (DatabaseDiskPersistenceSimpler.DeserializationException e) {
+                        throw new RuntimeException("Failed to deserialize %s with data (%s)".formatted(p, fileContents));
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return data;
+    }
+
+
+    private static class DeserializationException extends RuntimeException {
+        final String serializedData;
+
+        public DeserializationException(String serializedData) {
+            this.serializedData = serializedData;
+        }
     }
 
 }
