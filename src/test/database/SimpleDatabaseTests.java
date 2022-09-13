@@ -2,6 +2,7 @@ package database;
 
 import database.owndatabase.DatabaseDiskPersistenceSimpler;
 import database.owndatabase.SimpleDataType;
+import primary.Tests;
 import logging.TestLogger;
 
 import java.net.URLEncoder;
@@ -95,16 +96,16 @@ public class SimpleDatabaseTests {
 
             // check that the files are now there.
             // note that since our database is *eventually* synced to disk, we need to wait a
-            // second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(50);
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(10);
             for (var foo : foos) {
                 assertTrue(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // rebuild some objects from what was written to disk
             // note that since our database is *eventually* synced to disk, we need to wait a
-            // second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(50);
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(10);
             final var deserializedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(deserializedFoos, foos);
 
@@ -118,8 +119,8 @@ public class SimpleDatabaseTests {
 
             // rebuild some objects from what was written to disk
             // note that since our database is *eventually* synced to disk, we need to wait a
-            // second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(50);
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            Thread.sleep(10);
             final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(deserializedUpdatedFoos, updatedFoos);
 
@@ -130,7 +131,7 @@ public class SimpleDatabaseTests {
 
             // check that all the files are now gone
             // note that since our database is *eventually* synced to disk, we need to wait a
-            // second or two here for them to get onto the disk before we check for them.
+            // (milli)second or two here for them to get onto the disk before we check for them.
             Thread.sleep(50);
             for (var foo : foos) {
                 assertFalse(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
@@ -139,6 +140,27 @@ public class SimpleDatabaseTests {
             // give the action queue time to save files to disk
             // then shut down.
             ddps.stop();
+        }
+
+        /*
+         * In this test, we'll turn off disk-syncing
+         */
+        logger.test("Just how fast is our database?");
+        {
+            final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
+
+            // change the foos
+            Tests.startTimer("fast_database");
+            for (var i = 1; i < 100_000; i++) {
+                final var newFoos = new ArrayList<Foo>();
+                for (var foo : foos) {
+                    final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+                    newFoos.add(newFoo);
+                }
+            }
+            final var time = Tests.stopTimer("fast_database");
+
+            logger.testPrint("time taken was " + time + " milliseconds");
         }
     }
 

@@ -25,7 +25,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
     public DatabaseDiskPersistenceSimpler(String dbDirectory, ExecutorService executorService, ILogger logger) {
         this.dbDirectory = Path.of(dbDirectory);
-        actionQueue = new ActionQueue("DatabaseWriter " + Integer.toHexString(hashCode()), executorService).initialize();
+        actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, executorService).initialize();
         this.logger = logger;
 
         actionQueue.enqueue(() -> {
@@ -65,7 +65,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      * @param data the data we are writing
      */
     public void persistToDisk(SimpleDataType<T> data) {
-        final var fullPath = "%s/%s%s".formatted(dbDirectory, data.getIndex(), databaseFileSuffix);
+        final String fullPath = makeFullPathFromData(data);
 
         actionQueue.enqueue(() -> {
             writeString(fullPath, data.serialize());
@@ -82,12 +82,12 @@ public class DatabaseDiskPersistenceSimpler<T> {
      * @param data the data we are serializing and writing
      */
     public void deleteOnDisk(SimpleDataType<T> data) {
-        final var fullPath = "%s/%s%s".formatted(dbDirectory, data.getIndex(), databaseFileSuffix);
+        final String fullPath = makeFullPathFromData(data);
         actionQueue.enqueue(() -> {
             try {
                 Files.delete(Path.of(fullPath));
             } catch (Exception ex) {
-                logger.logDebug(() -> "failed to delete file %s".formatted(fullPath));
+                logger.logDebug(() -> "failed to delete file "+fullPath);
                 throw new RuntimeException(ex);
             }
 
@@ -99,12 +99,12 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
 
     public void updateOnDisk(SimpleDataType<T> data) {
-        final var fullPath = "%s/%s%s".formatted(dbDirectory, data.getIndex(), databaseFileSuffix);
+        final String fullPath = makeFullPathFromData((SimpleDataType<T>) data);
         final var file = new File(fullPath);
 
         actionQueue.enqueue(() -> {
             // if the file isn't already there, throw an exception
-            mustBeTrue(file.exists(), "we were asked to update %s but it doesn't exist".formatted(file));
+            mustBeTrue(file.exists(), "we were asked to update "+file+" but it doesn't exist");
             writeString(fullPath, data.serialize());
 
             // needs to return null because this is a Callable, which allows us to
@@ -113,10 +113,13 @@ public class DatabaseDiskPersistenceSimpler<T> {
         });
     }
 
+    private String makeFullPathFromData(SimpleDataType<T> data) {
+        return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
+    }
 
     public List<T> readAndDeserialize(SimpleDataType<T> instance) {
         if (! Files.exists(dbDirectory)) {
-            logger.logDebug(() -> "%s directory missing, creating empty list of data".formatted(dbDirectory));
+            logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return Collections.emptyList();
         }
 
@@ -133,12 +136,12 @@ public class DatabaseDiskPersistenceSimpler<T> {
                     throw new RuntimeException(e);
                 }
                 if (fileContents.isBlank()) {
-                    logger.logDebug( () -> "%s file exists but empty, skipping".formatted(p.getFileName()));
+                    logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
                 } else {
                     try {
                         data.add(instance.deserialize(fileContents));
                     } catch (DatabaseDiskPersistenceSimpler.DeserializationException e) {
-                        throw new RuntimeException("Failed to deserialize %s with data (%s)".formatted(p, fileContents));
+                        throw new RuntimeException("Failed to deserialize "+p+" with data ("+fileContents+")");
                     }
                 }
             }

@@ -33,6 +33,13 @@ public class TestLogger extends Logger {
         });
     }
 
+    public void testPrint(String msg) {
+        loggerPrinter.enqueue(() -> {
+            System.out.println(msg);
+            return null;
+        });
+    }
+
     public static String printStackTrace(Throwable ex) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);

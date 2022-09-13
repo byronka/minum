@@ -9,9 +9,7 @@ import utils.InvariantException;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -20,10 +18,11 @@ import java.util.regex.Matcher;
 import static framework.TestFramework.*;
 import static primary.web.StartLine.startLineRegex;
 
-class Tests {
+public class Tests {
 
   static final ExecutorService es = ExtendedExecutor.makeExecutorService();
   static final TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+  static final Map<String, Long> timers = new HashMap<>();
 
   public static void initialTests() {
 
@@ -399,6 +398,23 @@ class Tests {
       logger.stop();
       es.shutdownNow();
     }
+  }
+
+  /**
+   * Use this to help time an operation, for performance.
+   *
+   * @param timerName the name of this timer.  Use the same
+   *                  name when stopping the timer.
+   */
+  public static void startTimer(String timerName) {
+    final var currentTime = System.currentTimeMillis();
+    timers.put(timerName, currentTime);
+  }
+
+  public static Long stopTimer(String timerName) {
+    final var currentTime = System.currentTimeMillis();
+    final var priorTime = timers.get(timerName);
+    return currentTime - priorTime;
   }
 
 }
