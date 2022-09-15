@@ -88,7 +88,4 @@ public class ActionQueue {
         }
     }
 
-    public Future<Void> getPrimaryFuture() {
-        return primaryFuture;
-    }
 }

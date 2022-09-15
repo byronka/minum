@@ -21,18 +21,4 @@ public class FileUtils {
         }
     }
 
-    /**
-     * Recursively deletes a folder if it exists.  If
-     * it does not exist, do nothing.
-     */
-    public static void deleteDirectoryWithFiles(Path pathToBeDeleted) throws IOException {
-        if (Files.exists(pathToBeDeleted)) {
-            final var files = Files.walk(pathToBeDeleted)
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile).toList();
-            for (File f : files) {
-                Files.delete(f.toPath());
-            }
-        }
-    }
 }
