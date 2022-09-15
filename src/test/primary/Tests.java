@@ -383,8 +383,7 @@ public class Tests {
       initialTests();
       webTests();
       testAnalysisTests();
-      final var sdt = new SimpleDatabaseTests(logger);
-      sdt.tests(es);
+      new SimpleDatabaseTests(logger).tests(es);
     } finally {
       // final shutdown pieces
       logger.stop();
