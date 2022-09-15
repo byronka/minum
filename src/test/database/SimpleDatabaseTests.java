@@ -2,7 +2,7 @@ package database;
 
 import database.owndatabase.DatabaseDiskPersistenceSimpler;
 import database.owndatabase.SimpleDataType;
-import primary.Tests;
+import primary.StopWatch;
 import logging.TestLogger;
 
 import java.net.URLEncoder;
@@ -97,7 +97,7 @@ public class SimpleDatabaseTests {
             // check that the files are now there.
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(10);
+            Thread.sleep(20);
             for (var foo : foos) {
                 assertTrue(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
@@ -105,7 +105,7 @@ public class SimpleDatabaseTests {
             // rebuild some objects from what was written to disk
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(10);
+            Thread.sleep(20);
             final var deserializedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(deserializedFoos, foos);
 
@@ -120,7 +120,7 @@ public class SimpleDatabaseTests {
             // rebuild some objects from what was written to disk
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(10);
+            Thread.sleep(20);
             final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(deserializedUpdatedFoos, updatedFoos);
 
@@ -143,14 +143,16 @@ public class SimpleDatabaseTests {
         }
 
         /*
-         * In this test, we'll turn off disk-syncing
+         * In this test, we'll turn off disk-syncing.
+         *
+         * For the record... running this takes between 80 and 120 milliseconds.
          */
         logger.test("Just how fast is our database?");
         {
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
 
             // change the foos
-            Tests.startTimer("fast_database");
+            final var timer = new StopWatch().startTimer();
             for (var i = 1; i < 100_000; i++) {
                 final var newFoos = new ArrayList<Foo>();
                 for (var foo : foos) {
@@ -158,7 +160,7 @@ public class SimpleDatabaseTests {
                     newFoos.add(newFoo);
                 }
             }
-            final var time = Tests.stopTimer("fast_database");
+            final var time = timer.stopTimer();
 
             logger.testPrint("time taken was " + time + " milliseconds");
         }
