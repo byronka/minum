@@ -172,7 +172,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return data;
     }
