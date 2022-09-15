@@ -15,6 +15,11 @@ import java.util.concurrent.ExecutorService;
 import static utils.FileUtils.writeString;
 import static utils.Invariants.mustBeTrue;
 
+/**
+ * This allows us to run some disk-persistence operations more consistently
+ * on any data that extends from {@link SimpleDataType}
+ * @param <T> the type of data we'll be persisting
+ */
 public class DatabaseDiskPersistenceSimpler<T> {
 
     public static final String databaseFileSuffix = ".db";
@@ -23,6 +28,27 @@ public class DatabaseDiskPersistenceSimpler<T> {
     private final ActionQueue actionQueue;
     private final ILogger logger;
 
+    /**
+     * Constructs a disk-persistence class well-suited for your data.
+     *
+     * There is a bit of subtlety to its use, see documentation on the params.
+     * @param dbDirectory the directory where we will store this data, relative to
+     *                    the location from which we run the application.  Recommend that
+     *                    you use some consistency, and consider hierarchy.  For example,
+     *                    you might want to store all your data at db/foo - foo being the
+     *                    name of the type of data we're storing, and db being a place to
+     *                    collect together all your directories.
+     *
+     *                    If you're consistent enough, you will have a top-level directory
+     *                    like "db", with a bunch of sub-directories corresponding to the
+     *                    types of data.  But really there is a lot of flexibility, you
+     *                    can do it another way if you want.
+     * @param executorService The executorService is our interface to the system which we
+     *                        use for parallel processing.  We hand this sucker off to
+     *                        an internal {@link ActionQueue} which handles all these
+     *                        operations asynchronously, so that data is *eventually*
+     *                        written to disk.
+     */
     public DatabaseDiskPersistenceSimpler(String dbDirectory, ExecutorService executorService, ILogger logger) {
         this.dbDirectory = Path.of(dbDirectory);
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, executorService).initialize();
@@ -99,7 +125,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
 
     public void updateOnDisk(SimpleDataType<T> data) {
-        final String fullPath = makeFullPathFromData((SimpleDataType<T>) data);
+        final String fullPath = makeFullPathFromData(data);
         final var file = new File(fullPath);
 
         actionQueue.enqueue(() -> {
