@@ -391,21 +391,4 @@ public class Tests {
     }
   }
 
-  /**
-   * Use this to help time an operation, for performance.
-   *
-   * @param timerName the name of this timer.  Use the same
-   *                  name when stopping the timer.
-   */
-  public static void startTimer(String timerName) {
-    final var currentTime = System.currentTimeMillis();
-    timers.put(timerName, currentTime);
-  }
-
-  public static Long stopTimer(String timerName) {
-    final var currentTime = System.currentTimeMillis();
-    final var priorTime = timers.get(timerName);
-    return currentTime - priorTime;
-  }
-
 }
