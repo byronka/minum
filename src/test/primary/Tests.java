@@ -380,9 +380,9 @@ public class Tests {
 
   public static void main(String[] args) throws Exception {
     try {
-      // initialTests();
-      // webTests();
-      // testAnalysisTests();
+       initialTests();
+       webTests();
+       testAnalysisTests();
 
       // commenting out for now.  We'll allow testing again if we decide to use the external database
       // final var edt = new ExternalDatabaseTests(logger);
