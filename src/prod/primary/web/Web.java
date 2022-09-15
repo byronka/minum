@@ -212,12 +212,8 @@ public class Web {
       this.centralLoopFuture = es.submit(t);
     }
 
-    public void close() {
-      try {
+    public void close() throws IOException {
         serverSocket.close();
-      } catch (IOException ex) {
-        throw new RuntimeException(ex);
-      }
     }
 
     public String getHost() {
