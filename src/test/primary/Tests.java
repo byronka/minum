@@ -6,6 +6,7 @@ import primary.web.*;
 import utils.ExtendedExecutor;
 import utils.InvariantException;
 
+import java.io.IOException;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -53,7 +54,7 @@ public class Tests {
 | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
 | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
 |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
-  public static void webTests() {
+  public static void webTests() throws IOException {
 
     Web web = new Web(logger);
 

@@ -73,7 +73,7 @@ public class Web {
 
     void close();
 
-    String readByLength(int length);
+    String readByLength(int length) throws IOException;
   }
 
   /**
@@ -154,16 +154,12 @@ public class Web {
     }
 
     @Override
-    public String readByLength(int length) {
+    public String readByLength(int length) throws IOException {
       char[] cb = new char[length];
-      try {
-        int countOfBytesRead = reader.read(cb, 0, length);
-        mustBeFalse (countOfBytesRead == -1, "end of file hit");
-        mustBeFalse (countOfBytesRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
-        return new String(cb);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      int countOfBytesRead = reader.read(cb, 0, length);
+      mustBeFalse (countOfBytesRead == -1, "end of file hit");
+      mustBeFalse (countOfBytesRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
+      return new String(cb);
     }
   }
 
