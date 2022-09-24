@@ -2,13 +2,13 @@ package primary.web;
 
 import logging.ILogger;
 
+import java.io.IOException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -24,7 +24,7 @@ public class WebFramework {
     /**
      * This is the brains of how the server responds to web clients
      */
-    public Consumer<Web.SocketWrapper> makeHandler() {
+    public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
      return (sw) -> {
          StartLine sl = StartLine.extractStartLine(sw.readLine());
          HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);

@@ -59,9 +59,9 @@ public class Web {
   }
 
   public interface ISocketWrapper extends AutoCloseable {
-    void send(String msg);
+    void send(String msg) throws IOException;
 
-    void sendHttpLine(String msg);
+    void sendHttpLine(String msg) throws IOException;
 
     String readLine();
 
@@ -102,16 +102,12 @@ public class Web {
     }
 
     @Override
-    public void send(String msg) {
-      try {
-        writer.write(msg.getBytes());
-      } catch (IOException ex) {
-        throw new RuntimeException(ex);
-      }
+    public void send(String msg) throws IOException {
+      writer.write(msg.getBytes());
     }
 
     @Override
-    public void sendHttpLine(String msg) {
+    public void sendHttpLine(String msg) throws IOException {
       logger.logDebug(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
       send(msg + HTTP_CRLF);
     }
@@ -188,7 +184,7 @@ public class Web {
       setOfServers = new ConcurrentSet<>();
     }
 
-    public void start(ExecutorService es, Consumer<SocketWrapper> handler) {
+    public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
       Thread t = new Thread(() -> {
         try {
           while (true) {
@@ -269,34 +265,26 @@ public class Web {
 
   }
 
-  public Web.Server startServer(ExecutorService es, Consumer<SocketWrapper> handler) {
-    try {
-      int port = 8080;
-      ServerSocket ss = new ServerSocket(port);
-      logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-      Server server = new Server(ss);
-      server.start(es, handler);
-      return server;
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    }
+  public Web.Server startServer(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) throws IOException {
+    int port = 8080;
+    ServerSocket ss = new ServerSocket(port);
+    logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
+    Server server = new Server(ss);
+    server.start(es, handler);
+    return server;
   }
 
   /**
    * Create a listening server
    */
-  public Web.Server startServer(ExecutorService es) {
+  public Web.Server startServer(ExecutorService es) throws IOException {
     return startServer(es, null);
   }
 
-  public Web.SocketWrapper startClient(Server server) {
-    try {
-      Socket socket = new Socket(server.getHost(), server.getPort());
-      logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-      return new SocketWrapper(socket);
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    }
+  public Web.SocketWrapper startClient(Server server) throws IOException {
+    Socket socket = new Socket(server.getHost(), server.getPort());
+    logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+    return new SocketWrapper(socket);
   }
 
 }
