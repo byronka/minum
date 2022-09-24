@@ -20,7 +20,6 @@ public class ActionQueue {
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<Callable<Void>> queue;
     private boolean stop = false;
-    private Future<Void> primaryFuture;
 
     public ActionQueue(String name, ExecutorService queueExecutor) {
         this.name = name;
@@ -32,7 +31,7 @@ public class ActionQueue {
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings("InfiniteLoopStatement")
     public ActionQueue initialize() {
-        primaryFuture = queueExecutor.submit(() -> {
+        queueExecutor.submit(() -> {
             try {
                 while (true) {
                     Callable<Void> action = queue.take();
@@ -80,11 +79,7 @@ public class ActionQueue {
     public void stop() {
         stop = true;
         while (queue.size() > 0) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            MyThread.sleep(50);
         }
     }
 

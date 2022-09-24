@@ -9,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Logger implements ILogger {

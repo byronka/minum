@@ -3,6 +3,7 @@ package primary.web;
 import logging.ILogger;
 import logging.Logger;
 import utils.ConcurrentSet;
+import utils.MyThread;
 
 import java.io.IOException;
 import java.net.*;
@@ -12,7 +13,6 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 
 import static utils.Invariants.mustBeFalse;
 
@@ -165,6 +165,11 @@ public class Web {
     public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
       Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
         try {
+          // yes, this infinite loop can only exit by an exception.  But this is
+          // the beating heart of a server, and to the best of my current knowledge,
+          // when a server socket is force-closed it's going to throw an exception, and
+          // that's just part of its life cycle
+          //noinspection InfiniteLoopStatement
           while (true) {
             logger.logDebug(() -> "server waiting to accept connection");
             Socket freshSocket = serverSocket.accept();
@@ -210,9 +215,8 @@ public class Web {
      * socket that corresponds to a particular client socket.
      *
      * Due to the circumstances of the TCP handshake, there's a bit of
-     * time where the server might still be "figuring things out", and
-     * when we come through here the server hasn't yet finally come
-     * out of "accept" and been put into the list of current server sockets.
+     * time where the server might not have finished initialization,
+     * and been put into the list of current server sockets.
      *
      * For that reason, if we come in here and don't find it initially, we'll
      * sleep and then try again, up to three times.
@@ -228,13 +232,16 @@ public class Web {
         if (servers.size() == 1) {
           return servers.get(0);
         }
+
+        // if we got here, we didn't find a server in the list - probably because the TCP
+        // initialization has not completed.  Retry after a bit.  The TCP process is dependent on
+        // a whole lot of variables outside our control - downed lines, slow routers, etc.
+        //
+        // on the other hand, this code should probably only be called in testing, so maybe fewer
+        // out-of-bounds problems?
         int finalLoopCount = loopCount;
         logger.logDebug(() -> String.format("no server found, sleeping on it... (attempt %d)", finalLoopCount + 1));
-        try {
-          Thread.sleep(10);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+        MyThread.sleep(10);
       }
       throw new RuntimeException("No socket found with that address");
     }

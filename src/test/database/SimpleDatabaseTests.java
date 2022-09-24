@@ -4,6 +4,7 @@ import database.owndatabase.DatabaseDiskPersistenceSimpler;
 import database.owndatabase.SimpleDataType;
 import primary.StopWatch;
 import logging.TestLogger;
+import utils.MyThread;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +23,7 @@ public class SimpleDatabaseTests {
         this.logger = logger;
     }
 
-    public void tests(ExecutorService es) throws InterruptedException {
+    public void tests(ExecutorService es) {
 
         // the following will be used in the subsequent tests...
 
@@ -97,7 +98,7 @@ public class SimpleDatabaseTests {
             // check that the files are now there.
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(20);
+            MyThread.sleep(20);
             for (var foo : foos) {
                 assertTrue(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
@@ -105,7 +106,7 @@ public class SimpleDatabaseTests {
             // rebuild some objects from what was written to disk
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(20);
+            MyThread.sleep(20);
             final var deserializedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(deserializedFoos, foos);
 
@@ -120,7 +121,7 @@ public class SimpleDatabaseTests {
             // rebuild some objects from what was written to disk
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(20);
+            MyThread.sleep(20);
             final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(deserializedUpdatedFoos, updatedFoos);
 
@@ -132,7 +133,7 @@ public class SimpleDatabaseTests {
             // check that all the files are now gone
             // note that since our database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            Thread.sleep(50);
+            MyThread.sleep(50);
             for (var foo : foos) {
                 assertFalse(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
