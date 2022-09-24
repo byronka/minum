@@ -1,5 +1,6 @@
 package primary.web;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -36,7 +37,7 @@ public class HeaderInformation {
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public static HeaderInformation extractHeaderInformation(Web.SocketWrapper sw) {
+    public static HeaderInformation extractHeaderInformation(Web.SocketWrapper sw) throws IOException {
         List<String> headers = getAllHeaders(sw);
         int contentLength = extractContentLength(headers);
 
@@ -55,7 +56,7 @@ public class HeaderInformation {
         return contentLength;
     }
 
-    private static List<String> getAllHeaders(Web.SocketWrapper sw) {
+    private static List<String> getAllHeaders(Web.SocketWrapper sw) throws IOException {
         List<String> headers = new ArrayList<>();
         while (true) {
             String value = sw.readLine();

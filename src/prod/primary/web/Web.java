@@ -21,22 +21,13 @@ import static utils.Invariants.mustBeFalse;
  */
 public class Web {
 
-  public Web() {
-    this(null);
-  }
-
   /**
    * This constructor allows us to set the zoned date/time, to
    * better control the system during testing
    */
   public Web(ILogger logger) {
-    if (logger == null) {
-      this.logger = Logger.INSTANCE;
-      this.logger.logDebug(() -> "Using a local logger");
-    } else {
       this.logger = logger;
       this.logger.logDebug(() -> "Using a supplied logger");
-    }
   }
 
   enum HttpVersion {
@@ -63,7 +54,7 @@ public class Web {
 
     void sendHttpLine(String msg) throws IOException;
 
-    String readLine();
+    String readLine() throws IOException;
 
     String getLocalAddr();
 
@@ -71,7 +62,7 @@ public class Web {
 
     SocketAddress getRemoteAddr();
 
-    void close();
+    void close() throws IOException;
 
     String readByLength(int length) throws IOException;
   }
@@ -86,17 +77,13 @@ public class Web {
     private final BufferedReader reader;
     private ConcurrentSet<SocketWrapper> setOfServers;
 
-    public SocketWrapper(Socket socket) {
+    public SocketWrapper(Socket socket) throws IOException {
       this.socket = socket;
-      try {
-        writer = socket.getOutputStream();
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-      } catch (IOException ex) {
-        throw new RuntimeException(ex);
-      }
+      writer = socket.getOutputStream();
+      reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
-    public SocketWrapper(Socket socket, ConcurrentSet<SocketWrapper> scs) {
+    public SocketWrapper(Socket socket, ConcurrentSet<SocketWrapper> scs) throws IOException {
       this(socket);
       this.setOfServers = scs;
     }
@@ -113,12 +100,8 @@ public class Web {
     }
 
     @Override
-    public String readLine() {
-      try {
-        return reader.readLine();
-      } catch (IOException ex) {
-        throw new RuntimeException(ex);
-      }
+    public String readLine() throws IOException {
+      return reader.readLine();
     }
 
     @Override
@@ -137,16 +120,11 @@ public class Web {
     }
 
     @Override
-    public void close() {
-      try {
+    public void close() throws IOException {
         socket.close();
         if (setOfServers != null) {
-
           removeFromSetOfServers(setOfServers, this);
         }
-      } catch(Exception ex) {
-        throw new RuntimeException(ex);
-      }
     }
 
     @Override
@@ -185,7 +163,7 @@ public class Web {
     }
 
     public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
-      Thread t = new Thread(() -> {
+      Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
         try {
           while (true) {
             logger.logDebug(() -> "server waiting to accept connection");
@@ -201,8 +179,6 @@ public class Web {
           if (!ex.getMessage().contains("Socket closed")) {
             throw new RuntimeException(ex);
           }
-        } catch (IOException ex) {
-          throw new RuntimeException(ex);
         }
       });
       this.centralLoopFuture = es.submit(t);

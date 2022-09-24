@@ -1,5 +1,6 @@
 package logging;
 
+import primary.web.ThrowingSupplier;
 import utils.ActionQueue;
 
 import java.time.ZoneId;
@@ -42,10 +43,17 @@ public class Logger implements ILogger {
     }
 
     @Override
-    public void logDebug(Supplier<String> msg) {
+    public void logDebug(ThrowingSupplier<String, Exception> msg) {
+        String receivedMessage;
+        try {
+            receivedMessage = msg.get();
+        } catch (Exception ex) {
+            receivedMessage = "EXCEPTION DURING GET: " + ex;
+        }
         if (toggles.get(Type.DEBUG)) {
+            String finalReceivedMessage = receivedMessage;
             loggerPrinter.enqueue(() -> {
-                printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(msg.get()));
+                printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
                 return null;
             });
         }

@@ -1,6 +1,6 @@
 package logging;
 
-import java.util.function.Supplier;
+import primary.web.ThrowingSupplier;
 
 public interface ILogger {
 
@@ -9,7 +9,7 @@ public interface ILogger {
      * system.
      * @param msg example: () -> "Hello"
      */
-    void logDebug(Supplier<String> msg);
+    void logDebug(ThrowingSupplier<String, Exception> msg);
 
     void logImperative(String msg);
 }
