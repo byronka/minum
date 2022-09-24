@@ -22,7 +22,6 @@ public class Tests {
 
   static final ExecutorService es = ExtendedExecutor.makeExecutorService();
   static final TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
-  static final Map<String, Long> timers = new HashMap<>();
 
   public static void initialTests() {
 
