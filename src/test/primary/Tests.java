@@ -135,7 +135,7 @@ public class Tests {
         There's nothing to prevent us using this as the entire
         basis of a web framework.
        */
-      Consumer<Web.SocketWrapper> handler = (sw) -> logger.logDebug(sw::readLine);
+      ThrowingConsumer<Web.SocketWrapper, IOException> handler = (sw) -> logger.logDebug(sw::readLine);
 
       try (Web.Server primaryServer = web.startServer(es, handler)) {
         try (Web.SocketWrapper client = web.startClient(primaryServer)) {
@@ -221,7 +221,7 @@ public class Tests {
       sw.sendHttpLineAction = s -> result.set(s);
 
       // this is what we're really going to test
-      Consumer<Web.ISocketWrapper> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
+      ThrowingConsumer<Web.ISocketWrapper, IOException> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
       handler.accept(sw);
 
       assertEquals("this is a test", result.get());

@@ -194,7 +194,7 @@ public class Web {
             logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));
             addToSetOfServers(setOfServers, sw);
             if (handler != null) {
-              es.submit(new Thread(() -> handler.accept(sw)));
+              es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> handler.accept(sw)));
             }
           }
         } catch (SocketException ex) {

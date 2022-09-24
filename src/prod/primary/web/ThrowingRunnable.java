@@ -1,12 +1,12 @@
 package primary.web;
 
 @FunctionalInterface
-public interface ThrowingRunnable<T, E extends Exception>{
+public interface ThrowingRunnable<E extends Exception>{
 
     void run() throws E;
 
-    static Runnable throwingRunnableWrapper(ThrowingRunnable<T, Exception> throwingRunnable) {
-        return _ -> {
+    static Runnable throwingRunnableWrapper(ThrowingRunnable<Exception> throwingRunnable) {
+        return () -> {
             try {
                 throwingRunnable.run();
             } catch (Exception ex) {
