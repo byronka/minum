@@ -1,0 +1,13 @@
+1. coding is complete
+2. code reviewed
+3. user story checklist considered
+4. automation runs successfully
+5. manual careful review
+
+
+done means the system is ready for review by the user
+
+if the user cannot access it, it's not done
+if the desired capabilities aren't provided, it's not done
+if the system is in a state of disarray or generally low-quality such that the user
+  would be distracted from focusing on how the capabilities were met, it's not done
