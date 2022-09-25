@@ -148,7 +148,7 @@ public class SimpleDatabaseTests {
          *
          * For the record... running this takes between 80 and 120 milliseconds.
          */
-        logger.test("Just how fast is our database?");
+        logger.test("Just how fast is our database? spoiler: about 10k updates in 1 millisecond");
         {
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
 

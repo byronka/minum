@@ -159,7 +159,7 @@ test: all testclasses
 testdebug: all testclasses
 	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(TST_RUN_CP) primary.Tests
 
-#: If you want to obtain code coverage from running the tests
+#: If you want to obtain code coverage from running the tests. output at out/coveragereport
 testcov: all testclasses
 	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) primary.Tests
 	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_PROD) --sourcefiles $(SRC_DIR)
