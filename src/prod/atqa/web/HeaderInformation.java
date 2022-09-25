@@ -14,23 +14,13 @@ import static atqa.utils.Invariants.mustBeTrue;
  * is this a keep-alive connection? what is the content-length,
  * and so on.
  */
-public class HeaderInformation {
+public record HeaderInformation(int contentLength, List<String> rawValues) {
 
     /**
      * Used for extracting the length of the body, in POSTs and
      * responses from servers
      */
     static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
-
-    public final List<String> rawValues;
-    public final int contentLength;
-
-
-    public HeaderInformation(int contentLength, List<String> rawValues) {
-        this.contentLength = contentLength;
-        this.rawValues = rawValues;
-    }
-
 
     /**
      * Loops through reading text lines from the socket wrapper,

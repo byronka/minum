@@ -25,27 +25,6 @@ public class Tests {
   static final ExecutorService es = ExtendedExecutor.makeExecutorService();
   static final TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
 
-  public static void initialTests() {
-
-    logger.test("a happy path");
-    {
-      int result = Main.add(2, 3);
-      assertEquals(result, 5);
-    }
-
-    logger.test("a couple negatives");
-    {
-      int result = Main.add(-2, -3);
-      assertEquals(result, -5);
-    }
-
-    logger.test("with zeros");
-    {
-      int result = Main.add(0, 0);
-      assertEquals(result, 0);
-    }
-  }
-
  /*$      /$$           /$$               /$$                           /$$
 | $$  /$ | $$          | $$              | $$                          | $$
 | $$ /$$$| $$  /$$$$$$ | $$$$$$$        /$$$$$$    /$$$$$$   /$$$$$$$ /$$$$$$   /$$$$$$$
@@ -163,8 +142,8 @@ public class Tests {
      */
     class Summation {
       static WebFramework.Response addTwoNumbers(WebFramework.Request r) {
-        int aValue = Integer.parseInt(r.sl().pathDetails.queryString().get("a"));
-        int bValue = Integer.parseInt(r.sl().pathDetails.queryString().get("b"));
+        int aValue = Integer.parseInt(r.sl().pathDetails().queryString().get("a"));
+        int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
         return new WebFramework.Response(sumString);
@@ -185,7 +164,7 @@ public class Tests {
 
           StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
 
-          assertEquals(statusLine.rawValue, "HTTP/1.1 200 OK");
+          assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
           HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
 
@@ -196,9 +175,9 @@ public class Tests {
                   "Content-Length: 2"
           );
 
-          assertEqualsDisregardOrder(hi.rawValues, expectedResponseHeaders);
+          assertEqualsDisregardOrder(hi.rawValues(), expectedResponseHeaders);
 
-          String body = HttpUtils.readBody(client, hi.contentLength);
+          String body = HttpUtils.readBody(client, hi.contentLength());
 
           assertEquals(body, "86");
 
@@ -240,7 +219,7 @@ public class Tests {
     logger.test("alternate case for extractStartLine - POST");
     {
       StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.0");
-      assertEquals(sl.verb, StartLine.Verb.POST);
+      assertEquals(sl.verb(), StartLine.Verb.POST);
     }
 
     logger.test("negative cases for extractStartLine");
@@ -260,7 +239,7 @@ public class Tests {
     logger.test("positive test for extractStatusLine");
     {
       StatusLine sl = StatusLine.extractStatusLine("HTTP/1.1 200 OK");
-      assertEquals(sl.status, StatusLine.Status._200_OK);
+      assertEquals(sl.status(), StatusLine.Status._200_OK);
     }
 
     logger.test("negative tests for extractStatusLine");
@@ -381,7 +360,6 @@ public class Tests {
 
   public static void main(String[] args) throws Exception {
     try {
-      initialTests();
       webTests();
       testAnalysisTests();
       new SimpleDatabaseTests(logger).tests(es);

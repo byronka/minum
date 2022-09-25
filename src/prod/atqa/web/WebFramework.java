@@ -28,6 +28,8 @@ public class WebFramework {
     public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
      return (sw) -> {
          StartLine sl = StartLine.extractStartLine(sw.readLine());
+         logger.logDebug(() -> "StartLine received: " + sl);
+
          HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
 
          Function<Request, Response> endpoint = findEndpoint(sl);
@@ -44,8 +46,17 @@ public class WebFramework {
      };
     }
 
+    /**
+     * Looks through the mappings of {@link VerbPath} to endpoint handlers
+     * and returns the appropriate one.  If we do not find anything, return a
+     * very basic 404 NOT FOUND page
+     */
     private Function<Request, Response> findEndpoint(StartLine sl) {
-        return endpoints.get(new VerbPath(sl.verb, sl.pathDetails.isolatedPath()));
+        final var functionFound = endpoints.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
+        if (functionFound == null) {
+            return request -> new Response("404 not found using startline of " + sl);
+        }
+        return functionFound;
     }
 
     private final ILogger logger;

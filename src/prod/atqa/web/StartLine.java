@@ -15,7 +15,14 @@ import static atqa.utils.StringUtils.decode;
  * "start line" in an HTTP request.  For example,
  * GET /foo HTTP/1.1
  */
-public class StartLine {
+public record StartLine(
+        Verb verb,
+        PathDetails pathDetails,
+        Web.HttpVersion version,
+        /*
+         * The raw value given by the server for status
+         */
+        String rawValue) {
 
     /**
      * This is our regex for looking at a client's request
@@ -28,28 +35,12 @@ public class StartLine {
     public static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
-    public final Verb verb;
-    public final PathDetails pathDetails;
-    public final Web.HttpVersion version;
-
     public Map<String, String> getQueryString() {
         return new HashMap<>(pathDetails.queryString);
     }
 
-    /**
-     * The raw value given by the server for status
-     */
-    public final String rawValue;
-
     public enum Verb {
         GET, POST
-    }
-
-    public StartLine(Verb verb, PathDetails pathDetails, Web.HttpVersion version, String rawStartLine) {
-        this.verb = verb;
-        this.pathDetails = pathDetails;
-        this.version = version;
-        this.rawValue = rawStartLine;
     }
 
     public static StartLine extractStartLine(String value) {

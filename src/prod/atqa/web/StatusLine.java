@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import static atqa.utils.Invariants.mustBeTrue;
 
-public class StatusLine {
+public record StatusLine(Status status, Web.HttpVersion version, String rawValue) {
 
     /**
      * This is the regex used to analyze a status line sent by the server and
@@ -14,10 +14,6 @@ public class StatusLine {
      */
     public static final String statusLinePattern = "^HTTP/(1.1|1.0) (\\d{3}) (.*)$";
     public static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
-
-    public final Status status;
-    public final Web.HttpVersion version;
-    public final String rawValue;
 
     public enum Status {
         _200_OK(200);
@@ -34,12 +30,6 @@ public class StatusLine {
                     .findFirst()
                     .orElseThrow();
         }
-    }
-
-    public StatusLine(Status status, Web.HttpVersion version, String rawValue) {
-        this.status = status;
-        this.version = version;
-        this.rawValue = rawValue;
     }
 
     public static StatusLine extractStatusLine(String value) {
