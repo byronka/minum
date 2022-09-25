@@ -25,7 +25,7 @@ non-functionals:
     [ ] perf (what parts might be slow? Is it possible to create a low-level test?)
     [ ] security (might use a tool like Zap to walk through the system)
     [ ] accessibility
-    [ ] logging
+    [ ] atqa.logging
     [ ] graceful degradation
     [ ] mobile-first
 

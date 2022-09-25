@@ -141,27 +141,27 @@ clean:
 
 #: jar up the application (See Java's jar command)
 jar: all
-	    cd $(OUT_DIR_PROD) && jar --create --file $(PROJ_NAME).jar -e primary.Main *
+	    cd $(OUT_DIR_PROD) && jar --create --file $(PROJ_NAME).jar -e atqa.Main *
 
 #: run the application
 run: all
-	    $(JAVA) -cp $(RUN_CP) primary.Main
+	    $(JAVA) -cp $(RUN_CP) atqa.Main
 
 #: run the application and open a port for debugging.
 rundebug: all
-	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(RUN_CP) primary.Main
+	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(RUN_CP) atqa.Main
 
 #: run the tests
 test: all testclasses
-	    $(JAVA) -cp $(TST_RUN_CP) primary.Tests
+	    $(JAVA) -cp $(TST_RUN_CP) atqa.primary.Tests
 
 #: run the tests and open a port for debugging.
 testdebug: all testclasses
-	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(TST_RUN_CP) primary.Tests
+	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(TST_RUN_CP) atqa.primary.Tests
 
 #: If you want to obtain code coverage from running the tests. output at out/coveragereport
 testcov: all testclasses
-	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) primary.Tests
+	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) atqa.primary.Tests
 	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_PROD) --sourcefiles $(SRC_DIR)
 
 # a handy debugging tool.  If you want to see the value of any
@@ -170,7 +170,7 @@ testcov: all testclasses
 #
 #     make print-CLS
 #
-# and you'll get something like: CLS = out/logging/ILogger.class out/logging/Logger.class out/primary/Main.class out/utils/ActionQueue.class
+# and you'll get something like: CLS = out/atqa.logging/ILogger.class out/atqa.logging/Logger.class out/atqa.primary/Main.class out/atqa.utils/ActionQueue.class
 print-%:
 	    @echo $* = $($*)
 

@@ -11,5 +11,5 @@ out/
 # Don't want any of those Mac finder junk files scattered all over
 .DS_Store
 
-# Don't store the database we create with our application
+# Don't store the atqa.database we create with our application
 db/
