@@ -4,6 +4,7 @@ import atqa.logging.ILogger;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -58,6 +59,10 @@ public class WebFramework {
                              "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
                              r.body()
              );
+         } catch (SocketException ex) {
+             if (!ex.getMessage().contains("Socket closed")) {
+                 throw new RuntimeException(ex);
+             }
          }
      };
     }
