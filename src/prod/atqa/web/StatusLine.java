@@ -17,7 +17,13 @@ public record StatusLine(StatusCode status, Web.HttpVersion version, String rawV
 
     public enum StatusCode{
         _200_OK(200, "OK"),
-        _404_NOT_FOUND(404, "NOT FOUND");
+        _404_NOT_FOUND(404, "NOT FOUND"),
+
+        /**
+         * Used a lot after receiving a post response.  The pattern is to
+         * receive the post, then redirect to a new page. See https://en.wikipedia.org/wiki/Post/Redirect/Get
+         */
+        _303_SEE_OTHER(303, "SEE OTHER");
 
         public final int code;
         public final String shortDescription;

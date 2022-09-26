@@ -41,16 +41,22 @@ public class TestFramework {
      * Note that the lists must be of comparable objects, or else
      * a ClassCastException will be thrown
      */
-    public static <T> void assertEqualsDisregardOrder(List<T> left, List<T> right) {
+    public static <T> void assertEqualsDisregardOrder(List<? extends CharSequence> left, List<? extends CharSequence> right) {
         if (left.size() != right.size()) {
             throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
         }
-        List<T> orderedLeft = left.stream().sorted().toList();
-        List<T> orderedRight = right.stream().sorted().toList();
+        List<? extends CharSequence> orderedLeft = left.stream().sorted().toList();
+        List<? extends CharSequence> orderedRight = right.stream().sorted().toList();
 
         for (int i = 0; i < left.size(); i++) {
             if (!orderedLeft.get(i).equals(orderedRight.get(i))) {
-                throw new RuntimeException(String.format("different values: left: %s right: %s", orderedLeft.get(i), orderedRight.get(i)));
+                throw new RuntimeException(
+                        String.format(
+                                "%n%ndifferent values:%n%nleft:  %s%nright: %s%n%nfull left:%n-----------%n%s%n%nfull right:%n-----------%n%s%n",
+                                orderedLeft.get(i),
+                                orderedRight.get(i),
+                                String.join("\n", left),
+                                String.join("\n", right)));
             }
         }
     }

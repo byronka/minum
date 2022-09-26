@@ -8,11 +8,9 @@ import java.net.SocketException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static atqa.web.Web.HTTP_CRLF;
 
@@ -55,6 +53,7 @@ public class WebFramework {
                                 "Date: " + date + HTTP_CRLF +
                                 "Server: atqa" + HTTP_CRLF +
                                 r.contentType().headerString + HTTP_CRLF +
+                                r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()) +
                                 "Content-Length: " + r.body().length() + HTTP_CRLF +
                                 HTTP_CRLF +
                                 r.body()
@@ -88,7 +87,13 @@ public class WebFramework {
     public record Request(HeaderInformation hi, StartLine sl) {
     }
 
-    public record Response(StatusLine.StatusCode statusCode, ContentType contentType, String body) {
+    public record Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders, String body) {
+        public Response(StatusLine.StatusCode statusCode, ContentType contentType, String body) {
+            this(statusCode, contentType, Collections.emptyList(), body);
+        }
+        public Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders) {
+            this(statusCode, contentType, extraHeaders, "");
+        }
     }
 
     record VerbPath(StartLine.Verb verb, String path) {
@@ -116,7 +121,7 @@ public class WebFramework {
         return Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC")));
     }
 
-    public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> functionName) {
-        endpoints.put(new VerbPath(verb, pathName), functionName);
+    public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
+        endpoints.put(new VerbPath(verb, pathName), webHandler);
     }
 }

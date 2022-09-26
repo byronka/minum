@@ -106,7 +106,9 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(20);
             final var deserializedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
-            assertEqualsDisregardOrder(deserializedFoos, foos);
+            assertEqualsDisregardOrder(
+                    deserializedFoos.stream().map(Record::toString).toList(),
+                    foos.stream().map(Record::toString).toList());
 
             // change those files
             final var updatedFoos = new ArrayList<Foo>();
@@ -121,7 +123,9 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(20);
             final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
-            assertEqualsDisregardOrder(deserializedUpdatedFoos, updatedFoos);
+            assertEqualsDisregardOrder(
+                    deserializedUpdatedFoos.stream().map(Record::toString).toList(),
+                    updatedFoos.stream().map(Record::toString).toList());
 
             // delete the files
             for (var foo : foos) {

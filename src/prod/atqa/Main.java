@@ -10,9 +10,11 @@ import atqa.web.Web;
 import atqa.web.WebFramework;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static atqa.web.StatusLine.StatusCode._200_OK;
+import static atqa.web.StatusLine.StatusCode._303_SEE_OTHER;
 
 public class Main {
 
@@ -29,6 +31,8 @@ public class Main {
         wf.registerPath(StartLine.Verb.GET, "", Main::getIndex);
         wf.registerPath(StartLine.Verb.GET, "pageone", Main::pageOne);
         wf.registerPath(StartLine.Verb.GET, "pagetwo", Main::pageTwo);
+        wf.registerPath(StartLine.Verb.GET, "formentry", Main::formEntry);
+        wf.registerPath(StartLine.Verb.POST, "testform", Main::testform);
         server = web.startServer(es, wf.makeHandler());
     }
 
@@ -54,6 +58,29 @@ public class Main {
 
     static WebFramework.Response getIndex(WebFramework.Request r) {
         return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, "");
+    }
+
+    static WebFramework.Response formEntry(WebFramework.Request r) {
+        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>This is the title</title>
+                    </head>
+                    
+                    <body>
+                        <form method="post" action="testform">
+                            <label for="name_entry">Name Entry
+                                <input name="name_entry" id="name_entry" type="text" value="" />
+                            </label>
+                        </form>
+                    </body>
+                </html>
+                """);
+    }
+
+    static WebFramework.Response testform(WebFramework.Request r) {
+        return new WebFramework.Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: pageone"));
     }
 
     /**
