@@ -30,32 +30,20 @@ public class WebFramework {
      */
     public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
      return (sw) -> {
-         boolean isKeepAlive;
-         do {
+         try (sw) {
              final var rawStartLine = sw.readLine();
              /*
-              if the rawStartLine is null, that means the client closed connection.
+              if the rawStartLine is null, that means the client stopped talking.
               See {@link java.io.BufferedReader#readline}
               */
              if (rawStartLine == null) {
-                 logger.logDebug(() -> "client closed connection");
-                 sw.close();
-                 break;
+                 return;
              }
              logger.logDebug(() -> sw + ": raw startline received: " + rawStartLine);
              StartLine sl = StartLine.extractStartLine(rawStartLine);
              logger.logDebug(() -> sw + ": StartLine received: " + sl);
 
              HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
-
-             // check if the client wants to keep the connection alive - that is, don't close
-             // the TCP socket.
-             isKeepAlive = hi.rawValues()
-                     .stream()
-                     .map(x -> x.toLowerCase(Locale.ROOT))
-                     .anyMatch(x -> x.matches("connection: keep-alive"));
-             boolean finalIsKeepAlive = isKeepAlive;
-             logger.logDebug(() -> sw + ": keep alive is " + finalIsKeepAlive);
 
              Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
              Response r = endpoint.apply(new Request(hi, sl));
@@ -68,9 +56,9 @@ public class WebFramework {
                              "Server: atqa" + HTTP_CRLF +
                              r.contentType().headerString + HTTP_CRLF +
                              "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
-                             r.body() + HTTP_CRLF
+                             r.body()
              );
-         } while (isKeepAlive);
+         }
      };
     }
 
