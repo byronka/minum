@@ -66,7 +66,7 @@ public class WebFramework {
                      "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
                              "Date: " + date + HTTP_CRLF +
                              "Server: atqa" + HTTP_CRLF +
-                             "Content-Type: text/plain; charset=UTF-8" + HTTP_CRLF +
+                             r.contentType().headerString + HTTP_CRLF +
                              "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
                              r.body() + HTTP_CRLF
              );
@@ -82,14 +82,17 @@ public class WebFramework {
     private Function<Request, Response> findHandlerForEndpoint(StartLine sl) {
         final var functionFound = endpoints.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
         if (functionFound == null) {
-            return request -> new Response(StatusLine.StatusCode._404_NOT_FOUND, "404 not found using startline of " + sl);
+            return request -> new Response(
+                    StatusLine.StatusCode._404_NOT_FOUND,
+                    ContentType.TEXT_HTML,
+                    "<p>404 not found using startline of " + sl + "</p>");
         }
         return functionFound;
     }
 
     private final ILogger logger;
     public record Request(HeaderInformation hi, StartLine sl) {}
-    public record Response(StatusLine.StatusCode statusCode, String body) {}
+    public record Response(StatusLine.StatusCode statusCode, ContentType contentType, String body) {}
 
     record VerbPath(StartLine.Verb verb, String path) {}
     private final Map<VerbPath, Function<Request, Response>> endpoints;

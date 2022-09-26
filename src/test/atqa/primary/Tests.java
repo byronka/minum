@@ -146,7 +146,7 @@ public class Tests {
         int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
-        return new WebFramework.Response(_200_OK, sumString);
+        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, sumString);
       }
     }
 
@@ -171,7 +171,7 @@ public class Tests {
           List<String> expectedResponseHeaders = Arrays.asList(
                   "Server: atqa",
                   "Date: Tue, 4 Jan 2022 09:25:00 GMT",
-                  "Content-Type: text/plain; charset=UTF-8",
+                  "Content-Type: text/html; charset=UTF-8",
                   "Content-Length: 2"
           );
 

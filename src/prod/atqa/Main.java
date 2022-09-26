@@ -4,6 +4,7 @@ import atqa.logging.ILogger;
 import atqa.logging.Logger;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.ThrowingRunnable;
+import atqa.web.ContentType;
 import atqa.web.StartLine;
 import atqa.web.Web;
 import atqa.web.WebFramework;
@@ -26,6 +27,8 @@ public class Main {
         addShutdownHook();
         wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Main::addTwoNumbers);
         wf.registerPath(StartLine.Verb.GET, "", Main::getIndex);
+        wf.registerPath(StartLine.Verb.GET, "pageone", Main::pageOne);
+        wf.registerPath(StartLine.Verb.GET, "pagetwo", Main::pageTwo);
         server = web.startServer(es, wf.makeHandler());
     }
 
@@ -34,11 +37,23 @@ public class Main {
         int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
-        return new WebFramework.Response(_200_OK, sumString);
+        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, sumString);
+    }
+
+    static WebFramework.Response pageOne(WebFramework.Request r) {
+        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+                <a href="pagetwo">page two</a>
+                """);
+    }
+
+    static WebFramework.Response pageTwo(WebFramework.Request r) {
+        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+                <a href="pageone">page one</a>
+                """);
     }
 
     static WebFramework.Response getIndex(WebFramework.Request r) {
-        return new WebFramework.Response(_200_OK, "");
+        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, "");
     }
 
     /**
