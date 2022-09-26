@@ -123,10 +123,11 @@ public class Web {
 
     @Override
     public void close() throws IOException {
-        socket.close();
-        if (setOfServers != null) {
-          removeFromSetOfServers(setOfServers, this);
-        }
+      logger.logDebug(() -> "close called on SocketWrapper");
+      socket.close();
+      if (setOfServers != null) {
+        removeFromSetOfServers(setOfServers, this);
+      }
     }
 
     @Override

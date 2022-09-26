@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -29,25 +30,46 @@ public class WebFramework {
      */
     public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
      return (sw) -> {
-         StartLine sl = StartLine.extractStartLine(sw.readLine());
-         logger.logDebug(() -> "StartLine received: " + sl);
+         boolean isKeepAlive;
+         do {
+             final var rawStartLine = sw.readLine();
+             /*
+              if the rawStartLine is null, that means the client closed connection.
+              See {@link java.io.BufferedReader#readline}
+              */
+             if (rawStartLine == null) {
+                 sw.close();
+                 break;
+             }
+             logger.logDebug(() -> sw + ": raw startline received: " + rawStartLine);
+             StartLine sl = StartLine.extractStartLine(rawStartLine);
+             logger.logDebug(() -> sw + ": StartLine received: " + sl);
 
-         HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
+             HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
 
-         Function<Request, Response> endpoint = findEndpoint(sl);
-         Response r = endpoint.apply(new Request(hi, sl));
+             // check if the client wants to keep the connection alive - that is, don't close
+             // the TCP socket.
+             isKeepAlive = hi.rawValues()
+                     .stream()
+                     .map(x -> x.toLowerCase(Locale.ROOT))
+                     .anyMatch(x -> x.matches("connection: keep-alive"));
+             boolean finalIsKeepAlive = isKeepAlive;
+             logger.logDebug(() -> sw + ": keep alive is " + finalIsKeepAlive);
 
-         String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+             Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
+             Response r = endpoint.apply(new Request(hi, sl));
 
-         sw.sendHttpLine(
-                 "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
-                 "Date: " + date + HTTP_CRLF +
-                 "Server: atqa" + HTTP_CRLF +
-                 "Content-Type: text/plain; charset=UTF-8" + HTTP_CRLF +
-                 "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
-                 r.body()
+             String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
-         );
+             sw.sendHttpLine(
+                     "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
+                             "Date: " + date + HTTP_CRLF +
+                             "Server: atqa" + HTTP_CRLF +
+                             "Content-Type: text/plain; charset=UTF-8" + HTTP_CRLF +
+                             "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
+                             r.body()
+             );
+         } while (isKeepAlive);
      };
     }
 
@@ -56,7 +78,7 @@ public class WebFramework {
      * and returns the appropriate one.  If we do not find anything, return a
      * very basic 404 NOT FOUND page
      */
-    private Function<Request, Response> findEndpoint(StartLine sl) {
+    private Function<Request, Response> findHandlerForEndpoint(StartLine sl) {
         final var functionFound = endpoints.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
         if (functionFound == null) {
             return request -> new Response(StatusCode._404_NOT_FOUND, "404 not found using startline of " + sl);
