@@ -56,7 +56,8 @@ public class WebFramework {
                              "Date: " + date + HTTP_CRLF +
                              "Server: atqa" + HTTP_CRLF +
                              r.contentType().headerString + HTTP_CRLF +
-                             "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
+                             "Content-Length: " + r.body().length() + HTTP_CRLF +
+                             HTTP_CRLF +
                              r.body()
              );
          } catch (SocketException ex) {
