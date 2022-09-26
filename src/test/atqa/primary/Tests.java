@@ -18,7 +18,7 @@ import java.util.regex.Matcher;
 
 import static atqa.framework.TestFramework.*;
 import static atqa.web.StartLine.startLineRegex;
-import static atqa.web.WebFramework.StatusCode._200_OK;
+import static atqa.web.StatusLine.StatusCode._200_OK;
 
 public class Tests {
 
@@ -246,7 +246,7 @@ public class Tests {
     logger.test("positive test for extractStatusLine");
     {
       StatusLine sl = StatusLine.extractStatusLine("HTTP/1.1 200 OK");
-      assertEquals(sl.status(), StatusLine.Status._200_OK);
+      assertEquals(sl.status(), _200_OK);
     }
 
     logger.test("negative tests for extractStatusLine");

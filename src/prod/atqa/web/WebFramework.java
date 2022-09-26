@@ -81,26 +81,15 @@ public class WebFramework {
     private Function<Request, Response> findHandlerForEndpoint(StartLine sl) {
         final var functionFound = endpoints.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
         if (functionFound == null) {
-            return request -> new Response(StatusCode._404_NOT_FOUND, "404 not found using startline of " + sl);
+            return request -> new Response(StatusLine.StatusCode._404_NOT_FOUND, "404 not found using startline of " + sl);
         }
         return functionFound;
     }
 
     private final ILogger logger;
     public record Request(HeaderInformation hi, StartLine sl) {}
-    public record Response(StatusCode statusCode, String body) {}
-    public enum StatusCode{
-        _200_OK(200, "OK"),
-        _404_NOT_FOUND(404, "NOT FOUND");
+    public record Response(StatusLine.StatusCode statusCode, String body) {}
 
-        public final int code;
-        public final String shortDescription;
-
-        StatusCode(int code, String shortDescription) {
-            this.code = code;
-            this.shortDescription = shortDescription;
-        }
-    }
     record VerbPath(StartLine.Verb verb, String path) {}
     private final Map<VerbPath, Function<Request, Response>> endpoints;
 

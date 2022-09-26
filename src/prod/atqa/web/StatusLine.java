@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import static atqa.utils.Invariants.mustBeTrue;
 
-public record StatusLine(Status status, Web.HttpVersion version, String rawValue) {
+public record StatusLine(StatusCode status, Web.HttpVersion version, String rawValue) {
 
     /**
      * This is the regex used to analyze a status line sent by the server and
@@ -15,18 +15,21 @@ public record StatusLine(Status status, Web.HttpVersion version, String rawValue
     public static final String statusLinePattern = "^HTTP/(1.1|1.0) (\\d{3}) (.*)$";
     public static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
 
-    public enum Status {
-        _200_OK(200);
+    public enum StatusCode{
+        _200_OK(200, "OK"),
+        _404_NOT_FOUND(404, "NOT FOUND");
 
-        private final int statusCode;
+        public final int code;
+        public final String shortDescription;
 
-        Status(int statusCode) {
-            this.statusCode = statusCode;
+        StatusCode(int code, String shortDescription) {
+            this.code = code;
+            this.shortDescription = shortDescription;
         }
 
-        static Status findByCode(int code) {
-            return Arrays.stream(Status.values())
-                    .filter(x -> x.statusCode == code)
+        static StatusCode findByCode(int code) {
+            return Arrays.stream(StatusCode.values())
+                    .filter(x -> x.code == code)
                     .findFirst()
                     .orElseThrow();
         }
@@ -41,7 +44,7 @@ public record StatusLine(Status status, Web.HttpVersion version, String rawValue
             case "1.0" -> Web.HttpVersion.ONE_DOT_ZERO;
             default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
         };
-        Status status = Status.findByCode(Integer.parseInt(mr.group(2)));
+        StatusCode status = StatusCode.findByCode(Integer.parseInt(mr.group(2)));
 
         return new StatusLine(status, httpVersion, value);
     }
