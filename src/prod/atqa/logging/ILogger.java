@@ -12,4 +12,9 @@ public interface ILogger {
     void logDebug(ThrowingSupplier<String, Exception> msg);
 
     void logImperative(String msg);
+
+    /**
+     * Stop the {@link atqa.utils.ActionQueue} running inside the logger
+     */
+    void stop();
 }

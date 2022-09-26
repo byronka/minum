@@ -37,6 +37,7 @@ public class Logger implements ILogger {
         toggles.put(Type.DEBUG, true);
     }
 
+    @Override
     public void stop() {
         loggerPrinter.stop();
     }

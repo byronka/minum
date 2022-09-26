@@ -123,7 +123,7 @@ public class Web {
 
     @Override
     public void close() throws IOException {
-      logger.logDebug(() -> "close called on SocketWrapper");
+      logger.logDebug(() -> "close called on " + this);
       socket.close();
       if (setOfServers != null) {
         removeFromSetOfServers(setOfServers, this);
@@ -247,6 +247,16 @@ public class Web {
         MyThread.sleep(10);
       }
       throw new RuntimeException("No socket found with that address");
+    }
+
+    public void stop() throws IOException {
+      // close all the running sockets
+      for(var s : setOfServers) {
+        s.close();
+      }
+
+      // close the primary server socket
+      serverSocket.close();
     }
 
   }
