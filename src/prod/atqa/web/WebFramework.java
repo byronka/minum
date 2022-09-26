@@ -18,11 +18,10 @@ import static atqa.web.Web.HTTP_CRLF;
 
 /**
  * Responsible for the logistics after socket connection
- *
+ * <p>
  * After we've made a valid socket connection with a client, there's a
  * lot of logistics needed. For example, routing based on the path, determining
  * proper response headers, and doing it all with panache.
- *
  */
 public class WebFramework {
 
@@ -30,42 +29,42 @@ public class WebFramework {
      * This is the brains of how the server responds to web clients
      */
     public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
-     return (sw) -> {
-         try (sw) {
-             final var rawStartLine = sw.readLine();
+        return (sw) -> {
+            try (sw) {
+                final var rawStartLine = sw.readLine();
              /*
               if the rawStartLine is null, that means the client stopped talking.
               See {@link java.io.BufferedReader#readline}
               */
-             if (rawStartLine == null) {
-                 return;
-             }
-             logger.logDebug(() -> sw + ": raw startline received: " + rawStartLine);
-             StartLine sl = StartLine.extractStartLine(rawStartLine);
-             logger.logDebug(() -> sw + ": StartLine received: " + sl);
+                if (rawStartLine == null) {
+                    return;
+                }
+                logger.logDebug(() -> sw + ": raw startline received: " + rawStartLine);
+                StartLine sl = StartLine.extractStartLine(rawStartLine);
+                logger.logDebug(() -> sw + ": StartLine received: " + sl);
 
-             HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
+                HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
 
-             Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
-             Response r = endpoint.apply(new Request(hi, sl));
+                Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
+                Response r = endpoint.apply(new Request(hi, sl));
 
-             String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+                String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
-             sw.sendHttpLine(
-                     "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
-                             "Date: " + date + HTTP_CRLF +
-                             "Server: atqa" + HTTP_CRLF +
-                             r.contentType().headerString + HTTP_CRLF +
-                             "Content-Length: " + r.body().length() + HTTP_CRLF +
-                             HTTP_CRLF +
-                             r.body()
-             );
-         } catch (SocketException ex) {
-             if (!ex.getMessage().contains("Socket closed")) {
-                 throw new RuntimeException(ex);
-             }
-         }
-     };
+                sw.sendHttpLine(
+                        "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
+                                "Date: " + date + HTTP_CRLF +
+                                "Server: atqa" + HTTP_CRLF +
+                                r.contentType().headerString + HTTP_CRLF +
+                                "Content-Length: " + r.body().length() + HTTP_CRLF +
+                                HTTP_CRLF +
+                                r.body()
+                );
+            } catch (SocketException ex) {
+                if (!ex.getMessage().contains("Socket closed")) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        };
     }
 
     /**
@@ -85,10 +84,16 @@ public class WebFramework {
     }
 
     private final ILogger logger;
-    public record Request(HeaderInformation hi, StartLine sl) {}
-    public record Response(StatusLine.StatusCode statusCode, ContentType contentType, String body) {}
 
-    record VerbPath(StartLine.Verb verb, String path) {}
+    public record Request(HeaderInformation hi, StartLine sl) {
+    }
+
+    public record Response(StatusLine.StatusCode statusCode, ContentType contentType, String body) {
+    }
+
+    record VerbPath(StartLine.Verb verb, String path) {
+    }
+
     private final Map<VerbPath, Function<Request, Response>> endpoints;
 
     public WebFramework(ILogger logger) {
