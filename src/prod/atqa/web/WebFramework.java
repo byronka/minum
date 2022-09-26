@@ -25,7 +25,7 @@ import static atqa.web.Web.HTTP_CRLF;
 public class WebFramework {
 
     /**
-     * This is the brains of how the server responds to atqa.web clients
+     * This is the brains of how the server responds to web clients
      */
     public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
      return (sw) -> {
