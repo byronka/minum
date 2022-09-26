@@ -6,6 +6,8 @@ import atqa.utils.ExtendedExecutor;
 import atqa.web.StartLine;
 import atqa.web.Web;
 import atqa.web.WebFramework;
+import static atqa.web.WebFramework.StatusCode._200_OK;
+
 
 import java.io.IOException;
 import java.time.Month;
@@ -33,11 +35,11 @@ public class Main {
       int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
       int sum = aValue + bValue;
       String sumString = String.valueOf(sum);
-      return new WebFramework.Response(sumString);
+      return new WebFramework.Response(_200_OK, sumString);
   }
 
   static WebFramework.Response getIndex(WebFramework.Request r) {
-    return new WebFramework.Response("");
+    return new WebFramework.Response(_200_OK, "");
   }
 
 }

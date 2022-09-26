@@ -1,6 +1,5 @@
 package atqa.primary;
 
-import atqa.Main;
 import atqa.database.SimpleDatabaseTests;
 import atqa.logging.TestLogger;
 import atqa.utils.ExtendedExecutor;
@@ -19,6 +18,7 @@ import java.util.regex.Matcher;
 
 import static atqa.framework.TestFramework.*;
 import static atqa.web.StartLine.startLineRegex;
+import static atqa.web.WebFramework.StatusCode._200_OK;
 
 public class Tests {
 
@@ -146,7 +146,7 @@ public class Tests {
         int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
-        return new WebFramework.Response(sumString);
+        return new WebFramework.Response(_200_OK, sumString);
       }
     }
 
@@ -220,6 +220,13 @@ public class Tests {
     {
       StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.0");
       assertEquals(sl.verb(), StartLine.Verb.POST);
+    }
+
+    logger.test("alernate case - empty path");
+    {
+      StartLine sl = StartLine.extractStartLine("GET / HTTP/1.1");
+      assertEquals(sl.verb(), StartLine.Verb.GET);
+      assertEquals(sl.pathDetails().isolatedPath(), "");
     }
 
     logger.test("negative cases for extractStartLine");

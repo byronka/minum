@@ -37,7 +37,7 @@ public class Web {
   }
 
   private final ILogger logger;
-  public final String HTTP_CRLF = "\r\n";
+  public static final String HTTP_CRLF = "\r\n";
 
   private void addToSetOfServers(ConcurrentSet<SocketWrapper> setOfServers, SocketWrapper sw) {
     setOfServers.add(sw);
