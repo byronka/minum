@@ -37,7 +37,7 @@ public class WebFramework {
          Function<Request, Response> endpoint = findEndpoint(sl);
          Response r = endpoint.apply(new Request(hi, sl));
 
-         String date = getZonedDateTimeNow().format(DateTimeFormatter.RFC_1123_DATE_TIME);
+         String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
          sw.sendHttpLine(
                  "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
@@ -98,7 +98,7 @@ public class WebFramework {
 
     private final ZonedDateTime zdt;
 
-    private ZonedDateTime getZonedDateTimeNow() {
+    public static ZonedDateTime getZonedDateTimeNow(ZonedDateTime zdt) {
         return Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC")));
     }
 
