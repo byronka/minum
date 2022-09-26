@@ -38,6 +38,7 @@ public class WebFramework {
               See {@link java.io.BufferedReader#readline}
               */
              if (rawStartLine == null) {
+                 logger.logDebug(() -> "client closed connection");
                  sw.close();
                  break;
              }
@@ -67,7 +68,7 @@ public class WebFramework {
                              "Server: atqa" + HTTP_CRLF +
                              "Content-Type: text/plain; charset=UTF-8" + HTTP_CRLF +
                              "Content-Length: " + r.body().length() + HTTP_CRLF + HTTP_CRLF +
-                             r.body()
+                             r.body() + HTTP_CRLF
              );
          } while (isKeepAlive);
      };
