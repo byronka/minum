@@ -80,6 +80,8 @@ public class Main {
     }
 
     static WebFramework.Response testform(WebFramework.Request r) {
+        final var data = r.body();
+        final var formData = WebFramework.parseUrlEncodedForm(data);
         return new WebFramework.Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: pageone"));
     }
 

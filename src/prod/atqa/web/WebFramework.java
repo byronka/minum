@@ -12,6 +12,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static atqa.utils.Invariants.mustBeTrue;
+import static atqa.utils.StringUtils.decode;
 import static atqa.web.Web.HTTP_CRLF;
 
 /**
@@ -42,6 +44,7 @@ public class WebFramework {
                 logger.logDebug(() -> sw + ": StartLine received: " + sl);
 
                 HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
+                String body = extractData(sw, hi);
 
                 Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
                 Response r = endpoint.apply(new Request(hi, sl));
@@ -84,7 +87,10 @@ public class WebFramework {
 
     private final ILogger logger;
 
-    public record Request(HeaderInformation hi, StartLine sl) {
+    public record Request(HeaderInformation hi, StartLine sl, String body) {
+        public Request(HeaderInformation hi, StartLine sl) {
+            this(hi, sl, "");
+        }
     }
 
     public record Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders, String body) {
@@ -123,5 +129,43 @@ public class WebFramework {
 
     public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
         endpoints.put(new VerbPath(verb, pathName), webHandler);
+    }
+
+
+    /**
+     * Parse data formatted by application/x-www-form-urlencoded
+     * See https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST
+     *
+     * See here for the encoding: https://developer.mozilla.org/en-US/docs/Glossary/percent-encoding
+     *
+     * for example, valuea=3&valueb=this+is+something
+     */
+    public static Map<String, String> parseUrlEncodedForm(String input) {
+        if (input.isEmpty()) return Collections.emptyMap();
+
+        final var postedPairs = new HashMap<String, String>();
+        final var splitByAmpersand = input.split("&");
+
+        for(final var s : splitByAmpersand) {
+            final var pair = s.split("=");
+            mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
+            mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
+            final var result = postedPairs.put(pair[0], decode(pair[1]));
+            if (result != null) {
+                throw new RuntimeException(pair[0] + " was duplicated in the post body - had values of "+result+" and " + pair[1]);
+            }
+        }
+        return postedPairs;
+    }
+
+    /**
+     * read the body if one exists
+     */
+    private String extractData(Web.ISocketWrapper server, HeaderInformation hi) throws IOException {
+        if (hi.contentLength() > 0) {
+            return server.read(hi.contentLength());
+        } else {
+            return "";
+        }
     }
 }

@@ -56,4 +56,9 @@ public class FakeSocketWrapper implements Web.ISocketWrapper {
     public String readByLength(int length) {
         return readByLengthAction.get();
     }
+
+    @Override
+    public String read(int length) {
+        return null;
+    }
 }

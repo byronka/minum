@@ -67,6 +67,8 @@ public class Web {
     void close() throws IOException;
 
     String readByLength(int length) throws IOException;
+
+    String read(int length) throws IOException;
   }
 
   /**
@@ -137,6 +139,14 @@ public class Web {
       mustBeFalse (countOfBytesRead == -1, "end of file hit");
       mustBeFalse (countOfBytesRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
       return new String(cb);
+    }
+
+    @Override
+    public String read(int length) throws IOException {
+      final var buf = new char[length];
+      final var lengthRead = reader.read(buf, 0, length);
+      char[] newArray = Arrays.copyOfRange(buf, 0, lengthRead);
+      return new String(newArray);
     }
   }
 
