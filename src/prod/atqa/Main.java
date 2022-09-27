@@ -1,7 +1,9 @@
 package atqa;
 
+import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
 import atqa.logging.Logger;
+import atqa.sampledomain.PersonName;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.ThrowingRunnable;
 import atqa.web.ContentType;
@@ -10,6 +12,7 @@ import atqa.web.Web;
 import atqa.web.WebFramework;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -20,10 +23,12 @@ public class Main {
 
     static ILogger logger;
     static Web.Server server;
+    static ExecutorService es;
 
     public static void main(String[] args) throws IOException {
-        ExecutorService es = ExtendedExecutor.makeExecutorService();
+        es = ExtendedExecutor.makeExecutorService();
         logger = new Logger(es);
+
         Web web = new Web(logger);
         WebFramework wf = new WebFramework(logger);
         addShutdownHook();
@@ -80,8 +85,18 @@ public class Main {
     }
 
     static WebFramework.Response testform(WebFramework.Request r) {
+        final var ddps1 =
+                new DatabaseDiskPersistenceSimpler<PersonName>("out/simple_db/names", es, logger);
+        final var personNames = ddps1.readAndDeserialize(new PersonName("",0L));
         final var data = r.body();
         final var formData = WebFramework.parseUrlEncodedForm(data);
+        final var nameEntry = formData.get("name_entry");
+        final var newIndex = personNames.stream()
+                .max(Comparator.comparingLong(PersonName::index))
+                .map(PersonName::index).orElse(0L) + 1L;
+        final var newPersonName = new PersonName(nameEntry, newIndex);
+        personNames.add(newPersonName);
+        ddps1.persistToDisk(newPersonName);
         return new WebFramework.Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: pageone"));
     }
 

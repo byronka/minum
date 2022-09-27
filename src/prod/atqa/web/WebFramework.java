@@ -47,7 +47,7 @@ public class WebFramework {
                 String body = extractData(sw, hi);
 
                 Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
-                Response r = endpoint.apply(new Request(hi, sl));
+                Response r = endpoint.apply(new Request(hi, sl, body));
 
                 String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 

@@ -146,7 +146,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
     public List<T> readAndDeserialize(SimpleDataType<T> instance) {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
-            return Collections.emptyList();
+            return new ArrayList<>();
         }
 
         final var data = new ArrayList<T>();
