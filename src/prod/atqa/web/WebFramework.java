@@ -28,7 +28,7 @@ public class WebFramework {
     /**
      * This is the brains of how the server responds to web clients
      */
-    public ThrowingConsumer<Web.SocketWrapper, IOException> makeHandler() {
+    public ThrowingConsumer<SocketWrapper, IOException> makeHandler() {
         return (sw) -> {
             try (sw) {
                 final var rawStartLine = sw.readLine();
@@ -161,7 +161,7 @@ public class WebFramework {
     /**
      * read the body if one exists
      */
-    private String extractData(Web.ISocketWrapper server, HeaderInformation hi) throws IOException {
+    private String extractData(ISocketWrapper server, HeaderInformation hi) throws IOException {
         if (hi.contentLength() > 0) {
             return server.read(hi.contentLength());
         } else {

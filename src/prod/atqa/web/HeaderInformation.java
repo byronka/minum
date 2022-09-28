@@ -27,7 +27,7 @@ public record HeaderInformation(int contentLength, List<String> rawValues) {
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public static HeaderInformation extractHeaderInformation(Web.SocketWrapper sw) throws IOException {
+    public static HeaderInformation extractHeaderInformation(SocketWrapper sw) throws IOException {
         List<String> headers = getAllHeaders(sw);
         int contentLength = extractContentLength(headers);
 
@@ -52,7 +52,7 @@ public record HeaderInformation(int contentLength, List<String> rawValues) {
         return contentLength;
     }
 
-    private static List<String> getAllHeaders(Web.SocketWrapper sw) throws IOException {
+    private static List<String> getAllHeaders(SocketWrapper sw) throws IOException {
         List<String> headers = new ArrayList<>();
         while (true) {
             String value = sw.readLine();

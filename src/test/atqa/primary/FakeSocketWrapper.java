@@ -1,15 +1,16 @@
 package atqa.primary;
 
-import atqa.web.Web;
+import atqa.web.ISocketWrapper;
+import atqa.web.SocketWrapper;
 
 import java.net.SocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A fake of {@link Web.SocketWrapper} used in tests
+ * A fake of {@link SocketWrapper} used in tests
  */
-public class FakeSocketWrapper implements Web.ISocketWrapper {
+public class FakeSocketWrapper implements ISocketWrapper {
 
     Consumer<String> sendAction;
     Consumer<String> sendHttpLineAction;
