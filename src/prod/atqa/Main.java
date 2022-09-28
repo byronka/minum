@@ -28,6 +28,7 @@ public class Main {
         final var sd = new SampleDomain(es, logger);
 
         addShutdownHook();
+
         wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Main::addTwoNumbers);
         wf.registerPath(StartLine.Verb.GET, "", Main::getIndex);
         wf.registerPath(StartLine.Verb.GET, "pageone", Main::pageOne);
@@ -35,6 +36,7 @@ public class Main {
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
         wf.registerPath(StartLine.Verb.GET, "shownames", sd::showNames);
+
         server = web.startServer(es, wf.makeHandler());
     }
 
