@@ -37,10 +37,10 @@ public class WebFramework {
         return (sw) -> {
             try (sw) {
                 final var rawStartLine = sw.readLine();
-             /*
-              if the rawStartLine is null, that means the client stopped talking.
-              See {@link java.io.BufferedReader#readline}
-              */
+                 /*
+                  if the rawStartLine is null, that means the client stopped talking.
+                  See {@link java.io.BufferedReader#readline}
+                  */
                 if (rawStartLine == null) {
                     return;
                 }
