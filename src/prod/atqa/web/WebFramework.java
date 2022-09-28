@@ -5,6 +5,7 @@ import atqa.utils.InvariantException;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,6 +66,12 @@ public class WebFramework {
                                 HTTP_CRLF +
                                 r.body()
                 );
+            } catch (SocketException ex) {
+                // if we close the application on the server side, there's a good
+                // likelihood a SocketException will come bubbling through here.
+                if (!ex.getMessage().contains("Socket closed")) {
+                    throw new RuntimeException(ex);
+                }
             }
         };
     }

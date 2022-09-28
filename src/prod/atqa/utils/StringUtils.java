@@ -16,34 +16,21 @@ public class StringUtils {
     }
 
     /**
-     * checks the String you pass in; if it's null, return an empty String.
-     * Otherwise, return the unchanged string.
-     */
-    public static String makeNotNull(String s) {
-        return s == null ? "" : s;
-    }
-
-    /**
      * Encodes UTF-8 text using URL-encoding
      */
-    public static String encode(String str) {
-        return URLEncoder.encode(str, StandardCharsets.UTF_8);
+    public static String encode(Object str) {
+        if (str == null) {
+            return "%NULL%";
+        }
+        return URLEncoder.encode(str.toString(), StandardCharsets.UTF_8);
     }
 
     /**
-     * Decodes URL-encoded UTF-8 text
-     */
-    public static String decode(String str) {
-        mustNotBeNull(str);
-        return URLDecoder.decode(str, StandardCharsets.UTF_8);
-    }
-
-    /**
-     * Similar to {@link #decode} except that we
+     * Decodes URL-encoded UTF-8 text... except that we
      * first check if the string value is the token %NULL%,
      * which is our way to signify null.
      */
-    public static String decodeWithNullToken(String str) {
+    public static String decode(String str) {
         mustNotBeNull(str);
         if (str.equals("%NULL%")) {
             return null;

@@ -5,11 +5,10 @@ import atqa.primary.StopWatch;
 import atqa.logging.TestLogger;
 import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
+import atqa.utils.StringUtils;
 import atqa.utils.ThrowingRunnable;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -37,7 +36,7 @@ public class SimpleDatabaseTests {
 
             @Override
             public String serialize() {
-                return index + " " + a + " " + URLEncoder.encode(b, StandardCharsets.UTF_8);
+                return StringUtils.encode(index) + " " + StringUtils.encode(a) + " " + StringUtils.encode(b);
             }
 
             @Override
@@ -49,7 +48,7 @@ public class SimpleDatabaseTests {
 
                 final var rawStringIndex = serializedText.substring(0, indexEndOfIndex);
                 final var rawStringA = serializedText.substring(indexStartOfA, indexEndOfA);
-                final var rawStringB = serializedText.substring(indexStartOfB);
+                final var rawStringB = StringUtils.decode(serializedText.substring(indexStartOfB));
 
                 return new Foo(Integer.parseInt(rawStringIndex), Integer.parseInt(rawStringA), rawStringB);
             }
@@ -74,6 +73,12 @@ public class SimpleDatabaseTests {
          */
         logger.test("now let's try playing with serialization");{
             final var foo = new Foo(1, 123, "abc");
+            final var deserializedFoo = foo.deserialize(foo.serialize());
+            assertEquals(deserializedFoo, foo);
+        }
+
+        logger.test("When we serialize something null");{
+            final var foo = new Foo(1, 123, null);
             final var deserializedFoo = foo.deserialize(foo.serialize());
             assertEquals(deserializedFoo, foo);
         }
@@ -165,7 +170,7 @@ public class SimpleDatabaseTests {
             // what if the directory is missing when try to deserialize?
             // note: this would only happen if, after instantiating our ddps,
             // the directory gets deleted/corruped.
-            final var foosDirectory = "out/simple_db/foos/";
+            final var foosDirectory = "out/simple_db/foos";
             final var myLogger = new TestRecordingLogger();
             final var emptyFooInstance = new Foo(0, 0, "");
 
@@ -190,6 +195,7 @@ public class SimpleDatabaseTests {
             ddps.readAndDeserialize(emptyFooInstance);
             MyThread.sleep(10);
             assertEquals(myLogger.loggedMessages.get(1), "out/simple_db/foos directory missing, creating empty list of data");
+            ddps.stop();
         }
 
         /*
@@ -197,7 +203,7 @@ public class SimpleDatabaseTests {
          *
          * For the record... running this takes between 80 and 120 milliseconds.
          */
-        logger.test("Just how fast is our atqa.database? spoiler: about 10k updates in 1 millisecond");{
+        logger.test("Just how fast is our atqa.database? spoiler: about 10 updates in 1 nanosecond");{
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
 
             // change the foos

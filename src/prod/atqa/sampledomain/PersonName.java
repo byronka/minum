@@ -1,10 +1,7 @@
 package atqa.sampledomain;
 
 import atqa.database.SimpleDataType;
-
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import atqa.utils.StringUtils;
 
 public record PersonName(String fullname, Long index) implements SimpleDataType<PersonName> {
     @Override
@@ -14,7 +11,7 @@ public record PersonName(String fullname, Long index) implements SimpleDataType<
 
     @Override
     public String serialize() {
-        return index + " " + URLEncoder.encode(fullname(), StandardCharsets.UTF_8);
+        return index + " " + StringUtils.encode(fullname());
     }
 
     @Override
@@ -25,6 +22,6 @@ public record PersonName(String fullname, Long index) implements SimpleDataType<
         final var rawStringIndex = serializedText.substring(0, indexEndOfIndex);
         final var rawStringName = serializedText.substring(indexStartOfName);
 
-        return new PersonName(URLDecoder.decode(rawStringName, StandardCharsets.UTF_8), Long.parseLong(rawStringIndex));
+        return new PersonName(StringUtils.decode(rawStringName), Long.parseLong(rawStringIndex));
     }
 }
