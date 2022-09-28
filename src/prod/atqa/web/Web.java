@@ -47,7 +47,7 @@ public class Web {
   public SocketWrapper startClient(Server server) throws IOException {
     Socket socket = new Socket(server.getHost(), server.getPort());
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-    return new SocketWrapper(this, socket, logger);
+    return new SocketWrapper(socket, logger);
   }
 
 }

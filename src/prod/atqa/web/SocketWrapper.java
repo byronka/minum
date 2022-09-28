@@ -2,7 +2,6 @@ package atqa.web;
 
 import atqa.logging.ILogger;
 import atqa.logging.Logger;
-import atqa.utils.ConcurrentSet;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,19 +18,17 @@ import static atqa.utils.Invariants.mustBeFalse;
  */
 public class SocketWrapper implements ISocketWrapper {
 
-    private final Web web;
     private final Socket socket;
     private final OutputStream writer;
     private final BufferedReader reader;
     private final ILogger logger;
     private final SetOfServers setOfServers;
 
-    public SocketWrapper(Web web, Socket socket, ILogger logger) throws IOException {
-        this(web, socket, null, logger);
+    public SocketWrapper(Socket socket, ILogger logger) throws IOException {
+        this(socket, null, logger);
     }
 
-    public SocketWrapper(Web web, Socket socket, SetOfServers sos, ILogger logger) throws IOException {
-        this.web = web;
+    public SocketWrapper(Socket socket, SetOfServers sos, ILogger logger) throws IOException {
         this.socket = socket;
         writer = socket.getOutputStream();
         reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));

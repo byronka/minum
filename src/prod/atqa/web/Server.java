@@ -52,7 +52,7 @@ public class Server implements AutoCloseable {
                 while (true) {
                     logger.logDebug(() -> "server waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
-                    SocketWrapper sw = new SocketWrapper(web, freshSocket, setOfServers, logger);
+                    SocketWrapper sw = new SocketWrapper(freshSocket, setOfServers, logger);
                     logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));
                     setOfServers.add(sw);
                     if (handler != null) {

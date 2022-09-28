@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -81,10 +80,6 @@ public class DatabaseDiskPersistenceSimpler<T> {
         actionQueue.stop();
     }
 
-    public ActionQueue getActionQueue() {
-        return this.actionQueue;
-    }
-
     /**
      * takes any serializable data and writes it to disk
      *
@@ -151,9 +146,8 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
         final var data = new ArrayList<T>();
 
-        try {
-            final var listOfFiles = Files.walk(dbDirectory)
-                    .filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
+        try (final var pathStream = Files.walk(dbDirectory)) {
+            final var listOfFiles = pathStream.filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
             for (Path p : listOfFiles) {
                 String fileContents;
                 try {
