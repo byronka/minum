@@ -61,7 +61,11 @@ public class SampleDomain {
     }
 
     public WebFramework.Response showNames(WebFramework.Request r) {
-        final String names = personNames.stream().sorted(Comparator.comparingLong(PersonName::index)).map(x -> "<li>" + x.fullname() + "</li>\n").collect(Collectors.joining());
+        final String names = personNames
+                .stream().sorted(Comparator.comparingLong(PersonName::index))
+                .map(x -> "<li>" + x.fullname() + "</li>\n")
+                .collect(Collectors.joining());
+
         return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
                 <!DOCTYPE html>
                 <html>
