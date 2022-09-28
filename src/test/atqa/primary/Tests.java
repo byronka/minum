@@ -141,12 +141,12 @@ public class Tests {
      * object that gets ferried along to the client.
      */
     class Summation {
-      static WebFramework.Response addTwoNumbers(WebFramework.Request r) {
+      static Response addTwoNumbers(Request r) {
         int aValue = Integer.parseInt(r.sl().pathDetails().queryString().get("a"));
         int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, sumString);
+        return new Response(_200_OK, ContentType.TEXT_HTML, sumString);
       }
     }
 

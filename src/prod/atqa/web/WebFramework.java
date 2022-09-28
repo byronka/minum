@@ -25,6 +25,10 @@ import static atqa.web.Web.HTTP_CRLF;
  */
 public class WebFramework {
 
+    private final ILogger logger;
+    private final Map<VerbPath, Function<Request, Response>> endpoints;
+    private final ZonedDateTime zdt;
+
     /**
      * This is the brains of how the server responds to web clients
      */
@@ -49,7 +53,7 @@ public class WebFramework {
                 Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
                 Response r = endpoint.apply(new Request(hi, sl, body));
 
-                String date = getZonedDateTimeNow(zdt).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+                String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
                 sw.sendHttpLine(
                         "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
@@ -85,28 +89,6 @@ public class WebFramework {
         return functionFound;
     }
 
-    private final ILogger logger;
-
-    public record Request(HeaderInformation hi, StartLine sl, String body) {
-        public Request(HeaderInformation hi, StartLine sl) {
-            this(hi, sl, "");
-        }
-    }
-
-    public record Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders, String body) {
-        public Response(StatusLine.StatusCode statusCode, ContentType contentType, String body) {
-            this(statusCode, contentType, Collections.emptyList(), body);
-        }
-        public Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders) {
-            this(statusCode, contentType, extraHeaders, "");
-        }
-    }
-
-    record VerbPath(StartLine.Verb verb, String path) {
-    }
-
-    private final Map<VerbPath, Function<Request, Response>> endpoints;
-
     public WebFramework(ILogger logger) {
         this(logger, null);
     }
@@ -121,12 +103,6 @@ public class WebFramework {
         this.endpoints = new HashMap<>();
     }
 
-    private final ZonedDateTime zdt;
-
-    public static ZonedDateTime getZonedDateTimeNow(ZonedDateTime zdt) {
-        return Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC")));
-    }
-
     public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
         endpoints.put(new VerbPath(verb, pathName), webHandler);
     }
@@ -134,10 +110,10 @@ public class WebFramework {
 
     /**
      * Parse data formatted by application/x-www-form-urlencoded
-     * See https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST
-     *
-     * See here for the encoding: https://developer.mozilla.org/en-US/docs/Glossary/percent-encoding
-     *
+     * See <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST">...</a>
+     * <p>
+     * See here for the encoding: <a href="https://developer.mozilla.org/en-US/docs/Glossary/percent-encoding">...</a>
+     * <p>
      * for example, valuea=3&valueb=this+is+something
      */
     public static Map<String, String> parseUrlEncodedForm(String input) {

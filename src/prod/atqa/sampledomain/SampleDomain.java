@@ -3,6 +3,8 @@ package atqa.sampledomain;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
 import atqa.web.ContentType;
+import atqa.web.Request;
+import atqa.web.Response;
 import atqa.web.WebFramework;
 
 import java.util.Comparator;
@@ -31,8 +33,8 @@ public class SampleDomain {
         newPersonIndex = new AtomicLong(newPersonIndexTemp);
     }
 
-    public WebFramework.Response formEntry(WebFramework.Request r) {
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+    public Response formEntry(Request r) {
+        return new Response(_200_OK, ContentType.TEXT_HTML, """
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -50,23 +52,23 @@ public class SampleDomain {
                 """);
     }
 
-    public WebFramework.Response testform(WebFramework.Request r) {
+    public Response testform(Request r) {
         final var formData = WebFramework.parseUrlEncodedForm(r.body());
         final var nameEntry = formData.get("name_entry");
 
         final var newPersonName = new PersonName(nameEntry, newPersonIndex.getAndAdd(1));
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
-        return new WebFramework.Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: shownames"));
+        return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: shownames"));
     }
 
-    public WebFramework.Response showNames(WebFramework.Request r) {
+    public Response showNames(Request r) {
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::index))
                 .map(x -> "<li>" + x.fullname() + "</li>\n")
                 .collect(Collectors.joining());
 
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+        return new Response(_200_OK, ContentType.TEXT_HTML, """
                 <!DOCTYPE html>
                 <html>
                     <head>

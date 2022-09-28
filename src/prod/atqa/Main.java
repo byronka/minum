@@ -38,28 +38,28 @@ public class Main {
         server = web.startServer(es, wf.makeHandler());
     }
 
-    static WebFramework.Response addTwoNumbers(WebFramework.Request r) {
+    static Response addTwoNumbers(Request r) {
         int aValue = Integer.parseInt(r.sl().pathDetails().queryString().get("a"));
         int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, sumString);
+        return new Response(_200_OK, ContentType.TEXT_HTML, sumString);
     }
 
-    static WebFramework.Response pageOne(WebFramework.Request r) {
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+    static Response pageOne(Request r) {
+        return new Response(_200_OK, ContentType.TEXT_HTML, """
                 <a href="pagetwo">page two</a>
                 """);
     }
 
-    static WebFramework.Response pageTwo(WebFramework.Request r) {
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, """
+    static Response pageTwo(Request r) {
+        return new Response(_200_OK, ContentType.TEXT_HTML, """
                 <a href="pageone">page one</a>
                 """);
     }
 
-    static WebFramework.Response getIndex(WebFramework.Request r) {
-        return new WebFramework.Response(_200_OK, ContentType.TEXT_HTML, "");
+    static Response getIndex(Request r) {
+        return new Response(_200_OK, ContentType.TEXT_HTML, "");
     }
 
     /**
