@@ -24,8 +24,10 @@ public class Tests {
 
   static final ExecutorService es = ExtendedExecutor.makeExecutorService();
   static final TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+  static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
 
- /*$      /$$           /$$               /$$                           /$$
+
+  /*$      /$$           /$$               /$$                           /$$
 | $$  /$ | $$          | $$              | $$                          | $$
 | $$ /$$$| $$  /$$$$$$ | $$$$$$$        /$$$$$$    /$$$$$$   /$$$$$$$ /$$$$$$   /$$$$$$$
 | $$/$$ $$ $$ /$$__  $$| $$__  $$      |_  $$_/   /$$__  $$ /$$_____/|_  $$_/  /$$_____/
@@ -37,8 +39,7 @@ public class Tests {
 
     Web web = new Web(logger);
 
-    logger.test("client / server");
-    {
+    logger.test("client / server");{
       try (Server primaryServer = web.startServer(es)) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           try (SocketWrapper server = primaryServer.getServer(client)) {
@@ -51,8 +52,7 @@ public class Tests {
       }
     }
 
-    logger.test("client / server with more conversation");
-    {
+    logger.test("client / server with more conversation");{
       String msg1 = "hello foo!";
       String msg2 = "and how are you?";
       String msg3 = "oh, fine";
@@ -79,13 +79,11 @@ public class Tests {
 
     // no need to run this every time.  Feel free to uncomment this and make
     // sure it works, but seeing exceptions in the output from tests is disconcerting.
-    logger.testSkip("What happens if we throw an exception in a thread");
-    {
+    logger.testSkip("What happens if we throw an exception in a thread");{
       // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
     }
 
-    logger.test("like we're a atqa.web server");
-    {
+    logger.test("like we're a atqa.web server");{
       try (Server primaryServer = web.startServer(es)) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           try (SocketWrapper server = primaryServer.getServer(client)) {
@@ -104,8 +102,7 @@ public class Tests {
       side when it accepts a connection, then it will more
       truly act like the atqa.web server we want it to be.
      */
-    logger.test("starting server with a handler");
-    {
+    logger.test("starting server with a handler");{
       /*
         Simplistic proof-of-concept of the atqa.primary server
         handler.  The socket has been created and as new
@@ -150,10 +147,8 @@ public class Tests {
       }
     }
 
-    logger.test("starting server with a handler part 2");
-    {
-      ZonedDateTime zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
-      WebFramework wf = new WebFramework(logger, zdt);
+    logger.test("starting server with a handler part 2");{
+      WebFramework wf = new WebFramework(logger, default_zdt);
       wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
       try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
@@ -193,8 +188,7 @@ public class Tests {
     }
 
     // Just a simple test while controlling the fake socket wrapper
-    logger.test("TDD of a handler");
-    {
+    logger.test("TDD of a handler");{
       FakeSocketWrapper sw = new FakeSocketWrapper();
       AtomicReference<String> result = new AtomicReference<>();
       sw.sendHttpLineAction = s -> result.set(s);
@@ -210,27 +204,23 @@ public class Tests {
     // 1. the method (GET, POST, etc.)
     // 2. the request target
     // 3. the HTTP version (e.g. HTTP/1.1)
-    logger.test("We should be able to pull valuable information from the start line");
-    {
+    logger.test("We should be able to pull valuable information from the start line");{
       Matcher m = startLineRegex.matcher("GET /index.html HTTP/1.1");
       assertTrue(m.matches());
     }
 
-    logger.test("alternate case for extractStartLine - POST");
-    {
+    logger.test("alternate case for extractStartLine - POST");{
       StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.0");
       assertEquals(sl.verb(), StartLine.Verb.POST);
     }
 
-    logger.test("alernate case - empty path");
-    {
+    logger.test("alernate case - empty path");{
       StartLine sl = StartLine.extractStartLine("GET / HTTP/1.1");
       assertEquals(sl.verb(), StartLine.Verb.GET);
       assertEquals(sl.pathDetails().isolatedPath(), "");
     }
 
-    logger.test("negative cases for extractStartLine");
-    {
+    logger.test("negative cases for extractStartLine");{
       // missing verb
       assertThrows(InvariantException.class, "/something HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("/something HTTP/1.1"));
       // missing path
@@ -243,14 +233,12 @@ public class Tests {
       assertThrows(InvariantException.class, "GET /something HTTP/ must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something HTTP/"));
     }
 
-    logger.test("positive test for extractStatusLine");
-    {
+    logger.test("positive test for extractStatusLine");{
       StatusLine sl = StatusLine.extractStatusLine("HTTP/1.1 200 OK");
       assertEquals(sl.status(), _200_OK);
     }
 
-    logger.test("negative tests for extractStatusLine");
-    {
+    logger.test("negative tests for extractStatusLine");{
       // missing status description
       assertThrows(InvariantException.class, "HTTP/1.1 200 must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.1 200"));
       // missing status code
@@ -261,6 +249,107 @@ public class Tests {
       assertThrows(InvariantException.class, "HTTP/1.3 200 OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.3 200 OK"));
       // invalid status code
       assertThrows(NoSuchElementException.class, "No value present", () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
+    }
+
+    /*
+    as part of sending data to the server, we'll encode data like the following.  if we
+    set value_a to 123 and value_b to 456, it looks like: value_a=123&value_b=456
+
+    we want to convert that string to a map, like this: value_a -> 123, value_b -> 456
+     */
+    logger.test("parseUrlEncodedForm should properly parse data");{
+      final var expected = Map.of("value_a", "123", "value_b", "456");
+      final var result = WebFramework.parseUrlEncodedForm("value_a=123&value_b=456");
+      assertEquals(expected, result);
+    }
+
+    logger.test("parseUrlEncodedForm edge cases"); {
+      // splitting on equals
+      final var ex1 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("value_a=123=456"));
+      assertEquals(ex1.getMessage(), "Splitting on = should return 2 values.  Input was value_a=123=456");
+
+      // blank key
+      final var ex2 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("=123"));
+      assertEquals(ex2.getMessage(), "The key must not be blank");
+
+      // duplicate keys
+      final var ex3 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("a=123&a=123"));
+      assertEquals(ex3.getMessage(), "a was duplicated in the post body - had values of 123 and 123");
+    }
+
+    logger.test("when we post data to an endpoint, it can extract the data"); {
+      WebFramework wf = new WebFramework(logger, default_zdt);
+      wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, ContentType.TEXT_HTML, x.body()));
+      try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
+        try (SocketWrapper client = web.startClient(primaryServer)) {
+
+          final var postedData = "value_a=123&value_b=456";
+
+          // send a POST request
+          client.sendHttpLine("POST /some_post_endpoint HTTP/1.1");
+          client.sendHttpLine("Host: localhost:8080");
+          client.sendHttpLine("Content-Length: " + postedData.length());
+          client.sendHttpLine("");
+          client.sendHttpLine(postedData);
+
+          StatusLine.extractStatusLine(client.readLine());
+          HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
+          String body = HttpUtils.readBody(client, hi.contentLength());
+
+          assertEquals(body, "value_a=123&value_b=456");
+
+          // give the server time to run code from the handler,
+          // then shut down.
+          try {
+            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+          } catch (Exception e) {
+            // do nothing
+          }
+        }
+      }
+    }
+
+    logger.test("when the requested endpoint does not exist, we get a 404 response"); {
+      WebFramework wf = new WebFramework(logger, default_zdt);
+      try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
+        try (SocketWrapper client = web.startClient(primaryServer)) {
+
+          // send a GET request
+          client.sendHttpLine("GET /some_endpoint HTTP/1.1");
+          client.sendHttpLine("Host: localhost:8080");
+          client.sendHttpLine("");
+
+          StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
+          assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
+
+          // give the server time to run code from the handler,
+          // then shut down.
+          try {
+            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+          } catch (Exception e) {
+            // do nothing
+          }
+        }
+      }
+    }
+
+    logger.test("when the client stops talking to the server, the endpoint handler bails"); {
+      WebFramework wf = new WebFramework(logger, default_zdt);
+      try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
+        try (SocketWrapper client = web.startClient(primaryServer)) {
+
+          // send a GET request
+          client.close();
+
+          // give the server time to run code from the handler,
+          // then shut down.
+          try {
+            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
+          } catch (Exception e) {
+            // do nothing
+          }
+        }
+      }
     }
 
   }
@@ -281,8 +370,7 @@ public class Tests {
 
     // region Test Analysis section
 
-    logger.test("playing around with how we could determine testedness of a function");
-    {
+    logger.test("playing around with how we could determine testedness of a function");{
       int score = 0;
 
       // for a pretend method, add(int a, int b)... let's play
@@ -310,8 +398,7 @@ public class Tests {
       If we can basically just try casting to things and making comparisons, then we might
       get a leg up for those situations where we deal with non-typed params
      */
-    logger.test("how do we test non-typed code? a single param that turns out to be an int");
-    {
+    logger.test("how do we test non-typed code? a single param that turns out to be an int");{
       int score = 0;
 
       // pretend method: foo(Object a)
@@ -340,8 +427,7 @@ public class Tests {
 
     }
 
-    logger.test("some more exotic type tests");
-    {
+    logger.test("some more exotic type tests");{
       int score = 0;
 
       // pretend method: foo(String[] a, Foobar b)

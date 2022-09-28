@@ -6,7 +6,9 @@ package atqa.utils;
 public class Invariants {
 
     /**
-     * Specify something which must be true
+     * Specify something which must be true.
+     * <p>
+     * Throws an {@link InvariantException} if false
      * @param predicate the boolean expression that must be true at this point
      * @param message a message that will be included in the exception if this is false
      */
@@ -18,6 +20,8 @@ public class Invariants {
 
     /**
      * Specify something which must be false
+     * <p>
+     * Throws an {@link InvariantException} if true
      * @param predicate the boolean expression that must be false at this point
      * @param message a message that will be included in the exception if this is true
      */
@@ -27,16 +31,17 @@ public class Invariants {
         }
     }
 
+    /**
+     * specifies that the paramter must be not null.
+     * <p>
+     * Throws an {@link InvariantException} if null.
+     * @return the object if not null
+     */
     public static <T> T mustNotBeNull(T object) {
         if (object == null) {
             throw new InvariantException("value must not be null");
         } else {
             return object;
         }
-    }
-
-    public static void stringMustNotBeNullOrBlank(String value) {
-        mustNotBeNull(value);
-        mustBeFalse(value.isBlank(), "string value was blank");
     }
 }

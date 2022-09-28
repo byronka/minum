@@ -67,23 +67,20 @@ public class SimpleDatabaseTests {
         serializing to a json-like url-encoded text, eventually synchronized
         to disk.
          */
-        logger.test("now let's try playing with serialization");
-        {
+        logger.test("now let's try playing with serialization");{
             final var foo = new Foo(1, 123, "abc");
             final var deserializedFoo = foo.deserialize(foo.serialize());
             assertEquals(deserializedFoo, foo);
         }
 
-        logger.test("what about serializing a collection of stuff");
-        {
+        logger.test("what about serializing a collection of stuff");{
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var serializedFoos = foos.stream().map(Foo::serialize).toList();
             final var deserializedFoos = serializedFoos.stream().map(Foo.INSTANCE::deserialize).toList();
             assertEquals(foos, deserializedFoos);
         }
 
-        logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");
-        {
+        logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");{
             final var foosDirectory = "out/simple_db/foos";
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, logger);
@@ -150,8 +147,7 @@ public class SimpleDatabaseTests {
          *
          * For the record... running this takes between 80 and 120 milliseconds.
          */
-        logger.test("Just how fast is our atqa.database? spoiler: about 10k updates in 1 millisecond");
-        {
+        logger.test("Just how fast is our atqa.database? spoiler: about 10k updates in 1 millisecond");{
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
 
             // change the foos

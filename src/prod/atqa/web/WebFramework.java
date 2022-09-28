@@ -1,10 +1,10 @@
 package atqa.web;
 
 import atqa.logging.ILogger;
+import atqa.utils.InvariantException;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.IOException;
-import java.net.SocketException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,10 +65,6 @@ public class WebFramework {
                                 HTTP_CRLF +
                                 r.body()
                 );
-            } catch (SocketException ex) {
-                if (!ex.getMessage().contains("Socket closed")) {
-                    throw new RuntimeException(ex);
-                }
             }
         };
     }
@@ -128,7 +124,7 @@ public class WebFramework {
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
             final var result = postedPairs.put(pair[0], decode(pair[1]));
             if (result != null) {
-                throw new RuntimeException(pair[0] + " was duplicated in the post body - had values of "+result+" and " + pair[1]);
+                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+result+" and " + pair[1]);
             }
         }
         return postedPairs;

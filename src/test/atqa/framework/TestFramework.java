@@ -4,11 +4,14 @@ import java.util.List;
 
 public class TestFramework {
 
-    public static <T extends Exception> void assertThrows(Class<T> myEx, Runnable r) {
-        assertThrows(myEx, null, r);
+    public static <T extends Exception> T assertThrows(Class<T> myEx, Runnable r) {
+        return assertThrows(myEx, null, r);
     }
 
-    public static <T extends Exception> void assertThrows(Class<T> myEx, String expectedMsg, Runnable r) {
+    // quick note about the warning suppression - we already checked that the
+    // case will be valid, when we checked if (!myEx.isInstance(ex)).
+    @SuppressWarnings("unchecked")
+    public static <T extends Exception> T assertThrows(Class<T> myEx, String expectedMsg, Runnable r) {
         try {
             r.run();
             throw new RuntimeException("Failed to throw exception");
@@ -21,6 +24,7 @@ public class TestFramework {
                 String msg = String.format("Did not get expected message (%s). Instead, got: %s", expectedMsg, ex.getMessage());
                 throw new RuntimeException(msg);
             }
+            return (T) ex;
         }
 
     }
@@ -37,11 +41,11 @@ public class TestFramework {
     /**
      * asserts two lists are equal, ignoring the order.
      * For example, (a, b) is equal to (b, a)
-     *
+     * <p>
      * Note that the lists must be of comparable objects, or else
      * a ClassCastException will be thrown
      */
-    public static <T> void assertEqualsDisregardOrder(List<? extends CharSequence> left, List<? extends CharSequence> right) {
+    public static void assertEqualsDisregardOrder(List<? extends CharSequence> left, List<? extends CharSequence> right) {
         if (left.size() != right.size()) {
             throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
         }
@@ -88,16 +92,6 @@ public class TestFramework {
         if (value) {
             throw new RuntimeException("value was unexpectedly true");
         }
-    }
-
-    /**
-     * Commonly used in try-catch to make sure we don't get past the
-     * point where an exception should have been thrown
-     * @param s a message indicating why this test has failed
-     */
-    public static void failTest(String s) {
-        System.out.println(s);
-        System.exit(1);
     }
 
 }
