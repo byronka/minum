@@ -5,10 +5,7 @@ import atqa.logging.Logger;
 import atqa.sampledomain.SampleDomain;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.ThrowingRunnable;
-import atqa.web.ContentType;
-import atqa.web.StartLine;
-import atqa.web.Web;
-import atqa.web.WebFramework;
+import atqa.web.*;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -18,7 +15,7 @@ import static atqa.web.StatusLine.StatusCode._200_OK;
 public class Main {
 
     static ILogger logger;
-    static Web.Server server;
+    static Server server;
     static ExecutorService es;
 
     public static void main(String[] args) throws IOException {

@@ -39,7 +39,7 @@ public class Tests {
 
     logger.test("client / server");
     {
-      try (Web.Server primaryServer = web.startServer(es)) {
+      try (Server primaryServer = web.startServer(es)) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           try (SocketWrapper server = primaryServer.getServer(client)) {
 
@@ -57,7 +57,7 @@ public class Tests {
       String msg2 = "and how are you?";
       String msg3 = "oh, fine";
 
-      try (Web.Server primaryServer = web.startServer(es)) {
+      try (Server primaryServer = web.startServer(es)) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           try (SocketWrapper server = primaryServer.getServer(client)) {
 
@@ -86,7 +86,7 @@ public class Tests {
 
     logger.test("like we're a atqa.web server");
     {
-      try (Web.Server primaryServer = web.startServer(es)) {
+      try (Server primaryServer = web.startServer(es)) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           try (SocketWrapper server = primaryServer.getServer(client)) {
             // send a GET request
@@ -116,7 +116,7 @@ public class Tests {
        */
       ThrowingConsumer<SocketWrapper, IOException> handler = (sw) -> logger.logDebug(sw::readLine);
 
-      try (Web.Server primaryServer = web.startServer(es, handler)) {
+      try (Server primaryServer = web.startServer(es, handler)) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           // send a GET request
           client.sendHttpLine("GET /index.html HTTP/1.1");
@@ -155,7 +155,7 @@ public class Tests {
       ZonedDateTime zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
       WebFramework wf = new WebFramework(logger, zdt);
       wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
-      try (Web.Server primaryServer = web.startServer(es, wf.makeHandler())) {
+      try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
           // send a GET request
           client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
