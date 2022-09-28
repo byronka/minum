@@ -1,9 +1,13 @@
 package atqa.database;
 
+import atqa.logging.TestRecordingLogger;
 import atqa.primary.StopWatch;
 import atqa.logging.TestLogger;
+import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
+import atqa.utils.ThrowingRunnable;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -12,6 +16,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
 import static atqa.framework.TestFramework.*;
+import static atqa.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
 import static java.util.stream.IntStream.range;
 
 public class SimpleDatabaseTests {
@@ -21,7 +26,7 @@ public class SimpleDatabaseTests {
         this.logger = logger;
     }
 
-    public void tests(ExecutorService es) {
+    public void tests(ExecutorService es) throws IOException {
 
         // the following will be used in the subsequent tests...
 
@@ -82,6 +87,7 @@ public class SimpleDatabaseTests {
 
         logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");{
             final var foosDirectory = "out/simple_db/foos";
+            deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, logger);
 
@@ -118,7 +124,7 @@ public class SimpleDatabaseTests {
             // rebuild some objects from what was written to disk
             // note that since our atqa.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(20);
+            MyThread.sleep(40);
             final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
             assertEqualsDisregardOrder(
                     deserializedUpdatedFoos.stream().map(Record::toString).toList(),
@@ -142,6 +148,50 @@ public class SimpleDatabaseTests {
             ddps.stop();
         }
 
+        logger.test("what happens if we try deleting a file that doesn't exist?"); {
+            final var foosDirectory = "out/simple_db/foos";
+            final var myLogger = new TestRecordingLogger();
+            final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, myLogger);
+
+            // if we try deleting something that doesn't exist, we get an error shown in the log
+            ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
+            MyThread.sleep(10);
+            assertEquals(myLogger.loggedMessages.get(0), "failed to delete file out/simple_db/foos/123.db");
+
+            ddps_throwaway.stop();
+        }
+
+        logger.test("edge cases for deserialization"); {
+            // what if the directory is missing when try to deserialize?
+            // note: this would only happen if, after instantiating our ddps,
+            // the directory gets deleted/corruped.
+            final var foosDirectory = "out/simple_db/foos/";
+            final var myLogger = new TestRecordingLogger();
+            final var emptyFooInstance = new Foo(0, 0, "");
+
+            // clear out the directory to start
+            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, myLogger);
+            MyThread.sleep(10);
+
+            // create an empty file, to create that edge condition
+            final var pathToSampleFile = Path.of(foosDirectory, "1.db");
+            Files.createFile(pathToSampleFile);
+            ddps.readAndDeserialize(emptyFooInstance);
+            MyThread.sleep(10);
+            assertEquals(myLogger.loggedMessages.get(0), "1.db file exists but empty, skipping");
+
+            // create a corrupted file, to create that edge condition
+            Files.write(pathToSampleFile, "invalid data".getBytes());
+            final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance)));
+            assertEquals(ex.getMessage(), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.db with data (\"invalid data\")");
+
+            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            ddps.readAndDeserialize(emptyFooInstance);
+            MyThread.sleep(10);
+            assertEquals(myLogger.loggedMessages.get(1), "out/simple_db/foos directory missing, creating empty list of data");
+        }
+
         /*
          * In this test, we'll turn off disk-syncing.
          *
@@ -163,6 +213,7 @@ public class SimpleDatabaseTests {
 
             // logger.testPrint("time taken was " + time + " milliseconds");
         }
+
     }
 
 }

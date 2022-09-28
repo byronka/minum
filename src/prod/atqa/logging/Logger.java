@@ -9,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 
 public class Logger implements ILogger {
     protected final ActionQueue loggerPrinter;
@@ -60,6 +59,23 @@ public class Logger implements ILogger {
     }
 
     @Override
+    public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        String receivedMessage;
+        try {
+            receivedMessage = msg.get();
+        } catch (Exception ex) {
+            receivedMessage = "EXCEPTION DURING GET: " + ex;
+        }
+        if (toggles.get(Type.ASYNC_ERROR)) {
+            String finalReceivedMessage = receivedMessage;
+            loggerPrinter.enqueue(() -> {
+                printf("ASYNC ERROR: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
+                return null;
+            });
+        }
+    }
+
+    @Override
     public void logImperative(String msg) {
         System.out.printf("%s IMPERATIVE: %s%n", getTimestamp(), msg);
     }
@@ -85,26 +101,12 @@ public class Logger implements ILogger {
     }
 
     enum Type {
-        DEBUG
-    }
+        DEBUG,
 
-    /**
-     * A helper method to skip all non-imperative atqa.logging
-     */
-    public Logger turnOff(Type ...type) {
-        for (Type t : type) {
-            if (t.equals(Type.DEBUG)) {
-                toggles.put(Type.DEBUG, false);
-            }
-        }
-        return this;
-    }
-
-    /**
-     * Loop through all the keys in the toggles and set them all false
-     */
-    public Logger turnOffAll() {
-        toggles = toggles.keySet().stream().collect(Collectors.toMap(x -> x, x -> false));
-        return this;
+        /**
+         * Represents an error that occurs in a separate thread, so
+         * that we are not able to catch it bubbling up
+         */
+        ASYNC_ERROR
     }
 }

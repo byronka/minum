@@ -29,7 +29,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
     /**
      * Constructs a disk-persistence class well-suited for your data.
-     *
+     * <p>
      * There is a bit of subtlety to its use, see documentation on the params.
      * @param dbDirectory the directory where we will store this data, relative to
      *                    the location from which we run the application.  Recommend that
@@ -37,7 +37,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      *                    you might want to store all your data at db/foo - foo being the
      *                    name of the type of data we're storing, and db being a place to
      *                    collect together all your directories.
-     *
+     *<p>
      *                    If you're consistent enough, you will have a top-level directory
      *                    like "db", with a bunch of sub-directories corresponding to the
      *                    types of data.  But really there is a lot of flexibility, you
@@ -54,13 +54,8 @@ public class DatabaseDiskPersistenceSimpler<T> {
         this.logger = logger;
 
         actionQueue.enqueue(() -> {
-            try {
-                if (!Files.exists(this.dbDirectory)) {
-                    Files.createDirectories(this.dbDirectory);
-                }
-            } catch (Exception ex) {
-                logger.logDebug(() -> "failed to create directory " + this.dbDirectory);
-                throw new RuntimeException(ex);
+            if (!Files.exists(this.dbDirectory)) {
+                Files.createDirectories(this.dbDirectory);
             }
             return null;
         });
@@ -69,7 +64,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
     /**
      * This function will stop the atqa.database persistence cleanly.
-     *
+     * <p>
      * In order to do this, we need to wait for our threads
      * to finish their work.  In particular, we
      * have offloaded our file writes to [actionQueue], which
@@ -108,8 +103,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
             try {
                 Files.delete(Path.of(fullPath));
             } catch (Exception ex) {
-                logger.logDebug(() -> "failed to delete file "+fullPath);
-                throw new RuntimeException(ex);
+                logger.logAsyncError(() -> "failed to delete file "+fullPath);
             }
 
             // needs to return null because this is a Callable, which allows us to
@@ -138,7 +132,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
         return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
     }
 
-    public List<T> readAndDeserialize(SimpleDataType<T> instance) {
+    public List<T> readAndDeserialize(SimpleDataType<T> instance) throws IOException {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return new ArrayList<>();
@@ -150,34 +144,19 @@ public class DatabaseDiskPersistenceSimpler<T> {
             final var listOfFiles = pathStream.filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
             for (Path p : listOfFiles) {
                 String fileContents;
-                try {
-                    fileContents = Files.readString(p);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                fileContents = Files.readString(p);
                 if (fileContents.isBlank()) {
                     logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
                 } else {
                     try {
                         data.add(instance.deserialize(fileContents));
-                    } catch (DatabaseDiskPersistenceSimpler.DeserializationException e) {
-                        throw new RuntimeException("Failed to deserialize "+p+" with data ("+fileContents+")");
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to deserialize "+p+" with data (\""+fileContents+"\")");
                     }
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         return data;
-    }
-
-
-    private static class DeserializationException extends RuntimeException {
-        final String serializedData;
-
-        public DeserializationException(String serializedData) {
-            this.serializedData = serializedData;
-        }
     }
 
 }

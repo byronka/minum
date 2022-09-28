@@ -7,6 +7,7 @@ import atqa.web.Request;
 import atqa.web.Response;
 import atqa.web.WebFramework;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -22,7 +23,7 @@ public class SampleDomain {
     private final List<PersonName> personNames;
     final AtomicLong newPersonIndex;
 
-    public SampleDomain(ExecutorService es, ILogger logger) {
+    public SampleDomain(ExecutorService es, ILogger logger) throws IOException {
         ddps = new DatabaseDiskPersistenceSimpler<>("out/simple_db/names", es, logger);
         personNames = ddps.readAndDeserialize(new PersonName("",0L));
         final var newPersonIndexTemp = personNames
