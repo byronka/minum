@@ -113,11 +113,11 @@ public record StartLine(
      * Extract the HTTP version from the start line
      */
     private static Web.HttpVersion getHttpVersion(String version) {
-        return switch (version) {
-            case "1.1" -> Web.HttpVersion.ONE_DOT_ONE;
-            case "1.0" -> Web.HttpVersion.ONE_DOT_ZERO;
-            default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
-        };
+        if (version.equals("1.1")) {
+            return Web.HttpVersion.ONE_DOT_ONE;
+        } else {
+            return Web.HttpVersion.ONE_DOT_ZERO;
+        }
     }
 
 }
