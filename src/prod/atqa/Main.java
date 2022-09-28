@@ -37,6 +37,7 @@ public class Main {
         wf.registerPath(StartLine.Verb.GET, "pagetwo", Main::pageTwo);
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        wf.registerPath(StartLine.Verb.GET, "shownames", sd::showNames);
         server = web.startServer(es, wf.makeHandler());
     }
 
