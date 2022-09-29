@@ -23,12 +23,15 @@ public class Main {
         logger = new Logger(es);
 
         Web web = new Web(logger);
+        StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
         WebFramework wf = new WebFramework(logger);
 
         final var sd = new SampleDomain(es, logger);
 
         addShutdownHook();
 
+
+        wf.registerStaticFiles(sfc);
         wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Main::addTwoNumbers);
         wf.registerPath(StartLine.Verb.GET, "", Main::getIndex);
         wf.registerPath(StartLine.Verb.GET, "pageone", Main::pageOne);

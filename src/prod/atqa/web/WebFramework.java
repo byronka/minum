@@ -27,8 +27,9 @@ import static atqa.web.Web.HTTP_CRLF;
 public class WebFramework {
 
     private final ILogger logger;
-    private final Map<VerbPath, Function<Request, Response>> endpoints;
+    private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
     private final ZonedDateTime zdt;
+    private StaticFilesCache staticFilesCache;
 
     /**
      * This is the brains of how the server responds to web clients
@@ -82,12 +83,21 @@ public class WebFramework {
      * very basic 404 NOT FOUND page
      */
     private Function<Request, Response> findHandlerForEndpoint(StartLine sl) {
-        final var functionFound = endpoints.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
+        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
         if (functionFound == null) {
-            return request -> new Response(
-                    StatusLine.StatusCode._404_NOT_FOUND,
-                    ContentType.TEXT_HTML,
-                    "<p>404 not found using startline of " + sl + "</p>");
+
+            // if nothing was found in the registered dynamic endpoints, look
+            // through the static endpoints
+            final var staticResponseFound = staticFilesCache.getStaticResponse(sl.pathDetails().isolatedPath());
+
+            if (staticResponseFound != null) {
+                return request -> staticResponseFound;
+            } else {
+                return request -> new Response(
+                        StatusLine.StatusCode._404_NOT_FOUND,
+                        ContentType.TEXT_HTML,
+                        "<p>404 not found using startline of " + sl + "</p>");
+            }
         }
         return functionFound;
     }
@@ -103,11 +113,12 @@ public class WebFramework {
     public WebFramework(ILogger logger, ZonedDateTime zdt) {
         this.logger = logger;
         this.zdt = zdt;
-        this.endpoints = new HashMap<>();
+        this.registeredDynamicPaths = new HashMap<>();
+        this.staticFilesCache = new StaticFilesCache(logger);
     }
 
     public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
-        endpoints.put(new VerbPath(verb, pathName), webHandler);
+        registeredDynamicPaths.put(new VerbPath(verb, pathName), webHandler);
     }
 
 
@@ -146,5 +157,9 @@ public class WebFramework {
         } else {
             return "";
         }
+    }
+
+    public void registerStaticFiles(StaticFilesCache sfc) {
+        this.staticFilesCache = sfc;
     }
 }
