@@ -32,7 +32,7 @@ public class Web {
     int port = 8080;
     ServerSocket ss = new ServerSocket(port);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(this, ss, logger);
+    Server server = new Server(ss, logger);
     server.start(es, handler);
     return server;
   }

@@ -10,7 +10,7 @@ import java.util.stream.StreamSupport;
  * This uses a [ConcurrentHashMap] as its base.  We store
  * the data in the keys only.  We provide some syntactic sugar
  * so this seems similar to using a Set.
- *
+ * <p>
  * This is a thread-safe data structure.
  */
 public class ConcurrentSet<T> implements Iterable<T> {
@@ -32,10 +32,6 @@ public class ConcurrentSet<T> implements Iterable<T> {
 
     public int size() {
         return map.size();
-    }
-
-    public boolean contains(T element) {
-        return map.containsKey(element);
     }
 
     @Override

@@ -23,7 +23,6 @@ import java.util.concurrent.Future;
  * for controlling lots of server threads.
  */
 public class Server implements AutoCloseable {
-    private final Web web;
     private final ServerSocket serverSocket;
     private final SetOfServers setOfServers;
     private final ILogger logger;
@@ -34,8 +33,7 @@ public class Server implements AutoCloseable {
      */
     public Future<?> centralLoopFuture;
 
-    public Server(Web web, ServerSocket ss, ILogger logger) {
-        this.web = web;
+    public Server(ServerSocket ss, ILogger logger) {
         this.serverSocket = ss;
         this.logger = logger;
         setOfServers = new SetOfServers(new ConcurrentSet<>(), logger);

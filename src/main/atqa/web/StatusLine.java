@@ -21,7 +21,7 @@ public record StatusLine(StatusCode status, Web.HttpVersion version, String rawV
 
         /**
          * Used a lot after receiving a post response.  The pattern is to
-         * receive the post, then redirect to a new page. See https://en.wikipedia.org/wiki/Post/Redirect/Get
+         * receive the post, then redirect to a new page. See <a href="https://en.wikipedia.org/wiki/Post/Redirect/Get">...</a>
          */
         _303_SEE_OTHER(303, "SEE OTHER");
 

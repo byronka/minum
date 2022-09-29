@@ -7,7 +7,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * This class provides the ability to pop items into
  * a queue thread-safely and know they'll happen later.
- *
+ * <p>
  * For example, this is helpful for atqa.logging, or passing
  * functions to a atqa.database.  It lets us run a bit faster,
  * since the I/O actions are happening on a separate

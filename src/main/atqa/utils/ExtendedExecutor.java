@@ -18,7 +18,7 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
                 && r instanceof Future<?>
                 && ((Future<?>)r).isDone()) {
             try {
-                Object result = ((Future<?>) r).get();
+                ((Future<?>) r).get();
             } catch (CancellationException ce) {
                 t = ce;
             } catch (ExecutionException ee) {

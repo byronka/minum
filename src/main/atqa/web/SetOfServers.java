@@ -27,11 +27,11 @@ public record SetOfServers(ConcurrentSet<SocketWrapper> data, ILogger logger) {
     /**
      * This is a program used during testing so we can find the server
      * socket that corresponds to a particular client socket.
-     *
+     * <p>
      * Due to the circumstances of the TCP handshake, there's a bit of
      * time where the server might not have finished initialization,
      * and been put into the list of current server sockets.
-     *
+     * <p>
      * For that reason, if we come in here and don't find it initially, we'll
      * sleep and then try again, up to three times.
      */

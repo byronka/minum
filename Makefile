@@ -6,7 +6,7 @@ PROJ_NAME := atqa
 ##
 # source directory
 ##
-SRC_DIR := src/prod
+SRC_DIR := src/main
 
 ##
 # test source directory
@@ -19,9 +19,9 @@ TST_SRC_DIR := src/test
 OUT_DIR := out
 
 ##
-# output directory for production files
+# output directory for main source files
 ##
-OUT_DIR_PROD := $(OUT_DIR)/prod
+OUT_DIR_MAIN := $(OUT_DIR)/main
 
 ##
 # output directory for test files
@@ -56,22 +56,22 @@ BUILD_CP := "$(SRC_DIR)/:$(LIB)/*"
 ##
 # build classpath for the tests
 ##
-TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_PROD)/:$(OUT_DIR_TEST)/"
+TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/:$(OUT_DIR_TEST)/"
 
 ##
 # run classpath options - the classpaths needed to run the program
 ##
-RUN_CP := "$(OUT_DIR_PROD):$(LIB)/*"
+RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*"
 
 ##
 # run classpath for tests
 ##
-TST_RUN_CP := "$(OUT_DIR_PROD):$(LIB)/*:$(OUT_DIR_TEST)"
+TST_RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_TEST)"
 
 ##
 # classes
 ##
-CLS := $(SRCS:$(SRC_DIR)/%.java=$(OUT_DIR_PROD)/%.class)
+CLS := $(SRCS:$(SRC_DIR)/%.java=$(OUT_DIR_MAIN)/%.class)
 
 ##
 # test classes
@@ -119,7 +119,7 @@ TEST_LIST:=
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \
-	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_PROD)/ -cp $(BUILD_CP) $(LIST) ; \
+	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_MAIN)/ -cp $(BUILD_CP) $(LIST) ; \
 	    fi
 
 testclasses: $(TST_CLS)
@@ -128,7 +128,7 @@ testclasses: $(TST_CLS)
 	    fi
 
 # here is the target for the application code
-$(CLS): $(OUT_DIR_PROD)/%.class: $(SRC_DIR)/%.java
+$(CLS): $(OUT_DIR_MAIN)/%.class: $(SRC_DIR)/%.java
 	   $(eval LIST+=$$<)
 
 # here is the target for the test code
@@ -141,7 +141,7 @@ clean:
 
 #: jar up the application (See Java's jar command)
 jar: all
-	    cd $(OUT_DIR_PROD) && jar --create --file $(PROJ_NAME).jar -e atqa.Main *
+	    cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e atqa.Main *
 
 #: run the application
 run: all
@@ -162,7 +162,7 @@ testdebug: all testclasses
 #: If you want to obtain code coverage from running the tests. output at out/coveragereport
 testcov: all testclasses
 	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) atqa.primary.Tests
-	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_PROD) --sourcefiles $(SRC_DIR)
+	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
