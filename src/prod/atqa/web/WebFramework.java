@@ -48,7 +48,7 @@ public class WebFramework {
                 StartLine sl = StartLine.extractStartLine(rawStartLine);
                 logger.logDebug(() -> sw + ": StartLine received: " + sl);
 
-                HeaderInformation hi = HeaderInformation.extractHeaderInformation(sw);
+                Headers hi = Headers.extractHeaderInformation(sw);
                 String body = extractData(sw, hi);
 
                 Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
@@ -140,7 +140,7 @@ public class WebFramework {
     /**
      * read the body if one exists
      */
-    private String extractData(ISocketWrapper server, HeaderInformation hi) throws IOException {
+    private String extractData(ISocketWrapper server, Headers hi) throws IOException {
         if (hi.contentLength() > 0) {
             return server.read(hi.contentLength());
         } else {

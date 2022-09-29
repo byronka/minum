@@ -35,7 +35,7 @@ public record StartLine(
     public static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
-    public Map<String, String> getQueryString() {
+    public Map<String, String> queryString() {
         return new HashMap<>(pathDetails.queryString);
     }
 

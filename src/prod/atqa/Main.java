@@ -41,8 +41,8 @@ public class Main {
     }
 
     static Response addTwoNumbers(Request r) {
-        int aValue = Integer.parseInt(r.sl().pathDetails().queryString().get("a"));
-        int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
+        int aValue = Integer.parseInt(r.startLine().queryString().get("b"));
+        int bValue = Integer.parseInt(r.startLine().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
         return new Response(_200_OK, ContentType.TEXT_HTML, sumString);

@@ -1,3 +1,3 @@
 package atqa.web;
 
-public record Request(HeaderInformation hi, StartLine sl, String body){}
+public record Request(Headers headers, StartLine startLine, String body){}

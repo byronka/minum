@@ -14,7 +14,7 @@ import static atqa.utils.Invariants.mustBeTrue;
  * is this a keep-alive connection? what is the content-length,
  * and so on.
  */
-public record HeaderInformation(int contentLength, List<String> rawValues) {
+public record Headers(int contentLength, List<String> rawValues) {
 
     /**
      * Used for extracting the length of the body, in POSTs and
@@ -27,11 +27,11 @@ public record HeaderInformation(int contentLength, List<String> rawValues) {
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public static HeaderInformation extractHeaderInformation(SocketWrapper sw) throws IOException {
+    public static Headers extractHeaderInformation(SocketWrapper sw) throws IOException {
         List<String> headers = getAllHeaders(sw);
         int contentLength = extractContentLength(headers);
 
-        return new HeaderInformation(contentLength, headers);
+        return new Headers(contentLength, headers);
     }
 
     /**

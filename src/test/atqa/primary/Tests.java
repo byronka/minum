@@ -139,8 +139,8 @@ public class Tests {
      */
     class Summation {
       static Response addTwoNumbers(Request r) {
-        int aValue = Integer.parseInt(r.sl().getQueryString().get("a"));
-        int bValue = Integer.parseInt(r.sl().pathDetails().queryString().get("b"));
+        int aValue = Integer.parseInt(r.startLine().queryString().get("a"));
+        int bValue = Integer.parseInt(r.startLine().pathDetails().queryString().get("b"));
         int sum = aValue + bValue;
         String sumString = String.valueOf(sum);
         return new Response(_200_OK, ContentType.TEXT_HTML, sumString);
@@ -161,7 +161,7 @@ public class Tests {
 
           assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-          HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
+          Headers hi = Headers.extractHeaderInformation(client);
 
           List<String> expectedResponseHeaders = Arrays.asList(
                   "Server: atqa",
@@ -302,7 +302,7 @@ public class Tests {
           client.sendHttpLine(postedData);
 
           StatusLine.extractStatusLine(client.readLine());
-          HeaderInformation hi = HeaderInformation.extractHeaderInformation(client);
+          Headers hi = Headers.extractHeaderInformation(client);
           String body = HttpUtils.readBody(client, hi.contentLength());
 
           assertEquals(body, "value_a=123&value_b=456");
