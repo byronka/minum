@@ -36,6 +36,15 @@ public class TestRecordingLogger implements ILogger {
     }
 
     @Override
+    public void logTrace(ThrowingSupplier<String, Exception> msg) {
+        try {
+            loggedMessages.add(msg.get());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
         try {
             loggedMessages.add(msg.get());

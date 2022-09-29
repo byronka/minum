@@ -24,13 +24,6 @@ OUT_DIR := out
 OUT_DIR_MAIN := $(OUT_DIR)/main
 
 ##
-# output directory for resources originally located under main
-# note: Java commands like FileUtils.getResources will look into any folder
-# in the classpath
-##
-OUT_DIR_RESOURCES := $(OUT_DIR)/resources
-
-##
 # output directory for test files
 ##
 OUT_DIR_TEST := $(OUT_DIR)/test
@@ -68,12 +61,12 @@ TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/:$(OUT_DI
 ##
 # run classpath options - the classpaths needed to run the program
 ##
-RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_RESOURCES)"
+RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*"
 
 ##
 # run classpath for tests
 ##
-TST_RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_TEST):$(OUT_DIR_RESOURCES)"
+TST_RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_TEST)"
 
 ##
 # classes
@@ -124,8 +117,14 @@ TEST_LIST:=
 # note that putting an @ in front of a command in a makefile
 # will cause that command not to echo out when running Make.
 
+
+##
+# copy to output directory resources originally located under main
+# note: Java commands like FileUtils.getResources will look into any folder
+# in the classpath
+##
 copyresources:
-	    rsync -rupE src/resources out
+	    rsync -rupE src/static out/main
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \

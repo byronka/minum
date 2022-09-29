@@ -59,40 +59,43 @@ public class StaticFilesCache {
                 } catch (URISyntaxException ex) {
                     logger.logDebug(() -> "Exception thrown when converting URI to URL for "+url+": "+ex);
                 }
-                Path myPath;
                 if (uri.getScheme().equals("jar")) {
                     try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-                        myPath = fileSystem.getPath(STATIC_FILES_DIRECTORY);
+                        final var myPath = fileSystem.getPath(STATIC_FILES_DIRECTORY);
+                        processPath(myPath);
                     }
                 } else {
-                    myPath = Paths.get(uri);
-                }
-
-                try (final var pathsStream = Files.walk(myPath, 1)) {
-                    for (var path : pathsStream.toList()) {
-                        final var fileContents = FileUtils.read(STATIC_FILES_DIRECTORY + path.getFileName().toString());
-                        if (fileContents == null) continue;
-
-                        final var filename = path.getFileName().toString();
-                        Response result;
-                        if (filename.endsWith(".css")) {
-                            result = createOkResponse(fileContents, ContentType.TEXT_CSS);
-                        } else if (filename.endsWith(".js")) {
-                            result = createOkResponse(fileContents, ContentType.APPLICATION_JAVASCRIPT);
-                        } else if (filename.endsWith(".webp")) {
-                            result = createOkResponse(fileContents, ContentType.IMAGE_WEBP);
-                        } else if (filename.endsWith(".html") || filename.endsWith(".htm")) {
-                            result = createOkResponse(fileContents, ContentType.TEXT_HTML);
-                        } else {
-                            result = createNotFoundResponse();
-                        }
-
-                        staticResponses.put(filename, result);
-                    }
+                    final var myPath = Paths.get(uri);
+                    processPath(myPath);
                 }
             }
             return this;
         }
+
+    private void processPath(Path myPath) throws IOException {
+        try (final var pathsStream = Files.walk(myPath, 1)) {
+            for (var path : pathsStream.toList()) {
+                final var fileContents = FileUtils.read(STATIC_FILES_DIRECTORY + path.getFileName().toString());
+                if (fileContents == null) continue;
+
+                final var filename = path.getFileName().toString();
+                Response result;
+                if (filename.endsWith(".css")) {
+                    result = createOkResponse(fileContents, ContentType.TEXT_CSS);
+                } else if (filename.endsWith(".js")) {
+                    result = createOkResponse(fileContents, ContentType.APPLICATION_JAVASCRIPT);
+                } else if (filename.endsWith(".webp")) {
+                    result = createOkResponse(fileContents, ContentType.IMAGE_WEBP);
+                } else if (filename.endsWith(".html") || filename.endsWith(".htm")) {
+                    result = createOkResponse(fileContents, ContentType.TEXT_HTML);
+                } else {
+                    result = createNotFoundResponse();
+                }
+
+                staticResponses.put(filename, result);
+            }
+        }
+    }
 
     private Response createNotFoundResponse() {
         return new Response(
