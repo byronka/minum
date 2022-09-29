@@ -43,7 +43,7 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public void sendHttpLine(String msg) throws IOException {
-        logger.logDebug(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
+        logger.logTrace(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
         send(msg + Web.HTTP_CRLF);
     }
 
@@ -69,7 +69,7 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public void close() throws IOException {
-        logger.logDebug(() -> "close called on " + this);
+        logger.logTrace(() -> "close called on " + this);
         socket.close();
         if (setOfServers != null) {
             setOfServers.remove(this);

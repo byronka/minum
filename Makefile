@@ -24,6 +24,13 @@ OUT_DIR := out
 OUT_DIR_MAIN := $(OUT_DIR)/main
 
 ##
+# output directory for resources originally located under main
+# note: Java commands like FileUtils.getResources will look into any folder
+# in the classpath
+##
+OUT_DIR_RESOURCES := $(OUT_DIR)/resources
+
+##
 # output directory for test files
 ##
 OUT_DIR_TEST := $(OUT_DIR)/test
@@ -61,12 +68,12 @@ TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/:$(OUT_DI
 ##
 # run classpath options - the classpaths needed to run the program
 ##
-RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*"
+RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_RESOURCES)"
 
 ##
 # run classpath for tests
 ##
-TST_RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_TEST)"
+TST_RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_TEST):$(OUT_DIR_RESOURCES)"
 
 ##
 # classes
@@ -104,18 +111,21 @@ COV_DIR = out/coveragereport
 ##
 # targets that do not produce output files
 ##
-.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses
+.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses copyresources
 
 ##
 # default target(s)
 ##
-all: classes
+all: classes copyresources
 
 LIST:=
 TEST_LIST:=
 
 # note that putting an @ in front of a command in a makefile
 # will cause that command not to echo out when running Make.
+
+copyresources:
+	    rsync -rupE src/resources out
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \

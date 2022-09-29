@@ -34,6 +34,8 @@ public class Logger implements ILogger {
     private void toggleDefaultLogging() {
         toggles = new EnumMap<>(Type.class);
         toggles.put(Type.DEBUG, true);
+        toggles.put(Type.TRACE, false);
+        toggles.put(Type.ASYNC_ERROR, true);
     }
 
     @Override
@@ -53,6 +55,23 @@ public class Logger implements ILogger {
             String finalReceivedMessage = receivedMessage;
             loggerPrinter.enqueue(() -> {
                 printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
+                return null;
+            });
+        }
+    }
+
+    @Override
+    public void logTrace(ThrowingSupplier<String, Exception> msg) {
+        String receivedMessage;
+        try {
+            receivedMessage = msg.get();
+        } catch (Exception ex) {
+            receivedMessage = "EXCEPTION DURING GET: " + ex;
+        }
+        if (toggles.get(Type.TRACE)) {
+            String finalReceivedMessage = receivedMessage;
+            loggerPrinter.enqueue(() -> {
+                printf("TRACE: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
                 return null;
             });
         }
@@ -107,6 +126,17 @@ public class Logger implements ILogger {
          * Represents an error that occurs in a separate thread, so
          * that we are not able to catch it bubbling up
          */
-        ASYNC_ERROR
+        ASYNC_ERROR,
+
+        /**
+         * Information marked as trace is pretty much entered for
+         * the same reason as DEBUG - i.e. so we can see important
+         * information about the running state of the program. The
+         * only difference is that trace information is very voluminous.
+         * That is, there's tons of it, and it could make it harder
+         * to find the important information amongst a lot of noise.
+         * For that reason, TRACE is usually turned off.
+         */
+        TRACE
     }
 }

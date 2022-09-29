@@ -15,13 +15,13 @@ public record SetOfServers(ConcurrentSet<SocketWrapper> data, ILogger logger) {
     public void add(SocketWrapper sw) {
         data().add(sw);
         int size = data().size();
-        logger.logDebug(() -> "added " + sw + " to setOfServers. size: " + size);
+        logger.logTrace(() -> "added " + sw + " to setOfServers. size: " + size);
     }
 
     public void remove(SocketWrapper sw) {
         data().remove(sw);
         int size = data().size();
-        logger.logDebug(() -> "removed " + sw + " from setOfServers. size: " + size);
+        logger.logTrace(() -> "removed " + sw + " from setOfServers. size: " + size);
     }
 
     /**

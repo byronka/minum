@@ -48,7 +48,7 @@ public class Server implements AutoCloseable {
                 // that's just part of its life cycle
                 //noinspection InfiniteLoopStatement
                 while (true) {
-                    logger.logDebug(() -> "server waiting to accept connection");
+                    logger.logTrace(() -> "server waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
                     SocketWrapper sw = new SocketWrapper(freshSocket, setOfServers, logger);
                     logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));

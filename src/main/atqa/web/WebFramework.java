@@ -45,9 +45,9 @@ public class WebFramework {
                 if (rawStartLine == null) {
                     return;
                 }
-                logger.logDebug(() -> sw + ": raw startline received: " + rawStartLine);
+                logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
                 StartLine sl = StartLine.extractStartLine(rawStartLine);
-                logger.logDebug(() -> sw + ": StartLine received: " + sl);
+                logger.logTrace(() -> sw + ": StartLine received: " + sl);
 
                 Headers hi = Headers.extractHeaderInformation(sw);
                 String body = extractData(sw, hi);

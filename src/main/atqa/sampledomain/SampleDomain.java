@@ -40,6 +40,8 @@ public class SampleDomain {
                 <html>
                     <head>
                         <title>This is the title</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
                     </head>
                     
                     <body>
