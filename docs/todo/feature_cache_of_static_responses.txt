@@ -4,3 +4,5 @@ Create a cache of static responses so the web server can quickly respond
 when it receives a request for something that only changes between restarts.
 
 Things like CSS files, JS scripts, images.
+
+make sure there is a working "resources/static" directory - actually test this thing out.
