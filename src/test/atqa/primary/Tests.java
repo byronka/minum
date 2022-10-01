@@ -361,6 +361,20 @@ public class Tests {
       }
     }
 
+    /*
+     * The StaticFilesCache is memory storage for all the files we
+     * are sending to clients that don't (typically) change during
+     * the run of the server.  Things like style pages, banner images,
+     * non-dynamic scripts.
+     *
+     * This test presumes that there are static files in the
+     * main/static directory.
+     */
+    logger.test("StaticFilesCache should load static files into a map"); {
+      final var sfc = new StaticFilesCache(logger).loadStaticFiles();
+      assertTrue(sfc.getSize() > 0);
+    }
+
   }
 
   /*$$$$$$$                    /$$                                         /$$                     /$$

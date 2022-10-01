@@ -46,6 +46,10 @@ public class StaticFilesCache {
         this.logger = logger;
     }
 
+    public int getSize() {
+        return staticResponses.size();
+    }
+
     public Response getStaticResponse(String key) {
         return staticResponses.get(key);
     }
