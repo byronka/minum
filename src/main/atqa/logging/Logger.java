@@ -45,50 +45,33 @@ public class Logger implements ILogger {
 
     @Override
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
-        String receivedMessage;
-        try {
-            receivedMessage = msg.get();
-        } catch (Exception ex) {
-            receivedMessage = "EXCEPTION DURING GET: " + ex;
-        }
-        if (toggles.get(Type.DEBUG)) {
-            String finalReceivedMessage = receivedMessage;
-            loggerPrinter.enqueue(() -> {
-                printf("DEBUG: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
-                return null;
-            });
-        }
+        logHelper(msg, Type.DEBUG);
     }
 
     @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
-        String receivedMessage;
-        try {
-            receivedMessage = msg.get();
-        } catch (Exception ex) {
-            receivedMessage = "EXCEPTION DURING GET: " + ex;
-        }
-        if (toggles.get(Type.TRACE)) {
-            String finalReceivedMessage = receivedMessage;
-            loggerPrinter.enqueue(() -> {
-                printf("TRACE: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
-                return null;
-            });
-        }
+        logHelper(msg, Type.TRACE);
     }
 
     @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        logHelper(msg, Type.ASYNC_ERROR);
+    }
+
+    /**
+     * A helper method to reduce duplication
+     */
+    public void logHelper(ThrowingSupplier<String, Exception> msg, Type type) {
         String receivedMessage;
         try {
             receivedMessage = msg.get();
         } catch (Exception ex) {
             receivedMessage = "EXCEPTION DURING GET: " + ex;
         }
-        if (toggles.get(Type.ASYNC_ERROR)) {
+        if (toggles.get(type)) {
             String finalReceivedMessage = receivedMessage;
             loggerPrinter.enqueue(() -> {
-                printf("ASYNC ERROR: %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
+                printf(type.name() + ": %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
                 return null;
             });
         }
