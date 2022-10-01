@@ -1,5 +1,6 @@
 package atqa.primary;
 
+import atqa.FullSystem;
 import atqa.database.SimpleDatabaseTests;
 import atqa.logging.TestLogger;
 import atqa.utils.ExtendedExecutor;
@@ -22,8 +23,6 @@ import static atqa.web.StatusLine.StatusCode._200_OK;
 
 public class Tests {
 
-  static final ExecutorService es = ExtendedExecutor.makeExecutorService();
-  static final TestLogger logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
   static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
 
 
@@ -35,7 +34,7 @@ public class Tests {
 | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
 | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
 |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
-  public static void webTests() throws IOException {
+  public static void webTests(ExecutorService es, TestLogger logger) throws IOException {
 
     Web web = new Web(logger);
 
@@ -388,7 +387,7 @@ public class Tests {
                                                                             /$$  | $$
                                                                            |  $$$$$$/
                                                                             \_____*/
-  public static void testAnalysisTests() {
+  public static void testAnalysisTests(TestLogger logger) {
 
 
     // region Test Analysis section
@@ -475,15 +474,19 @@ public class Tests {
   }
 
   public static void main(String[] args) throws Exception {
-    try {
-      webTests();
-      testAnalysisTests();
-      new SimpleDatabaseTests(logger).tests(es);
-    } finally {
-      // final shutdown pieces
-      logger.stop();
-      es.shutdownNow();
-    }
+    final var es = ExtendedExecutor.makeExecutorService();
+    final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+    var fs = new FullSystem(logger, es).start();
+    fs.shutdown();
+
+    final var es2 = ExtendedExecutor.makeExecutorService();
+    final var logger2 = new TestLogger(es2); //.turnOff(Logger.Type.DEBUG);
+    webTests(es2, logger2);
+    testAnalysisTests(logger2);
+    new SimpleDatabaseTests(logger2).tests(es2);
+    // final shutdown pieces
+    logger2.stop();
+    es2.shutdownNow();
   }
 
 }
