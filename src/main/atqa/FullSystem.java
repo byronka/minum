@@ -60,6 +60,5 @@ public class FullSystem {
         logger.stop();
 
         logger.logImperative("Goodbye world!");
-        es.shutdownNow();
     }
 }

@@ -474,19 +474,26 @@ public class Tests {
   }
 
   public static void main(String[] args) throws Exception {
+    testFullSystem_Soup_To_Nuts();
+
+    final var es = ExtendedExecutor.makeExecutorService();
+    final var logger = new TestLogger(es);
+
+    webTests(es, logger);
+    testAnalysisTests(logger);
+    new SimpleDatabaseTests(logger).tests(es);
+
+    // shut the test threads down
+    logger.stop();
+    es.shutdownNow();
+  }
+
+  private static void testFullSystem_Soup_To_Nuts() throws IOException {
     final var es = ExtendedExecutor.makeExecutorService();
     final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
     var fs = new FullSystem(logger, es).start();
     fs.shutdown();
-
-    final var es2 = ExtendedExecutor.makeExecutorService();
-    final var logger2 = new TestLogger(es2); //.turnOff(Logger.Type.DEBUG);
-    webTests(es2, logger2);
-    testAnalysisTests(logger2);
-    new SimpleDatabaseTests(logger2).tests(es2);
-    // final shutdown pieces
-    logger2.stop();
-    es2.shutdownNow();
+    es.shutdownNow();
   }
 
 }
