@@ -1,4 +1,0 @@
-There are a bunch of discrete bits and pieces to our web framework
-that might benefit from better organization.  For example,
-web.HttpUtils.readBody seems oddly isolated - surely it relates
-and therefore fits into something like Web or WebFramework or SocketWrapper?
