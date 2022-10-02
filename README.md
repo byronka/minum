@@ -7,7 +7,7 @@ ATQA - automated test quality analyzer
 
 System requirements: 
 --------------------
-developed on a MacBook Pro with OS 12.0.1, with OpenJDK 17.0.1 and GNU Make 3.81
+developed on a MacBook Pro with OS 12.0.1, with OpenJDK 19 and GNU Make 3.81
 
 Directories:
 ------------
