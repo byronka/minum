@@ -24,12 +24,18 @@ import static atqa.web.Web.HTTP_CRLF;
  * lot of logistics needed. For example, routing based on the path, determining
  * proper response headers, and doing it all with panache.
  */
-public class WebFramework {
+public class Frame {
 
     private final ILogger logger;
     private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
     private final ZonedDateTime zdt;
     private StaticFilesCache staticFilesCache;
+
+    public static Function<Request, Response> redirectTo(String location) {
+        return x -> new Response(
+                StatusLine.StatusCode._303_SEE_OTHER,
+                List.of("location: " + location));
+    }
 
     /**
      * This is the brains of how the server responds to web clients
@@ -61,7 +67,7 @@ public class WebFramework {
                         "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
                                 "Date: " + date + HTTP_CRLF +
                                 "Server: atqa" + HTTP_CRLF +
-                                r.contentType().headerString + HTTP_CRLF +
+                                (r.contentType() == ContentType.NONE ? "" : r.contentType().headerString + HTTP_CRLF) +
                                 r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()) +
                                 "Content-Length: " + r.body().length() + HTTP_CRLF +
                                 HTTP_CRLF +
@@ -102,7 +108,7 @@ public class WebFramework {
         return functionFound;
     }
 
-    public WebFramework(ILogger logger) {
+    public Frame(ILogger logger) {
         this(logger, null);
     }
 
@@ -110,7 +116,7 @@ public class WebFramework {
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
      */
-    public WebFramework(ILogger logger, ZonedDateTime zdt) {
+    public Frame(ILogger logger, ZonedDateTime zdt) {
         this.logger = logger;
         this.zdt = zdt;
         this.registeredDynamicPaths = new HashMap<>();

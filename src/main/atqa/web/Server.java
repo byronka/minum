@@ -51,7 +51,7 @@ public class Server implements AutoCloseable {
                     logger.logTrace(() -> "server waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
                     SocketWrapper sw = new SocketWrapper(freshSocket, setOfServers, logger);
-                    logger.logDebug(() -> String.format("server accepted connection: remote: %s", sw.getRemoteAddr()));
+                    logger.logDebug(() -> String.format("client connected from %s", sw.getRemoteAddr()));
                     setOfServers.add(sw);
                     if (handler != null) {
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> handler.accept(sw)));

@@ -11,7 +11,12 @@ public enum ContentType {
 
     // Application MIME types - see https://www.iana.org/assignments/media-types/media-types.xhtml#application
     APPLICATION_JAVASCRIPT("Content-Type: application/javascript"),
-    IMAGE_WEBP("Content-Type: image/webp");
+    IMAGE_WEBP("Content-Type: image/webp"),
+
+    /**
+     * Used when we aren't returning any body to the client.  e.g. 204, 303 statuses.
+     */
+    NONE("");
 
     public final String headerString;
 

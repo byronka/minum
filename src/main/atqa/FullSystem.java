@@ -22,7 +22,7 @@ public class FullSystem {
     public FullSystem start() throws IOException {
         Web web = new Web(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
-        WebFramework wf = new WebFramework(logger);
+        Frame wf = new Frame(logger);
 
         final var sd = new SampleDomain(es, logger);
 
@@ -30,6 +30,7 @@ public class FullSystem {
 
 
         wf.registerStaticFiles(sfc);
+        wf.registerPath(StartLine.Verb.GET, "", Frame.redirectTo("index.html"));
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
         wf.registerPath(StartLine.Verb.GET, "shownames", sd::showNames);

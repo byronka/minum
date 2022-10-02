@@ -5,7 +5,7 @@ import atqa.logging.ILogger;
 import atqa.web.ContentType;
 import atqa.web.Request;
 import atqa.web.Response;
-import atqa.web.WebFramework;
+import atqa.web.Frame;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -56,7 +56,7 @@ public class SampleDomain {
     }
 
     public Response testform(Request r) {
-        final var formData = WebFramework.parseUrlEncodedForm(r.body());
+        final var formData = Frame.parseUrlEncodedForm(r.body());
         final var nameEntry = formData.get("name_entry");
 
         final var newPersonName = new PersonName(nameEntry, newPersonIndex.getAndAdd(1));

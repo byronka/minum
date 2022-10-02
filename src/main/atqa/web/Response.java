@@ -12,4 +12,8 @@ public record Response(StatusLine.StatusCode statusCode, ContentType contentType
     public Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders) {
         this(statusCode, contentType, extraHeaders, "");
     }
+
+    public Response(StatusLine.StatusCode statusCode, List<String> extraHeaders) {
+        this(statusCode, ContentType.NONE, extraHeaders, "");
+    }
 }

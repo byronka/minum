@@ -147,7 +147,7 @@ public class Tests {
     }
 
     logger.test("starting server with a handler part 2");{
-      WebFramework wf = new WebFramework(logger, default_zdt);
+      Frame wf = new Frame(logger, default_zdt);
       wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
       try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
@@ -267,26 +267,26 @@ public class Tests {
      */
     logger.test("parseUrlEncodedForm should properly parse data");{
       final var expected = Map.of("value_a", "123", "value_b", "456");
-      final var result = WebFramework.parseUrlEncodedForm("value_a=123&value_b=456");
+      final var result = Frame.parseUrlEncodedForm("value_a=123&value_b=456");
       assertEquals(expected, result);
     }
 
     logger.test("parseUrlEncodedForm edge cases"); {
       // splitting on equals
-      final var ex1 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("value_a=123=456"));
+      final var ex1 = assertThrows(InvariantException.class, () -> Frame.parseUrlEncodedForm("value_a=123=456"));
       assertEquals(ex1.getMessage(), "Splitting on = should return 2 values.  Input was value_a=123=456");
 
       // blank key
-      final var ex2 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("=123"));
+      final var ex2 = assertThrows(InvariantException.class, () -> Frame.parseUrlEncodedForm("=123"));
       assertEquals(ex2.getMessage(), "The key must not be blank");
 
       // duplicate keys
-      final var ex3 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("a=123&a=123"));
+      final var ex3 = assertThrows(InvariantException.class, () -> Frame.parseUrlEncodedForm("a=123&a=123"));
       assertEquals(ex3.getMessage(), "a was duplicated in the post body - had values of 123 and 123");
     }
 
     logger.test("when we post data to an endpoint, it can extract the data"); {
-      WebFramework wf = new WebFramework(logger, default_zdt);
+      Frame wf = new Frame(logger, default_zdt);
       wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, ContentType.TEXT_HTML, x.body()));
       try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
@@ -318,7 +318,7 @@ public class Tests {
     }
 
     logger.test("when the requested endpoint does not exist, we get a 404 response"); {
-      WebFramework wf = new WebFramework(logger, default_zdt);
+      Frame wf = new Frame(logger, default_zdt);
       try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
 
@@ -342,7 +342,7 @@ public class Tests {
     }
 
     logger.test("when the client stops talking to the server, the endpoint handler bails"); {
-      WebFramework wf = new WebFramework(logger, default_zdt);
+      Frame wf = new Frame(logger, default_zdt);
       try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
         try (SocketWrapper client = web.startClient(primaryServer)) {
 

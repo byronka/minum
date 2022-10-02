@@ -1,0 +1,8 @@
+done 10/1/22
+
+Put together a highly graphical and interesting index page
+
+Maybe something with gif animation, or JavaScript?  Better if
+it's lighter, maybe involve someone who knows colors and graphics better?
+
+Not really "highly graphical" or interesting, but whatevs.
