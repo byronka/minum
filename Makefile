@@ -124,7 +124,7 @@ TEST_LIST:=
 # in the classpath
 ##
 copyresources:
-	    rsync -rupE src/static out/main
+	    @rsync -rupE src/static out/main
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \
