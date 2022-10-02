@@ -35,6 +35,11 @@ public class SampleDomain {
     }
 
     public Response formEntry(Request r) {
+        final String names = personNames
+                .stream().sorted(Comparator.comparingLong(PersonName::index))
+                .map(x -> "<li>" + x.fullname() + "</li>\n")
+                .collect(Collectors.joining());
+
         return new Response(_200_OK, ContentType.TEXT_HTML, """
                 <!DOCTYPE html>
                 <html>
@@ -50,6 +55,11 @@ public class SampleDomain {
                                 <input name="name_entry" id="name_entry" type="text" value="" />
                             </label>
                         </form>
+                            <ol>
+                        """+
+                        names
+                        +"""
+                        </ol>
                     </body>
                 </html>
                 """);
@@ -62,31 +72,7 @@ public class SampleDomain {
         final var newPersonName = new PersonName(nameEntry, newPersonIndex.getAndAdd(1));
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
-        return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: shownames"));
-    }
-
-    public Response showNames(Request r) {
-        final String names = personNames
-                .stream().sorted(Comparator.comparingLong(PersonName::index))
-                .map(x -> "<li>" + x.fullname() + "</li>\n")
-                .collect(Collectors.joining());
-
-        return new Response(_200_OK, ContentType.TEXT_HTML, """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>This is the title</title>
-                    </head>
-                    
-                    <body>
-                        <ol>
-                """+
-                names
-                +"""
-                        </ol>
-                    </body>
-                </html>
-                """);
+        return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: formentry"));
     }
 
 }

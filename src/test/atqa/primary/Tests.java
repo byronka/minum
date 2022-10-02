@@ -488,8 +488,8 @@ public class Tests {
     es.shutdownNow();
   }
 
-  private static void testFullSystem_Soup_To_Nuts() throws IOException {
-    final var es = ExtendedExecutor.makeExecutorService();
+  private static void testFullSystem_Soup_To_Nuts() throws IOException{
+    final var es = Executors.newVirtualThreadPerTaskExecutor();
     final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
     var fs = new FullSystem(logger, es).start();
     fs.shutdown();

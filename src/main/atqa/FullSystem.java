@@ -19,7 +19,7 @@ public class FullSystem {
         this.es = es;
     }
 
-    public FullSystem start() throws IOException {
+    public FullSystem start() throws IOException  {
         Web web = new Web(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
         Frame wf = new Frame(logger);
@@ -33,7 +33,6 @@ public class FullSystem {
         wf.registerPath(StartLine.Verb.GET, "", Frame.redirectTo("index.html"));
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
-        wf.registerPath(StartLine.Verb.GET, "shownames", sd::showNames);
 
         server = web.startServer(es, wf.makeHandler());
         return this;
