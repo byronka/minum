@@ -88,10 +88,10 @@ ifneq ($(JAVA_HOME),)
 endif
 
 # the name of our Java compiler
-JC = $(JAVA_HOME)javac
+JC = $(JAVA_HOME)javac --release 19 --enable-preview
 
 # the name of the java runner
-JAVA = $(JAVA_HOME)java
+JAVA = $(JAVA_HOME)java --enable-preview
 
 # the directory where we store the code coverage report
 COV_DIR = out/coveragereport
