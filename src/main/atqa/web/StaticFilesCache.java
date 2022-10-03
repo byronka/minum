@@ -36,7 +36,7 @@ public class StaticFilesCache {
     /**
      * in the resources, where we store our static files
      */
-    static final String STATIC_FILES_DIRECTORY = "static/";
+    static final String STATIC_FILES_DIRECTORY = "resources/static/";
 
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
@@ -63,7 +63,14 @@ public class StaticFilesCache {
                 } catch (URISyntaxException ex) {
                     logger.logDebug(() -> "Exception thrown when converting URI to URL for "+url+": "+ex);
                 }
+
                 if (uri.getScheme().equals("jar")) {
+                    /*
+                    This part is necessary because it's the only way we can set up to loop
+                    through paths (files) later.  That is to say, when we getResource(path), it works fine,
+                    but if we want to get a list of all the files in a directory inside our jar file,
+                    we have to do it this way.
+                     */
                     try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
                         final var myPath = fileSystem.getPath(STATIC_FILES_DIRECTORY);
                         processPath(myPath);

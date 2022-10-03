@@ -124,7 +124,7 @@ TEST_LIST:=
 # in the classpath
 ##
 copyresources:
-	    @rsync --recursive --update --perms --extended-attributes src/static out/main
+	    @rsync --recursive --update --perms --extended-attributes src/resources out/main
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \

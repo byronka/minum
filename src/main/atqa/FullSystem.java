@@ -12,6 +12,8 @@ public class FullSystem {
 
     ILogger logger;
     Server server;
+    Server sslServer;
+
     ExecutorService es;
 
     public FullSystem(ILogger logger, ExecutorService es) {
@@ -35,6 +37,7 @@ public class FullSystem {
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
 
         server = web.startServer(es, wf.makeHandler());
+        sslServer = web.startSslServer(es, wf.makeHandler());
         return this;
     }
 
@@ -53,8 +56,12 @@ public class FullSystem {
      */
     public void shutdown() throws IOException {
         logger.logImperative("Received shutdown command");
+
         logger.logImperative("Stopping the server");
         server.stop();
+
+        logger.logImperative("Stopping the SSL server");
+        sslServer.stop();
 
         logger.logImperative("Shutting down logging");
         logger.stop();
