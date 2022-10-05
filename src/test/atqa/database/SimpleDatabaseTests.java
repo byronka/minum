@@ -217,7 +217,7 @@ public class SimpleDatabaseTests {
             }
             final var time = timer.stopTimer();
 
-            // logger.testPrint("time taken was " + time + " milliseconds");
+             logger.testPrint("time taken was " + time + " milliseconds");
         }
 
     }

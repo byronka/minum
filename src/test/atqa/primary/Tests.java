@@ -3,8 +3,8 @@ package atqa.primary;
 import atqa.FullSystem;
 import atqa.database.SimpleDatabaseTests;
 import atqa.logging.TestLogger;
-import atqa.utils.ExtendedExecutor;
 import atqa.utils.InvariantException;
+import atqa.utils.MyThread;
 import atqa.utils.ThrowingConsumer;
 import atqa.web.*;
 
@@ -476,7 +476,10 @@ public class Tests {
   public static void main(String[] args) throws Exception {
     testFullSystem_Soup_To_Nuts();
 
-    final var es = ExtendedExecutor.makeExecutorService();
+    // need to wait for port 8080 to be closed by the TCP system
+    MyThread.sleep(1000);
+
+    final var es = Executors.newVirtualThreadPerTaskExecutor();
     final var logger = new TestLogger(es);
 
     webTests(es, logger);
@@ -488,12 +491,13 @@ public class Tests {
     es.shutdownNow();
   }
 
-  private static void testFullSystem_Soup_To_Nuts() throws IOException{
+  private static void testFullSystem_Soup_To_Nuts() throws IOException, InterruptedException {
     final var es = Executors.newVirtualThreadPerTaskExecutor();
     final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
     var fs = new FullSystem(logger, es).start();
     fs.shutdown();
     es.shutdownNow();
+    es.awaitTermination(10, TimeUnit.SECONDS);
   }
 
 }
