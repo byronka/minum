@@ -26,6 +26,11 @@ public class FakeSocketWrapper implements ISocketWrapper {
     }
 
     @Override
+    public void send(byte[] bodyContents) {
+
+    }
+
+    @Override
     public void sendHttpLine(String msg) {
         sendHttpLineAction.accept(msg);
     }

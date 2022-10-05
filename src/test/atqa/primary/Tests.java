@@ -48,6 +48,7 @@ public class Tests {
             assertEquals("hello foo!", result);
           }
         }
+        primaryServer.stop();
       }
     }
 
@@ -73,6 +74,7 @@ public class Tests {
             assertEquals(msg3, server.readLine());
           }
         }
+        primaryServer.stop();
       }
     }
 
@@ -93,6 +95,7 @@ public class Tests {
             server.sendHttpLine("HTTP/1.1 200 OK");
           }
         }
+        primaryServer.stop();
       }
     }
 
@@ -117,13 +120,7 @@ public class Tests {
           // send a GET request
           client.sendHttpLine("GET /index.html HTTP/1.1");
 
-          // give the server time to run code from the handler,
-          // then shut down.
-          try {
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception e) {
-            // do nothing
-          }
+          primaryServer.stop();
         }
       }
     }
@@ -175,13 +172,7 @@ public class Tests {
 
           assertEquals(body, "86");
 
-          // give the server time to run code from the handler,
-          // then shut down.
-          try {
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception e) {
-            // do nothing
-          }
+          primaryServer.stop();
         }
       }
     }
@@ -306,13 +297,7 @@ public class Tests {
 
           assertEquals(body, "value_a=123&value_b=456");
 
-          // give the server time to run code from the handler,
-          // then shut down.
-          try {
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception e) {
-            // do nothing
-          }
+          primaryServer.stop();
         }
       }
     }
@@ -330,13 +315,7 @@ public class Tests {
           StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
           assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
 
-          // give the server time to run code from the handler,
-          // then shut down.
-          try {
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception e) {
-            // do nothing
-          }
+          primaryServer.stop();
         }
       }
     }
@@ -349,13 +328,7 @@ public class Tests {
           // send a GET request
           client.close();
 
-          // give the server time to run code from the handler,
-          // then shut down.
-          try {
-            primaryServer.centralLoopFuture.get(10, TimeUnit.MILLISECONDS);
-          } catch (Exception e) {
-            // do nothing
-          }
+          primaryServer.stop();
         }
       }
     }
