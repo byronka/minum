@@ -320,19 +320,6 @@ public class Tests {
       }
     }
 
-    logger.test("when the client stops talking to the server, the endpoint handler bails"); {
-      Frame wf = new Frame(logger, default_zdt);
-      try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
-        try (SocketWrapper client = web.startClient(primaryServer)) {
-
-          // send a GET request
-          client.close();
-
-          primaryServer.stop();
-        }
-      }
-    }
-
     /*
      * The StaticFilesCache is memory storage for all the files we
      * are sending to clients that don't (typically) change during
@@ -452,25 +439,26 @@ public class Tests {
     // need to wait for port 8080 to be closed by the TCP system
     MyThread.sleep(1000);
 
-    final var es = Executors.newVirtualThreadPerTaskExecutor();
-    final var logger = new TestLogger(es);
+    try (final var es = Executors.newVirtualThreadPerTaskExecutor()) {
+      final var logger = new TestLogger(es);
 
-    webTests(es, logger);
-    testAnalysisTests(logger);
-    new SimpleDatabaseTests(logger).tests(es);
+      webTests(es, logger);
+      testAnalysisTests(logger);
+      new SimpleDatabaseTests(logger).tests(es);
 
-    // shut the test threads down
-    logger.stop();
-    es.shutdownNow();
+      // shut the test threads down
+      logger.stop();
+      es.shutdownNow();
+    }
   }
 
-  private static void testFullSystem_Soup_To_Nuts() throws IOException, InterruptedException {
-    final var es = Executors.newVirtualThreadPerTaskExecutor();
-    final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
-    var fs = new FullSystem(logger, es).start();
-    fs.shutdown();
-    es.shutdownNow();
-    es.awaitTermination(10, TimeUnit.SECONDS);
+  private static void testFullSystem_Soup_To_Nuts() throws IOException {
+    try (final var es = Executors.newVirtualThreadPerTaskExecutor()) {
+      final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+      var fs = new FullSystem(logger, es).start();
+      fs.shutdown();
+      es.shutdownNow();
+    }
   }
 
   private static String readBody(SocketWrapper sw, int length) throws IOException {
