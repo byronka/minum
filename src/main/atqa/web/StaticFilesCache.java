@@ -119,6 +119,6 @@ public class StaticFilesCache {
         return new Response(
                 StatusLine.StatusCode._200_OK,
                 contentType,
-                new String(fileContents));
+                fileContents);
     }
 }

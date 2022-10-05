@@ -42,6 +42,11 @@ public class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
+    public void send(byte[] bodyContents) throws IOException {
+        writer.write(bodyContents);
+    }
+
+    @Override
     public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
         send(msg + Web.HTTP_CRLF);

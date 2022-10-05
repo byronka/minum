@@ -6,6 +6,8 @@ import java.net.SocketAddress;
 public interface ISocketWrapper extends AutoCloseable {
     void send(String msg) throws IOException;
 
+    void send(byte[] bodyContents) throws IOException;
+
     void sendHttpLine(String msg) throws IOException;
 
     String readLine() throws IOException;

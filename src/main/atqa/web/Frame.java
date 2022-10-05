@@ -63,16 +63,16 @@ public class Frame {
 
                 String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
-                sw.sendHttpLine(
+                sw.send(
                         "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
                                 "Date: " + date + HTTP_CRLF +
                                 "Server: atqa" + HTTP_CRLF +
                                 (r.contentType() == ContentType.NONE ? "" : r.contentType().headerString + HTTP_CRLF) +
                                 r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()) +
-                                "Content-Length: " + r.body().length() + HTTP_CRLF +
-                                HTTP_CRLF +
-                                r.body()
+                                "Content-Length: " + r.body().length + HTTP_CRLF +
+                                HTTP_CRLF
                 );
+                sw.send(r.body());
             } catch (SocketException ex) {
                 // if we close the application on the server side, there's a good
                 // likelihood a SocketException will come bubbling through here.

@@ -171,7 +171,7 @@ public class Tests {
 
           assertEqualsDisregardOrder(hi.rawValues(), expectedResponseHeaders);
 
-          String body = HttpUtils.readBody(client, hi.contentLength());
+          String body = readBody(client, hi.contentLength());
 
           assertEquals(body, "86");
 
@@ -302,7 +302,7 @@ public class Tests {
 
           StatusLine.extractStatusLine(client.readLine());
           Headers hi = Headers.extractHeaderInformation(client);
-          String body = HttpUtils.readBody(client, hi.contentLength());
+          String body = readBody(client, hi.contentLength());
 
           assertEquals(body, "value_a=123&value_b=456");
 
@@ -500,4 +500,7 @@ public class Tests {
     es.awaitTermination(10, TimeUnit.SECONDS);
   }
 
+  private static String readBody(SocketWrapper sw, int length) throws IOException {
+    return sw.readByLength(length);
+  }
 }
