@@ -88,10 +88,12 @@ ifneq ($(JAVA_HOME),)
 endif
 
 # the name of our Java compiler
+# The following line, about enabling preview, is for using virtual threads with java 19
 #JC = $(JAVA_HOME)javac --release 19 --enable-preview
 JC = $(JAVA_HOME)javac
 
 # the name of the java runner
+# The following line, about enabling preview, is for using virtual threads with java 19
 #JAVA = $(JAVA_HOME)java --enable-preview
 JAVA = $(JAVA_HOME)java
 

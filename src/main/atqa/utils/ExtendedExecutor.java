@@ -33,7 +33,9 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
     }
 
     public static ExecutorService makeExecutorService() {
-//        return Executors.newVirtualThreadPerTaskExecutor();
+        // the following line is only usable with the virtual threads API, which
+        // is available on OpenJDK 19 in preview mode.
+        // return Executors.newVirtualThreadPerTaskExecutor();
         return new ExtendedExecutor(0, Integer.MAX_VALUE,
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
