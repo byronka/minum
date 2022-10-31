@@ -58,7 +58,7 @@ public class Server implements AutoCloseable {
                     }
                 }
             } catch (SocketException ex) {
-                if (!ex.getMessage().contains("Socket closed")) {
+                if (! (ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
                     throw new RuntimeException(ex);
                 }
             }

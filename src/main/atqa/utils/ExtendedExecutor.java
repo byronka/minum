@@ -33,11 +33,11 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
     }
 
     public static ExecutorService makeExecutorService() {
-        return Executors.newVirtualThreadPerTaskExecutor();
-//        return new ExtendedExecutor(0, Integer.MAX_VALUE,
-//                60L, TimeUnit.SECONDS,
-//                new SynchronousQueue<>(),
-//                Executors.defaultThreadFactory());
+//        return Executors.newVirtualThreadPerTaskExecutor();
+        return new ExtendedExecutor(0, Integer.MAX_VALUE,
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                Executors.defaultThreadFactory());
     }
 
 }
