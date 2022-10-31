@@ -1,0 +1,74 @@
+Sometimes, after a reboot, I find that when I run tests they will lock up.  For example:
+
+    atqa % make test
+    /Users/byronkatz/java/java19/jdk-19.jdk/Contents/Home/bin/java --enable-preview -cp "out/main:lib/*:out/test" atqa.primary.Tests
+    DEBUG: 2022-10-31T14:07:35.948507Z Using a supplied logger
+    DEBUG: 2022-10-31T14:07:36.073344Z Just created a new ServerSocket: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8080]
+    DEBUG: 2022-10-31T14:07:36.080110Z Keystore system property was not set
+    DEBUG: 2022-10-31T14:07:36.081254Z keystorePassword system property was not set
+    DEBUG: 2022-10-31T14:07:36.083031Z Using the default (self-signed / testing-only) certificate
+    2022-10-31T14:07:36.343527Z IMPERATIVE: Received shutdown command
+    DEBUG: 2022-10-31T14:07:36.343583Z Just created a new ServerSocket: [SSL: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8443]]
+    2022-10-31T14:07:36.343711Z IMPERATIVE: Stopping the server
+    2022-10-31T14:07:36.344911Z IMPERATIVE: Stopping the SSL server
+    2022-10-31T14:07:36.345172Z IMPERATIVE: Shutting down logging
+    2022-10-31T14:07:36.345356Z IMPERATIVE: Goodbye world!
+    ActionQueue for loggerPrinter is stopped.
+    ActionQueue for DatabaseWriter out/simple_db/names is stopped.
+    DEBUG: 2022-10-31T14:07:37.413045Z Using a supplied logger
+
+    +-------------
+    | TEST 1: client / server
+    +-------------
+
+    DEBUG: 2022-10-31T14:07:37.433705Z Just created a new ServerSocket: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8080]
+    DEBUG: 2022-10-31T14:07:37.619982Z Just created new client socket: Socket[addr=Byrons-MacBook-Pro.local/127.0.0.1,port=8080,localport=49496]
+    DEBUG: 2022-10-31T14:07:37.622878Z client connected from /127.0.0.1:49496
+    DEBUG: 2022-10-31T14:07:37.628219Z no server found, sleeping on it... (attempt 1)
+
+    +-------------
+    | TEST 2: client / server with more conversation
+    +-------------
+
+    DEBUG: 2022-10-31T14:07:37.650923Z Just created a new ServerSocket: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8080]
+    DEBUG: 2022-10-31T14:07:37.651254Z Just created new client socket: Socket[addr=Byrons-MacBook-Pro.local/127.0.0.1,port=8080,localport=49497]
+    DEBUG: 2022-10-31T14:07:37.651558Z no server found, sleeping on it... (attempt 1)
+    DEBUG: 2022-10-31T14:07:37.657379Z client connected from /127.0.0.1:49497
+
+    +-------------
+    |  *** SKIPPED *** TEST 3: What happens if we throw an exception in a thread
+    +-------------
+
+
+    +-------------
+    | TEST 4: like we're a atqa.web server
+    +-------------
+
+    DEBUG: 2022-10-31T14:07:37.668025Z Just created a new ServerSocket: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8080]
+    DEBUG: 2022-10-31T14:07:37.668271Z Just created new client socket: Socket[addr=Byrons-MacBook-Pro.local/127.0.0.1,port=8080,localport=49498]
+    DEBUG: 2022-10-31T14:07:37.668494Z no server found, sleeping on it... (attempt 1)
+    DEBUG: 2022-10-31T14:07:37.677198Z client connected from /127.0.0.1:49498
+
+    +-------------
+    | TEST 5: starting server with a handler
+    +-------------
+
+    *** NOTE NOTE NOTE NOTE NOTE ***
+    *** NOTE NOTE NOTE NOTE NOTE ***
+    *** NOTE NOTE NOTE NOTE NOTE ***
+    *** NOTE NOTE NOTE NOTE NOTE ***
+
+    (I waited several minutes, examined the JVM with JDK mission control, and used the jcmd tool to create a JSON-formatted output of the threads, see thread_dump.json)
+
+    (I pressed CTRL-C):
+    ^C2022-10-31T14:43:14.416065Z IMPERATIVE: Received shutdown command
+    2022-10-31T14:43:14.416360Z IMPERATIVE: Stopping the server
+    2022-10-31T14:43:14.416491Z IMPERATIVE: Stopping the SSL server
+    2022-10-31T14:43:14.416560Z IMPERATIVE: Shutting down logging
+    2022-10-31T14:43:14.416619Z IMPERATIVE: Goodbye world!
+    make: *** [test] Error 130
+
+
+To create the thread_dump.json file, I ran this command: jcmd 20106 Thread.dump_to_file -format=json thread_dump.json
+
+the number 20106 is the process id (pid) of the running application, which I obtained from JDK mission control.
