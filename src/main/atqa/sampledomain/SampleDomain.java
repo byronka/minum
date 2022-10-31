@@ -2,6 +2,7 @@ package atqa.sampledomain;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
+import atqa.utils.StringUtils;
 import atqa.web.ContentType;
 import atqa.web.Request;
 import atqa.web.Response;
@@ -37,7 +38,7 @@ public class SampleDomain {
     public Response formEntry(Request r) {
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::index))
-                .map(x -> "<li>" + x.fullname() + "</li>\n")
+                .map(x -> "<li>" + StringUtils.safeHtml(x.fullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
         return new Response(_200_OK, ContentType.TEXT_HTML, """

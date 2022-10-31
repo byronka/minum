@@ -15,6 +15,46 @@ public class StringUtils {
         // using a private constructor to hide the implicit public one.
     }
 
+
+    /**
+     * Returns text that has three symbols replaced -
+     * the less-than, greater-than, and ampersand.
+     * See https://www.w3.org/International/questions/qa-escapes#use
+     * <br>
+     * This will protect against something like <div>$USERNAME</div> allowing
+     * a username of
+     *      <script>alert(1)</script>
+     * becoming
+     *      <div><script>alert(1)</script</div>
+     * and instead becomes
+     *      <div>&lt;script&gt;alert(1)&lt;/script&gt;</div>
+     *<br>
+     * If the text is going inside an attribute (e.g. <div class="TEXT_GOES_HERE"> )
+     * Then you need to escape slightly differently. In that case see [safeAttr]
+     */
+    public static String safeHtml(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
+    }
+
+    /**
+     * Replace dangerous text that would go inside an HTML attribute.
+     * See [safeHtml]
+     * If we get a null string, just return an empty string
+     */
+    public static String safeAttr(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;");
+    }
+
     /**
      * Encodes UTF-8 text using URL-encoding
      */
