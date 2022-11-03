@@ -49,21 +49,18 @@ public class SampleDomain {
                         <meta charset="utf-8"/>
                         <link rel="stylesheet" href="main.css" />
                     </head>
-                    
                     <body>
                         <form method="post" action="testform">
                             <label for="name_entry">Name Entry
                                 <input name="name_entry" id="name_entry" type="text" value="" />
                             </label>
                         </form>
-                            <ol>
-                        """+
-                        names
-                        +"""
+                        <ol>
+                        %s
                         </ol>
                     </body>
                 </html>
-                """);
+                """.formatted(names));
     }
 
     public Response testform(Request r) {

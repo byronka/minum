@@ -56,7 +56,7 @@ BUILD_CP := "$(SRC_DIR)/:$(LIB)/*"
 ##
 # build classpath for the tests
 ##
-TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/:$(OUT_DIR_TEST)/"
+TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/"
 
 ##
 # run classpath options - the classpaths needed to run the program
@@ -90,7 +90,7 @@ endif
 # the name of our Java compiler
 # The following line, about enabling preview, is for using virtual threads with java 19
 #JC = $(JAVA_HOME)javac --release 19 --enable-preview
-JC = $(JAVA_HOME)javac -Xlint:unchecked -Werror -g
+JC = $(JAVA_HOME)javac -Xlint:all -Werror -g
 
 # the name of the java runner
 # The following line, about enabling preview, is for using virtual threads with java 19
