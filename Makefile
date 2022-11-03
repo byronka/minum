@@ -90,7 +90,7 @@ endif
 # the name of our Java compiler
 # The following line, about enabling preview, is for using virtual threads with java 19
 #JC = $(JAVA_HOME)javac --release 19 --enable-preview
-JC = $(JAVA_HOME)javac
+JC = $(JAVA_HOME)javac -Xlint:unchecked -Werror -g
 
 # the name of the java runner
 # The following line, about enabling preview, is for using virtual threads with java 19
@@ -132,12 +132,12 @@ copyresources:
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \
-	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_MAIN)/ -cp $(BUILD_CP) $(LIST) ; \
+	        $(JC) -d $(OUT_DIR_MAIN)/ -cp $(BUILD_CP) $(LIST) ; \
 	    fi
 
 testclasses: $(TST_CLS)
 	    @if [ ! -z "$(TEST_LIST)" ] ; then \
-	        $(JC) -Xlint:unchecked -Werror -g -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
+	        $(JC) -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
 	    fi
 
 # here is the target for the application code
