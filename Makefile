@@ -115,9 +115,6 @@ COV_DIR = out/coveragereport
 ##
 all: classes copyresources
 
-LIST:=
-TEST_LIST:=
-
 # note that putting an @ in front of a command in a makefile
 # will cause that command not to echo out when running Make.
 
@@ -129,6 +126,10 @@ TEST_LIST:=
 ##
 copyresources:
 	    @rsync --recursive --update --perms --extended-attributes src/resources out/main
+
+# make empty arrays for later use
+LIST:=
+TEST_LIST:=
 
 classes: $(CLS)
 	    @if [ ! -z "$(LIST)" ] ; then \
