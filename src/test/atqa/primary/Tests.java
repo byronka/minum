@@ -80,10 +80,14 @@ public class Tests {
       }
     }
 
-    // no need to run this every time.  Feel free to uncomment this and make
-    // sure it works, but seeing exceptions in the output from tests is disconcerting.
-    logger.testSkip("What happens if we throw an exception in a thread");{
-      // es.submit(() -> {throw new RuntimeException("No worries folks, just testing the exception handling");});
+    logger.test("What happens if we throw an exception in a thread");{
+       es.submit(() -> {
+         try {
+           throw new RuntimeException("No worries folks, just testing the exception handling, from test \"What happens if we throw an exception in a thread\"");
+         } catch (Exception ex) {
+           logger.logDebug(() -> ex.getMessage());
+         }
+       });
     }
 
     logger.test("like we're a atqa.web server");{

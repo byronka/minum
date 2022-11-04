@@ -54,12 +54,18 @@ public class Server implements AutoCloseable {
                     logger.logDebug(() -> String.format("client connected from %s", sw.getRemoteAddr()));
                     setOfServers.add(sw);
                     if (handler != null) {
-                        es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> handler.accept(sw)));
+                        es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> {
+                            try {
+                                handler.accept(sw);
+                            } catch (Exception ex) {
+                                logger.logAsyncError(ex::getMessage);
+                            }
+                        }));
                     }
                 }
             } catch (SocketException ex) {
                 if (! (ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
-                    throw new RuntimeException(ex);
+                    logger.logAsyncError(ex::getMessage);
                 }
             }
         });
