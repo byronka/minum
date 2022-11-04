@@ -3,7 +3,9 @@ package atqa.instrumentation;
 import atqa.logging.TestLogger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class InstrumentationTests {
 
@@ -13,24 +15,28 @@ public class InstrumentationTests {
         this.logger = logger;
     }
 
-    class Program1 {
-        int hello;
+    private boolean markPredicateExpressionCovered(String fileName, boolean booleanExpression, int lineNumber, int expressionOrder) {
+        logger.logDebug(() -> "Called by " +  Arrays.stream(Thread.currentThread().getStackTrace()).skip(6).map(StackTraceElement::toString).collect(Collectors.joining(";")));
+        logger.logDebug(() -> "predicate: filename is " + fileName + " expression is " + booleanExpression + " lineNumber is " + lineNumber + " expressionOrder is " + expressionOrder);
+        return booleanExpression;
     }
-    class Program2 {
-        int world;
+
+    private void markCovered(String fileName, int lineNumber) {
+        logger.logDebug(() -> "Called by " + Arrays.stream(Thread.currentThread().getStackTrace()).skip(6).map(StackTraceElement::toString).collect(Collectors.joining(";")));
+        logger.logDebug(() ->"filename is " + fileName + " lineNumber is " + lineNumber);
     }
 
     public void tests(ExecutorService es) throws IOException, ClassNotFoundException {
-        logger.test("playing with viewing bytecode");{
-            final var resource = this.getClass();
-            final Class<?> aClass = this.getClass().getClassLoader().loadClass("atqa.instrumentation.InstrumentationTests");
-            System.out.println(resource);
+        logger.test("playing with explicit coverage probes");{
+            var a = true;          markCovered("InstrumentationTests.java", 31);
+            var b = false;         markCovered("InstrumentationTests.java", 32);
+            var c = true;          markCovered("InstrumentationTests.java", 33);
+            if (markPredicateExpressionCovered("InstrumentationTests.java",markPredicateExpressionCovered("InstrumentationTests.java",a && b, 34, 1) || c, 34, 2)) {
+                a = false;         markCovered("InstrumentationTests.java", 35);
+            } else {
+                b = true;          markCovered("InstrumentationTests.java", 37);
+            }
         }
 
-        logger.test("seeing the diff between two mostly-similar java programs"); {
-//            final bytes[] program1 = //get bytes of Program1
-//            final bytes[] program2 = //get bytes of Program2
-//            assertTrue(program1 != program2);
-        }
     }
 }
