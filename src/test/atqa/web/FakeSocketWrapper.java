@@ -1,7 +1,4 @@
-package atqa.primary;
-
-import atqa.web.ISocketWrapper;
-import atqa.web.SocketWrapper;
+package atqa.web;
 
 import java.net.SocketAddress;
 import java.util.function.Consumer;
