@@ -8,6 +8,9 @@ import atqa.web.*;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * This class is responsible for kicking off the entire system.
+ */
 public class FullSystem {
 
     ILogger logger;

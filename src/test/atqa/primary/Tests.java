@@ -11,15 +11,23 @@ import java.io.IOException;
 public class Tests {
 
   public static void main(String[] args) throws Exception {
-//    testFullSystem_Soup_To_Nuts();
+    // testFullSystem_Soup_To_Nuts();
+    nonFullSystemTests();
+  }
 
+  /**
+   * These tests range in size from focusing on very small elements (unit tests)
+   * to larger combinations of methods and classes (integration tests) but
+   * stop short of running {@link FullSystem}
+   */
+  private static void nonFullSystemTests() throws IOException {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
       final var logger = new TestLogger(es);
 
       new WebTests(logger).tests(es);
-//      new TestAnalysisTests(logger).tests();
-//      new SimpleDatabaseTests(logger).tests(es);
-//      new InstrumentationTests(logger).tests(es);
+      // new TestAnalysisTests(logger).tests();
+      // new SimpleDatabaseTests(logger).tests(es);
+      // new InstrumentationTests(logger).tests(es);
 
       // shut the test threads down
       logger.stop();
