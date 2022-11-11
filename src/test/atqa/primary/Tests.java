@@ -1,8 +1,6 @@
 package atqa.primary;
 
 import atqa.FullSystem;
-import atqa.database.SimpleDatabaseTests;
-import atqa.instrumentation.InstrumentationTests;
 import atqa.logging.TestLogger;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.MyThread;
@@ -13,18 +11,15 @@ import java.io.IOException;
 public class Tests {
 
   public static void main(String[] args) throws Exception {
-    testFullSystem_Soup_To_Nuts();
-
-    // need to wait for port 8080 to be closed by the TCP system
-    MyThread.sleep(200);
+//    testFullSystem_Soup_To_Nuts();
 
     try (final var es = ExtendedExecutor.makeExecutorService()) {
       final var logger = new TestLogger(es);
 
       new WebTests(logger).tests(es);
-      new TestAnalysisTests(logger).tests();
-      new SimpleDatabaseTests(logger).tests(es);
-      new InstrumentationTests(logger).tests(es);
+//      new TestAnalysisTests(logger).tests();
+//      new SimpleDatabaseTests(logger).tests(es);
+//      new InstrumentationTests(logger).tests(es);
 
       // shut the test threads down
       logger.stop();
@@ -39,6 +34,9 @@ public class Tests {
       fs.shutdown();
       es.shutdownNow();
     }
+
+    // need to wait for port 8080 to be closed by the TCP system
+    MyThread.sleep(200);
   }
 
 }

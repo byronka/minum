@@ -23,7 +23,18 @@ public record StatusLine(StatusCode status, Web.HttpVersion version, String rawV
          * Used a lot after receiving a post response.  The pattern is to
          * receive the post, then redirect to a new page. See <a href="https://en.wikipedia.org/wiki/Post/Redirect/Get">...</a>
          */
-        _303_SEE_OTHER(303, "SEE OTHER");
+        _303_SEE_OTHER(303, "SEE OTHER"),
+
+        /**
+         * If the user has not authenticated, we send this back as the response.  Note the
+         * confusing terminology - authorized and authenticated are different, this really
+         * refers to not being authenticated. (unauthenticated meaning we don't recognize their
+         * credentials, while non-authorized meaning even though we know
+         * who they are, they aren't allowed to see this data, in which case we should send
+         * back a 403)
+         */
+        _401_UNAUTHORIZED(401, "Unauthorized")
+        ;
 
         public final int code;
         public final String shortDescription;
