@@ -66,9 +66,6 @@ public class FullSystem {
         logger.logImperative("Stopping the SSL server");
         sslServer.stop();
 
-        logger.logImperative("Shutting down logging");
-        logger.stop();
-
         logger.logImperative("Goodbye world!");
     }
 }

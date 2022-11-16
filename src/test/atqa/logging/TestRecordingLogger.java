@@ -56,6 +56,4 @@ public class TestRecordingLogger implements ILogger {
     public void logImperative(String msg) {
     }
 
-    public void stop() {
-    }
 }

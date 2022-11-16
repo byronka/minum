@@ -1,6 +1,8 @@
 package atqa.primary;
 
 import atqa.FullSystem;
+import atqa.database.SimpleDatabaseTests;
+import atqa.instrumentation.InstrumentationTests;
 import atqa.logging.TestLogger;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.MyThread;
@@ -11,7 +13,7 @@ import java.io.IOException;
 public class Tests {
 
   public static void main(String[] args) throws Exception {
-    // testFullSystem_Soup_To_Nuts();
+//     testFullSystem_Soup_To_Nuts();
     unitAndIntegrationTests();
   }
 
@@ -20,17 +22,15 @@ public class Tests {
    * to larger combinations of methods and classes (integration tests) but
    * stop short of running {@link FullSystem}
    */
-  private static void unitAndIntegrationTests() throws IOException {
+  private static void unitAndIntegrationTests() throws IOException, ClassNotFoundException {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
       final var logger = new TestLogger(es);
 
       new WebTests(logger).tests(es);
-      // new TestAnalysisTests(logger).tests();
-      // new SimpleDatabaseTests(logger).tests(es);
-      // new InstrumentationTests(logger).tests(es);
+       new TestAnalysisTests(logger).tests();
+       new SimpleDatabaseTests(logger).tests(es);
+       new InstrumentationTests(logger).tests(es);
 
-      // shut the test threads down
-      logger.stop();
       es.shutdownNow();
     }
   }

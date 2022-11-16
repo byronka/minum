@@ -30,8 +30,4 @@ public interface ILogger {
 
     void logImperative(String msg);
 
-    /**
-     * Stop the {@link atqa.utils.ActionQueue} running inside the logger
-     */
-    void stop();
 }

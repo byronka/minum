@@ -39,11 +39,6 @@ public class Logger implements ILogger {
     }
 
     @Override
-    public void stop() {
-        loggerPrinter.stop();
-    }
-
-    @Override
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
         logHelper(msg, Type.DEBUG);
     }
