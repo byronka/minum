@@ -70,10 +70,10 @@ public class ActionQueue {
 
     /**
      * This will prevent any new actions being
-     * queued (by causing an exception to be thrown
-     * when a call is made to [enqueue] and will
-     * wait until the queue is empty, then shutdown
-     * the thread
+     * queued (by setting the stop flag to true and thus
+     * causing an exception to be thrown
+     * when a call is made to [enqueue]) and will
+     * block until the queue is empty.
      */
     public void stop() {
         stop = true;
