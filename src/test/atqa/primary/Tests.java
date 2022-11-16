@@ -27,9 +27,9 @@ public class Tests {
       final var logger = new TestLogger(es);
 
       new WebTests(logger).tests(es);
-       new TestAnalysisTests(logger).tests();
-       new SimpleDatabaseTests(logger).tests(es);
-       new InstrumentationTests(logger).tests(es);
+//       new TestAnalysisTests(logger).tests();
+//       new SimpleDatabaseTests(logger).tests(es);
+//       new InstrumentationTests(logger).tests(es);
 
       es.shutdownNow();
     }
