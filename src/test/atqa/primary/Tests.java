@@ -12,7 +12,7 @@ public class Tests {
 
   public static void main(String[] args) throws Exception {
     // testFullSystem_Soup_To_Nuts();
-    nonFullSystemTests();
+    unitAndIntegrationTests();
   }
 
   /**
@@ -20,7 +20,7 @@ public class Tests {
    * to larger combinations of methods and classes (integration tests) but
    * stop short of running {@link FullSystem}
    */
-  private static void nonFullSystemTests() throws IOException {
+  private static void unitAndIntegrationTests() throws IOException {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
       final var logger = new TestLogger(es);
 
