@@ -1,5 +1,6 @@
 package atqa.web;
 
+import atqa.auth.Authentication;
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
 import atqa.utils.ThrowingConsumer;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 
+import static atqa.auth.AuthUtils.getAuth;
 import static atqa.framework.TestFramework.*;
 import static atqa.web.StartLine.startLineRegex;
 import static atqa.web.StatusLine.StatusCode._200_OK;
@@ -352,12 +354,23 @@ public class WebTests {
          * they stay authenticated, until they actively choose to logout.
          *
          * While the simplest approach may be insecure, it's a good place to start.
+         *
+         * Even though security is a necessary and intrinsic element of the web,
+         * one essential aspect - database persistence of session information -
+         * makes it better to split out into its own domain.  That is to say, we
+         * don't want to code it too deeply into the inner guts of our web framework.
+         * And we don't need to.  The important code can be provided as helper methods.
+         *
+         * Admittedly, there will be a bit of overlap - it's not possible to be
+         * perfectly decoupled.  For example, the auth package will need use of
+         * HTTP status codes that live in atqa.web.StatusLine.StatusCode.
+         *
          */
         logger.test("playing with session management"); {
             final var foo = new Function<Request, Response>() {
                 @Override
                 public Response apply(Request request) {
-                    final Authentication auth = request.getAuth();
+                    final Authentication auth = getAuth(request.headers().rawValues());
                     if (auth.isAuthenticated()) {
                         return new Response(_200_OK, List.of("All is well"));
                     } else {
