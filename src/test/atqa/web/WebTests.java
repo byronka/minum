@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 
-import static atqa.auth.AuthUtils.getAuth;
+import static atqa.auth.AuthUtils.processAuth;
 import static atqa.framework.TestFramework.*;
 import static atqa.web.StartLine.startLineRegex;
 import static atqa.web.StatusLine.StatusCode._200_OK;
@@ -370,7 +370,7 @@ public class WebTests {
             final var foo = new Function<Request, Response>() {
                 @Override
                 public Response apply(Request request) {
-                    final Authentication auth = getAuth(request.headers().rawValues());
+                    final Authentication auth = processAuth(request.headers().rawValues());
                     if (auth.isAuthenticated()) {
                         return new Response(_200_OK, List.of("All is well"));
                     } else {

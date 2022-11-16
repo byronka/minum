@@ -14,7 +14,7 @@ public class AuthUtils {
      * 2. Are they allowed to access this resource? (Authorization)
      * etc...
      */
-    public static Authentication getAuth(List<String> headers) {
+    public static Authentication processAuth(List<String> headers) {
         // TODO: relying merely on them having a Cookie header is so insufficient.
         // we really need to check their code against a session in our database.
         final var isAuthenticated = headers.stream().anyMatch(x -> x.startsWith("Cookie"));
