@@ -1,5 +1,6 @@
 package atqa.web;
 
+import atqa.auth.AuthUtils;
 import atqa.auth.Authentication;
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
@@ -380,6 +381,8 @@ public class WebTests {
             };
             final var response = foo.apply(buildAuthenticatedRequest());
             assertEquals(response.extraHeaders(), List.of("All is well"));
+
+            AuthUtils.processAuth(List.of("cookie: sessionId=abc", "cookie: sessionId=def"));
         }
 
     }

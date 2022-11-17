@@ -1,8 +1,19 @@
 package atqa.auth;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static atqa.utils.Invariants.mustBeTrue;
 
 public class AuthUtils {
+
+    /**
+     * Used to extract cookies from the Cookie header
+     */
+    public static final Pattern sessionIdCookieRegex = Pattern.compile("sessionid=(?<sessionIdValue>\\w+)");
+
     /**
      * Processes the request and returns a {@link Authentication} object.
      * <br>
@@ -15,9 +26,17 @@ public class AuthUtils {
      * etc...
      */
     public static Authentication processAuth(List<String> headers) {
-        // TODO: relying merely on them having a Cookie header is so insufficient.
-        // we really need to check their code against a session in our database.
-        final var isAuthenticated = headers.stream().anyMatch(x -> x.startsWith("Cookie"));
-        return new Authentication(isAuthenticated);
+        final var cookieHeaders = headers.stream()
+                .map(String::toLowerCase)
+                .filter(x -> x.startsWith("cookie"))
+                .collect(Collectors.joining("; "));
+        System.out.println(cookieHeaders);
+        final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
+        final var listOfSessionIds = new ArrayList<String>();
+        while (cookieMatcher.find()) {
+            listOfSessionIds.add(cookieMatcher.group("sessionIdValue"));
+        }
+        mustBeTrue(listOfSessionIds.size() < 2, "there must be either 0 or one session id found.  Anything more is invalid");
+        return new Authentication(listOfSessionIds.size() == 1);
     }
 }
