@@ -1,13 +1,35 @@
 package atqa.auth;
 
+import atqa.database.DatabaseDiskPersistenceSimpler;
+import atqa.logging.ILogger;
+
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static atqa.utils.Invariants.mustBeTrue;
 
 public class AuthUtils {
+
+    private final List<SessionId> sessionIds;
+    final AtomicLong newSessionIdentifierIndex;
+
+    public AuthUtils(ExecutorService es, ILogger logger) throws IOException {
+        DatabaseDiskPersistenceSimpler<SessionId> ddps = new DatabaseDiskPersistenceSimpler<>("out/simple_db/sessions", es, logger);
+        sessionIds = ddps.readAndDeserialize(new SessionId("",0L));
+        final var newSessionIndexTemp = sessionIds
+                .stream()
+                .max(Comparator.comparingLong(SessionId::index))
+                .map(SessionId::index)
+                .orElse(0L) + 1L;
+        newSessionIdentifierIndex = new AtomicLong(newSessionIndexTemp);
+    }
 
     /**
      * Used to extract cookies from the Cookie header
@@ -25,18 +47,20 @@ public class AuthUtils {
      * 2. Are they allowed to access this resource? (Authorization)
      * etc...
      */
-    public static Authentication processAuth(List<String> headers) {
+    public Authentication processAuth(List<String> headers) {
         final var cookieHeaders = headers.stream()
                 .map(String::toLowerCase)
                 .filter(x -> x.startsWith("cookie"))
                 .collect(Collectors.joining("; "));
-        System.out.println(cookieHeaders);
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
         final var listOfSessionIds = new ArrayList<String>();
         while (cookieMatcher.find()) {
             listOfSessionIds.add(cookieMatcher.group("sessionIdValue"));
         }
-        mustBeTrue(listOfSessionIds.size() < 2, "there must be either 0 or one session id found.  Anything more is invalid");
-        return new Authentication(listOfSessionIds.size() == 1);
+        mustBeTrue(listOfSessionIds.size() < 2, "there must be either zero or one session id found in the request headers.  Anything more is invalid");
+
+        final var isExactlyOneSessionInRequest = listOfSessionIds.size() == 1;
+        final var sessionFoundInDatabase = sessionIds.stream().anyMatch(x -> Objects.equals(x.sessionCode(), listOfSessionIds.get(0)));
+        return new Authentication(isExactlyOneSessionInRequest && sessionFoundInDatabase);
     }
 }

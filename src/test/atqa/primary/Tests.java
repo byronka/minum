@@ -1,12 +1,10 @@
 package atqa.primary;
 
 import atqa.FullSystem;
-import atqa.database.SimpleDatabaseTests;
-import atqa.instrumentation.InstrumentationTests;
 import atqa.logging.TestLogger;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.MyThread;
-import atqa.web.WebTests;
+import atqa.web.WebTests2;
 
 import java.io.IOException;
 
@@ -24,13 +22,17 @@ public class Tests {
    */
   private static void unitAndIntegrationTests() throws IOException, ClassNotFoundException {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
-      final var logger = new TestLogger(es);
+      try {
+        final var logger = new TestLogger(es);
 
-      new WebTests(logger).tests(es);
-//       new TestAnalysisTests(logger).tests();
-//       new SimpleDatabaseTests(logger).tests(es);
-//       new InstrumentationTests(logger).tests(es);
-
+//        new WebTests(logger).tests(es);
+        new WebTests2(logger).tests(es);
+//        new TestAnalysisTests(logger).tests();
+//        new SimpleDatabaseTests(logger).tests(es);
+//        new InstrumentationTests(logger).tests(es);
+      } catch (Exception ex) {
+        ex.printStackTrace();
+      }
       es.shutdownNow();
     }
   }
