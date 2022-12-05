@@ -2,6 +2,7 @@ package atqa.auth;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
+import atqa.web.Request;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,22 +35,28 @@ public class AuthUtils {
     public static final Pattern sessionIdCookieRegex = Pattern.compile("sessionid=(?<sessionIdValue>\\w+)");
 
     /**
-     * Processes the request and returns a {@link Authentication} object.
+     * Processes the request and returns a {@link AuthResult} object.
      * <br><br>
      * More concretely, searches the cookie header in the list of headers
      * of the request and sees if that corresponds to a valid session
-     * in our database.  The object returned (the Authentication object) should
+     * in our database.  The object returned (the {@link AuthResult} object) should
      * have all necessary information for use by domain code:
      * 1. do we know this user? (Authentication)
-     * 2. Are they allowed to access this resource? (Authorization)
+     * 2. Are they permitted to access this specific data? (Authorization)
      * etc...
      */
-    public Authentication processAuth(List<String> headers) {
+    public AuthResult processAuth(Request request) {
+        // grab the headers from the request.
+        final var headers = request.headers().rawValues();
+
+        // get all the headers that start with "cookie", case-insensitive
         final var cookieHeaders = headers.stream()
                 .map(String::toLowerCase)
                 .filter(x -> x.startsWith("cookie"))
                 .collect(Collectors.joining("; "));
         logger.logDebug(() -> "For headers object " + headers + ". cookieHeaders were " + cookieHeaders);
+
+        // extract session identifiers from the cookies
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
         final var listOfSessionIds = new ArrayList<String>();
         while (cookieMatcher.find()) {
@@ -57,19 +64,24 @@ public class AuthUtils {
             logger.logDebug(() -> "For headers object " + headers + ". Adding another sessionIdValue: " + sessionIdValue);
             listOfSessionIds.add(sessionIdValue);
         }
-        mustBeTrue(listOfSessionIds.size() < 2, "there must be either zero or one session id found in the request headers.  Anything more is invalid");
+        mustBeTrue(listOfSessionIds.size() < 2, "there must be either zero or one session id found " +
+                "in the request headers.  Anything more is invalid");
 
+        // examine whether there is just one session identifier
         final var isExactlyOneSessionInRequest = listOfSessionIds.size() == 1;
         logger.logDebug(() -> "For headers object " + headers + ". isExactlyOneSessionInRequest is " + isExactlyOneSessionInRequest);
 
+        // Did we find that session identifier in the database?
         final var sessionFoundInDatabase = sessionIds.stream()
                 .anyMatch(x -> Objects.equals(x.sessionCode(), listOfSessionIds.get(0)));
         logger.logDebug(() -> "For headers object " + headers + ". sessionFoundInDatabase is " + sessionFoundInDatabase);
 
+        // they are authenticated if we find their session id in the database, and
+        // there was only one session id value in the cookies
         final var isAuthenticated = isExactlyOneSessionInRequest && sessionFoundInDatabase;
         logger.logDebug(() -> "For headers object " + headers + ". isAuthenticated is " + isAuthenticated);
 
-        return new Authentication(isAuthenticated);
+        return new AuthResult(isAuthenticated);
     }
 
     /**

@@ -5,5 +5,5 @@ package atqa.auth;
  * a particular person's authentication.  Like, are they
  * currently authenticated?
  */
-public record Authentication(Boolean isAuthenticated) {
+public record AuthResult(Boolean isAuthenticated) {
 }

@@ -19,8 +19,9 @@ public class StringUtils {
     /**
      * Returns text that has three symbols replaced -
      * the less-than, greater-than, and ampersand.
-     * See https://www.w3.org/International/questions/qa-escapes#use
+     * See <a href="https://www.w3.org/International/questions/qa-escapes#use">...</a>
      * <br>
+     * <pre>{@code
      * This will protect against something like <div>$USERNAME</div> allowing
      * a username of
      *      <script>alert(1)</script>
@@ -28,8 +29,8 @@ public class StringUtils {
      *      <div><script>alert(1)</script</div>
      * and instead becomes
      *      <div>&lt;script&gt;alert(1)&lt;/script&gt;</div>
-     *<br>
-     * If the text is going inside an attribute (e.g. <div class="TEXT_GOES_HERE"> )
+     * }</pre>
+     * If the text is going inside an attribute (e.g. {@code <div class="TEXT_GOES_HERE">} )
      * Then you need to escape slightly differently. In that case see [safeAttr]
      */
     public static String safeHtml(String input) {
@@ -43,8 +44,17 @@ public class StringUtils {
 
     /**
      * Replace dangerous text that would go inside an HTML attribute.
-     * See [safeHtml]
+     * See {@link #safeHtml(String)}
+     * <br><br>
      * If we get a null string, just return an empty string
+     * <br><br>
+     * <pre>{@code
+     * example:
+     *   Given
+     *      alert('XSS Attack')
+     *   Get
+     *      alert(&apos;XSS Attack&apos;)
+     * }</pre>
      */
     public static String safeAttr(String input) {
         if (input == null) {

@@ -1,7 +1,7 @@
 package atqa.web;
 
 import atqa.auth.AuthUtils;
-import atqa.auth.Authentication;
+import atqa.auth.AuthResult;
 import atqa.auth.SessionId;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
@@ -63,11 +63,16 @@ public class WebTests2 {
             final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
             final var au = new AuthUtils(authUtilsDdps, logger);
 
-            // create a pretend web handler just for this test that requires authentication
+            /*
+            create a pretend web handler just for this test that requires authentication
+
+            Note how there is a branch in the code based on whether the request is
+            authenticated or not.  It is basically that easy.
+             */
             final var sampleAuthenticatedWebHandler = new Function<Request, Response>() {
                 @Override
                 public Response apply(Request request) {
-                    final Authentication auth = au.processAuth(request.headers().rawValues());
+                    final AuthResult auth = au.processAuth(request);
                     if (auth.isAuthenticated()) {
                         return new Response(_200_OK, List.of("All is well"));
                     } else {
@@ -90,9 +95,18 @@ public class WebTests2 {
                     response.extraHeaders(),
                     List.of("All is well"),
                     "The web handler should treat the request as authenticated");
+        }
 
-            // make sure it throws an exception if we have a request with two session identifiers.
-            final var ex = assertThrows(InvariantException.class, () -> au.processAuth(List.of("cookie: sessionId=abc", "cookie: sessionId=def")));
+        logger.test("make sure it throws an exception if we have a request with two session identifiers."); {
+            final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
+            final var au = new AuthUtils(authUtilsDdps, logger);
+            final var multipleSessionIdsInRequest = new Request(
+                    new Headers(
+                            0,
+                            List.of("cookie: sessionId=abc", "cookie: sessionId=def")),
+                    null,
+                    "");
+            final var ex = assertThrows(InvariantException.class, () -> au.processAuth(multipleSessionIdsInRequest));
             assertEquals(ex.getMessage(), "there must be either zero or one session id found in the request headers.  Anything more is invalid");
         }
     }
