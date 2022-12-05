@@ -98,6 +98,11 @@ public class WebTests2 {
     }
 
 
+    /*
+    Suppress warning about the parameter, because it is more legible for the
+    test when we pass the session id into this method.
+     */
+    @SuppressWarnings("SameParameterValue")
     private Request buildAuthenticatedRequest(String sessionId) {
         return new Request(
                 new Headers(0, List.of("Cookie: sessionid=" + sessionId)),
