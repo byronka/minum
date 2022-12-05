@@ -18,7 +18,7 @@ import static atqa.utils.StringUtils.decode;
 public record StartLine(
         Verb verb,
         PathDetails pathDetails,
-        Web.HttpVersion version,
+        WebEngine.HttpVersion version,
         /*
          * The raw value given by the server for status
          */
@@ -49,7 +49,7 @@ public record StartLine(
 
         Verb verb = extractVerb(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
-        Web.HttpVersion httpVersion = getHttpVersion(m.group(3));
+        WebEngine.HttpVersion httpVersion = getHttpVersion(m.group(3));
 
         return new StartLine(verb, pd, httpVersion, value);
     }
@@ -112,11 +112,11 @@ public record StartLine(
     /**
      * Extract the HTTP version from the start line
      */
-    private static Web.HttpVersion getHttpVersion(String version) {
+    private static WebEngine.HttpVersion getHttpVersion(String version) {
         if (version.equals("1.1")) {
-            return Web.HttpVersion.ONE_DOT_ONE;
+            return WebEngine.HttpVersion.ONE_DOT_ONE;
         } else {
-            return Web.HttpVersion.ONE_DOT_ZERO;
+            return WebEngine.HttpVersion.ONE_DOT_ZERO;
         }
     }
 

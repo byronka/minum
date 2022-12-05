@@ -39,11 +39,11 @@ public class WebTests {
     |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
     public void tests(ExecutorService es) throws IOException {
 
-        Web web = new Web(logger);
+        WebEngine webEngine = new WebEngine(logger);
 
         logger.test("client / server");{
-            try (Server primaryServer = web.startServer(es)) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            try (Server primaryServer = webEngine.startServer(es)) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     try (SocketWrapper server = primaryServer.getServer(client)) {
 
                         client.send("hello foo!\n");
@@ -60,8 +60,8 @@ public class WebTests {
             String msg2 = "and how are you?";
             String msg3 = "oh, fine";
 
-            try (Server primaryServer = web.startServer(es)) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            try (Server primaryServer = webEngine.startServer(es)) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     try (SocketWrapper server = primaryServer.getServer(client)) {
 
                         // client sends, server receives
@@ -92,8 +92,8 @@ public class WebTests {
         }
 
         logger.test("like we're a atqa.web server");{
-            try (Server primaryServer = web.startServer(es)) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            try (Server primaryServer = webEngine.startServer(es)) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     try (SocketWrapper server = primaryServer.getServer(client)) {
                         // send a GET request
                         client.sendHttpLine("GET /index.html HTTP/1.1");
@@ -122,8 +122,8 @@ public class WebTests {
        */
             ThrowingConsumer<SocketWrapper, IOException> handler = (sw) -> logger.logDebug(sw::readLine);
 
-            try (Server primaryServer = web.startServer(es, handler)) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            try (Server primaryServer = webEngine.startServer(es, handler)) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     // send a GET request
                     client.sendHttpLine("GET /index.html HTTP/1.1");
 
@@ -151,10 +151,10 @@ public class WebTests {
         }
 
         logger.test("starting server with a handler part 2");{
-            Frame wf = new Frame(logger, default_zdt);
+            WebFramework wf = new WebFramework(logger, default_zdt);
             wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
-            try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     // send a GET request
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
@@ -265,29 +265,29 @@ public class WebTests {
      */
         logger.test("parseUrlEncodedForm should properly parse data");{
             final var expected = Map.of("value_a", "123", "value_b", "456");
-            final var result = Frame.parseUrlEncodedForm("value_a=123&value_b=456");
+            final var result = WebFramework.parseUrlEncodedForm("value_a=123&value_b=456");
             assertEquals(expected, result);
         }
 
         logger.test("parseUrlEncodedForm edge cases"); {
             // splitting on equals
-            final var ex1 = assertThrows(InvariantException.class, () -> Frame.parseUrlEncodedForm("value_a=123=456"));
+            final var ex1 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("value_a=123=456"));
             assertEquals(ex1.getMessage(), "Splitting on = should return 2 values.  Input was value_a=123=456");
 
             // blank key
-            final var ex2 = assertThrows(InvariantException.class, () -> Frame.parseUrlEncodedForm("=123"));
+            final var ex2 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("=123"));
             assertEquals(ex2.getMessage(), "The key must not be blank");
 
             // duplicate keys
-            final var ex3 = assertThrows(InvariantException.class, () -> Frame.parseUrlEncodedForm("a=123&a=123"));
+            final var ex3 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("a=123&a=123"));
             assertEquals(ex3.getMessage(), "a was duplicated in the post body - had values of 123 and 123");
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
-            Frame wf = new Frame(logger, default_zdt);
+            WebFramework wf = new WebFramework(logger, default_zdt);
             wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, ContentType.TEXT_HTML, x.body()));
-            try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
                     final var postedData = "value_a=123&value_b=456";
 
@@ -310,9 +310,9 @@ public class WebTests {
         }
 
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
-            Frame wf = new Frame(logger, default_zdt);
-            try (Server primaryServer = web.startServer(es, wf.makeHandler())) {
-                try (SocketWrapper client = web.startClient(primaryServer)) {
+            WebFramework wf = new WebFramework(logger, default_zdt);
+            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
                     // send a GET request
                     client.sendHttpLine("GET /some_endpoint HTTP/1.1");

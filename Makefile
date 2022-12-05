@@ -29,11 +29,6 @@ OUT_DIR_MAIN := $(OUT_DIR)/main
 OUT_DIR_TEST := $(OUT_DIR)/test
 
 ##
-# the library of stable jars used by our program
-##
-LIB := lib
-
-##
 # the utilties
 ##
 UTILS := utils
@@ -51,22 +46,22 @@ TST_SRCS := $(shell find ${TST_SRC_DIR} -type f -name '*.java' -print)
 ##
 # build classpath options - the classpaths needed to build
 ##
-BUILD_CP := "$(SRC_DIR)/:$(LIB)/*"
+BUILD_CP := "$(SRC_DIR)/"
 
 ##
 # build classpath for the tests
 ##
-TEST_BUILD_CP := "$(SRC_DIR)/:$(LIB)/*:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/"
+TEST_BUILD_CP := "$(SRC_DIR)/:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/"
 
 ##
 # run classpath options - the classpaths needed to run the program
 ##
-RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*"
+RUN_CP := "$(OUT_DIR_MAIN)"
 
 ##
 # run classpath for tests
 ##
-TST_RUN_CP := "$(OUT_DIR_MAIN):$(LIB)/*:$(OUT_DIR_TEST)"
+TST_RUN_CP := "$(OUT_DIR_MAIN):$(OUT_DIR_TEST)"
 
 ##
 # classes

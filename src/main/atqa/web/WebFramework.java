@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 import static atqa.utils.Invariants.mustBeTrue;
 import static atqa.utils.StringUtils.decode;
-import static atqa.web.Web.HTTP_CRLF;
+import static atqa.web.WebEngine.HTTP_CRLF;
 
 /**
  * Responsible for the logistics after socket connection
@@ -24,7 +24,7 @@ import static atqa.web.Web.HTTP_CRLF;
  * lot of logistics needed. For example, routing based on the path, determining
  * proper response headers, and doing it all with panache.
  */
-public class Frame {
+public class WebFramework {
 
     private final ILogger logger;
     private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
@@ -108,7 +108,7 @@ public class Frame {
         return functionFound;
     }
 
-    public Frame(ILogger logger) {
+    public WebFramework(ILogger logger) {
         this(logger, null);
     }
 
@@ -116,7 +116,7 @@ public class Frame {
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
      */
-    public Frame(ILogger logger, ZonedDateTime zdt) {
+    public WebFramework(ILogger logger, ZonedDateTime zdt) {
         this.logger = logger;
         this.zdt = zdt;
         this.registeredDynamicPaths = new HashMap<>();

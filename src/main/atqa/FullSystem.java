@@ -27,9 +27,9 @@ public class FullSystem {
     }
 
     public FullSystem start() throws IOException  {
-        Web web = new Web(logger);
+        WebEngine webEngine = new WebEngine(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
-        Frame wf = new Frame(logger);
+        WebFramework wf = new WebFramework(logger);
 
         final var sampleDomainDdps = new DatabaseDiskPersistenceSimpler<PersonName>("out/simple_db/names", es, logger);
         final var sd = new SampleDomain(sampleDomainDdps);
@@ -38,12 +38,12 @@ public class FullSystem {
 
 
         wf.registerStaticFiles(sfc);
-        wf.registerPath(StartLine.Verb.GET, "", Frame.redirectTo("index.html"));
+        wf.registerPath(StartLine.Verb.GET, "", WebFramework.redirectTo("index.html"));
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
 
-        server = web.startServer(es, wf.makeHandler());
-        sslServer = web.startSslServer(es, wf.makeHandler());
+        server = webEngine.startServer(es, wf.makeHandler());
+        sslServer = webEngine.startSslServer(es, wf.makeHandler());
         return this;
     }
 

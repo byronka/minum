@@ -3,7 +3,7 @@ package atqa.sampledomain;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.utils.StringUtils;
 import atqa.web.ContentType;
-import atqa.web.Frame;
+import atqa.web.WebFramework;
 import atqa.web.Request;
 import atqa.web.Response;
 
@@ -66,7 +66,7 @@ public class SampleDomain {
     }
 
     public Response testform(Request r) {
-        final var formData = Frame.parseUrlEncodedForm(r.body());
+        final var formData = WebFramework.parseUrlEncodedForm(r.body());
         final var nameEntry = formData.get("name_entry");
 
         final var newPersonName = new PersonName(nameEntry, newPersonIndex.getAndAdd(1));

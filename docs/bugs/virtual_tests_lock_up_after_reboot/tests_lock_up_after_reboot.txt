@@ -41,7 +41,7 @@ Sometimes, after a reboot, I find that when I run tests they will lock up.  For 
 
 
     +-------------
-    | TEST 4: like we're a atqa.web server
+    | TEST 4: like we're a web server
     +-------------
 
     DEBUG: 2022-10-31T14:07:37.668025Z Just created a new ServerSocket: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8080]

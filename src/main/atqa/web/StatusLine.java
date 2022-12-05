@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import static atqa.utils.Invariants.mustBeTrue;
 
-public record StatusLine(StatusCode status, Web.HttpVersion version, String rawValue) {
+public record StatusLine(StatusCode status, WebEngine.HttpVersion version, String rawValue) {
 
     /**
      * This is the regex used to analyze a status line sent by the server and
@@ -56,9 +56,9 @@ public record StatusLine(StatusCode status, Web.HttpVersion version, String rawV
         Matcher mr = StatusLine.statusLineRegex.matcher(value);
         mustBeTrue(mr.matches(), String.format("%s must match the statusLinePattern: %s", value, statusLinePattern));
         String version = mr.group(1);
-        Web.HttpVersion httpVersion = switch (version) {
-            case "1.1" -> Web.HttpVersion.ONE_DOT_ONE;
-            case "1.0" -> Web.HttpVersion.ONE_DOT_ZERO;
+        WebEngine.HttpVersion httpVersion = switch (version) {
+            case "1.1" -> WebEngine.HttpVersion.ONE_DOT_ONE;
+            case "1.0" -> WebEngine.HttpVersion.ONE_DOT_ZERO;
             default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
         };
         StatusCode status = StatusCode.findByCode(Integer.parseInt(mr.group(2)));

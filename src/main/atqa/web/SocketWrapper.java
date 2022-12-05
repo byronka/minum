@@ -49,7 +49,7 @@ public class SocketWrapper implements ISocketWrapper {
     @Override
     public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
-        send(msg + Web.HTTP_CRLF);
+        send(msg + WebEngine.HTTP_CRLF);
     }
 
     @Override

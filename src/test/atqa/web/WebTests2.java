@@ -123,7 +123,7 @@ public class WebTests2 {
                 new StartLine(
                         StartLine.Verb.GET,
                         new StartLine.PathDetails("foo", "", Collections.emptyMap()),
-                        Web.HttpVersion.ONE_DOT_ONE,
+                        WebEngine.HttpVersion.ONE_DOT_ONE,
                         "Unimportant - raw value"
                 ),
                 "");
