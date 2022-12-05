@@ -1,6 +1,8 @@
 package atqa;
 
+import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
+import atqa.sampledomain.PersonName;
 import atqa.sampledomain.SampleDomain;
 import atqa.utils.ThrowingRunnable;
 import atqa.web.*;
@@ -29,7 +31,8 @@ public class FullSystem {
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
         Frame wf = new Frame(logger);
 
-        final var sd = new SampleDomain(es, logger);
+        final var sampleDomainDdps = new DatabaseDiskPersistenceSimpler<PersonName>("out/simple_db/names", es, logger);
+        final var sd = new SampleDomain(sampleDomainDdps);
 
         addShutdownHook();
 

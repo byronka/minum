@@ -1,18 +1,15 @@
 package atqa.auth;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.logging.ILogger;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.utils.Invariants.mustBeTrue;
 
 public class AuthUtils {
@@ -20,15 +17,12 @@ public class AuthUtils {
     private final List<SessionId> sessionIds;
     final AtomicLong newSessionIdentifierIndex;
 
-    public AuthUtils(ExecutorService es, ILogger logger) throws IOException {
-        DatabaseDiskPersistenceSimpler<SessionId> ddps = new DatabaseDiskPersistenceSimpler<>("out/simple_db/sessions", es, logger);
-        sessionIds = ddps.readAndDeserialize(new SessionId("",0L));
-        final var newSessionIndexTemp = sessionIds
-                .stream()
-                .max(Comparator.comparingLong(SessionId::index))
-                .map(SessionId::index)
-                .orElse(0L) + 1L;
-        newSessionIdentifierIndex = new AtomicLong(newSessionIndexTemp);
+    /**
+     * A constructor for an {@link AuthUtils}
+     */
+    public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> diskData) {
+        sessionIds = diskData.readAndDeserialize(new SessionId("",0L));
+        newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
     }
 
     /**

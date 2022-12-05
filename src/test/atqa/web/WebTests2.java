@@ -2,10 +2,11 @@ package atqa.web;
 
 import atqa.auth.AuthUtils;
 import atqa.auth.Authentication;
+import atqa.auth.SessionId;
+import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -32,7 +33,7 @@ public class WebTests2 {
     | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
     | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
     |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
-    public void tests(ExecutorService es) throws IOException {
+    public void tests(ExecutorService es) {
 
         /*
          * Session management is the term used for making sure we know who we are talking with.
@@ -59,7 +60,9 @@ public class WebTests2 {
          *
          */
         logger.test("playing with session management"); {
-            final var au = new AuthUtils(es, logger);
+            final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
+            final var au = new AuthUtils(authUtilsDdps);
+
             final var foo = new Function<Request, Response>() {
                 @Override
                 public Response apply(Request request) {
@@ -71,6 +74,7 @@ public class WebTests2 {
                     }
                 }
             };
+
             final var response = foo.apply(buildAuthenticatedRequest());
             assertEquals(response.extraHeaders(), List.of("All is well"));
 

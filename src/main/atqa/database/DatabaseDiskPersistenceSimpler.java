@@ -132,7 +132,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
         return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
     }
 
-    public List<T> readAndDeserialize(SimpleDataType<T> instance) throws IOException {
+    public List<T> readAndDeserialize(SimpleDataType<T> instance) {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return new ArrayList<>();
@@ -155,6 +155,8 @@ public class DatabaseDiskPersistenceSimpler<T> {
                     }
                 }
             }
+        } catch (IOException e) { // if we fail to walk() the dbDirectory.  I don't even know how to test this.
+            throw new RuntimeException(e);
         }
         return data;
     }

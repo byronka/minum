@@ -1,20 +1,18 @@
 package atqa.sampledomain;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.logging.ILogger;
 import atqa.utils.StringUtils;
 import atqa.web.ContentType;
+import atqa.web.Frame;
 import atqa.web.Request;
 import atqa.web.Response;
-import atqa.web.Frame;
 
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.web.StatusLine.StatusCode._200_OK;
 import static atqa.web.StatusLine.StatusCode._303_SEE_OTHER;
 
@@ -24,17 +22,21 @@ public class SampleDomain {
     private final List<PersonName> personNames;
     final AtomicLong newPersonIndex;
 
-    public SampleDomain(ExecutorService es, ILogger logger) throws IOException {
-        ddps = new DatabaseDiskPersistenceSimpler<>("out/simple_db/names", es, logger);
-        personNames = ddps.readAndDeserialize(new PersonName("",0L));
-        final var newPersonIndexTemp = personNames
-                .stream()
-                .max(Comparator.comparingLong(PersonName::index))
-                .map(PersonName::index)
-                .orElse(0L) + 1L;
-        newPersonIndex = new AtomicLong(newPersonIndexTemp);
+    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData) {
+        this.ddps = diskData;
+        personNames = diskData.readAndDeserialize(new PersonName("",0L));
+
+        newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
     }
 
+    /*
+    our web methods must match a particular pattern.
+    Specifically, Function<Request, Response>
+
+    In this case however, if we are not using the value of the parameter, "r", then
+    the IDE will complain that it's unused.  But it has to remain to match the pattern.
+     */
+    @SuppressWarnings("unused")
     public Response formEntry(Request r) {
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::index))
