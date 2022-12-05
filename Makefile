@@ -108,7 +108,7 @@ COV_DIR = out/coveragereport
 ##
 # targets that do not produce output files
 ##
-.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses copyresources
+.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses copyresources javadoc
 
 ##
 # default target(s)
@@ -177,6 +177,10 @@ testdebug: all testclasses
 testcov: all testclasses
 	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) atqa.primary.Tests
 	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
+
+#: build the javadoc documentation in the out/javadoc directory
+javadoc:
+	    javadoc --source-path src/main -d out/javadoc -subpackages atqa
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
