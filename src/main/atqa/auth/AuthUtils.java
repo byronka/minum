@@ -14,15 +14,20 @@ import java.util.stream.Collectors;
 import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.utils.Invariants.mustBeTrue;
 
+/**
+ * This class provides services for stateful authentication and
+ * authorization.
+ * <br><br>
+ * Interestingly, it uses the underlying web framework similarly
+ * to any other domain.  It doesn't really require any special
+ * deeper magic.
+ */
 public class AuthUtils {
 
     private final List<SessionId> sessionIds;
     private final ILogger logger;
     final AtomicLong newSessionIdentifierIndex;
 
-    /**
-     * A constructor for an {@link AuthUtils}
-     */
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> diskData, ILogger logger) {
         sessionIds = diskData.readAndDeserialize(new SessionId("",0L));
         this.logger = logger;
@@ -41,9 +46,11 @@ public class AuthUtils {
      * of the request and sees if that corresponds to a valid session
      * in our database.  The object returned (the {@link AuthResult} object) should
      * have all necessary information for use by domain code:
-     * 1. do we know this user? (Authentication)
-     * 2. Are they permitted to access this specific data? (Authorization)
-     * etc...
+     * <ol>
+     * <li>do we know this user? (Authentication)</li>
+     * <li>Are they permitted to access this specific data? (Authorization)</li>
+     * <li>etc...</li>
+     * </ol>
      */
     public AuthResult processAuth(Request request) {
         // grab the headers from the request.
