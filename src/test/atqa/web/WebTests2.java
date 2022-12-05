@@ -61,7 +61,7 @@ public class WebTests2 {
          */
         logger.test("playing with session management"); {
             final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
-            final var au = new AuthUtils(authUtilsDdps);
+            final var au = new AuthUtils(authUtilsDdps, logger);
 
             // create a pretend web handler just for this test that requires authentication
             final var sampleAuthenticatedWebHandler = new Function<Request, Response>() {
@@ -76,8 +76,12 @@ public class WebTests2 {
                 }
             };
 
+            // register a session
+            final var sessionId = "abc123";
+            au.addSession(sessionId);
+
             // build an incoming request that has appropriate authentication information
-            final var authenticatedRequest = buildAuthenticatedRequest();
+            final var authenticatedRequest = buildAuthenticatedRequest(sessionId);
 
             // run the web handler on the authenticated request, get a response
             final var response = sampleAuthenticatedWebHandler.apply(authenticatedRequest);
@@ -94,9 +98,9 @@ public class WebTests2 {
     }
 
 
-    private Request buildAuthenticatedRequest() {
+    private Request buildAuthenticatedRequest(String sessionId) {
         return new Request(
-                new Headers(0, List.of("Cookie: sessionid=abc123")),
+                new Headers(0, List.of("Cookie: sessionid=" + sessionId)),
                 new StartLine(
                         StartLine.Verb.GET,
                         new StartLine.PathDetails("foo", "", Collections.emptyMap()),
