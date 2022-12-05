@@ -19,10 +19,6 @@ import java.util.concurrent.ExecutorService;
  */
 public class WebEngine {
 
-  /**
-   * This constructor allows us to set the zoned date/time, to
-   * better control the system during testing
-   */
   public WebEngine(ILogger logger) {
       this.logger = logger;
       this.logger.logDebug(() -> "Using a supplied logger");
