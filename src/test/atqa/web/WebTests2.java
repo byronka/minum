@@ -63,7 +63,8 @@ public class WebTests2 {
             final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
             final var au = new AuthUtils(authUtilsDdps);
 
-            final var foo = new Function<Request, Response>() {
+            // create a pretend web handler just for this test that requires authentication
+            final var sampleAuthenticatedWebHandler = new Function<Request, Response>() {
                 @Override
                 public Response apply(Request request) {
                     final Authentication auth = au.processAuth(request.headers().rawValues());
@@ -75,8 +76,16 @@ public class WebTests2 {
                 }
             };
 
-            final var response = foo.apply(buildAuthenticatedRequest());
-            assertEquals(response.extraHeaders(), List.of("All is well"));
+            // build an incoming request that has appropriate authentication information
+            final var authenticatedRequest = buildAuthenticatedRequest();
+
+            // run the web handler on the authenticated request, get a response
+            final var response = sampleAuthenticatedWebHandler.apply(authenticatedRequest);
+
+            assertEquals(
+                    response.extraHeaders(),
+                    List.of("All is well"),
+                    "The web handler should treat the request as authenticated");
 
             // make sure it throws an exception if we have a request with two session identifiers.
             final var ex = assertThrows(InvariantException.class, () -> au.processAuth(List.of("cookie: sessionId=abc", "cookie: sessionId=def")));

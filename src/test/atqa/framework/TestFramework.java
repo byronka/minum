@@ -67,17 +67,33 @@ public class TestFramework {
 
     /**
      * asserts that two lists are equal in value and order.
+     * <br><br>
      * For example, (a, b) is equal to (a, b)
      * Does not expect null as an input value.
      * Two empty lists are considered equal.
      */
     public static <T> void assertEquals(List<T> left, List<T> right) {
+       assertEquals(left, right, "");
+    }
+
+    /**
+     * asserts that two lists are equal in value and order.
+     * <br><br>
+     * For example, (a, b) is equal to (a, b)
+     * Does not expect null as an input value.
+     * Two empty lists are considered equal.
+     * <br><br>
+     * @param failureMessage a failureMessage that should be shown if this assertion fails
+     */
+    public static <T> void assertEquals(List<T> left, List<T> right, String failureMessage) {
         if (left.size() != right.size()) {
-            throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
+            throw new RuntimeException(
+                    String.format("different sizes: left was %d, right was %d. %s", left.size(), right.size(), failureMessage));
         }
         for (int i = 0; i < left.size(); i++) {
             if (!left.get(i).equals(right.get(i))) {
-                throw new RuntimeException(String.format("different values: left: %s right: %s", left.get(i), right.get(i)));
+                throw new RuntimeException(
+                        String.format("different values - left: \"%s\" right: \"%s\". %s", left.get(i), right.get(i), failureMessage));
             }
         }
     }
