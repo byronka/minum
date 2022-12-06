@@ -41,9 +41,11 @@ public class FullSystem {
         wf.registerPath(StartLine.Verb.GET, "", WebFramework.redirectTo("index.html"));
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        final var webHandler = wf.makeHandler();
 
-        server = webEngine.startServer(es, wf.makeHandler());
-        sslServer = webEngine.startSslServer(es, wf.makeHandler());
+        server = webEngine.startServer(es, webHandler);
+        sslServer = webEngine.startSslServer(es, webHandler);
+
         return this;
     }
 
