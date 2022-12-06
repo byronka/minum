@@ -29,7 +29,7 @@ public class AuthUtils {
     final AtomicLong newSessionIdentifierIndex;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> diskData, ILogger logger) {
-        sessionIds = diskData.readAndDeserialize(new SessionId("",0L));
+        sessionIds = diskData.readAndDeserialize(SessionId.EMPTY);
         this.logger = logger;
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
     }
@@ -80,21 +80,23 @@ public class AuthUtils {
 
         // Did we find that session identifier in the database?
         final var sessionFoundInDatabase = sessionIds.stream()
-                .anyMatch(x -> Objects.equals(x.sessionCode(), listOfSessionIds.get(0)));
+                .filter(x -> Objects.equals(x.sessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase())).findFirst().orElse(SessionId.EMPTY);
         logger.logDebug(() -> "For headers object " + headers + ". sessionFoundInDatabase is " + sessionFoundInDatabase);
 
         // they are authenticated if we find their session id in the database, and
         // there was only one session id value in the cookies
-        final var isAuthenticated = isExactlyOneSessionInRequest && sessionFoundInDatabase;
+        final var isAuthenticated = isExactlyOneSessionInRequest && sessionFoundInDatabase != SessionId.EMPTY;
         logger.logDebug(() -> "For headers object " + headers + ". isAuthenticated is " + isAuthenticated);
 
-        return new AuthResult(isAuthenticated);
+        return new AuthResult(isAuthenticated, sessionFoundInDatabase.creationDateTime());
     }
 
     /**
      * A temporary method used during construction, to add a session to the database.
      */
-    public void addSession(String sessionId) {
-        sessionIds.add(new SessionId(sessionId, newSessionIdentifierIndex.getAndAdd(1)));
+    public SessionId registerNewSession() {
+        final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
+        sessionIds.add(newSession);
+        return newSession;
     }
 }

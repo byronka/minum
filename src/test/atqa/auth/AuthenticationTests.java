@@ -5,12 +5,13 @@ import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
 import atqa.web.*;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
-import static atqa.framework.TestFramework.assertEquals;
-import static atqa.framework.TestFramework.assertThrows;
+import static atqa.framework.TestFramework.*;
 import static atqa.web.StatusLine.StatusCode._200_OK;
 import static atqa.web.StatusLine.StatusCode._401_UNAUTHORIZED;
 
@@ -71,14 +72,10 @@ public class AuthenticationTests {
             };
 
             // register a session
-            final var sessionId = "abc123";
-            au.addSession(sessionId);
+            final var sessionId = au.registerNewSession();
 
             // build an incoming request that has appropriate authentication information
-            final var authenticatedRequest = new Request(
-                    new Headers(0, List.of("Cookie: sessionid=" + sessionId)),
-                    null,
-                    "");
+            final Request authenticatedRequest = buildRequest(List.of(sessionId.sessionCode()));
 
             // run the web handler on the authenticated request, get a response
             final var response = sampleAuthenticatedWebHandler.apply(authenticatedRequest);
@@ -87,20 +84,29 @@ public class AuthenticationTests {
                     response.extraHeaders(),
                     List.of("All is well"),
                     "The web handler should treat the request as authenticated");
+
+            // make sure we can tell when a session id was created
+            final var authResult = au.processAuth(authenticatedRequest);
+            assertTrue(Duration.between(authResult.creationDate(), ZonedDateTime.now()).toMillis() < 100,
+                    "The date and time of the creation of this session id should be within 100 milliseconds of now.");
+
         }
 
         logger.test("make sure it throws an exception if we have a request with two session identifiers."); {
             final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
             final var au = new AuthUtils(authUtilsDdps, logger);
-            final var multipleSessionIdsInRequest = new Request(
-                    new Headers(
-                            0,
-                            List.of("cookie: sessionId=abc", "cookie: sessionId=def")),
-                    null,
-                    "");
+            final var multipleSessionIdsInRequest = buildRequest(List.of("abc","def"));
             final var ex = assertThrows(InvariantException.class, () -> au.processAuth(multipleSessionIdsInRequest));
             assertEquals(ex.getMessage(), "there must be either zero or one session id found in the request headers.  Anything more is invalid");
         }
+
+    }
+
+    private static Request buildRequest(List<String> sessionIds) {
+        return new Request(
+                new Headers(0, sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
+                null,
+                "");
     }
 
 

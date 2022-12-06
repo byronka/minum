@@ -3,6 +3,9 @@ package atqa.utils;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static atqa.utils.Invariants.mustNotBeNull;
 
@@ -86,6 +89,16 @@ public class StringUtils {
             return null;
         }
         return URLDecoder.decode(str, StandardCharsets.UTF_8);
+    }
+
+    public static String generateSecureRandomString(int length) {
+        final var allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        final var sr = new SecureRandom();
+
+        return IntStream.range(1, length)
+                .mapToObj (x -> allowedChars.charAt(sr.nextInt(allowedChars.length())))
+                .map(Object::toString)
+                .collect(Collectors.joining());
     }
 
 

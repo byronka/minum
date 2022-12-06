@@ -99,8 +99,12 @@ public class TestFramework {
     }
 
     public static void assertTrue(boolean value) {
+      assertTrue(value, "");
+    }
+
+    public static void assertTrue(boolean value, String failureMessage) {
         if (!value) {
-            throw new RuntimeException("value was unexpectedly false");
+            throw new RuntimeException("value was unexpectedly false. " + failureMessage);
         }
     }
 
