@@ -53,6 +53,12 @@ public class Logger implements ILogger {
         logHelper(msg, Type.ASYNC_ERROR);
     }
 
+    @Override
+    public void logAsyncError(Exception ex) {
+        final var msg = convertExceptionToString(ex);
+        logHelper(() -> msg, Type.ASYNC_ERROR);
+    }
+
     /**
      * A helper method to reduce duplication
      */

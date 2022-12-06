@@ -103,7 +103,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
             try {
                 Files.delete(Path.of(fullPath));
             } catch (Exception ex) {
-                logger.logAsyncError(() -> "failed to delete file "+fullPath);
+                logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk");
             }
 
             // needs to return null because this is a Callable, which allows us to

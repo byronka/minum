@@ -161,7 +161,7 @@ public class SimpleDatabaseTests {
             // if we try deleting something that doesn't exist, we get an error shown in the log
             ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
             MyThread.sleep(10);
-            assertEquals(myLogger.loggedMessages.get(0), "failed to delete file out/simple_db/foos/123.ddps");
+            assertEquals(myLogger.loggedMessages.get(0), "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
 
             ddps_throwaway.stop();
         }

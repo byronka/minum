@@ -63,14 +63,14 @@ public class Server implements AutoCloseable {
                             try {
                                 handler.accept(sw);
                             } catch (Exception ex) {
-                                logger.logAsyncError(ex::getMessage);
+                                logger.logAsyncError(ex);
                             }
                         }));
                     }
                 }
             } catch (SocketException ex) {
                 if (! (ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
-                    logger.logAsyncError(ex::getMessage);
+                    logger.logAsyncError(ex);
                 }
             }
         });

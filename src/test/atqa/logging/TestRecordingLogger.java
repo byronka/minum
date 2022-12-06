@@ -28,24 +28,31 @@ public class TestRecordingLogger implements ILogger {
     }
 
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
-        try {
-            loggedMessages.add(msg.get());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        handleMessageForTests(msg);
     }
 
     @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
-        try {
-            loggedMessages.add(msg.get());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        handleMessageForTests(msg);
     }
 
     @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        handleMessageForTests(msg);
+    }
+
+    @Override
+    public void logAsyncError(Exception ex) {
+        final var msg = convertExceptionToString(ex);
+        handleMessageForTests(() -> msg);
+    }
+
+    /**
+     * Store the log information into a data structure for easy access
+     * by tests, in those situations where we want to review what's been
+     * logged as part of a test.
+     */
+    private void handleMessageForTests(ThrowingSupplier<String, Exception> msg) {
         try {
             loggedMessages.add(msg.get());
         } catch (Exception e) {
