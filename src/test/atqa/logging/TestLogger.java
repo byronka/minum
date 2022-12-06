@@ -16,18 +16,11 @@ public class TestLogger extends Logger {
      * A little helper function to log a test title prefixed with "TEST:"
      */
     public void test(String msg) {
-        loggerPrinter.enqueue(() -> {
-            printf("%n+-------------%n| TEST %d: %s%n+-------------%n%n", testCount++, msg);
-            return null;
-        });
-    }
+        final var baseLength = 11;
+        final var dashes = "-".repeat(msg.length() + baseLength);
 
-    /**
-     * Shows that this test is skipped
-     */
-    public void testSkip(String msg) {
         loggerPrinter.enqueue(() -> {
-            printf("%n+-------------%n|  *** SKIPPED *** TEST %d: %s%n+-------------%n%n", testCount++, msg);
+            printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", testCount++, msg);
             return null;
         });
     }
