@@ -21,7 +21,7 @@ import static atqa.utils.Invariants.mustBeTrue;
  */
 public class DatabaseDiskPersistenceSimpler<T> {
 
-    public static final String databaseFileSuffix = ".db";
+    public static final String databaseFileSuffix = ".ddps";
 
     private final Path dbDirectory;
     private final ActionQueue actionQueue;

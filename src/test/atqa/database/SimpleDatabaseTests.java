@@ -161,7 +161,7 @@ public class SimpleDatabaseTests {
             // if we try deleting something that doesn't exist, we get an error shown in the log
             ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
             MyThread.sleep(10);
-            assertEquals(myLogger.loggedMessages.get(0), "failed to delete file out/simple_db/foos/123.db");
+            assertEquals(myLogger.loggedMessages.get(0), "failed to delete file out/simple_db/foos/123.ddps");
 
             ddps_throwaway.stop();
         }
@@ -180,16 +180,16 @@ public class SimpleDatabaseTests {
             MyThread.sleep(10);
 
             // create an empty file, to create that edge condition
-            final var pathToSampleFile = Path.of(foosDirectory, "1.db");
+            final var pathToSampleFile = Path.of(foosDirectory, "1.ddps");
             Files.createFile(pathToSampleFile);
             ddps.readAndDeserialize(emptyFooInstance);
             MyThread.sleep(10);
-            assertEquals(myLogger.loggedMessages.get(0), "1.db file exists but empty, skipping");
+            assertEquals(myLogger.loggedMessages.get(0), "1.ddps file exists but empty, skipping");
 
             // create a corrupted file, to create that edge condition
             Files.write(pathToSampleFile, "invalid data".getBytes());
             final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance)));
-            assertEquals(ex.getMessage(), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.db with data (\"invalid data\")");
+            assertEquals(ex.getMessage(), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             ddps.readAndDeserialize(emptyFooInstance);
