@@ -20,9 +20,10 @@ import static atqa.web.WebEngine.HTTP_CRLF;
 /**
  * Responsible for the logistics after socket connection
  * <p>
- * After we've made a valid socket connection with a client, there's a
- * lot of logistics needed. For example, routing based on the path, determining
- * proper response headers, and doing it all with panache.
+ * Relies on server sockets built in {@link WebEngine}.  Builds
+ * a function in {@link #makeHandler()} that sort-of fits into a
+ * slot in WebEngine and handles HTTP protocol.  Also handles
+ * routing and static files.
  */
 public class WebFramework {
 

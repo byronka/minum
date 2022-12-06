@@ -15,7 +15,11 @@ import java.security.SecureRandom;
 import java.util.concurrent.ExecutorService;
 
 /**
- * This class contains the basic internet capabilities
+ * This class contains the basic internet capabilities.
+ * <br><br>
+ * Think of this class as managing some of the lowest-level internet
+ * communications we need to handle to support a web application. Sockets,
+ * Servers, Threads, that kind of stuff.
  */
 public class WebEngine {
 
