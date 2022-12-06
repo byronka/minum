@@ -1,13 +1,10 @@
-package atqa.web;
+package atqa.auth;
 
-import atqa.auth.AuthUtils;
-import atqa.auth.AuthResult;
-import atqa.auth.SessionId;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
+import atqa.web.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -78,7 +75,10 @@ public class AuthenticationTests {
             au.addSession(sessionId);
 
             // build an incoming request that has appropriate authentication information
-            final var authenticatedRequest = buildAuthenticatedRequest(sessionId);
+            final var authenticatedRequest = new Request(
+                    new Headers(0, List.of("Cookie: sessionid=" + sessionId)),
+                    null,
+                    "");
 
             // run the web handler on the authenticated request, get a response
             final var response = sampleAuthenticatedWebHandler.apply(authenticatedRequest);
@@ -104,20 +104,4 @@ public class AuthenticationTests {
     }
 
 
-    /*
-    Suppress warning about the parameter, because it is more legible for the
-    test when we pass the session id into this method.
-     */
-    @SuppressWarnings("SameParameterValue")
-    private Request buildAuthenticatedRequest(String sessionId) {
-        return new Request(
-                new Headers(0, List.of("Cookie: sessionid=" + sessionId)),
-                new StartLine(
-                        StartLine.Verb.GET,
-                        new StartLine.PathDetails("foo", "", Collections.emptyMap()),
-                        WebEngine.HttpVersion.ONE_DOT_ONE,
-                        "Unimportant - raw value"
-                ),
-                "");
-    }
 }

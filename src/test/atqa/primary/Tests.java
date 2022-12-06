@@ -8,7 +8,7 @@ import atqa.utils.ExtendedExecutor;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtilsTests;
 import atqa.web.WebTests;
-import atqa.web.AuthenticationTests;
+import atqa.auth.AuthenticationTests;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
