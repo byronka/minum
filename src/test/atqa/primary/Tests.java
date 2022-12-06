@@ -8,7 +8,7 @@ import atqa.utils.ExtendedExecutor;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtilsTests;
 import atqa.web.WebTests;
-import atqa.web.WebTests2;
+import atqa.web.AuthenticationTests;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -35,7 +35,7 @@ public class Tests {
         new TestAnalysisTests(logger).tests();
         new SimpleDatabaseTests(logger).tests(es);
         new InstrumentationTests(logger).tests(es);
-        new WebTests2(logger).tests(es);
+        new AuthenticationTests(logger).tests(es);
         new StringUtilsTests(logger).tests();
 
       } catch (Exception ex) {

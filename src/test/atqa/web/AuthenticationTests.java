@@ -18,21 +18,13 @@ import static atqa.web.StatusLine.StatusCode._200_OK;
 import static atqa.web.StatusLine.StatusCode._401_UNAUTHORIZED;
 
 
-public class WebTests2 {
+public class AuthenticationTests {
     private final TestLogger logger;
 
-    public WebTests2(TestLogger logger) {
+    public AuthenticationTests(TestLogger logger) {
         this.logger = logger;
     }
 
-    /*$      /$$           /$$               /$$                           /$$
-    | $$  /$ | $$          | $$              | $$                          | $$
-    | $$ /$$$| $$  /$$$$$$ | $$$$$$$        /$$$$$$    /$$$$$$   /$$$$$$$ /$$$$$$   /$$$$$$$
-    | $$/$$ $$ $$ /$$__  $$| $$__  $$      |_  $$_/   /$$__  $$ /$$_____/|_  $$_/  /$$_____/
-    | $$$$_  $$$$| $$$$$$$$| $$  \ $$        | $$    | $$$$$$$$|  $$$$$$   | $$   |  $$$$$$
-    | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
-    | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
-    |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
     public void tests(ExecutorService es) {
 
         /*
