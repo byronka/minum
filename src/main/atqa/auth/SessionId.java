@@ -31,7 +31,7 @@ public record SessionId(String sessionCode, long index, ZonedDateTime creationDa
      * class which manages the whole collection.
      */
     public static SessionId createNewSession(long index) {
-        return new SessionId(generateSecureRandomString(5), index, ZonedDateTime.now(ZoneId.of("UTC")));
+        return new SessionId(generateSecureRandomString(20), index, ZonedDateTime.now(ZoneId.of("UTC")));
     }
 
     @Override

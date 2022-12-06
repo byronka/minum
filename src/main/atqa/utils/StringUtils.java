@@ -95,7 +95,7 @@ public class StringUtils {
         final var allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         final var sr = new SecureRandom();
 
-        return IntStream.range(1, length)
+        return IntStream.range(1, length+1)
                 .mapToObj (x -> allowedChars.charAt(sr.nextInt(allowedChars.length())))
                 .map(Object::toString)
                 .collect(Collectors.joining());
