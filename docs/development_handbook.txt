@@ -8,3 +8,9 @@ telnet localhost 8080
 GET /formentry HTTP/1.1
 HOST: localhost
 connection: keep-alive
+
+
+To test with Chrome on localhost with invalid certificates
+----------------------------------------------------------
+In Chrome, go to chrome://flags/#allow-insecure-localhost
+Set this option to enabled
