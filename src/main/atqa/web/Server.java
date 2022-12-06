@@ -39,6 +39,11 @@ public class Server implements AutoCloseable {
         setOfServers = new SetOfServers(new ConcurrentSet<>(), logger);
     }
 
+    /**
+     * This is the infinite loop running inside the basic socket server code.  Every time we
+     * {@link ServerSocket#accept()} a new incoming socket connection, we attach our "end
+     * of the phone line" to the code that is "handler", which mainly handles it from there.
+     */
     public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
             try {

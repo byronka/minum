@@ -10,6 +10,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,9 @@ public class WebFramework {
     }
 
     /**
-     * This is the brains of how the server responds to web clients
+     * This is the brains of how the server responds to web clients.  Whatever
+     * code lives here will be inserted into a slot within the server code.
+     * See {@link Server#start(ExecutorService, ThrowingConsumer)}
      */
     public ThrowingConsumer<SocketWrapper, IOException> makeHandler() {
         return (sw) -> {
