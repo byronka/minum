@@ -67,7 +67,7 @@ public class SimpleDatabaseTests {
 
         /*
         For any given collection of data, we will need to serialize that to disk.
-        We can use some of the techniques we built up using r3z - like
+        We can use some of the techniques we built up using r3z (https://github.com/byronka/r3z) - like
         serializing to a json-like url-encoded text, eventually synchronized
         to disk.
          */
