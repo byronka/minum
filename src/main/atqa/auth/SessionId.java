@@ -46,18 +46,11 @@ public record SessionId(String sessionCode, long index, ZonedDateTime creationDa
 
     @Override
     public SessionId deserialize(String serializedText) {
-        final var indexEndOfIndex = serializedText.indexOf(' ');
-        final var indexStartOfName = indexEndOfIndex + 1;
-        final var indexEndOfName = serializedText.indexOf(' ', indexStartOfName);
-        final var indexStartOfDate = indexEndOfName + 1;
-
-        final var rawStringIndex = serializedText.substring(0, indexEndOfIndex);
-        final var rawStringName = serializedText.substring(indexStartOfName, indexEndOfName);
-        final var rawStringDate = serializedText.substring(indexStartOfDate);
+        final var tokens = serializedText.split(" ");
 
         return new SessionId(
-                decode(rawStringName),
-                Long.parseLong(rawStringIndex),
-                ZonedDateTime.parse(Objects.requireNonNull(decode(rawStringDate))));
+                decode(tokens[0]),
+                Long.parseLong(tokens[1]),
+                ZonedDateTime.parse(Objects.requireNonNull(decode(tokens[2]))));
     }
 }

@@ -50,8 +50,9 @@ public class AuthenticationTests {
          *
          */
         logger.test("playing with session management"); {
-            final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
-            final var au = new AuthUtils(authUtilsDdps, logger);
+            final var sessionsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
+            final var usersDdps = new DatabaseDiskPersistenceSimpler<User>("out/simple_db/users", es, logger);
+            final var au = new AuthUtils(sessionsDdps, usersDdps, logger);
 
             /*
             create a pretend web handler just for this test that requires authentication
@@ -117,12 +118,15 @@ public class AuthenticationTests {
             and use it to auth with the back-end.
 
             Another issue is that users are infamous about choosing bad passwords.  Maybe we
-            generate them a good one and show it just once.
+            generate them a good one and show it just once.  That's what we did in R3z.
             */
             final var newPassword = "password_123";
             final var newUsername = "alice";
             final RegisterResult registerResult = au.registerUser(newUsername, newPassword);
             assertEquals(registerResult.status(), RegisterResultStatus.SUCCESS);
+
+            final LoginResult loginResult = au.loginUser(newUsername, newPassword);
+            assertEquals(loginResult.status(), LoginResultStatus.SUCCESS);
         }
 
 

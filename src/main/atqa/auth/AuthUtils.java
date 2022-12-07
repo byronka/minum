@@ -3,6 +3,7 @@ package atqa.auth;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
 import atqa.utils.CryptoUtils;
+import atqa.utils.InvariantException;
 import atqa.utils.StringUtils;
 import atqa.web.Request;
 
@@ -30,6 +31,7 @@ public class AuthUtils {
     private final List<User> users;
     private final ILogger logger;
     final AtomicLong newSessionIdentifierIndex;
+    final AtomicLong newUserIndex;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
@@ -38,6 +40,7 @@ public class AuthUtils {
         users = userDiskData.readAndDeserialize(User.EMPTY);
         this.logger = logger;
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
+        newUserIndex = new AtomicLong(calculateNextIndex(users));
     }
 
     /**
@@ -109,6 +112,27 @@ public class AuthUtils {
     public RegisterResult registerUser(String newUsername, String newPassword) {
         final var newSalt = StringUtils.generateSecureRandomString(10);
         final var hashedPassword = CryptoUtils.createHash(newPassword, newSalt);
+        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, "");
+        users.add(newUser);
+        return new RegisterResult(RegisterResultStatus.SUCCESS);
+    }
 
+    public LoginResult loginUser(String username, String password) {
+        final var foundUsers = users.stream().filter(x -> x.username().equals(username)).toList();
+        return switch (foundUsers.size()) {
+            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND);
+            case 1 -> passwordCheck(foundUsers.get(0), password);
+            default ->
+                    throw new InvariantException("there must be zero or one users found. Anything else indicates a bug");
+        };
+    }
+
+    private LoginResult passwordCheck(User user, String password) {
+        final var hash = CryptoUtils.createHash(password, user.salt());
+        if (user.hashedPassword().equals(hash)) {
+            return new LoginResult(LoginResultStatus.SUCCESS);
+        } else {
+            return new LoginResult(LoginResultStatus.DID_NOT_MATCH_PASSWORD);
+        }
     }
 }

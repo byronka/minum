@@ -16,12 +16,8 @@ public record PersonName(String fullname, Long index) implements SimpleDataType<
 
     @Override
     public PersonName deserialize(String serializedText) {
-        final var indexEndOfIndex = serializedText.indexOf(' ');
-        final var indexStartOfName = indexEndOfIndex + 1;
+        final var tokens = serializedText.split(" ");
 
-        final var rawStringIndex = serializedText.substring(0, indexEndOfIndex);
-        final var rawStringName = serializedText.substring(indexStartOfName);
-
-        return new PersonName(StringUtils.decode(rawStringName), Long.parseLong(rawStringIndex));
+        return new PersonName(StringUtils.decode(tokens[0]), Long.parseLong(tokens[1]));
     }
 }
