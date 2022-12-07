@@ -32,6 +32,16 @@ public class Invariants {
     }
 
     /**
+     * Specify something which must be false
+     * <p>
+     * Throws an {@link InvariantException} if true
+     * @param predicate the boolean expression that must be false at this point
+     */
+    public static void mustBeFalse(boolean predicate) {
+        mustBeFalse(predicate, "value must be false");
+    }
+
+    /**
      * specifies that the paramter must be not null.
      * <p>
      * Throws an {@link InvariantException} if null.

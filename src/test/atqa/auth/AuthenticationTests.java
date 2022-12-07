@@ -85,20 +85,46 @@ public class AuthenticationTests {
                     List.of("All is well"),
                     "The web handler should treat the request as authenticated");
 
-            // make sure we can tell when a session id was created
+            logger.test("make sure we can tell when a session id was created");
             final var authResult = au.processAuth(authenticatedRequest);
             assertTrue(Duration.between(authResult.creationDate(), ZonedDateTime.now()).toMillis() < 100,
                     "The date and time of the creation of this session id should be within 100 milliseconds of now.");
 
-        }
+            logger.test("make sure it throws an exception if we have a request with two session identifiers.");
 
-        logger.test("make sure it throws an exception if we have a request with two session identifiers."); {
-            final var authUtilsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
-            final var au = new AuthUtils(authUtilsDdps, logger);
             final var multipleSessionIdsInRequest = buildRequest(List.of("abc","def"));
             final var ex = assertThrows(InvariantException.class, () -> au.processAuth(multipleSessionIdsInRequest));
             assertEquals(ex.getMessage(), "there must be either zero or one session id found in the request headers.  Anything more is invalid");
+
+            // Incorporate the concept of a user to the authentication process
+
+            /*
+             * In our paradigm, a user provides his account credentials, the system checks these
+             * against its records, and if they match, he's allowed in.
+             *
+             * This test covers the bases for the happy path flow - which is:
+             * 1. registering a user
+             * 2. successful login
+             */
+            logger.test("a user with valid credentials should be allowed in");
+
+            /*
+            this piece is interesting.  Notice how the password entry is plain text? It means
+            that if someone were able to print out memory on the computer, they could see
+            the password for this user.  Even if we tried something sneaky like hashing
+            their password on the browser (in JavaScript) and sending that to the back-end,
+            the fact remains that whatever that text ends up being, an evesdropper could see it
+            and use it to auth with the back-end.
+
+            Another issue is that users are infamous about choosing bad passwords.  Maybe we
+            generate them a good one and show it just once.
+            */
+            final var newPassword = "password_123";
+            final var newUsername = "alice";
+            final RegisterResult registerResult = au.registerUser(newUsername, newPassword);
+            assertEquals(registerResult.status(), RegisterResultStatus.SUCCESS);
         }
+
 
     }
 

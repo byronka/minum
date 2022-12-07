@@ -35,8 +35,8 @@ public class Tests {
         new TestAnalysisTests(logger).tests();
         new SimpleDatabaseTests(logger).tests(es);
         new InstrumentationTests(logger).tests(es);
-        new AuthenticationTests(logger).tests(es);
         new StringUtilsTests(logger).tests();
+        new AuthenticationTests(logger).tests(es);
 
       } catch (Exception ex) {
         ex.printStackTrace();

@@ -1,5 +1,7 @@
 package atqa.auth;
 
+import atqa.database.SimpleDataType;
+
 /**
  * A data structure representing authentication information for a user.
  * @param id the unique identifier for this record
@@ -11,4 +13,7 @@ package atqa.auth;
  * @param currentSession If this use is currently authenticated, there will be a {@link SessionId} for them
  */
 public record User(Long id, String username, String hashedPassword, String salt, String currentSession) {
+
+    public static final SimpleDataType<User> EMPTY = new User(0, "", "", "", "");
+
 }

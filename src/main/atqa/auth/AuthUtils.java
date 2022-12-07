@@ -2,6 +2,8 @@ package atqa.auth;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
+import atqa.utils.CryptoUtils;
+import atqa.utils.StringUtils;
 import atqa.web.Request;
 
 import java.util.ArrayList;
@@ -25,11 +27,15 @@ import static atqa.utils.Invariants.mustBeTrue;
 public class AuthUtils {
 
     private final List<SessionId> sessionIds;
+    private final List<User> users;
     private final ILogger logger;
     final AtomicLong newSessionIdentifierIndex;
 
-    public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> diskData, ILogger logger) {
-        sessionIds = diskData.readAndDeserialize(SessionId.EMPTY);
+    public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
+                     DatabaseDiskPersistenceSimpler<User> userDiskData,
+                     ILogger logger) {
+        sessionIds = sessionDiskData.readAndDeserialize(SessionId.EMPTY);
+        users = userDiskData.readAndDeserialize(User.EMPTY);
         this.logger = logger;
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
     }
@@ -98,5 +104,11 @@ public class AuthUtils {
         final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
         sessionIds.add(newSession);
         return newSession;
+    }
+
+    public RegisterResult registerUser(String newUsername, String newPassword) {
+        final var newSalt = StringUtils.generateSecureRandomString(10);
+        final var hashedPassword = CryptoUtils.createHash(newPassword, newSalt);
+
     }
 }
