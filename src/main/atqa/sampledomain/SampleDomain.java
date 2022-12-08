@@ -8,14 +8,14 @@ import atqa.web.WebFramework;
 import atqa.web.Request;
 import atqa.web.Response;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static atqa.database.SimpleIndexed.calculateNextIndex;
-import static atqa.web.StatusLine.StatusCode._200_OK;
-import static atqa.web.StatusLine.StatusCode._303_SEE_OTHER;
+import static atqa.web.StatusLine.StatusCode.*;
 
 public class SampleDomain {
 
@@ -70,7 +70,9 @@ public class SampleDomain {
 
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
-//        auth.authenticatedOrRedirect(authResult);
+        if (! authResult.isAuthenticated()) {
+            return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
+        }
         final var formData = WebFramework.parseUrlEncodedForm(r.body());
         final var nameEntry = formData.get("name_entry");
 
