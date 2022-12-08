@@ -4,6 +4,7 @@ import atqa.logging.ILogger;
 import atqa.utils.InvariantException;
 import atqa.utils.ThrowingConsumer;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.time.ZoneId;
@@ -84,6 +85,8 @@ public class WebFramework {
                 if (!ex.getMessage().contains("Socket closed")) {
                     throw new RuntimeException(ex);
                 }
+            } catch (SSLException ex) {
+                logger.logDebug(() -> ex.getMessage() + " at WebFramework");
             }
         };
     }
