@@ -1,14 +1,13 @@
 package atqa;
 
-import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
-import atqa.sampledomain.PersonName;
-import atqa.sampledomain.SampleDomain;
 import atqa.utils.ThrowingRunnable;
 import atqa.web.*;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+
+import static atqa.DomainRegistry.registerDomains;
 
 /**
  * This class is responsible for kicking off the entire system.
@@ -30,22 +29,12 @@ public class FullSystem {
         WebEngine webEngine = new WebEngine(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
         WebFramework wf = new WebFramework(logger);
-
-        final var sampleDomainDdps = new DatabaseDiskPersistenceSimpler<PersonName>("out/simple_db/names", es, logger);
-        final var sd = new SampleDomain(sampleDomainDdps);
-
         addShutdownHook();
-
-
         wf.registerStaticFiles(sfc);
-        wf.registerPath(StartLine.Verb.GET, "", WebFramework.redirectTo("index.html"));
-        wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
-        wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        registerDomains(wf, es, logger);
         final var webHandler = wf.makeHandler();
-
         server = webEngine.startServer(es, webHandler);
         sslServer = webEngine.startSslServer(es, webHandler);
-
         return this;
     }
 

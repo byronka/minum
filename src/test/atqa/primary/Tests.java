@@ -23,7 +23,7 @@ public class Tests {
   /**
    * These tests range in size from focusing on very small elements (unit tests)
    * to larger combinations of methods and classes (integration tests) but
-   * stop short of running {@link FullSystem}
+   * stop short of running {@link FullSystem}.  For that purpose, see {@link #testFullSystem_Soup_To_Nuts()}
    */
   private static void unitAndIntegrationTests() {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
@@ -56,6 +56,10 @@ public class Tests {
     es.shutdownNow();
   }
 
+  /**
+   * Run a test of the entire system.  In particular, runs code
+   * from {@link FullSystem}
+   */
   private static void testFullSystem_Soup_To_Nuts() throws IOException {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
       final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);

@@ -4,6 +4,13 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * This implementation of {@link Logger} has a few
+ * extra functions that only apply to tests, like {@link #test(String)}
+ * <br><br>
+ * There's also {@link TestRecordingLogger}, which is used to record
+ * whatever gets logged, so we can examine it as part of testing.
+ */
 public class TestLogger extends Logger {
 
     public TestLogger(ExecutorService es) {
