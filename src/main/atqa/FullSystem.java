@@ -1,6 +1,7 @@
 package atqa;
 
 import atqa.logging.ILogger;
+import atqa.logging.Logger;
 import atqa.utils.ThrowingRunnable;
 import atqa.web.*;
 
@@ -20,8 +21,8 @@ public class FullSystem {
 
     ExecutorService es;
 
-    public FullSystem(ILogger logger, ExecutorService es) {
-        this.logger = logger;
+    public FullSystem(ExecutorService es) {
+        this.logger = new Logger(es);
         this.es = es;
     }
 

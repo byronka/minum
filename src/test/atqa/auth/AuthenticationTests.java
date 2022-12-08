@@ -18,12 +18,14 @@ import static atqa.web.StatusLine.StatusCode._401_UNAUTHORIZED;
 
 public class AuthenticationTests {
     private final TestLogger logger;
+    private final ExecutorService es;
 
-    public AuthenticationTests(TestLogger logger) {
-        this.logger = logger;
+    public AuthenticationTests(ExecutorService es) {
+        this.es = es;
+        this.logger = new TestLogger(es);
     }
 
-    public void tests(ExecutorService es) {
+    public void tests() {
 
         /*
          * Session management is the term used for making sure we know who we are talking with.

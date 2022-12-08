@@ -23,10 +23,11 @@ import static atqa.web.StatusLine.StatusCode._200_OK;
 public class WebTests {
     private final TestLogger logger;
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
+    private final ExecutorService es;
 
-    public WebTests(TestLogger logger) {
-
-        this.logger = logger;
+    public WebTests(ExecutorService es) {
+        this.es = es;
+        this.logger = new TestLogger(es);
     }
 
     /*$      /$$           /$$               /$$                           /$$
@@ -37,7 +38,7 @@ public class WebTests {
     | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
     | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
     |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
-    public void tests(ExecutorService es) throws IOException {
+    public void tests() throws IOException {
 
         WebEngine webEngine = new WebEngine(logger);
 

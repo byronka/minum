@@ -11,8 +11,8 @@ public class InstrumentationTests {
 
     private final TestLogger logger;
 
-    public InstrumentationTests(TestLogger logger) {
-        this.logger = logger;
+    public InstrumentationTests(ExecutorService es) {
+        this.logger = new TestLogger(es);
     }
 
     private boolean markPredicateExpressionCovered(String fileName, boolean booleanExpression, int lineNumber, int expressionOrder) {
@@ -26,7 +26,7 @@ public class InstrumentationTests {
         logger.logDebug(() ->"filename is " + fileName + " lineNumber is " + lineNumber);
     }
 
-    public void tests(ExecutorService es) throws IOException, ClassNotFoundException {
+    public void tests() throws IOException, ClassNotFoundException {
         logger.test("playing with explicit coverage probes");{
             var a = true;          markCovered("InstrumentationTests.java", 31);
             var b = false;         markCovered("InstrumentationTests.java", 32);

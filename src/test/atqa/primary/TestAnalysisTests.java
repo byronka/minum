@@ -2,12 +2,13 @@ package atqa.primary;
 
 import atqa.logging.TestLogger;
 
+import java.util.concurrent.ExecutorService;
+
 public class TestAnalysisTests {
     private TestLogger logger;
 
-    public TestAnalysisTests(TestLogger logger) {
-
-        this.logger = logger;
+    public TestAnalysisTests(ExecutorService es) {
+        this.logger = new TestLogger(es);
     }
 
 
