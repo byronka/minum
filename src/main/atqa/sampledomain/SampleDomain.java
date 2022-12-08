@@ -1,5 +1,6 @@
 package atqa.sampledomain;
 
+import atqa.auth.AuthUtils;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.utils.StringUtils;
 import atqa.web.ContentType;
@@ -20,11 +21,13 @@ public class SampleDomain {
 
     private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
     private final List<PersonName> personNames;
+    private final AuthUtils auth;
     final AtomicLong newPersonIndex;
 
-    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData) {
+    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
         personNames = diskData.readAndDeserialize(new PersonName("",0L));
+        this.auth = auth;
 
         newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
     }
@@ -66,6 +69,8 @@ public class SampleDomain {
     }
 
     public Response testform(Request r) {
+        final var authResult = auth.processAuth(r);
+//        auth.authenticatedOrRedirect(authResult);
         final var formData = WebFramework.parseUrlEncodedForm(r.body());
         final var nameEntry = formData.get("name_entry");
 

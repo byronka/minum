@@ -28,9 +28,10 @@ import static atqa.web.WebEngine.HTTP_CRLF;
  */
 public class WebFramework {
 
-    private final ILogger logger;
+    public final ILogger logger;
     private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
     private final ZonedDateTime zdt;
+    public final ExecutorService executorService;
     private StaticFilesCache staticFilesCache;
 
     public static Function<Request, Response> redirectTo(String location) {
@@ -112,15 +113,18 @@ public class WebFramework {
         return functionFound;
     }
 
-    public WebFramework(ILogger logger) {
-        this(logger, null);
+    public WebFramework(ExecutorService es, ILogger logger) {
+        this(es, logger, null);
     }
 
     /**
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
+     * @param es is the {@link ExecutorService} that will be provided to downstream users. We are
+     *           just requesting it here so we can dole it out to domains during registry in {@link atqa.DomainRegistry}
      */
-    public WebFramework(ILogger logger, ZonedDateTime zdt) {
+    public WebFramework(ExecutorService es, ILogger logger, ZonedDateTime zdt) {
+        this.executorService = es;
         this.logger = logger;
         this.zdt = zdt;
         this.registeredDynamicPaths = new HashMap<>();

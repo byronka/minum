@@ -28,10 +28,10 @@ public class FullSystem {
     public FullSystem start() throws IOException  {
         WebEngine webEngine = new WebEngine(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
-        WebFramework wf = new WebFramework(logger);
+        WebFramework wf = new WebFramework(es, logger);
         addShutdownHook();
         wf.registerStaticFiles(sfc);
-        registerDomains(wf, es, logger);
+        registerDomains(wf);
         final var webHandler = wf.makeHandler();
         server = webEngine.startServer(es, webHandler);
         sslServer = webEngine.startSslServer(es, webHandler);

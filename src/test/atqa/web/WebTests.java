@@ -151,7 +151,7 @@ public class WebTests {
         }
 
         logger.test("starting server with a handler part 2");{
-            WebFramework wf = new WebFramework(logger, default_zdt);
+            WebFramework wf = new WebFramework(es, logger, default_zdt);
             wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
@@ -284,7 +284,7 @@ public class WebTests {
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
-            WebFramework wf = new WebFramework(logger, default_zdt);
+            WebFramework wf = new WebFramework(es, logger, default_zdt);
             wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, ContentType.TEXT_HTML, x.body()));
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
@@ -310,7 +310,7 @@ public class WebTests {
         }
 
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
-            WebFramework wf = new WebFramework(logger, default_zdt);
+            WebFramework wf = new WebFramework(es, logger, default_zdt);
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
