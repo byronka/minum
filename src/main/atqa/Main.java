@@ -1,5 +1,6 @@
 package atqa;
 
+import atqa.logging.Logger;
 import atqa.utils.ExtendedExecutor;
 
 import java.io.IOException;
@@ -9,7 +10,8 @@ public class Main {
 
     public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
         try (final var es = ExtendedExecutor.makeExecutorService()) {
-            final var fs = new FullSystem(es).start();
+            final var logger = new Logger(es);
+            final var fs = new FullSystem(logger, es).start();
             // Wait until they are all done
             fs.server.centralLoopFuture.get();
             fs.sslServer.centralLoopFuture.get();

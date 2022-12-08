@@ -20,14 +20,12 @@ import static java.util.stream.IntStream.range;
 
 public class SimpleDatabaseTests {
     private final TestLogger logger;
-    private final ExecutorService es;
 
-    public SimpleDatabaseTests(ExecutorService es) {
-        this.es = es;
-        this.logger = new TestLogger(es);
+    public SimpleDatabaseTests(TestLogger logger) {
+        this.logger = logger;
     }
 
-    public void tests() throws IOException {
+    public void tests(ExecutorService es) throws IOException {
 
         // the following will be used in the subsequent tests...
 

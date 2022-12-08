@@ -1,17 +1,15 @@
 package atqa.utils;
 
 import atqa.logging.TestLogger;
-
-import java.util.concurrent.ExecutorService;
-
 import static atqa.framework.TestFramework.assertEquals;
 
 public class StringUtilsTests {
 
     private final TestLogger logger;
 
-    public StringUtilsTests(ExecutorService es) {
-        this.logger = new TestLogger(es);
+    public StringUtilsTests(TestLogger logger) {
+
+        this.logger = logger;
     }
 
     public void tests() {

@@ -3,6 +3,7 @@ package atqa.primary;
 import atqa.FullSystem;
 import atqa.database.SimpleDatabaseTests;
 import atqa.instrumentation.InstrumentationTests;
+import atqa.logging.TestLogger;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtilsTests;
@@ -27,12 +28,15 @@ public class Tests {
   private static void unitAndIntegrationTests() {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
       try {
-        new WebTests(es).tests();
-        new TestAnalysisTests(es).tests();
-        new SimpleDatabaseTests(es).tests();
-        new InstrumentationTests(es).tests();
-        new StringUtilsTests(es).tests();
-        new AuthenticationTests(es).tests();
+        final var logger = new TestLogger(es);
+
+        // Arrr here be the tests
+        new WebTests(logger).tests(es);
+        new TestAnalysisTests(logger).tests();
+        new SimpleDatabaseTests(logger).tests(es);
+        new InstrumentationTests(logger).tests(es);
+        new StringUtilsTests(logger).tests();
+        new AuthenticationTests(logger).tests(es);
 
       } catch (Exception ex) {
         ex.printStackTrace();
@@ -58,7 +62,8 @@ public class Tests {
    */
   private static void testFullSystem_Soup_To_Nuts() throws IOException {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
-      var fs = new FullSystem(es).start();
+      final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+      var fs = new FullSystem(logger, es).start();
       fs.shutdown();
       es.shutdownNow();
     }
