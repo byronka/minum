@@ -26,7 +26,7 @@ public class SampleDomain {
 
     public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
-        personNames = diskData.readAndDeserialize(new PersonName("",0L));
+        personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
 
         newPersonIndex = new AtomicLong(calculateNextIndex(personNames));

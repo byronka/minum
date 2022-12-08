@@ -55,10 +55,10 @@ public class FullSystem {
         logger.logImperative("Received shutdown command");
 
         logger.logImperative("Stopping the server");
-        server.stop();
+        if (server != null) server.stop();
 
         logger.logImperative("Stopping the SSL server");
-        sslServer.stop();
+        if (sslServer != null) sslServer.stop();
 
         logger.logImperative("Goodbye world!");
     }

@@ -25,7 +25,7 @@ public class WebEngine {
 
   public WebEngine(ILogger logger) {
       this.logger = logger;
-      this.logger.logDebug(() -> "Using a supplied logger");
+      this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
   }
 
   enum HttpVersion {

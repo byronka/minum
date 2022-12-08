@@ -63,12 +63,11 @@ public class Tests {
    * from {@link FullSystem}
    */
   private static void testFullSystem_Soup_To_Nuts() throws IOException {
-    try (final var es = ExtendedExecutor.makeExecutorService()) {
-      final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
-      var fs = new FullSystem(logger, es).start();
-      fs.shutdown();
-      es.shutdownNow();
-    }
+    final var es = ExtendedExecutor.makeExecutorService();
+    final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+    var fs = new FullSystem(logger, es).start();
+    fs.shutdown();
+    es.shutdownNow();
 
     // need to wait for port 8080 to be closed by the TCP system
     MyThread.sleep(200);

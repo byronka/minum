@@ -31,8 +31,8 @@ public class SampleDomainTests {
             final var sampleDomainDdps = new DatabaseDiskPersistenceSimpler<PersonName>("out/simple_db/names", es, logger);
             final var sd = new SampleDomain(sampleDomainDdps, auth);
             final var firstRequest = new Request(new Headers(0, List.of("Cookie: sessionId="+sessionId.sessionCode())), null, "");
-            final var response = sd.testform(firstRequest);
-            assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
+            final var response = sd.formEntry(firstRequest);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
         }
     }
 }
