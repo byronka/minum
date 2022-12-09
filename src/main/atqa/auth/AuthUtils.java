@@ -70,14 +70,12 @@ public class AuthUtils {
                 .map(String::toLowerCase)
                 .filter(x -> x.startsWith("cookie"))
                 .collect(Collectors.joining("; "));
-        logger.logDebug(() -> "For headers object " + headers + ". cookieHeaders were " + cookieHeaders);
 
         // extract session identifiers from the cookies
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
         final var listOfSessionIds = new ArrayList<String>();
         while (cookieMatcher.find()) {
             final var sessionIdValue = cookieMatcher.group("sessionIdValue");
-            logger.logDebug(() -> "For headers object " + headers + ". Adding another sessionIdValue: " + sessionIdValue);
             listOfSessionIds.add(sessionIdValue);
         }
         mustBeTrue(listOfSessionIds.size() < 2, "there must be either zero or one session id found " +
@@ -85,17 +83,14 @@ public class AuthUtils {
 
         // examine whether there is just one session identifier
         final var isExactlyOneSessionInRequest = listOfSessionIds.size() == 1;
-        logger.logDebug(() -> "For headers object " + headers + ". isExactlyOneSessionInRequest is " + isExactlyOneSessionInRequest);
 
         // Did we find that session identifier in the database?
         final var sessionFoundInDatabase = sessionIds.stream()
                 .filter(x -> Objects.equals(x.sessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase())).findFirst().orElse(SessionId.EMPTY);
-        logger.logDebug(() -> "For headers object " + headers + ". sessionFoundInDatabase is " + sessionFoundInDatabase);
 
         // they are authenticated if we find their session id in the database, and
         // there was only one session id value in the cookies
         final var isAuthenticated = isExactlyOneSessionInRequest && sessionFoundInDatabase != SessionId.EMPTY;
-        logger.logDebug(() -> "For headers object " + headers + ". isAuthenticated is " + isAuthenticated);
 
         return new AuthResult(isAuthenticated, sessionFoundInDatabase.creationDateTime());
     }

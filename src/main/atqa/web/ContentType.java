@@ -2,7 +2,8 @@ package atqa.web;
 
 /**
  * These are mime types (see docs/mime_types.txt)
- * which we'll use when conversing with clients to describe data
+ * which we'll use when conversing with clients to describe data.
+ * See see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type">Content type</a>
  */
 public enum ContentType {
     // Text MIME types - see https://www.iana.org/assignments/media-types/media-types.xhtml#text

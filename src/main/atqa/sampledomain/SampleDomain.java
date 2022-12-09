@@ -41,6 +41,10 @@ public class SampleDomain {
      */
     @SuppressWarnings("unused")
     public Response formEntry(Request r) {
+        final var authResult = auth.processAuth(r);
+        if (! authResult.isAuthenticated()) {
+            return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
+        }
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::index))
                 .map(x -> "<li>" + StringUtils.safeHtml(x.fullname()) + "</li>\n")
@@ -69,10 +73,6 @@ public class SampleDomain {
     }
 
     public Response testform(Request r) {
-        final var authResult = auth.processAuth(r);
-        if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
-        }
         final var formData = WebFramework.parseUrlEncodedForm(r.body());
         final var nameEntry = formData.get("name_entry");
 

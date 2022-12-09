@@ -15,6 +15,9 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
     public static final String statusLinePattern = "^HTTP/(1.1|1.0) (\\d{3}) (.*)$";
     public static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
 
+    /**
+     * See see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">Status Codes</a>
+     */
     public enum StatusCode{
         _200_OK(200, "OK"),
         _404_NOT_FOUND(404, "NOT FOUND"),
