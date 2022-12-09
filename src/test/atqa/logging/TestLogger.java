@@ -32,6 +32,10 @@ public class TestLogger extends Logger {
         });
     }
 
+    /**
+     * Used for printing pertinent messages during the tests, including
+     * exceptions thrown.
+     */
     public void testPrint(String msg) {
         loggerPrinter.enqueue(() -> {
             System.out.println(msg);
@@ -39,6 +43,9 @@ public class TestLogger extends Logger {
         });
     }
 
+    /**
+     * grabs the stacktrace out of a {@link Throwable} as a string
+     */
     public static String printStackTrace(Throwable ex) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);

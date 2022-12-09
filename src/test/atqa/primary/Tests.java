@@ -28,9 +28,8 @@ public class Tests {
    */
   private static void unitAndIntegrationTests() {
     try (final var es = ExtendedExecutor.makeExecutorService()) {
+      final var logger = new TestLogger(es);
       try {
-        final var logger = new TestLogger(es);
-
         // Arrr here be the tests
         new WebTests(logger).tests(es);
         new TestAnalysisTests(logger).tests();
@@ -41,7 +40,7 @@ public class Tests {
         new SampleDomainTests(logger).tests(es);
 
       } catch (Exception ex) {
-        ex.printStackTrace();
+        logger.testPrint(TestLogger.printStackTrace(ex));
       }
       runShutdownSequence(es);
     }
@@ -64,7 +63,7 @@ public class Tests {
    */
   private static void testFullSystem_Soup_To_Nuts() throws IOException {
     final var es = ExtendedExecutor.makeExecutorService();
-    final var logger = new TestLogger(es); //.turnOff(Logger.Type.DEBUG);
+    final var logger = new TestLogger(es);
     var fs = new FullSystem(logger, es).start();
     fs.shutdown();
     es.shutdownNow();

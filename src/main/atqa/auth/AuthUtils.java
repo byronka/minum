@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static atqa.database.SimpleIndexed.calculateNextIndex;
-import static atqa.utils.Invariants.mustBeTrue;
 
 /**
  * This class provides services for stateful authentication and
@@ -78,19 +77,26 @@ public class AuthUtils {
             final var sessionIdValue = cookieMatcher.group("sessionIdValue");
             listOfSessionIds.add(sessionIdValue);
         }
-        mustBeTrue(listOfSessionIds.size() < 2, "there must be either zero or one session id found " +
-                "in the request headers.  Anything more is invalid");
+        if (listOfSessionIds.size() >= 2) {
+            logger.logDebug(() -> "there must be either zero or one session id found " +
+                    "in the request headers.  Anything more is invalid");
+            return new AuthResult(false, null);
+        }
 
         // examine whether there is just one session identifier
         final var isExactlyOneSessionInRequest = listOfSessionIds.size() == 1;
+
+        // if we don't find any sessions in the request, they are not authenticated.
+        if (! isExactlyOneSessionInRequest) {
+            return new AuthResult(false, null);
+        }
 
         // Did we find that session identifier in the database?
         final var sessionFoundInDatabase = sessionIds.stream()
                 .filter(x -> Objects.equals(x.sessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase())).findFirst().orElse(SessionId.EMPTY);
 
-        // they are authenticated if we find their session id in the database, and
-        // there was only one session id value in the cookies
-        final var isAuthenticated = isExactlyOneSessionInRequest && sessionFoundInDatabase != SessionId.EMPTY;
+        // they are authenticated if we find their session id in the database
+        final var isAuthenticated = sessionFoundInDatabase != SessionId.EMPTY;
 
         return new AuthResult(isAuthenticated, sessionFoundInDatabase.creationDateTime());
     }

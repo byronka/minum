@@ -27,10 +27,28 @@ public class SampleDomainTests {
         final var sd = setupSampleDomain(es, logger, authUtils);
         final var sessionId = authUtils.registerNewSession();
 
-        logger.test("basic happy-path for authentication in the sample domain"); {
+        logger.test("basic happy-path for auth - view form"); {
             final var firstRequest = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
             final var response = sd.formEntry(firstRequest);
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
+        }
+
+        logger.test("should receive a 401 if no cookie - view form"); {
+            final var firstRequest = buildRequest(List.of());
+            final var response = sd.formEntry(firstRequest);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
+        }
+
+        logger.test("happy-path for auth - form entry"); {
+            final var firstRequest = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
+            final var response = sd.testform(firstRequest);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
+        }
+
+        logger.test("should receive a 401 if no cookie - form entry"); {
+            final var firstRequest = buildRequest(List.of());
+            final var response = sd.testform(firstRequest);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
         }
     }
 

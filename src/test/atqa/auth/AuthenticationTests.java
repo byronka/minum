@@ -2,7 +2,6 @@ package atqa.auth;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
-import atqa.utils.InvariantException;
 import atqa.web.*;
 
 import java.time.Duration;
@@ -94,8 +93,11 @@ public class AuthenticationTests {
             logger.test("make sure it throws an exception if we have a request with two session identifiers.");
 
             final var multipleSessionIdsInRequest = buildRequest(List.of("abc","def"));
-            final var ex = assertThrows(InvariantException.class, () -> au.processAuth(multipleSessionIdsInRequest));
-            assertEquals(ex.getMessage(), "there must be either zero or one session id found in the request headers.  Anything more is invalid");
+            final var authResult2 = au.processAuth(multipleSessionIdsInRequest);
+
+            // if we send two sessionid values in the cookies, the system will not know
+            // which is the valid one, and will just fail authentication.
+            assertEquals(authResult2, new AuthResult(false, null));
 
             // Incorporate the concept of a user to the authentication process
 
