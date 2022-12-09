@@ -32,14 +32,6 @@ public class SampleDomain {
         newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
     }
 
-    /*
-    our web methods must match a particular pattern.
-    Specifically, Function<Request, Response>
-
-    In this case however, if we are not using the value of the parameter, "r", then
-    the IDE will complain that it's unused.  But it has to remain to match the pattern.
-     */
-    @SuppressWarnings("unused")
     public Response formEntry(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
