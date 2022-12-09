@@ -7,6 +7,7 @@ import atqa.web.*;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
@@ -138,7 +139,8 @@ public class AuthenticationTests {
         return new Request(
                 new Headers(0, sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
                 null,
-                "");
+                "",
+                Map.of());
     }
 
 

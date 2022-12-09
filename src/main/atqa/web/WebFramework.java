@@ -63,9 +63,10 @@ public class WebFramework {
 
                 Headers hi = Headers.extractHeaderInformation(sw);
                 String body = extractData(sw, hi);
+                Map<String, String> bodyMap = parseUrlEncodedForm(body);
 
                 Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
-                Response r = endpoint.apply(new Request(hi, sl, body));
+                Response r = endpoint.apply(new Request(hi, sl, body, bodyMap));
 
                 String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 

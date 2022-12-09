@@ -1,12 +1,10 @@
 package atqa.sampledomain;
 
 import atqa.auth.AuthUtils;
+import atqa.auth.RegisterResultStatus;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.utils.StringUtils;
-import atqa.web.ContentType;
-import atqa.web.WebFramework;
-import atqa.web.Request;
-import atqa.web.Response;
+import atqa.web.*;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -70,8 +68,7 @@ public class SampleDomain {
             return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
         }
 
-        final var formData = WebFramework.parseUrlEncodedForm(r.body());
-        final var nameEntry = formData.get("name_entry");
+        final var nameEntry = r.bodyMap().get("name_entry");
 
         final var newPersonName = new PersonName(nameEntry, newPersonIndex.getAndAdd(1));
         personNames.add(newPersonName);
@@ -79,4 +76,29 @@ public class SampleDomain {
         return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: formentry"));
     }
 
+    public Response registerUser(Request r) {
+        final var authResult = auth.processAuth(r);
+        if (authResult.isAuthenticated()) {
+            return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+        }
+
+        final var registrationResult = auth.registerUser(r.bodyMap().get("username"), r.bodyMap().get("password"));
+        if (registrationResult.status() == RegisterResultStatus.SUCCESS) {
+            final var sessionId = auth.registerNewSession();
+            return new Response(_303_SEE_OTHER, List.of("Location: formentry", "Set-Cookie: " + sessionId.sessionCode()));
+        } else {
+            return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+        }
+
+    }
+
+    public Response loginUser(Request r) {
+        final var authResult = auth.processAuth(r);
+        if (authResult.isAuthenticated()) {
+            return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+        }
+
+        final var loginResult = auth.loginUser(r.bodyMap().get("username"), r.bodyMap().get("password"));
+        return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+    }
 }

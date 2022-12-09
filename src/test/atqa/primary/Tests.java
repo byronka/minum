@@ -27,23 +27,22 @@ public class Tests {
    * stop short of running {@link FullSystem}.  For that purpose, see {@link #testFullSystem_Soup_To_Nuts()}
    */
   private static void unitAndIntegrationTests() {
-    try (final var es = ExtendedExecutor.makeExecutorService()) {
-      final var logger = new TestLogger(es);
-      try {
-        // Arrr here be the tests
-        new WebTests(logger).tests(es);
-        new TestAnalysisTests(logger).tests();
-        new SimpleDatabaseTests(logger).tests(es);
-        new InstrumentationTests(logger).tests(es);
-        new StringUtilsTests(logger).tests();
-        new AuthenticationTests(logger).tests(es);
-        new SampleDomainTests(logger).tests(es);
+    final var es = ExtendedExecutor.makeExecutorService();
+    final var logger = new TestLogger(es);
+    try {
+      // Arrr here be the tests
+      new WebTests(logger).tests(es);
+      new TestAnalysisTests(logger).tests();
+      new SimpleDatabaseTests(logger).tests(es);
+      new InstrumentationTests(logger).tests(es);
+      new StringUtilsTests(logger).tests();
+      new AuthenticationTests(logger).tests(es);
+      new SampleDomainTests(logger).tests(es);
 
-      } catch (Exception ex) {
-        logger.testPrint(TestLogger.printStackTrace(ex));
-      }
-      runShutdownSequence(es);
+    } catch (Exception ex) {
+      logger.testPrint(TestLogger.printStackTrace(ex));
     }
+    runShutdownSequence(es);
   }
 
   private static void runShutdownSequence(ExecutorService es) {

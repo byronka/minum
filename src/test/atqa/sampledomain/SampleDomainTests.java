@@ -8,7 +8,9 @@ import atqa.logging.TestLogger;
 import atqa.web.*;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static atqa.framework.TestFramework.assertEquals;
@@ -28,32 +30,66 @@ public class SampleDomainTests {
         final var sessionId = authUtils.registerNewSession();
 
         logger.test("basic happy-path for auth - view form"); {
-            final var firstRequest = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
-            final var response = sd.formEntry(firstRequest);
+            final var request = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
+            final var response = sd.formEntry(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
         }
 
         logger.test("should receive a 401 if no cookie - view form"); {
-            final var firstRequest = buildRequest(List.of());
-            final var response = sd.formEntry(firstRequest);
+            final var request = buildRequest(List.of());
+            final var response = sd.formEntry(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
         }
 
         logger.test("happy-path for auth - form entry"); {
-            final var firstRequest = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
-            final var response = sd.testform(firstRequest);
+            final var request = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
+            final var response = sd.testform(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
         }
 
         logger.test("should receive a 401 if no cookie - form entry"); {
-            final var firstRequest = buildRequest(List.of());
-            final var response = sd.testform(firstRequest);
+            final var request = buildRequest(List.of());
+            final var response = sd.testform(request);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
+        }
+
+        /*
+        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
+        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
+        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
+        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
+         */
+        logger.test("should be able to register a new user"); {
+            final var request = buildRequest("username=abc&password=123");
+            final var response = sd.registerUser(request);
+            assertEquals(response.extraHeaders(), List.of("Set-Cookie: defghij"));
+        }
+
+        logger.test("should prevent registering a user twice"); {
+            final var request = buildRequest("username=abc&password=123");
+            final var response = sd.registerUser(request);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
+        }
+
+        logger.test("should be able to login a new user"); {
+            final var request = buildRequest("username=abc&password=123");
+            final var response = sd.loginUser(request);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
+        }
+
+        logger.test("should stop a bad login"); {
+            final var request = buildRequest("username=bad&password=bad");
+            final var response = sd.loginUser(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
         }
     }
 
     private static Request buildRequest(List<String> headers) {
-        return new Request(new Headers(0, headers), null, "");
+        return new Request(new Headers(0, headers), null, "", Map.of());
+    }
+
+    private static Request buildRequest(String body) {
+        return new Request(new Headers(0, Collections.emptyList()), null, body, WebFramework.parseUrlEncodedForm(body));
     }
 
     private static AuthUtils setupAuthUtils(ExecutorService es, TestLogger logger) {
