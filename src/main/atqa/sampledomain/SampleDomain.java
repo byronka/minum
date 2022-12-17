@@ -1,7 +1,6 @@
 package atqa.sampledomain;
 
 import atqa.auth.AuthUtils;
-import atqa.auth.RegisterResultStatus;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.utils.StringUtils;
 import atqa.web.*;
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static atqa.auth.RegisterResultStatus.*;
 import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.web.StatusLine.StatusCode.*;
 
@@ -82,13 +82,14 @@ public class SampleDomain {
             return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
         }
 
-        final var registrationResult = auth.registerUser(r.bodyMap().get("username"), r.bodyMap().get("password"));
-        if (registrationResult.status() == RegisterResultStatus.SUCCESS) {
-            final var sessionId = auth.registerNewSession();
-            return new Response(_303_SEE_OTHER, List.of("Location: formentry", "Set-Cookie: " + sessionId.sessionCode()));
-        } else {
-            return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+        final var username = r.bodyMap().get("username");
+        final var password = r.bodyMap().get("password");
+        final var registrationResult = auth.registerUser(username, password);
+
+        if (registrationResult.status() == ALREADY_EXISTING_USER) {
+            return new Response(_200_OK, ContentType.TEXT_PLAIN, "This user is already registered");
         }
+        return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
 
     }
 
@@ -98,7 +99,18 @@ public class SampleDomain {
             return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
         }
 
-        final var loginResult = auth.loginUser(r.bodyMap().get("username"), r.bodyMap().get("password"));
+        final var username = r.bodyMap().get("username");
+        final var password = r.bodyMap().get("password");
+        final var loginResult = auth.loginUser(username, password);
+        switch (loginResult.status()) {
+            case SUCCESS -> {
+                final var sessionId = auth.registerNewSession();
+                return new Response(_303_SEE_OTHER, List.of("Location: formentry", "Set-Cookie: " + sessionId.sessionCode()));
+            }
+            case DID_NOT_MATCH_PASSWORD -> {
+                return new Response(_401_UNAUTHORIZED, ContentType.TEXT_PLAIN, "Invalid account credentials");
+            }
+        }
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
     }
 }

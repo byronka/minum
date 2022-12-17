@@ -6,6 +6,7 @@ import atqa.instrumentation.InstrumentationTests;
 import atqa.logging.TestLogger;
 import atqa.sampledomain.SampleDomainTests;
 import atqa.utils.ExtendedExecutor;
+import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtilsTests;
 import atqa.web.WebTests;
@@ -43,6 +44,15 @@ public class Tests {
       logger.testPrint(TestLogger.printStackTrace(ex));
     }
     runShutdownSequence(es);
+    clearTestDatabase(logger);
+  }
+
+  private static void clearTestDatabase(TestLogger logger) {
+    try {
+      FileUtils.deleteDirectoryRecursivelyIfExists("out/simple_db", logger);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static void runShutdownSequence(ExecutorService es) {

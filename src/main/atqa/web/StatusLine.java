@@ -36,7 +36,7 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
          * who they are, they aren't allowed to see this data, in which case we should send
          * back a 403)
          */
-        _401_UNAUTHORIZED(401, "Unauthorized")
+        _401_UNAUTHORIZED(401, "UNAUTHORIZED")
         ;
 
         public final int code;

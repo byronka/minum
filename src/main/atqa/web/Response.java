@@ -24,4 +24,5 @@ public record Response(StatusLine.StatusCode statusCode, ContentType contentType
     public Response(StatusLine.StatusCode statusCode, List<String> extraHeaders) {
         this(statusCode, ContentType.NONE, extraHeaders, "".getBytes());
     }
+
 }

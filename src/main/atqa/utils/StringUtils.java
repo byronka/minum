@@ -101,6 +101,9 @@ public class StringUtils {
                 .collect(Collectors.joining());
     }
 
+    public static String bytesToString(byte[] byteArray) {
+        return new String(byteArray, StandardCharsets.UTF_8);
+    }
 
 }
 

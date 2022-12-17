@@ -25,7 +25,7 @@ public class CryptoUtils {
     /**
      * Hash the input string with the provided PBKDF2 algorithm, and return a string representation
      *<br><br>
-     * See docs/password_storage_cheat_sheet
+     * See docs/http_protocol/password_storage_cheat_sheet
      */
     public static String createHash(String password, String salt) {
         final KeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 128);

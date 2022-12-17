@@ -12,7 +12,7 @@ import static atqa.utils.StringUtils.encode;
  * @param hashedPassword the hash of a user's password
  * @param salt some randomly-generated letters appended to the user's password.  This is
  *             to prevent dictionary attacks if someone gets access to the database contents.
- *             See "Salting" in docs/password_storage_cheat_sheet.txt
+ *             See "Salting" in docs/http_protocol/password_storage_cheat_sheet.txt
  * @param currentSession If this use is currently authenticated, there will be a {@link SessionId} for them
  */
 public record User(Long id, String username, String hashedPassword, String salt, String currentSession) implements SimpleDataType<User> {

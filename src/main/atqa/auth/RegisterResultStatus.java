@@ -2,5 +2,7 @@ package atqa.auth;
 
 public enum RegisterResultStatus {
 
-    SUCCESS
+    SUCCESS,
+
+    ALREADY_EXISTING_USER
 }

@@ -29,12 +29,14 @@ public class AuthUtils {
     private final List<SessionId> sessionIds;
     private final List<User> users;
     private final ILogger logger;
+    private final DatabaseDiskPersistenceSimpler<User> userDiskData;
     final AtomicLong newSessionIdentifierIndex;
     final AtomicLong newUserIndex;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
                      ILogger logger) {
+        this.userDiskData = userDiskData;
         sessionIds = sessionDiskData.readAndDeserialize(SessionId.EMPTY);
         users = userDiskData.readAndDeserialize(User.EMPTY);
         this.logger = logger;
@@ -111,10 +113,14 @@ public class AuthUtils {
     }
 
     public RegisterResult registerUser(String newUsername, String newPassword) {
+        if (users.stream().anyMatch(x -> x.username().equals(newUsername))) {
+            return new RegisterResult(RegisterResultStatus.ALREADY_EXISTING_USER);
+        }
         final var newSalt = StringUtils.generateSecureRandomString(10);
         final var hashedPassword = CryptoUtils.createHash(newPassword, newSalt);
-        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, "");
+        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null);
         users.add(newUser);
+        userDiskData.persistToDisk(newUser);
         return new RegisterResult(RegisterResultStatus.SUCCESS);
     }
 
