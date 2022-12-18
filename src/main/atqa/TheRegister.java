@@ -20,17 +20,19 @@ import atqa.web.WebFramework;
  */
 public class TheRegister {
 
-    public static void registerDomains(WebFramework wf) {
-        registerSampleDomain(wf);
-    }
+    private AuthUtils auth;
 
-    private static void registerSampleDomain(WebFramework wf) {
+    public void registerDomains(WebFramework wf) {
+        registerSampleDomain(wf);
         final var sessionDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", wf.executorService, wf.logger);
         final var userDdps = new DatabaseDiskPersistenceSimpler<User>("out/simple_db/users", wf.executorService, wf.logger);
-        final var auth = new AuthUtils(sessionDdps, userDdps, wf.logger);
+        auth = new AuthUtils(sessionDdps, userDdps, wf.logger);
+    }
 
+    private void registerSampleDomain(WebFramework wf) {
         final var sampleDomainDdps = new DatabaseDiskPersistenceSimpler<PersonName>("out/simple_db/names", wf.executorService, wf.logger);
         final var sd = new SampleDomain(sampleDomainDdps, auth);
+
         wf.registerPath(StartLine.Verb.GET, "", WebFramework.redirectTo("index.html"));
         wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);

@@ -7,8 +7,6 @@ import atqa.web.*;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
-import static atqa.TheRegister.registerDomains;
-
 /**
  * This class is responsible for kicking off the entire system.
  */
@@ -17,6 +15,7 @@ public class FullSystem {
     ILogger logger;
     Server server;
     Server sslServer;
+    TheRegister register;
 
     ExecutorService es;
 
@@ -31,7 +30,8 @@ public class FullSystem {
         WebFramework wf = new WebFramework(es, logger);
         addShutdownHook();
         wf.registerStaticFiles(sfc);
-        registerDomains(wf);
+        register = new TheRegister();
+        register.registerDomains(wf);
         final var webHandler = wf.makeHandler();
         server = webEngine.startServer(es, webHandler);
         sslServer = webEngine.startSslServer(es, webHandler);
