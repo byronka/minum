@@ -10,9 +10,15 @@ import atqa.web.StartLine;
 import atqa.web.WebFramework;
 
 /**
- * This class is where all domains are registered.
+ * This class is where all code gets registered to work
+ * with our web framework.
+ * <br><br>
+ * example:
+ * <pre>{@code
+ *     wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
+ * }</pre>
  */
-public class DomainRegistry {
+public class TheRegister {
 
     public static void registerDomains(WebFramework wf) {
         registerSampleDomain(wf);

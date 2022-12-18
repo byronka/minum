@@ -1,5 +1,6 @@
 package atqa.web;
 
+import atqa.TheRegister;
 import atqa.logging.ILogger;
 import atqa.utils.InvariantException;
 import atqa.utils.ThrowingConsumer;
@@ -125,7 +126,7 @@ public class WebFramework {
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
      * @param es is the {@link ExecutorService} that will be provided to downstream users. We are
-     *           just requesting it here so we can dole it out to domains during registry in {@link atqa.DomainRegistry}
+     *           just requesting it here so we can dole it out to domains during registry in {@link TheRegister}
      */
     public WebFramework(ExecutorService es, ILogger logger, ZonedDateTime zdt) {
         this.executorService = es;

@@ -7,7 +7,7 @@ import atqa.web.*;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
-import static atqa.DomainRegistry.registerDomains;
+import static atqa.TheRegister.registerDomains;
 
 /**
  * This class is responsible for kicking off the entire system.
