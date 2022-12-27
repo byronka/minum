@@ -3,4 +3,4 @@
 3. user story checklist considered
 4. automation runs successfully
 5. manual careful review
-6. validation by customer/user
+6. validation by customer/user (if available)
