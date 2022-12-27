@@ -20,7 +20,7 @@ public class SampleDomain {
     private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
     private final List<PersonName> personNames;
     private final AuthUtils auth;
-    private static AtomicLong newPersonIndex = new AtomicLong();
+    private final AtomicLong newPersonIndex;
 
     public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;

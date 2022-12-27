@@ -9,8 +9,13 @@ the function implementations for getIndex, serialize, and deserialize as good ex
 
 Also note key aspects of the SampleDomain class, which is the code that uses PersonName.  It 
 instantiates the DatabaseDiskPersistenceSimpler (DDPS) class for the data it uses (in this case, that is PersonName).
-Note also that a static AtomicLong is instantiated (that is, it is attached to the class instead of 
-a particular instance, and thus shared amongst all instances), and is used to assign new indexes to new data.
+
+Note also that an AtomicLong labeled "newPersonIndex" is instantiated (that is, it is attached to a particular instance
+of the class, and thus may vary between instances), and is used to assign new indexes to new data. It may seem unusual
+to have potentially different instances of this index, but understand that when the application starts, it will
+instantiate just one instances of these classes.  Allowing each instance to have its own index lets us test
+multiple databases of similar data concurrently (of course, these databases will need to store their data in different directories,
+or else naturally we would have interference).
 
 Whenever you create a new data, you will assign it the new index like this:
 
