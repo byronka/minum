@@ -20,7 +20,7 @@ public class SampleDomain {
     private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
     private final List<PersonName> personNames;
     private final AuthUtils auth;
-    final AtomicLong newPersonIndex;
+    private static AtomicLong newPersonIndex = new AtomicLong();
 
     public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
@@ -70,7 +70,7 @@ public class SampleDomain {
 
         final var nameEntry = r.bodyMap().get("name_entry");
 
-        final var newPersonName = new PersonName(nameEntry, newPersonIndex.getAndAdd(1));
+        final var newPersonName = new PersonName(newPersonIndex.getAndAdd(1), nameEntry);
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: formentry"));
