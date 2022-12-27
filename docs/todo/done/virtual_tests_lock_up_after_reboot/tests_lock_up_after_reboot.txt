@@ -1,3 +1,5 @@
+(Note: fixed, by commit cddcfd7296171db76460145074df8d2a717e5b66.  Try with resources was eating (hiding) exceptions)
+
 Sometimes, after a reboot, I find that when I run tests they will lock up.  For example:
 
     atqa % make test
