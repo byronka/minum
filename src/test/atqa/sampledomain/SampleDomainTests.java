@@ -55,12 +55,6 @@ public class SampleDomainTests {
             assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
         }
 
-        /*
-        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
-        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
-        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
-        WORK ZONE - REGISTRATION AND LOGIN.  LOTS TO DO
-         */
         logger.test("should be able to register a new user"); {
             final var request = buildRequest("username=abc&password=123");
             final var response = sd.registerUser(request);
