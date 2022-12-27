@@ -102,7 +102,10 @@ Set this option to enabled
 TDD
 ---
 
-A nice example of setting up some broken code in the TDD process is at commit 79325280441b561c5b2a1b401c2c1125c5ddabd6
+A nice example of setting up some broken code in the TDD process is available.
 
 In this case, we want to write the simplest eloquent concise code.  This particular example is pretty good for showing
 what that initial attempt might look like.
+
+The initial code is at commit 79325280441b561c5b2a1b401c2c1125c5ddabd6
+The followup is at a589244cbba806912a08702584de0b78266bab0e
