@@ -23,17 +23,33 @@ public class PhotoTests {
         final Photo p = setupPhotoClass();
 
         logger.test("A user should be able to send a photo"); {
-            final Request photoRequest = buildPhotoRequest();
+            final Request photoRequest = buildPhotoSubmitRequest();
             final Response response = p.receivePhoto(photoRequest);
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
         }
+
+        logger.test("A user should be able to view an uploaded photo"); {
+            final Request photoRequest = buildPhotoViewRequest();
+            final Response response = p.viewPhoto(photoRequest);
+            assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
+        }
+    }
+
+    /**
+     * Request information for a particular photo
+     */
+    private Request buildPhotoViewRequest() {
+        return new Request(new Headers(0, Collections.emptyList()), null, "", Map.of());
     }
 
     private Photo setupPhotoClass() {
         return new Photo();
     }
 
-    private Request buildPhotoRequest() {
+    /**
+     * Simulate sending a photo file to the server
+     */
+    private Request buildPhotoSubmitRequest() {
         return new Request(new Headers(0, Collections.emptyList()), null, "abc=123", Map.of());
     }
 }
