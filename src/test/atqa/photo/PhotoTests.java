@@ -1,8 +1,13 @@
 package atqa.photo;
 
 import atqa.logging.TestLogger;
+import atqa.web.Headers;
+import atqa.web.Request;
+import atqa.web.Response;
 import atqa.web.StatusLine;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static atqa.framework.TestFramework.assertEquals;
@@ -15,12 +20,20 @@ public class PhotoTests {
     }
 
     public void tests(ExecutorService es) {
-        final var p = setupPhotoClass();
+        final Photo p = setupPhotoClass();
 
         logger.test("A user should be able to send a photo"); {
-            final var photoRequest = buildPhotoRequest();
-            final var response = p.receivePhoto(photoRequest);
+            final Request photoRequest = buildPhotoRequest();
+            final Response response = p.receivePhoto(photoRequest);
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
         }
+    }
+
+    private Photo setupPhotoClass() {
+        return new Photo();
+    }
+
+    private Request buildPhotoRequest() {
+        return new Request(new Headers(0, Collections.emptyList()), null, "abc=123", Map.of());
     }
 }

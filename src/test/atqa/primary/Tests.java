@@ -4,6 +4,7 @@ import atqa.FullSystem;
 import atqa.database.SimpleDatabaseTests;
 import atqa.instrumentation.InstrumentationTests;
 import atqa.logging.TestLogger;
+import atqa.photo.PhotoTests;
 import atqa.sampledomain.SampleDomainTests;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.FileUtils;
@@ -39,6 +40,7 @@ public class Tests {
       new StringUtilsTests(logger).tests();
       new AuthenticationTests(logger).tests(es);
       new SampleDomainTests(logger).tests(es);
+      new PhotoTests(logger).tests(es);
 
     } catch (Exception ex) {
       logger.testPrint(TestLogger.printStackTrace(ex));
