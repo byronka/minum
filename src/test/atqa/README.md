@@ -6,3 +6,8 @@ run the tests, that is where the ball starts rolling.
 
 Note that main() calls to some other functions to run tests, particularly unitAndIntegrationTests().  If 
 you add new tests, just follow the patterns in that function.
+
+Also, new tests should use the patterns demonstrated in test files like sampledomain.SampleDomainTests, such as:
+- declaring a class variable for the TestLogger, and declaring a constructor that takes a TestLogger and assigns it
+  to the class variable
+- declaring a tests() method that takes an ExecutorService
