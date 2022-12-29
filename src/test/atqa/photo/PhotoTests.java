@@ -22,8 +22,11 @@ public class PhotoTests {
     public void tests(ExecutorService es) {
         final Photo p = setupPhotoClass();
 
+        // Basic API functionality - receiving and viewing a photo
+        final byte[] imagesBytes={0xa, 0x2, 0x03};
+
         logger.test("A user should be able to send a photo"); {
-            final Request photoRequest = buildPhotoSubmitRequest();
+            final Request photoRequest = buildPhotoSubmitRequest(imagesBytes);
             final Response response = p.receivePhoto(photoRequest);
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
         }
@@ -31,7 +34,7 @@ public class PhotoTests {
         logger.test("A user should be able to view an uploaded photo"); {
             final Request photoRequest = buildPhotoViewRequest();
             final Response response = p.viewPhoto(photoRequest);
-            assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
+            assertEquals(response.body(), imagesBytes);
         }
     }
 
@@ -49,7 +52,7 @@ public class PhotoTests {
     /**
      * Simulate sending a photo file to the server
      */
-    private Request buildPhotoSubmitRequest() {
-        return new Request(new Headers(0, Collections.emptyList()), null, "abc=123", Map.of());
+    private Request buildPhotoSubmitRequest(byte[] imageBytes) {
+        return new Request(new Headers(0, Collections.emptyList()), null, imageBytes, Map.of());
     }
 }
