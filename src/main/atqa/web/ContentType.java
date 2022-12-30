@@ -13,10 +13,13 @@ public enum ContentType {
 
     // Application MIME types - see https://www.iana.org/assignments/media-types/media-types.xhtml#application
     APPLICATION_JAVASCRIPT("Content-Type: application/javascript"),
+    APPLICATION_FORM_URL_ENCODED("Content-Type: application/x-www-form-urlencoded"),
     IMAGE_WEBP("Content-Type: image/webp"),
 
     /**
      * Used when we aren't returning any body to the client.  e.g. 204, 303 statuses.
+     * <br><br>
+     * Also used as a marker that we did not find a content-type we could handle in the request.
      */
     NONE("");
 

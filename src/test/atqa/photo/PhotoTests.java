@@ -1,11 +1,9 @@
 package atqa.photo;
 
 import atqa.logging.TestLogger;
-import atqa.web.Headers;
-import atqa.web.Request;
-import atqa.web.Response;
-import atqa.web.StatusLine;
+import atqa.web.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -23,7 +21,7 @@ public class PhotoTests {
         final Photo p = setupPhotoClass();
 
         // Basic API functionality - receiving and viewing a photo
-        final byte[] imagesBytes={0xa, 0x2, 0x03};
+        final byte[] imagesBytes={0xa, 0x2, 0x03, (byte) 0xF2};
 
         logger.test("A user should be able to send a photo"); {
             final Request photoRequest = buildPhotoSubmitRequest(imagesBytes);
@@ -34,7 +32,7 @@ public class PhotoTests {
         logger.test("A user should be able to view an uploaded photo"); {
             final Request photoRequest = buildPhotoViewRequest();
             final Response response = p.viewPhoto(photoRequest);
-            assertEquals(response.body(), imagesBytes);
+            assertEquals(response.body(), new String(imagesBytes, StandardCharsets.UTF_8));
         }
     }
 
@@ -42,7 +40,7 @@ public class PhotoTests {
      * Request information for a particular photo
      */
     private Request buildPhotoViewRequest() {
-        return new Request(new Headers(0, Collections.emptyList()), null, "", Map.of());
+        return new Request(new Headers(0, ContentType.NONE, Collections.emptyList()), null, "", Map.of());
     }
 
     private Photo setupPhotoClass() {
@@ -53,6 +51,6 @@ public class PhotoTests {
      * Simulate sending a photo file to the server
      */
     private Request buildPhotoSubmitRequest(byte[] imageBytes) {
-        return new Request(new Headers(0, Collections.emptyList()), null, imageBytes, Map.of());
+        return new Request(new Headers(0, ContentType.NONE, Collections.emptyList()), null, new String(imageBytes, StandardCharsets.UTF_8), Map.of());
     }
 }

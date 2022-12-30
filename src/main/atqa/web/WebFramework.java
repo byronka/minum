@@ -170,9 +170,9 @@ public class WebFramework {
     /**
      * read the body if one exists
      */
-    private String extractData(ISocketWrapper server, Headers hi) throws IOException {
-        if (hi.contentLength() > 0) {
-            return server.read(hi.contentLength());
+    private String extractData(ISocketWrapper server, Headers h) throws IOException {
+        if (h.contentLength() > 0 && h.contentType() == ContentType.APPLICATION_FORM_URL_ENCODED) {
+            return server.read(h.contentLength());
         } else {
             return "";
         }

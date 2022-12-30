@@ -5,6 +5,8 @@ import atqa.web.Response;
 
 public class Photo {
     public Response receivePhoto(Request request) {
+        final var urlEncodedPhoto = request.bodyMap().get("photo");
+        final var urlEncodedDescription = request.bodyMap().get("description");
         return null;
     }
 

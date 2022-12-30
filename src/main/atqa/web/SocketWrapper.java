@@ -83,6 +83,7 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public String readByLength(int length) throws IOException {
+        // TODO I think this is a bug.  The content length is the number of bytes, not chars.
         char[] cb = new char[length];
         int countOfBytesRead = reader.read(cb, 0, length);
         mustBeFalse(countOfBytesRead == -1, "end of file hit");
@@ -92,6 +93,7 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public String read(int length) throws IOException {
+        // TODO I think this is a bug.  The content length is the number of bytes, not chars.
         final var buf = new char[length];
         final var lengthRead = reader.read(buf, 0, length);
         char[] newArray = Arrays.copyOfRange(buf, 0, lengthRead);

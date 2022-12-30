@@ -294,11 +294,14 @@ public class WebTests {
                     // send a POST request
                     client.sendHttpLine("POST /some_post_endpoint HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
-                    client.sendHttpLine("Content-Length: " + postedData.length());
+                    final var contentLengthLine = "Content-Length: " + postedData.length();
+                    client.sendHttpLine(contentLengthLine);
+                    client.sendHttpLine(ContentType.APPLICATION_FORM_URL_ENCODED.headerString);
                     client.sendHttpLine("");
                     client.sendHttpLine(postedData);
 
-                    StatusLine.extractStatusLine(client.readLine());
+                    // the server will respond to us.  Check everything is legit.
+                    final var statusLine = StatusLine.extractStatusLine(client.readLine());
                     Headers hi = Headers.extractHeaderInformation(client);
                     String body = readBody(client, hi.contentLength());
 

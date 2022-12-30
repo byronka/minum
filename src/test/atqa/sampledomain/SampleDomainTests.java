@@ -82,11 +82,11 @@ public class SampleDomainTests {
     }
 
     private static Request buildRequest(List<String> headers) {
-        return new Request(new Headers(0, headers), null, "", Map.of());
+        return new Request(new Headers(0, ContentType.NONE, headers), null, "", Map.of());
     }
 
     private static Request buildRequest(String body) {
-        return new Request(new Headers(0, Collections.emptyList()), null, body, WebFramework.parseUrlEncodedForm(body));
+        return new Request(new Headers(0, ContentType.NONE, Collections.emptyList()), null, body, WebFramework.parseUrlEncodedForm(body));
     }
 
     private static AuthUtils setupAuthUtils(ExecutorService es, TestLogger logger) {

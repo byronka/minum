@@ -137,7 +137,7 @@ public class AuthenticationTests {
 
     private static Request buildRequest(List<String> sessionIds) {
         return new Request(
-                new Headers(0, sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
+                new Headers(0, ContentType.NONE, sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
                 null,
                 "",
                 Map.of());
