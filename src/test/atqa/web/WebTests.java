@@ -344,6 +344,41 @@ public class WebTests {
             assertTrue(sfc.getSize() > 0);
         }
 
+        /*
+         * There are two primary ways to send data in requests and responses.
+         * 1. Url encoding - this is what we have been doing so far, converting
+         *    some values to percent-encoded.
+         * 2. Multipart - providing a boundary token of our choice, along with
+         *    a couple headers to indicate critical information, then a blank line,
+         *    then the raw content.
+         *
+         * This test will cause us to create a program that is able to read each
+         * section of the multipart format.  The interesting/difficult problem
+         * I'm anticipating is that we need to be able to read binary and ascii.
+         *
+         * See, we will only read until we encounter the boundary text, which might
+         * be "abc123".  So if we read byte-by-byte, as soon as we hit a byte that
+         * can be "a", we need to jump into the possibility that we may be looking
+         * at the beginning of "abc123".
+         */
+        logger.test("we should be able to receive multipart form data"); {
+            final var headersIndicatingMultipart = List.of(
+                    "Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+
+            /*
+            Per the specs for multipart, the boundary is preceded by
+            two dashes.
+             */
+            final var multiPartData = """
+                    --i_am_a_boundary
+                    Content-type: foo
+                    Content-Disposition: form-data; name="text1"
+                    
+                    
+                    --i_am_a_boundary--
+                    """;
+        }
+
     }
 
     private static String readBody(SocketWrapper sw, int length) throws IOException {
