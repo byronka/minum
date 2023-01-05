@@ -1,6 +1,11 @@
-It should be possible for a user of the system to add a new photo with a description, and for that
-information to become available publicly (without requiring authentication).
+It should be possible for a user of the system to add a new photo with
+a description, and for that information to become available publicly
+(without requiring authentication).
 
-This is to start off an idea for a genealogical program.  We will follow the typical iterative approach
-where we try to determine the simplest and smallest new functionality that aligns with our overarching
-need.
+This is to start off an idea for a genealogical program.  We will
+follow the typical iterative approach where we try to determine the
+simplest and smallest new functionality that aligns with our
+overarching need.
+
+Tasks: 
+1. ability to receive photos - requires reading form/multipart data
