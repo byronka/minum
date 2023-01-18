@@ -3,6 +3,7 @@ package atqa.web;
 import atqa.TheRegister;
 import atqa.logging.ILogger;
 import atqa.utils.InvariantException;
+import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import javax.net.ssl.SSLException;
@@ -172,7 +173,7 @@ public class WebFramework {
      */
     private String extractData(ISocketWrapper server, Headers h) throws IOException {
         if (h.contentLength() > 0 && h.contentType() == ContentType.APPLICATION_FORM_URL_ENCODED) {
-            return server.read(h.contentLength());
+            return StringUtils.bytesToString(server.read(h.contentLength()));
         } else {
             return "";
         }

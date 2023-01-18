@@ -10,6 +10,10 @@ public interface ISocketWrapper extends AutoCloseable {
 
     void sendHttpLine(String msg) throws IOException;
 
+    /**
+     * Reads a line of text, stopping when reading a newline.
+     * Skips over carriage returns, so we read a HTTP_CRLF properly.
+     */
     String readLine() throws IOException;
 
     String getLocalAddr();
@@ -20,7 +24,5 @@ public interface ISocketWrapper extends AutoCloseable {
 
     void close() throws IOException;
 
-    String readByLength(int length) throws IOException;
-
-    String read(int length) throws IOException;
+    byte[] read(int length) throws IOException;
 }

@@ -2,14 +2,14 @@ package atqa.web;
 
 import atqa.logging.ILogger;
 import atqa.logging.Logger;
+import atqa.utils.StringUtils;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.util.Arrays;
+import java.util.ArrayList;
 
 import static atqa.utils.Invariants.mustBeFalse;
 
@@ -19,8 +19,8 @@ import static atqa.utils.Invariants.mustBeFalse;
 public class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
+    private final InputStream inputStream;
     private final OutputStream writer;
-    private final BufferedReader reader;
     private final ILogger logger;
     private final SetOfServers setOfServers;
 
@@ -30,8 +30,8 @@ public class SocketWrapper implements ISocketWrapper {
 
     public SocketWrapper(Socket socket, SetOfServers sos, ILogger logger) throws IOException {
         this.socket = socket;
+        this.inputStream = socket.getInputStream();
         writer = socket.getOutputStream();
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.logger = logger;
         this.setOfServers = sos;
     }
@@ -50,11 +50,6 @@ public class SocketWrapper implements ISocketWrapper {
     public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
         send(msg + WebEngine.HTTP_CRLF);
-    }
-
-    @Override
-    public String readLine() throws IOException {
-        return reader.readLine();
     }
 
     @Override
@@ -82,21 +77,34 @@ public class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public String readByLength(int length) throws IOException {
-        // TODO I think this is a bug.  The content length is the number of bytes, not chars.
-        char[] cb = new char[length];
-        int countOfBytesRead = reader.read(cb, 0, length);
-        mustBeFalse(countOfBytesRead == -1, "end of file hit");
-        mustBeFalse(countOfBytesRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", countOfBytesRead, length));
-        return new String(cb);
+    public String readLine() throws IOException {
+        final int NEWLINE_DECIMAL = 10;
+        final int CARRIAGE_RETURN_DECIMAL = 13;
+
+        final var result = new ArrayList<Byte>();
+        while (true) {
+            int a = inputStream.read();
+
+            if (a == -1) break;
+
+            if (a == CARRIAGE_RETURN_DECIMAL) {
+                continue;
+            }
+
+            if (a == NEWLINE_DECIMAL) break;
+
+            result.add((byte) a);
+
+        }
+        return StringUtils.bytesToString(result);
     }
 
     @Override
-    public String read(int length) throws IOException {
-        // TODO I think this is a bug.  The content length is the number of bytes, not chars.
-        final var buf = new char[length];
-        final var lengthRead = reader.read(buf, 0, length);
-        char[] newArray = Arrays.copyOfRange(buf, 0, lengthRead);
-        return new String(newArray);
+    public byte[] read(int length) throws IOException {
+        final var buf = new byte[length];
+        final var lengthRead = this.inputStream.read(buf);
+        mustBeFalse(lengthRead == -1, "end of file hit");
+        mustBeFalse(lengthRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", lengthRead, length));
+        return buf;
     }
 }

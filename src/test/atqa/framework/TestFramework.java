@@ -30,11 +30,11 @@ public class TestFramework {
     }
 
     /**
-     * A helper for testing - assert two integers are equal
+     * A helper for testing - assert two generics are equal
      */
     public static <T> void assertEquals(T left, T right) {
         if (! left.equals(right)) {
-            throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(left, right));
+            throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
         }
     }
 
@@ -59,8 +59,8 @@ public class TestFramework {
                                 "%n%ndifferent values:%n%nleft:  %s%nright: %s%n%nfull left:%n-----------%n%s%n%nfull right:%n-----------%n%s%n",
                                 orderedLeft.get(i),
                                 orderedRight.get(i),
-                                String.join("\n", left),
-                                String.join("\n", right)));
+                                String.join("\n", showWhiteSpace(left.toString())),
+                                String.join("\n", showWhiteSpace(right.toString()))));
             }
         }
     }
@@ -93,7 +93,7 @@ public class TestFramework {
         for (int i = 0; i < left.size(); i++) {
             if (!left.get(i).equals(right.get(i))) {
                 throw new RuntimeException(
-                        String.format("different values - left: \"%s\" right: \"%s\". %s", left.get(i), right.get(i), failureMessage));
+                        String.format("different values - left: \"%s\" right: \"%s\". %s", showWhiteSpace(left.get(i).toString()), showWhiteSpace(right.get(i).toString()), failureMessage));
             }
         }
     }
@@ -112,6 +112,22 @@ public class TestFramework {
         if (value) {
             throw new RuntimeException("value was unexpectedly true");
         }
+    }
+
+    /**
+     * Given a string that may have whitespace chars, render it in a way we can see
+     */
+    private static String showWhiteSpace(String msg) {
+        // if we have tabs, returns, newlines in the text, show them
+        String text = msg
+                .replace("\t", "(TAB)")
+                .replace("\r", "(RETURN)")
+                .replace("\n", "(NEWLINE)");
+        // if the text is an empty string, render that
+        text = text.isEmpty() ? "(EMPTY)" : text;
+        // if the text is nothing but whitespace, show that
+        text = text.isBlank() ? "(BLANK)" : text;
+        return text;
     }
 
 }

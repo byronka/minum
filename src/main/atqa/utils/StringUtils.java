@@ -4,6 +4,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -103,6 +104,15 @@ public class StringUtils {
 
     public static String bytesToString(byte[] byteArray) {
         return new String(byteArray, StandardCharsets.UTF_8);
+    }
+
+    public static String bytesToString(List<Byte> byteList) {
+        final int size = byteList.size();
+        final var buf = new byte[size];
+        for (int i = 0; i < size; i++) {
+            buf[i] = byteList.get(i);
+        }
+        return bytesToString(buf);
     }
 
 }

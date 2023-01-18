@@ -2,6 +2,7 @@ package atqa.web;
 
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
+import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.IOException;
@@ -382,7 +383,7 @@ public class WebTests {
     }
 
     private static String readBody(SocketWrapper sw, int length) throws IOException {
-        return sw.readByLength(length);
+        return StringUtils.bytesToString(sw.read(length));
     }
 
 }
