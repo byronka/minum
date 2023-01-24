@@ -68,9 +68,9 @@ public class SampleDomain {
             return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
         }
 
-        final var nameEntry = r.bodyMap().get("name_entry");
+        final var nameEntry = (String) r.bodyMap().get("name_entry");
 
-        final var newPersonName = new PersonName(newPersonIndex.getAndAdd(1), nameEntry);
+        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: formentry"));
@@ -82,8 +82,8 @@ public class SampleDomain {
             return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
         }
 
-        final var username = r.bodyMap().get("username");
-        final var password = r.bodyMap().get("password");
+        final var username = (String) r.bodyMap().get("username");
+        final var password = (String) r.bodyMap().get("password");
         final var registrationResult = auth.registerUser(username, password);
 
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
@@ -99,8 +99,8 @@ public class SampleDomain {
             return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
         }
 
-        final var username = r.bodyMap().get("username");
-        final var password = r.bodyMap().get("password");
+        final var username = (String) r.bodyMap().get("username");
+        final var password = (String) r.bodyMap().get("password");
         final var loginResult = auth.loginUser(username, password);
         switch (loginResult.status()) {
             case SUCCESS -> {

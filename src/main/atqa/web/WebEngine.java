@@ -28,7 +28,7 @@ public class WebEngine {
       this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
   }
 
-  enum HttpVersion {
+  public enum HttpVersion {
     ONE_DOT_ZERO, ONE_DOT_ONE
   }
 

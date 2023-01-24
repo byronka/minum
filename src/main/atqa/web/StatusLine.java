@@ -20,6 +20,7 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
      */
     public enum StatusCode{
         _200_OK(200, "OK"),
+        _201_CREATED(201, "CREATED"),
         _404_NOT_FOUND(404, "NOT FOUND"),
 
         /**

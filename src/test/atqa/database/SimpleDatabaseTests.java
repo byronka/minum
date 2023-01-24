@@ -36,7 +36,7 @@ public class SimpleDatabaseTests {
 
             @Override
             public String serialize() {
-                return StringUtils.encode(index) + " " + StringUtils.encode(a) + " " + StringUtils.encode(b);
+                return StringUtils.encode(String.valueOf(index)) + " " + StringUtils.encode(String.valueOf(a)) + " " + StringUtils.encode(b);
             }
 
             @Override

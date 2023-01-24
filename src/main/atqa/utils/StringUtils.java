@@ -72,11 +72,11 @@ public class StringUtils {
     /**
      * Encodes UTF-8 text using URL-encoding
      */
-    public static String encode(Object str) {
+    public static String encode(String str) {
         if (str == null) {
             return "%NULL%";
         }
-        return URLEncoder.encode(str.toString(), StandardCharsets.UTF_8);
+        return URLEncoder.encode(str, StandardCharsets.UTF_8);
     }
 
     /**

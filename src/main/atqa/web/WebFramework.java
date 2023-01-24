@@ -9,6 +9,7 @@ import atqa.utils.ThrowingConsumer;
 import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,10 +66,10 @@ public class WebFramework {
 
                 Headers hi = Headers.extractHeaderInformation(sw);
                 String body = extractData(sw, hi);
-                Map<String, String> bodyMap = parseUrlEncodedForm(body);
+                Map<String, Object> bodyMap = parseUrlEncodedForm(body);
 
                 Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
-                Response r = endpoint.apply(new Request(hi, sl, body, bodyMap));
+                Response r = endpoint.apply(new Request(hi, sl, body.getBytes(StandardCharsets.UTF_8), bodyMap));
 
                 String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
@@ -150,10 +151,10 @@ public class WebFramework {
      * <p>
      * for example, valuea=3&valueb=this+is+something
      */
-    public static Map<String, String> parseUrlEncodedForm(String input) {
+    public static Map<String, Object> parseUrlEncodedForm(String input) {
         if (input.isEmpty()) return Collections.emptyMap();
 
-        final var postedPairs = new HashMap<String, String>();
+        final var postedPairs = new HashMap<String, Object>();
         final var splitByAmpersand = input.split("&");
 
         for(final var s : splitByAmpersand) {

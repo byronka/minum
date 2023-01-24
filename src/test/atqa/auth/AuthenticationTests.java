@@ -4,6 +4,7 @@ import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
 import atqa.web.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -139,7 +140,7 @@ public class AuthenticationTests {
         return new Request(
                 new Headers(0, ContentType.NONE, sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
                 null,
-                "",
+                "".getBytes(StandardCharsets.UTF_8),
                 Map.of());
     }
 
