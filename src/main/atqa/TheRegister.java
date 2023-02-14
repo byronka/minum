@@ -23,7 +23,11 @@ public class TheRegister {
     private AuthUtils auth;
 
     public void registerDomains(WebFramework wf) {
+        buildAuthDomain(wf);
         registerSampleDomain(wf);
+    }
+
+    private void buildAuthDomain(WebFramework wf) {
         final var sessionDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", wf.executorService, wf.logger);
         final var userDdps = new DatabaseDiskPersistenceSimpler<User>("out/simple_db/users", wf.executorService, wf.logger);
         auth = new AuthUtils(sessionDdps, userDdps, wf.logger);
