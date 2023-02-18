@@ -177,13 +177,15 @@ public class AuthUtils {
     public User logoutUser(User user) {
         final List<SessionId> userSession = sessionIds.stream().filter(s -> Objects.equals(s.sessionCode(), user.currentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
+
         sessionIds.remove(userSession.get(0));
         sessionDiskData.deleteOnDisk(userSession.get(0));
+
         users.remove(user);
-        userDiskData.deleteOnDisk(user);
         final User updatedUser = new User(user.id(), user.username(), user.hashedPassword(), user.salt(), null);
         users.add(updatedUser);
-        userDiskData.persistToDisk(updatedUser);
+        userDiskData.updateOnDisk(updatedUser);
+
         return updatedUser;
     }
 }

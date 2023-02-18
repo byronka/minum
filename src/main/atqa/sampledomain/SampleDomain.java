@@ -214,7 +214,7 @@ public class SampleDomain {
                         <p><a href="index">Index</a></p>
                     </body>
                 </html>
-                """);
+                """, List.of("Set-Cookie: sessionid="));
         }
     }
 }

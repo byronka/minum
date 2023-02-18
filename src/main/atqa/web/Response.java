@@ -17,6 +17,10 @@ public record Response(StatusLine.StatusCode statusCode, ContentType contentType
         this(statusCode, contentType, Collections.emptyList(), body.getBytes());
     }
 
+    public Response(StatusLine.StatusCode statusCode, ContentType contentType, String body,  List<String> extraHeaders) {
+        this(statusCode, contentType, extraHeaders, body.getBytes());
+    }
+
     public Response(StatusLine.StatusCode statusCode, ContentType contentType, List<String> extraHeaders) {
         this(statusCode, contentType, extraHeaders, "".getBytes());
     }
