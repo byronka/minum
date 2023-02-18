@@ -120,12 +120,19 @@ public class AuthUtils {
      */
     public NewSessionResult registerNewSession(User user) {
         final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
+
+        // add a new session to memory and the disk
         sessionIds.add(newSession);
+        sessionDiskData.persistToDisk(newSession);
+
+        // remove the old user details
         users.remove(user);
-        userDiskData.deleteOnDisk(user);
+
+        // create details of the new user (the one who has a session)
         final User updatedUser = new User(user.id(), user.username(), user.hashedPassword(), user.salt(), newSession.sessionCode());
         users.add(updatedUser);
-        userDiskData.persistToDisk(updatedUser);
+        userDiskData.updateOnDisk(updatedUser);
+
         return new NewSessionResult(newSession, updatedUser);
     }
 

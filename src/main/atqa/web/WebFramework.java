@@ -101,12 +101,12 @@ public class WebFramework {
      * very basic 404 NOT FOUND page
      */
     private Function<Request, Response> findHandlerForEndpoint(StartLine sl) {
-        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath()));
+        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath().toLowerCase(Locale.ROOT)));
         if (functionFound == null) {
 
             // if nothing was found in the registered dynamic endpoints, look
             // through the static endpoints
-            final var staticResponseFound = staticFilesCache.getStaticResponse(sl.pathDetails().isolatedPath());
+            final var staticResponseFound = staticFilesCache.getStaticResponse(sl.pathDetails().isolatedPath().toLowerCase(Locale.ROOT));
 
             if (staticResponseFound != null) {
                 return request -> staticResponseFound;

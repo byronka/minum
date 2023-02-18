@@ -12,14 +12,15 @@ import static atqa.utils.StringUtils.*;
 /**
  * A simple record for holding information related to a session. Typically, creation of
  * this should be handled by {@link #createNewSession(long)}
- * @param sessionCode the sessionCode is a randomly-generated string that will be used
- *                    in a cookie value so requests can authenticate.
- * @param index a simple numeric identifier that lets us distinguish one record from another
+ *
+ * @param index            a simple numeric identifier that lets us distinguish one record from another
+ * @param sessionCode      the sessionCode is a randomly-generated string that will be used
+ *                         in a cookie value so requests can authenticate.
  * @param creationDateTime the zoned date and time at which this session was created
  */
-public record SessionId(String sessionCode, long index, ZonedDateTime creationDateTime) implements SimpleDataType<SessionId> {
+public record SessionId(long index, String sessionCode, ZonedDateTime creationDateTime) implements SimpleDataType<SessionId> {
 
-    public static final SessionId EMPTY = new SessionId("", 0, ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()));
+    public static final SessionId EMPTY = new SessionId(0, "", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()));
 
     /**
      * Builds a proper session, with a randomly-generated sessionCode and a creation time.  Just provide the index.
@@ -31,7 +32,7 @@ public record SessionId(String sessionCode, long index, ZonedDateTime creationDa
      * class which manages the whole collection.
      */
     public static SessionId createNewSession(long index) {
-        return new SessionId(generateSecureRandomString(20), index, ZonedDateTime.now(ZoneId.of("UTC")));
+        return new SessionId(index, generateSecureRandomString(20), ZonedDateTime.now(ZoneId.of("UTC")));
     }
 
     @Override
@@ -49,8 +50,8 @@ public record SessionId(String sessionCode, long index, ZonedDateTime creationDa
         final var tokens = serializedText.split("\\|");
 
         return new SessionId(
-                decode(tokens[0]),
-                Long.parseLong(tokens[1]),
+                Long.parseLong(tokens[0]),
+                decode(tokens[1]),
                 ZonedDateTime.parse(Objects.requireNonNull(decode(tokens[2]))));
     }
 }
