@@ -85,7 +85,7 @@ public class SocketWrapper implements ISocketWrapper {
         while (true) {
             int a = inputStream.read();
 
-            if (a == -1) break;
+            if (a == -1) return null;
 
             if (a == CARRIAGE_RETURN_DECIMAL) {
                 continue;

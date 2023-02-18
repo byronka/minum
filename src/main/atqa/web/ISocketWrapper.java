@@ -13,6 +13,8 @@ public interface ISocketWrapper extends AutoCloseable {
     /**
      * Reads a line of text, stopping when reading a newline.
      * Skips over carriage returns, so we read a HTTP_CRLF properly.
+     * <br>
+     * If the stream ends, return null
      */
     String readLine() throws IOException;
 

@@ -17,7 +17,7 @@ import static atqa.utils.StringUtils.encode;
  */
 public record User(Long id, String username, String hashedPassword, String salt, String currentSession) implements SimpleDataType<User> {
 
-    public static final SimpleDataType<User> EMPTY = new User(0L, "", "", "", "");
+    public static final User EMPTY = new User(0L, "", "", "", null);
 
     @Override
     public Long getIndex() {
@@ -26,16 +26,16 @@ public record User(Long id, String username, String hashedPassword, String salt,
 
     @Override
     public String serialize() {
-        return id() + " " +
-                encode(username()) + " " +
-                encode(hashedPassword()) + " " +
-                encode(salt()) + " " +
+        return id() + "|" +
+                encode(username()) + "|" +
+                encode(hashedPassword()) + "|" +
+                encode(salt()) + "|" +
                 encode(currentSession());
     }
 
     @Override
     public User deserialize(String serializedText) {
-        final var tokens = serializedText.split(" ");
+        final var tokens = serializedText.split("\\|");
         return new User(
                 Long.parseLong(tokens[0]),
                 decode(tokens[1]),

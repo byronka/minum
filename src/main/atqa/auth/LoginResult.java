@@ -1,4 +1,4 @@
 package atqa.auth;
 
-public record LoginResult(LoginResultStatus status) {
+public record LoginResult(LoginResultStatus status, User user) {
 }

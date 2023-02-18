@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static atqa.database.SimpleIndexed.calculateNextIndex;
+import static atqa.utils.Invariants.mustBeTrue;
 
 /**
  * This class provides services for stateful authentication and
@@ -30,6 +31,7 @@ public class AuthUtils {
     private final List<User> users;
     private final ILogger logger;
     private final DatabaseDiskPersistenceSimpler<User> userDiskData;
+    private final DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
     final AtomicLong newSessionIdentifierIndex;
     final AtomicLong newUserIndex;
 
@@ -37,6 +39,7 @@ public class AuthUtils {
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
                      ILogger logger) {
         this.userDiskData = userDiskData;
+        this.sessionDiskData = sessionDiskData;
         sessionIds = sessionDiskData.readAndDeserialize(SessionId.EMPTY);
         users = userDiskData.readAndDeserialize(User.EMPTY);
         this.logger = logger;
@@ -82,7 +85,7 @@ public class AuthUtils {
         if (listOfSessionIds.size() >= 2) {
             logger.logDebug(() -> "there must be either zero or one session id found " +
                     "in the request headers.  Anything more is invalid");
-            return new AuthResult(false, null);
+            return new AuthResult(false, null, User.EMPTY);
         }
 
         // examine whether there is just one session identifier
@@ -90,56 +93,90 @@ public class AuthUtils {
 
         // if we don't find any sessions in the request, they are not authenticated.
         if (! isExactlyOneSessionInRequest) {
-            return new AuthResult(false, null);
+            return new AuthResult(false, null, User.EMPTY);
         }
 
         // Did we find that session identifier in the database?
-        final var sessionFoundInDatabase = sessionIds.stream()
-                .filter(x -> Objects.equals(x.sessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase())).findFirst().orElse(SessionId.EMPTY);
+        final SessionId sessionFoundInDatabase = sessionIds.stream()
+                .filter(x -> Objects.equals(x.sessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
+                .findFirst()
+                .orElse(SessionId.EMPTY);
 
         // they are authenticated if we find their session id in the database
         final var isAuthenticated = sessionFoundInDatabase != SessionId.EMPTY;
 
-        return new AuthResult(isAuthenticated, sessionFoundInDatabase.creationDateTime());
+        // find the user
+        final List<User> authenticatedUser = users.stream().filter(x -> Objects.equals(x.currentSession(), sessionFoundInDatabase.sessionCode())).toList();
+
+        mustBeTrue(authenticatedUser.size() == 1, "There must be exactly one user found for a current session. We found: " + authenticatedUser.size());
+
+        return new AuthResult(isAuthenticated, sessionFoundInDatabase.creationDateTime(), authenticatedUser.get(0));
     }
+
+    public record NewSessionResult(SessionId sessionId, User user){}
 
     /**
      * A temporary method used during construction, to add a session to the database.
      */
-    public SessionId registerNewSession() {
+    public NewSessionResult registerNewSession(User user) {
         final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
         sessionIds.add(newSession);
-        return newSession;
+        users.remove(user);
+        userDiskData.deleteOnDisk(user);
+        final User updatedUser = new User(user.id(), user.username(), user.hashedPassword(), user.salt(), newSession.sessionCode());
+        users.add(updatedUser);
+        userDiskData.persistToDisk(updatedUser);
+        return new NewSessionResult(newSession, updatedUser);
     }
 
     public RegisterResult registerUser(String newUsername, String newPassword) {
         if (users.stream().anyMatch(x -> x.username().equals(newUsername))) {
-            return new RegisterResult(RegisterResultStatus.ALREADY_EXISTING_USER);
+            return new RegisterResult(RegisterResultStatus.ALREADY_EXISTING_USER, User.EMPTY);
         }
         final var newSalt = StringUtils.generateSecureRandomString(10);
         final var hashedPassword = CryptoUtils.createHash(newPassword, newSalt);
         final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null);
         users.add(newUser);
         userDiskData.persistToDisk(newUser);
-        return new RegisterResult(RegisterResultStatus.SUCCESS);
+        return new RegisterResult(RegisterResultStatus.SUCCESS, newUser);
     }
 
     public LoginResult loginUser(String username, String password) {
         final var foundUsers = users.stream().filter(x -> x.username().equals(username)).toList();
-        return switch (foundUsers.size()) {
-            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND);
+        final var loginResult = switch (foundUsers.size()) {
+            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
             case 1 -> passwordCheck(foundUsers.get(0), password);
             default ->
                     throw new InvariantException("there must be zero or one users found. Anything else indicates a bug");
         };
+
+        if (loginResult.status().equals(LoginResultStatus.SUCCESS)) {
+            final var newSessionResult = registerNewSession(loginResult.user());
+            return new LoginResult(loginResult.status(), newSessionResult.user());
+        }
+
+        return loginResult;
     }
 
     private LoginResult passwordCheck(User user, String password) {
         final var hash = CryptoUtils.createHash(password, user.salt());
         if (user.hashedPassword().equals(hash)) {
-            return new LoginResult(LoginResultStatus.SUCCESS);
+            return new LoginResult(LoginResultStatus.SUCCESS, user);
         } else {
-            return new LoginResult(LoginResultStatus.DID_NOT_MATCH_PASSWORD);
+            return new LoginResult(LoginResultStatus.DID_NOT_MATCH_PASSWORD, User.EMPTY);
         }
+    }
+
+    public User logoutUser(User user) {
+        final List<SessionId> userSession = sessionIds.stream().filter(s -> Objects.equals(s.sessionCode(), user.currentSession())).toList();
+        mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
+        sessionIds.remove(userSession.get(0));
+        sessionDiskData.deleteOnDisk(userSession.get(0));
+        users.remove(user);
+        userDiskData.deleteOnDisk(user);
+        final User updatedUser = new User(user.id(), user.username(), user.hashedPassword(), user.salt(), null);
+        users.add(updatedUser);
+        userDiskData.persistToDisk(updatedUser);
+        return updatedUser;
     }
 }

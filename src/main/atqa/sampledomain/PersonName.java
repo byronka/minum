@@ -13,12 +13,12 @@ public record PersonName(Long index, String fullname) implements SimpleDataType<
 
     @Override
     public String serialize() {
-        return index + " " + StringUtils.encode(fullname());
+        return index + "|" + StringUtils.encode(fullname());
     }
 
     @Override
     public PersonName deserialize(String serializedText) {
-        final var tokens = serializedText.split(" ");
+        final var tokens = serializedText.split("\\|");
 
         return new PersonName(Long.parseLong(tokens[0]), StringUtils.decode(tokens[1]));
     }

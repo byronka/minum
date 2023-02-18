@@ -38,7 +38,10 @@ public class TheRegister {
         final var sd = new SampleDomain(sampleDomainDdps, auth);
 
         wf.registerPath(StartLine.Verb.GET, "", WebFramework.redirectTo("index.html"));
-        wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
-        wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/index", sd::sampleDomainIndex);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/login", sd::login);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/logout", sd::logout);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/formentry", sd::formEntry);
+        wf.registerPath(StartLine.Verb.POST, "sampledomain/testform", sd::testform);
     }
 }

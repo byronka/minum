@@ -73,11 +73,14 @@ public class AuthenticationTests {
                 }
             };
 
+            // register a user
+            final var newUser = au.registerUser("username", "password").newUser();
+
             // register a session
-            final var sessionId = au.registerNewSession();
+            final var newSessionResult = au.registerNewSession(newUser);
 
             // build an incoming request that has appropriate authentication information
-            final Request authenticatedRequest = buildRequest(List.of(sessionId.sessionCode()));
+            final Request authenticatedRequest = buildRequest(List.of(newSessionResult.sessionId().sessionCode()));
 
             // run the web handler on the authenticated request, get a response
             final var response = sampleAuthenticatedWebHandler.apply(authenticatedRequest);
@@ -99,7 +102,7 @@ public class AuthenticationTests {
 
             // if we send two sessionid values in the cookies, the system will not know
             // which is the valid one, and will just fail authentication.
-            assertEquals(authResult2, new AuthResult(false, null));
+            assertEquals(authResult2, new AuthResult(false, null, User.EMPTY));
 
             // Incorporate the concept of a user to the authentication process
 
@@ -131,7 +134,19 @@ public class AuthenticationTests {
 
             final LoginResult loginResult = au.loginUser(newUsername, newPassword);
             assertEquals(loginResult.status(), LoginResultStatus.SUCCESS);
-        }
+
+            /*
+             * When the user wishes not to be authenticated any more, they will choose to
+             * log out.  From their point of view, they are universally unauthenticated.
+             * From the system's point of view, their user object has an empty string for
+             * its session id, and the session id has been removed from the list of session ids.
+             */
+            logger.test("It should be possible to log-out a user");
+
+            final var updatedUser = au.logoutUser(loginResult.user());
+
+            assertTrue(updatedUser.currentSession() == null);
+            }
 
 
     }

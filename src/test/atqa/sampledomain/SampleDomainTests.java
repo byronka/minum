@@ -30,10 +30,11 @@ public class SampleDomainTests {
         // setup
         final var authUtils = setupAuthUtils(es, logger);
         final var sd = setupSampleDomain(es, logger, authUtils);
-        final var sessionId = authUtils.registerNewSession();
+        final var registerResult = authUtils.registerUser("a", "b");
+        final var newSessionResult = authUtils.registerNewSession(registerResult.newUser());
 
         logger.test("basic happy-path for auth - view form"); {
-            final var request = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
+            final var request = buildRequest(List.of("Cookie: sessionId="+newSessionResult.sessionId().sessionCode()));
             final var response = sd.formEntry(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
         }
@@ -45,7 +46,7 @@ public class SampleDomainTests {
         }
 
         logger.test("happy-path for auth - form entry"); {
-            final var request = buildRequest(List.of("Cookie: sessionId="+sessionId.sessionCode()));
+            final var request = buildRequest(List.of("Cookie: sessionId="+newSessionResult.sessionId().sessionCode()));
             final var response = sd.testform(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
         }

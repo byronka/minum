@@ -41,12 +41,12 @@ public record SessionId(String sessionCode, long index, ZonedDateTime creationDa
 
     @Override
     public String serialize() {
-        return index + " " + encode(sessionCode()) + " " + encode(creationDateTime.toString());
+        return index + "|" + encode(sessionCode()) + "|" + encode(creationDateTime.toString());
     }
 
     @Override
     public SessionId deserialize(String serializedText) {
-        final var tokens = serializedText.split(" ");
+        final var tokens = serializedText.split("\\|");
 
         return new SessionId(
                 decode(tokens[0]),

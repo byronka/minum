@@ -34,7 +34,7 @@ public class Logger implements ILogger {
     private void toggleDefaultLogging() {
         toggles = new EnumMap<>(Type.class);
         toggles.put(Type.DEBUG, true);
-        toggles.put(Type.TRACE, false);
+        toggles.put(Type.TRACE, true);
         toggles.put(Type.ASYNC_ERROR, true);
     }
 

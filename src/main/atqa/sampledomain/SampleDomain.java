@@ -44,7 +44,7 @@ public class SampleDomain {
                 <!DOCTYPE html>
                 <html>
                     <head>
-                        <title>This is the title</title>
+                        <title>Name entry | The sample domain</title>
                         <meta charset="utf-8"/>
                         <link rel="stylesheet" href="main.css" />
                     </head>
@@ -102,15 +102,82 @@ public class SampleDomain {
         final var username = (String) r.bodyMap().get("username");
         final var password = (String) r.bodyMap().get("password");
         final var loginResult = auth.loginUser(username, password);
+
         switch (loginResult.status()) {
             case SUCCESS -> {
-                final var sessionId = auth.registerNewSession();
-                return new Response(_303_SEE_OTHER, List.of("Location: formentry", "Set-Cookie: " + sessionId.sessionCode()));
+                return new Response(_303_SEE_OTHER, List.of("Location: formentry", "Set-Cookie: " + loginResult.user().currentSession() ));
             }
             case DID_NOT_MATCH_PASSWORD -> {
                 return new Response(_401_UNAUTHORIZED, ContentType.TEXT_PLAIN, "Invalid account credentials");
             }
         }
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+    }
+
+    /**
+     * This is an example of a homepage for a domain.  Here we examine
+     * whether the user is authenticated.  If not, we request them to
+     * log in.  If already, then we show some features and the log-out link.
+     */
+    public Response sampleDomainIndex(Request request) {
+        final var authResult = auth.processAuth(request);
+        if (! authResult.isAuthenticated()) {
+            return new Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Unauthenticated | The sample domain</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
+                    </head>
+                    <body>
+                    <p><a href="#">Sign in</a></p>
+                    </body>
+                </html>
+                """);
+        } else {
+            return new Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Authenticated homepage | The sample domain</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
+                    </head>
+                    <body>
+                    <p><a href="sampledomain/formEntry">Enter a name</a></p>
+                    <p><a href="#">Sign out</a></p>
+                    </body>
+                </html>
+                """);
+        }
+
+    }
+
+    public Response login(Request request) {
+        return null;
+    }
+
+    public Response logout(Request request) {
+        final var authResult = auth.processAuth(request);
+        if (! authResult.isAuthenticated()) {
+            return new Response(_303_SEE_OTHER, List.of("Location: sampledomain/index"));
+        } else {
+            auth.logoutUser(authResult.user());
+            return new Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Logged out | The sample domain</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
+                    </head>
+                    <body>
+                        <p>You've been logged out</p>
+                        <p><a href="sampledomain/index">Index</a></p>
+                    </body>
+                </html>
+                """);
+        }
     }
 }

@@ -7,5 +7,5 @@ import java.time.ZonedDateTime;
  * a particular person's authentication.  Like, are they
  * currently authenticated?
  */
-public record AuthResult(Boolean isAuthenticated, ZonedDateTime creationDate) {
+public record AuthResult(Boolean isAuthenticated, ZonedDateTime creationDate, User user) {
 }
