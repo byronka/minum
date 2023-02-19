@@ -226,7 +226,7 @@ public class AuthUtils {
                 <!DOCTYPE html>
                 <html>
                     <head>
-                        <title>Login | The sample domain</title>
+                        <title>Login | The auth domain</title>
                         <meta charset="utf-8"/>
                         <link rel="stylesheet" href="main.css" />
                     </head>
