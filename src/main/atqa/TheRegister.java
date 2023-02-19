@@ -39,11 +39,11 @@ public class TheRegister {
 
         wf.registerPath(StartLine.Verb.GET, "", WebFramework.redirectTo("index.html"));
         wf.registerPath(StartLine.Verb.GET, "sampledomain/index", sd::sampleDomainIndex);
-        wf.registerPath(StartLine.Verb.GET, "sampledomain/login", sd::login);
-        wf.registerPath(StartLine.Verb.GET, "sampledomain/register", sd::register);
-        wf.registerPath(StartLine.Verb.POST, "sampledomain/registeruser", sd::registerUser);
-        wf.registerPath(StartLine.Verb.POST, "sampledomain/loginuser", sd::loginUser);
-        wf.registerPath(StartLine.Verb.GET, "sampledomain/logout", sd::logout);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/login", auth::login);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/register", auth::register);
+        wf.registerPath(StartLine.Verb.POST, "sampledomain/registeruser", auth::registerUser);
+        wf.registerPath(StartLine.Verb.POST, "sampledomain/loginuser", auth::loginUser);
+        wf.registerPath(StartLine.Verb.GET, "sampledomain/logout", auth::logout);
         wf.registerPath(StartLine.Verb.GET, "sampledomain/formentry", sd::formEntry);
         wf.registerPath(StartLine.Verb.POST, "sampledomain/testform", sd::testform);
     }

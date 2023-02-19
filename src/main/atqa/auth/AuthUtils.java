@@ -5,7 +5,9 @@ import atqa.logging.ILogger;
 import atqa.utils.CryptoUtils;
 import atqa.utils.InvariantException;
 import atqa.utils.StringUtils;
+import atqa.web.ContentType;
 import atqa.web.Request;
+import atqa.web.Response;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +16,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static atqa.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
 import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.utils.Invariants.mustBeTrue;
+import static atqa.web.StatusLine.StatusCode.*;
 
 /**
  * This class provides services for stateful authentication and
@@ -47,10 +51,12 @@ public class AuthUtils {
         newUserIndex = new AtomicLong(calculateNextIndex(users));
     }
 
+    public static final String cookieKey = "sessionid";
+
     /**
      * Used to extract cookies from the Cookie header
      */
-    public static final Pattern sessionIdCookieRegex = Pattern.compile("sessionid=(?<sessionIdValue>\\w+)");
+    public static final Pattern sessionIdCookieRegex = Pattern.compile(cookieKey + "=(?<sessionIdValue>\\w+)");
 
     /**
      * Processes the request and returns a {@link AuthResult} object.
@@ -174,6 +180,10 @@ public class AuthUtils {
         }
     }
 
+    /**
+     * removes the given user's session from the list. Updates
+     * the user to have a null session value.
+     */
     public User logoutUser(User user) {
         final List<SessionId> userSession = sessionIds.stream().filter(s -> Objects.equals(s.sessionCode(), user.currentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
@@ -187,5 +197,108 @@ public class AuthUtils {
         userDiskData.updateOnDisk(updatedUser);
 
         return updatedUser;
+    }
+
+
+    public Response loginUser(Request r) {
+        final var authResult = processAuth(r);
+        if (authResult.isAuthenticated()) {
+            return new Response(_303_SEE_OTHER, List.of("Location: index"));
+        }
+
+        final var username = (String) r.bodyMap().get("username");
+        final var password = (String) r.bodyMap().get("password");
+        final var loginResult = loginUser(username, password);
+
+        switch (loginResult.status()) {
+            case SUCCESS -> {
+                return new Response(_303_SEE_OTHER, List.of("Location: index", "Set-Cookie: "+cookieKey+"=" + loginResult.user().currentSession() ));
+            }
+            case DID_NOT_MATCH_PASSWORD -> {
+                return new Response(_401_UNAUTHORIZED, ContentType.TEXT_PLAIN, "Invalid account credentials");
+            }
+        }
+        return new Response(_303_SEE_OTHER, List.of("Location: index"));
+    }
+
+    public Response login(Request request) {
+        return new Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Login | The sample domain</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
+                    </head>
+                    <body>
+                        <form action="loginuser" method="post">
+                            <input type="text" name="username" />
+                            <input type="password" name="password" />
+                            <button>Enter</button>
+                        </form>
+                    </body>
+                </html>
+                """);
+    }
+
+
+    public Response registerUser(Request r) {
+        final var authResult = processAuth(r);
+        if (authResult.isAuthenticated()) {
+            return new Response(_303_SEE_OTHER, List.of("Location: index"));
+        }
+
+        final var username = (String) r.bodyMap().get("username");
+        final var password = (String) r.bodyMap().get("password");
+        final var registrationResult = registerUser(username, password);
+
+        if (registrationResult.status() == ALREADY_EXISTING_USER) {
+            return new Response(_200_OK, ContentType.TEXT_PLAIN, "This user is already registered");
+        }
+        return new Response(_303_SEE_OTHER, List.of("Location: index"));
+
+    }
+
+    public Response register(Request request) {
+        return new Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Register | The auth domain</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
+                    </head>
+                    <body>
+                        <form action="registeruser" method="post">
+                            <input type="text" name="username" />
+                            <input type="password" name="password" />
+                            <button>Enter</button>
+                        </form>
+                    </body>
+                </html>
+                """);
+    }
+
+    public Response logout(Request request) {
+        final var authResult = processAuth(request);
+        if (! authResult.isAuthenticated()) {
+            return new Response(_303_SEE_OTHER, List.of("Location: sampledomain/index"));
+        } else {
+            logoutUser(authResult.user());
+            return new Response(_200_OK, ContentType.TEXT_HTML, """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Logged out | The auth domain</title>
+                        <meta charset="utf-8"/>
+                        <link rel="stylesheet" href="main.css" />
+                    </head>
+                    <body>
+                        <p>You've been logged out</p>
+                        <p><a href="index">Index</a></p>
+                    </body>
+                </html>
+                """, List.of("Set-Cookie: "+cookieKey+"="));
+        }
     }
 }

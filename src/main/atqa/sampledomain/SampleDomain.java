@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static atqa.auth.RegisterResultStatus.*;
 import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.web.StatusLine.StatusCode.*;
 
@@ -76,44 +75,6 @@ public class SampleDomain {
         return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: formentry"));
     }
 
-    public Response registerUser(Request r) {
-        final var authResult = auth.processAuth(r);
-        if (authResult.isAuthenticated()) {
-            return new Response(_303_SEE_OTHER, List.of("Location: index"));
-        }
-
-        final var username = (String) r.bodyMap().get("username");
-        final var password = (String) r.bodyMap().get("password");
-        final var registrationResult = auth.registerUser(username, password);
-
-        if (registrationResult.status() == ALREADY_EXISTING_USER) {
-            return new Response(_200_OK, ContentType.TEXT_PLAIN, "This user is already registered");
-        }
-        return new Response(_303_SEE_OTHER, List.of("Location: index"));
-
-    }
-
-    public Response loginUser(Request r) {
-        final var authResult = auth.processAuth(r);
-        if (authResult.isAuthenticated()) {
-            return new Response(_303_SEE_OTHER, List.of("Location: index"));
-        }
-
-        final var username = (String) r.bodyMap().get("username");
-        final var password = (String) r.bodyMap().get("password");
-        final var loginResult = auth.loginUser(username, password);
-
-        switch (loginResult.status()) {
-            case SUCCESS -> {
-                return new Response(_303_SEE_OTHER, List.of("Location: index", "Set-Cookie: sessionid=" + loginResult.user().currentSession() ));
-            }
-            case DID_NOT_MATCH_PASSWORD -> {
-                return new Response(_401_UNAUTHORIZED, ContentType.TEXT_PLAIN, "Invalid account credentials");
-            }
-        }
-        return new Response(_303_SEE_OTHER, List.of("Location: index"));
-    }
-
     /**
      * This is an example of a homepage for a domain.  Here we examine
      * whether the user is authenticated.  If not, we request them to
@@ -155,66 +116,4 @@ public class SampleDomain {
 
     }
 
-    public Response login(Request request) {
-        return new Response(_200_OK, ContentType.TEXT_HTML, """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Login | The sample domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <form action="loginuser" method="post">
-                            <input type="text" name="username" />
-                            <input type="password" name="password" />
-                            <button>Enter</button>
-                        </form>
-                    </body>
-                </html>
-                """);
-    }
-
-    public Response register(Request request) {
-        return new Response(_200_OK, ContentType.TEXT_HTML, """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Register | The sample domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <form action="registeruser" method="post">
-                            <input type="text" name="username" />
-                            <input type="password" name="password" />
-                            <button>Enter</button>
-                        </form>
-                    </body>
-                </html>
-                """);
-    }
-
-    public Response logout(Request request) {
-        final var authResult = auth.processAuth(request);
-        if (! authResult.isAuthenticated()) {
-            return new Response(_303_SEE_OTHER, List.of("Location: sampledomain/index"));
-        } else {
-            auth.logoutUser(authResult.user());
-            return new Response(_200_OK, ContentType.TEXT_HTML, """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Logged out | The sample domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <p>You've been logged out</p>
-                        <p><a href="index">Index</a></p>
-                    </body>
-                </html>
-                """, List.of("Set-Cookie: sessionid="));
-        }
-    }
 }

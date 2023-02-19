@@ -59,26 +59,26 @@ public class SampleDomainTests {
 
         logger.test("should be able to register a new user"); {
             final var request = buildRequest("username=abc&password=123");
-            final var response = sd.registerUser(request);
+            final var response = authUtils.registerUser(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
         }
 
         logger.test("should prevent registering a user twice"); {
             final var request = buildRequest("username=abc&password=123");
-            final var response = sd.registerUser(request);
+            final var response = authUtils.registerUser(request);
             assertEquals(bytesToString(response.body()), "This user is already registered");
         }
 
         logger.test("should be able to login a new user"); {
             final var request = buildRequest("username=abc&password=123");
-            final var response = sd.loginUser(request);
+            final var response = authUtils.loginUser(request);
             assertTrue(response.extraHeaders().stream().anyMatch(x -> x.toLowerCase().contains("set-cookie")), "the headers, (" + String.join(";", response.extraHeaders()) + ") must contain a set-cookie header");
             assertEquals(response.statusCode(), StatusLine.StatusCode._303_SEE_OTHER);
         }
 
         logger.test("should stop a bad password"); {
             final var request = buildRequest("username=abc&password=bad");
-            final var response = sd.loginUser(request);
+            final var response = authUtils.loginUser(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
         }
     }
