@@ -158,7 +158,7 @@ public class WebFramework {
         final var splitByAmpersand = input.split("&");
 
         for(final var s : splitByAmpersand) {
-            final var pair = s.split("=");
+            final var pair = splitKeyAndValue(s);
             mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
             final var result = postedPairs.put(pair[0], decode(pair[1]));
@@ -167,6 +167,21 @@ public class WebFramework {
             }
         }
         return postedPairs;
+    }
+
+    /**
+     * This splits a key from its value, following the HTTP pattern
+     * of "key=value". (that is, a key string, concatenated to an "equals"
+     * character, concatenated to the value, with no spaces [and the key
+     * and value are URL-encoded])
+     * @param formInputValue a string like "key=value"
+     */
+    private static String[] splitKeyAndValue(String formInputValue) {
+        final var locationOfEqual = formInputValue.indexOf("=");
+        final var result = new String[] {
+                formInputValue.substring(0, locationOfEqual),
+                formInputValue.substring(locationOfEqual+1)};
+        return result;
     }
 
     /**
