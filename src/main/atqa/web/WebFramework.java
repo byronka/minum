@@ -155,7 +155,7 @@ public class WebFramework {
         if (input.isEmpty()) return Collections.emptyMap();
 
         final var postedPairs = new HashMap<String, Object>();
-        final var splitByAmpersand = input.split("&");
+        final var splitByAmpersand = StringUtils.tokenizer(input, '&');
 
         for(final var s : splitByAmpersand) {
             final var pair = splitKeyAndValue(s);

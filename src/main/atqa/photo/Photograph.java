@@ -1,7 +1,7 @@
 package atqa.photo;
 
 import atqa.database.SimpleDataType;
-import atqa.utils.StringUtils;
+import atqa.database.SimpleSerializable;
 
 import java.util.Base64;
 
@@ -18,17 +18,17 @@ public record Photograph(Long index, byte[] photo, String photoUrl, String descr
 
     @Override
     public String serialize() {
-        return index + " " + StringUtils.encode(Base64.getEncoder().encodeToString(photo)) + StringUtils.encode(photoUrl()) + " " + StringUtils.encode(description());
+        return SimpleSerializable.serializeHelper(index, Base64.getEncoder().encodeToString(photo), photoUrl(), description());
     }
 
     @Override
     public Photograph deserialize(String serializedText) {
-        final var tokens = serializedText.split(" ");
+        final var tokens = SimpleSerializable.tokenizer(serializedText);
 
         return new Photograph(
-                Long.parseLong(tokens[0]),
-                Base64.getDecoder().decode(tokens[1]),
-                decode(tokens[2]),
-                decode(tokens[3]));
+                Long.parseLong(tokens.get(0)),
+                Base64.getDecoder().decode(tokens.get(1)),
+                decode(tokens.get(2)),
+                decode(tokens.get(3)));
     }
 }

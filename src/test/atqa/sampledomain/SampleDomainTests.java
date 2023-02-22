@@ -81,6 +81,12 @@ public class SampleDomainTests {
             final var response = authUtils.loginUser(request);
             assertEquals(response.statusCode(), StatusLine.StatusCode._401_UNAUTHORIZED);
         }
+
+        logger.test("should properly deserialize"); {
+            final var pn = new PersonName(1L, "abc");
+            final var result = pn.deserialize(pn.serialize());
+            assertEquals(pn, result);
+        }
     }
 
     private static Request buildRequest(List<String> headers) {

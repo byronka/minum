@@ -19,8 +19,8 @@ import java.util.concurrent.ExecutorService;
 public class Tests {
 
   public static void main(String[] args) throws Exception {
-    testFullSystem_Soup_To_Nuts();
     unitAndIntegrationTests();
+    testFullSystem_Soup_To_Nuts();
   }
 
   /**

@@ -4,6 +4,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -113,6 +114,29 @@ public class StringUtils {
             buf[i] = byteList.get(i);
         }
         return bytesToString(buf);
+    }
+
+    /**
+     * Splits up a string into tokens.
+     * @param serializedText the string we are splitting up
+     * @param delimiter the character acting as a boundary between sections
+     * @return a list of strings.  If the delimiter is not found, we will just return the whole string
+     */
+    public static List<String> tokenizer(String serializedText, char delimiter) {
+        final var resultList = new ArrayList<String>();
+        var currentPlace = 0;
+        while(true) {
+            final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
+            if (nextPipeSymbolIndex == -1) {
+                // if we don't see any pipe symbols ahead, grab the rest of the text from our current place
+                resultList.add(serializedText.substring(currentPlace));
+                break;
+            }
+            resultList.add(serializedText.substring(currentPlace, nextPipeSymbolIndex));
+            currentPlace = nextPipeSymbolIndex + 1;
+        }
+
+        return resultList;
     }
 
 }

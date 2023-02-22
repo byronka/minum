@@ -1,6 +1,7 @@
 package atqa.auth;
 
 import atqa.database.SimpleDataType;
+import atqa.database.SimpleSerializable;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -42,16 +43,16 @@ public record SessionId(long index, String sessionCode, ZonedDateTime creationDa
 
     @Override
     public String serialize() {
-        return index + "|" + encode(sessionCode()) + "|" + encode(creationDateTime.toString());
+        return SimpleSerializable.serializeHelper(index, sessionCode, creationDateTime.toString());
     }
 
     @Override
     public SessionId deserialize(String serializedText) {
-        final var tokens = serializedText.split("\\|");
+        final var tokens = SimpleSerializable.tokenizer(serializedText);
 
         return new SessionId(
-                Long.parseLong(tokens[0]),
-                decode(tokens[1]),
-                ZonedDateTime.parse(Objects.requireNonNull(decode(tokens[2]))));
+                Long.parseLong(tokens.get(0)),
+                decode(tokens.get(1)),
+                ZonedDateTime.parse(Objects.requireNonNull(decode(tokens.get(2)))));
     }
 }

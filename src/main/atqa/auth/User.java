@@ -1,9 +1,9 @@
 package atqa.auth;
 
 import atqa.database.SimpleDataType;
+import atqa.database.SimpleSerializable;
 
 import static atqa.utils.StringUtils.decode;
-import static atqa.utils.StringUtils.encode;
 
 /**
  * A data structure representing authentication information for a user.
@@ -26,22 +26,18 @@ public record User(Long id, String username, String hashedPassword, String salt,
 
     @Override
     public String serialize() {
-        return id() + "|" +
-                encode(username()) + "|" +
-                encode(hashedPassword()) + "|" +
-                encode(salt()) + "|" +
-                encode(currentSession());
+        return SimpleSerializable.serializeHelper(id(), username(), hashedPassword(), salt(), currentSession());
     }
 
     @Override
     public User deserialize(String serializedText) {
-        final var tokens = serializedText.split("\\|");
+        final var tokens = SimpleSerializable.tokenizer(serializedText);
         return new User(
-                Long.parseLong(tokens[0]),
-                decode(tokens[1]),
-                decode(tokens[2]),
-                decode(tokens[3]),
-                decode(tokens[4])
+                Long.parseLong(tokens.get(0)),
+                decode(tokens.get(1)),
+                decode(tokens.get(2)),
+                decode(tokens.get(3)),
+                decode(tokens.get(4))
                 );
     }
 }

@@ -1,6 +1,7 @@
 package atqa.sampledomain;
 
 import atqa.database.SimpleDataType;
+import atqa.database.SimpleSerializable;
 import atqa.utils.StringUtils;
 
 public record PersonName(Long index, String fullname) implements SimpleDataType<PersonName> {
@@ -13,13 +14,14 @@ public record PersonName(Long index, String fullname) implements SimpleDataType<
 
     @Override
     public String serialize() {
-        return index + "|" + StringUtils.encode(fullname());
+        return SimpleSerializable.serializeHelper(index, fullname());
     }
 
     @Override
     public PersonName deserialize(String serializedText) {
-        final var tokens = serializedText.split("\\|");
 
-        return new PersonName(Long.parseLong(tokens[0]), StringUtils.decode(tokens[1]));
+        final var tokens = SimpleSerializable.tokenizer(serializedText);
+
+        return new PersonName(Long.parseLong(tokens.get(0)), StringUtils.decode(tokens.get(1)));
     }
 }

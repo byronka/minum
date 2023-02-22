@@ -9,6 +9,7 @@ import atqa.web.ContentType;
 import atqa.web.Request;
 import atqa.web.Response;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -111,12 +112,16 @@ public class AuthUtils {
         // they are authenticated if we find their session id in the database
         final var isAuthenticated = sessionFoundInDatabase != SessionId.EMPTY;
 
+        if (! isAuthenticated) {
+            return new AuthResult(false, ZonedDateTime.now(), User.EMPTY);
+        }
+
         // find the user
         final List<User> authenticatedUser = users.stream().filter(x -> Objects.equals(x.currentSession(), sessionFoundInDatabase.sessionCode())).toList();
 
         mustBeTrue(authenticatedUser.size() == 1, "There must be exactly one user found for a current session. We found: " + authenticatedUser.size());
 
-        return new AuthResult(isAuthenticated, sessionFoundInDatabase.creationDateTime(), authenticatedUser.get(0));
+        return new AuthResult(true, sessionFoundInDatabase.creationDateTime(), authenticatedUser.get(0));
     }
 
     public record NewSessionResult(SessionId sessionId, User user){}
