@@ -48,8 +48,15 @@ public class WebFramework {
      * This is the brains of how the server responds to web clients.  Whatever
      * code lives here will be inserted into a slot within the server code.
      * See {@link Server#start(ExecutorService, ThrowingConsumer)}
+     *
+     * @param handlerFinder bear with me...  This is a function, that takes a {@link StartLine}, and
+     *                      returns a {@link Function} that handles the {@link Request} -> {@link Response}.
+     *                      Normally, you would just use {@link #makeHandler()} and the default code at
+     *                      {@link #findHandlerForEndpoint(StartLine)} would be called.  However, you can provide
+     *                      a handler here if you want to override that behavior, for example in tests when
+     *                      you want a bit more control.
      */
-    public ThrowingConsumer<SocketWrapper, IOException> makeHandler() {
+    public ThrowingConsumer<SocketWrapper, IOException> makeHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
         return (sw) -> {
             try (sw) {
                 final var rawStartLine = sw.readLine();
@@ -68,7 +75,7 @@ public class WebFramework {
                 String body = extractData(sw, hi);
                 Map<String, Object> bodyMap = parseUrlEncodedForm(body);
 
-                Function<Request, Response> endpoint = findHandlerForEndpoint(sl);
+                Function<Request, Response> endpoint = handlerFinder.apply(sl);
                 Response r = endpoint.apply(new Request(hi, sl, body.getBytes(StandardCharsets.UTF_8), bodyMap));
 
                 String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
@@ -93,6 +100,17 @@ public class WebFramework {
                 logger.logDebug(() -> ex.getMessage() + " at WebFramework");
             }
         };
+    }
+
+    /**
+     * This is the brains of how the server responds to web clients. Whatever
+     * code lives here will be inserted into a slot within the server code
+     * This builds a handler {@link java.util.function.Consumer} that provides
+     * the code to be run in the web framework engine that selects which
+     * function to run for a particular HTTP request.  See {@link #makeHandler(Function)}
+     */
+    public ThrowingConsumer<SocketWrapper, IOException> makeHandler() {
+        return makeHandler(this::findHandlerForEndpoint);
     }
 
     /**
