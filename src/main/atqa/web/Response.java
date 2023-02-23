@@ -29,4 +29,7 @@ public record Response(StatusLine.StatusCode statusCode, ContentType contentType
         this(statusCode, ContentType.NONE, extraHeaders, "".getBytes());
     }
 
+    public Response(StatusLine.StatusCode statusCode) {
+        this(statusCode, ContentType.NONE, Collections.emptyList(), "".getBytes());
+    }
 }

@@ -6,6 +6,7 @@ import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -15,11 +16,13 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 
 import static atqa.framework.TestFramework.*;
 import static atqa.web.StartLine.startLineRegex;
 import static atqa.web.StatusLine.StatusCode._200_OK;
+import static atqa.web.StatusLine.StatusCode._404_NOT_FOUND;
 
 public class WebTests {
     private final TestLogger logger;
@@ -370,14 +373,58 @@ public class WebTests {
             Per the specs for multipart, the boundary is preceded by
             two dashes.
              */
-            final var multiPartData = """
+            final var first = """
                     --i_am_a_boundary
-                    Content-type: foo
+                    Content-Type: text/plain
                     Content-Disposition: form-data; name="text1"
                     
+                    I am a value that is text
+                    --i_am_a_boundary
+                    Content-Type: application/octet-stream
+                    Content-Disposition: form-data; name="binary"
                     
-                    --i_am_a_boundary--
-                    """;
+                    """.getBytes(StandardCharsets.UTF_8);
+            final var second = new byte[]{1,2,3};
+            final var third = """
+                    --i_am_a_boundary
+                    """.getBytes(StandardCharsets.UTF_8);
+
+            // combine the multipart data into one array
+            byte[] multiPartData = Arrays.copyOf(first, first.length + second.length + third.length);
+            System.arraycopy(second, 0, multiPartData, first.length, second.length);
+            System.arraycopy(third, 0, multiPartData, first.length + second.length, third.length);
+
+            // This is the core of the test - here's where we'll process receiving a multipart data
+
+            final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
+                if (r.bodyMap().get("text1").equals("I am a value that is text") &&
+                    r.bodyMap().get("binary").equals(new byte[]{1,2,3})) {
+                    return new Response(
+                            _200_OK,
+                            ContentType.TEXT_HTML,
+                            "<p>r was </p>");
+                } else {
+                  return new Response(_404_NOT_FOUND);
+                }
+            });
+
+            WebFramework wf = new WebFramework(es, logger, default_zdt);
+            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler(testHandler))) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+
+                    // send a GET request
+                    client.sendHttpLine("GET /some_endpoint HTTP/1.1");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+                    client.sendHttpLine("");
+                    client.send(multiPartData);
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
+                    assertEquals(statusLine.status(), _200_OK);
+
+                    primaryServer.stop();
+                }
+            }
         }
 
     }
