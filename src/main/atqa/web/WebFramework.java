@@ -62,7 +62,7 @@ public class WebFramework {
                 final var rawStartLine = sw.readLine();
                  /*
                   if the rawStartLine is null, that means the client stopped talking.
-                  See {@link java.io.BufferedReader#readline}
+                  See ISocketWrapper.readLine()
                   */
                 if (rawStartLine == null) {
                     return;
