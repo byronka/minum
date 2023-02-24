@@ -59,6 +59,8 @@ public class WebFramework {
     public ThrowingConsumer<SocketWrapper, IOException> makeHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
         return (sw) -> {
             try (sw) {
+                // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
+                // e.g. GET /foo HTTP/1.1
                 final var rawStartLine = sw.readLine();
                  /*
                   if the rawStartLine is null, that means the client stopped talking.
@@ -67,11 +69,23 @@ public class WebFramework {
                 if (rawStartLine == null) {
                     return;
                 }
+
                 logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
                 StartLine sl = StartLine.extractStartLine(rawStartLine);
                 logger.logTrace(() -> sw + ": StartLine received: " + sl);
 
+                /*
+                   next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
+
+                   by the way, the headers will tell us vital information about the
+                   body.  If, for example, we're getting a POST and receiving a
+                   www form url encoded, there will be a header of "content-length"
+                   that will mention how many bytes to read.  On the other hand, if
+                   we're receiving a multipart, there will be no content-length, but
+                   the content-type will include the boundary string.
+                */
                 Headers hi = Headers.extractHeaderInformation(sw);
+
                 String body = extractData(sw, hi);
                 Map<String, Object> bodyMap = parseUrlEncodedForm(body);
 
@@ -196,10 +210,9 @@ public class WebFramework {
      */
     private static String[] splitKeyAndValue(String formInputValue) {
         final var locationOfEqual = formInputValue.indexOf("=");
-        final var result = new String[] {
+        return new String[] {
                 formInputValue.substring(0, locationOfEqual),
                 formInputValue.substring(locationOfEqual+1)};
-        return result;
     }
 
     /**
