@@ -9,7 +9,6 @@ import atqa.utils.ThrowingConsumer;
 import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -86,11 +85,16 @@ public class WebFramework {
                 */
                 Headers hi = Headers.extractHeaderInformation(sw);
 
-                String body = extractData(sw, hi);
-                Map<String, Object> bodyMap = parseUrlEncodedForm(body);
+                Map<String, Object> bodyMap = new HashMap<>();
+
+                // Determine whether there is a body (a block of data) in this request
+                final var thereIsABody = ! hi.contentType().isBlank();
+                if (thereIsABody) {
+                    bodyMap = extractData(sw, hi);
+                }
 
                 Function<Request, Response> endpoint = handlerFinder.apply(sl);
-                Response r = endpoint.apply(new Request(hi, sl, body.getBytes(StandardCharsets.UTF_8), bodyMap));
+                Response r = endpoint.apply(new Request(hi, sl, bodyMap));
 
                 String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
@@ -98,7 +102,6 @@ public class WebFramework {
                         "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
                                 "Date: " + date + HTTP_CRLF +
                                 "Server: atqa" + HTTP_CRLF +
-                                (r.contentType() == ContentType.NONE ? "" : r.contentType().headerString + HTTP_CRLF) +
                                 r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()) +
                                 "Content-Length: " + r.body().length + HTTP_CRLF +
                                 HTTP_CRLF
@@ -145,7 +148,7 @@ public class WebFramework {
             } else {
                 return request -> new Response(
                         StatusLine.StatusCode._404_NOT_FOUND,
-                        ContentType.TEXT_HTML,
+                        List.of("Content-Type: text/html; charset=UTF-8"),
                         "<p>404 not found using startline of " + sl + "</p>");
             }
         }
@@ -218,11 +221,19 @@ public class WebFramework {
     /**
      * read the body if one exists
      */
-    private String extractData(ISocketWrapper server, Headers h) throws IOException {
-        if (h.contentLength() > 0 && h.contentType() == ContentType.APPLICATION_FORM_URL_ENCODED) {
-            return StringUtils.bytesToString(server.read(h.contentLength()));
+    private Map<String, Object> extractData(ISocketWrapper server, Headers h) throws IOException {
+        if (h.contentLength() > 0 && h.contentType().contains("application/x-www-form-urlencoded")) {
+            // if the body is url encoded, then we simply read the number of bytes specified in the
+            // content length header
+            final var bodyString = StringUtils.bytesToString(server.read(h.contentLength()));
+            return parseUrlEncodedForm(bodyString);
+        } else if (h.contentType().contains("multipart/form-data")) {
+            // *********************
+            // *****  WORK ZONE ******
+            // *********************
+            return Collections.emptyMap();
         } else {
-            return "";
+            return Collections.emptyMap();
         }
     }
 

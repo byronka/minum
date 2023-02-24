@@ -150,7 +150,7 @@ public class WebTests {
                 int bValue = Integer.parseInt(r.startLine().pathDetails().queryString().get("b"));
                 int sum = aValue + bValue;
                 String sumString = String.valueOf(sum);
-                return new Response(_200_OK, ContentType.TEXT_HTML, sumString);
+                return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), sumString);
             }
         }
 
@@ -289,7 +289,7 @@ public class WebTests {
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
             WebFramework wf = new WebFramework(es, logger, default_zdt);
-            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, ContentType.TEXT_HTML, x.body()));
+            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8")));
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
@@ -300,7 +300,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     final var contentLengthLine = "Content-Length: " + postedData.length();
                     client.sendHttpLine(contentLengthLine);
-                    client.sendHttpLine(ContentType.APPLICATION_FORM_URL_ENCODED.headerString);
+                    client.sendHttpLine("Content-Type: application/x-www-form-urlencoded");
                     client.sendHttpLine("");
                     client.sendHttpLine(postedData);
 
@@ -401,7 +401,7 @@ public class WebTests {
                     r.bodyMap().get("binary").equals(new byte[]{1,2,3})) {
                     return new Response(
                             _200_OK,
-                            ContentType.TEXT_HTML,
+                            List.of("Content-Type: text/html; charset=UTF-8"),
                             "<p>r was </p>");
                 } else {
                   return new Response(_404_NOT_FOUND);

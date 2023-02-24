@@ -5,7 +5,6 @@ import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.utils.StringUtils;
 import atqa.web.*;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,14 +31,14 @@ public class SampleDomain {
     public Response formEntry(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
+            return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/html; charset=UTF-8"));
         }
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::index))
                 .map(x -> "<li>" + StringUtils.safeHtml(x.fullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
-        return new Response(_200_OK, ContentType.TEXT_HTML, """
+        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -64,7 +63,7 @@ public class SampleDomain {
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED, ContentType.TEXT_HTML, Collections.emptyList());
+            return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/html; charset=UTF-8"));
         }
 
         final var nameEntry = (String) r.bodyMap().get("name_entry");
@@ -72,7 +71,7 @@ public class SampleDomain {
         final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
-        return new Response(_303_SEE_OTHER, ContentType.TEXT_HTML, List.of("Location: formentry"));
+        return new Response(_303_SEE_OTHER, List.of("Content-Type: text/html; charset=UTF-8", "Location: formentry"));
     }
 
     /**
@@ -83,7 +82,7 @@ public class SampleDomain {
     public Response sampleDomainIndex(Request request) {
         final var authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
-            return new Response(_200_OK, ContentType.TEXT_HTML, """
+            return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -98,7 +97,7 @@ public class SampleDomain {
                 </html>
                 """);
         } else {
-            return new Response(_200_OK, ContentType.TEXT_HTML, """
+            return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
                 <!DOCTYPE html>
                 <html>
                     <head>

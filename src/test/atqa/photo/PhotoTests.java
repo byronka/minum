@@ -56,7 +56,6 @@ public class PhotoTests {
                         new StartLine.PathDetails(photoUrl, "", Map.of()),
                         WebEngine.HttpVersion.ONE_DOT_ONE,
                         ""),
-                "".getBytes(StandardCharsets.UTF_8),
                 Map.of());
     }
 
@@ -79,7 +78,6 @@ public class PhotoTests {
         return new Request(
                 new Headers(Collections.emptyList()),
                 null,
-                imageBytes,
                 Map.of("photo", imageBytes, "description", "bar bar"));
     }
 }

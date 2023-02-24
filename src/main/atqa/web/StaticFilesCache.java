@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static atqa.utils.Invariants.mustNotBeNull;
@@ -92,13 +93,13 @@ public class StaticFilesCache {
                 final var filename = path.getFileName().toString();
                 Response result;
                 if (filename.endsWith(".css")) {
-                    result = createOkResponse(fileContents, ContentType.TEXT_CSS);
+                    result = createOkResponse(fileContents,"Content-Type: text/css");
                 } else if (filename.endsWith(".js")) {
-                    result = createOkResponse(fileContents, ContentType.APPLICATION_JAVASCRIPT);
+                    result = createOkResponse(fileContents, "Content-Type: application/javascript");
                 } else if (filename.endsWith(".webp")) {
-                    result = createOkResponse(fileContents, ContentType.IMAGE_WEBP);
+                    result = createOkResponse(fileContents, "Content-Type: image/webp");
                 } else if (filename.endsWith(".html") || filename.endsWith(".htm")) {
-                    result = createOkResponse(fileContents, ContentType.TEXT_HTML);
+                    result = createOkResponse(fileContents, "Content-Type: text/html; charset=UTF-8");
                 } else {
                     result = createNotFoundResponse();
                 }
@@ -111,14 +112,14 @@ public class StaticFilesCache {
     private Response createNotFoundResponse() {
         return new Response(
                 StatusLine.StatusCode._404_NOT_FOUND,
-                ContentType.TEXT_HTML,
+                List.of("Content-Type: text/html; charset=UTF-8"),
                 "<p>404 not found</p>");
     }
 
-    private Response createOkResponse(byte[] fileContents, ContentType contentType) {
+    private Response createOkResponse(byte[] fileContents, String contentTypeHeader) {
         return new Response(
                 StatusLine.StatusCode._200_OK,
-                contentType,
+                List.of(contentTypeHeader),
                 fileContents);
     }
 }

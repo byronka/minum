@@ -2,7 +2,6 @@ package atqa.photo;
 
 import atqa.auth.AuthUtils;
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.web.ContentType;
 import atqa.web.Request;
 import atqa.web.Response;
 import atqa.web.StatusLine;
@@ -34,7 +33,7 @@ public class Photo {
         final Photograph p = new Photograph(newPhotographIndex.getAndIncrement(), photo, newUrl, description);
         photographs.add(p);
         diskData.persistToDisk(p);
-        return new Response(StatusLine.StatusCode._200_OK, ContentType.TEXT_PLAIN, newUrl.getBytes(StandardCharsets.UTF_8));
+        return new Response(StatusLine.StatusCode._200_OK, List.of("Content-Type: text/plain"), newUrl.getBytes(StandardCharsets.UTF_8));
     }
 
     public Response viewPhoto(Request request) {
@@ -42,8 +41,8 @@ public class Photo {
         final var myPhoto = photographs.stream().filter(x -> x.photoUrl().equals(photoUrl)).toList();
         mustBeTrue(myPhoto.size() == 0 || myPhoto.size() == 1, "there must be either 0 or 1 photos found with the url " + photoUrl);
         if (myPhoto.size() == 0) {
-            return new Response(StatusLine.StatusCode._404_NOT_FOUND, ContentType.TEXT_PLAIN, "");
+            return new Response(StatusLine.StatusCode._404_NOT_FOUND, List.of("Content-Type: text/plain"), "");
         }
-        return new Response(StatusLine.StatusCode._200_OK, ContentType.IMAGE_JPEG, myPhoto.get(0).photo());
+        return new Response(StatusLine.StatusCode._200_OK, List.of("Content-Type: image/jpeg"), myPhoto.get(0).photo());
     }
 }

@@ -2,7 +2,6 @@ package atqa.web;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -33,22 +32,19 @@ public record Headers(List<String> headerStrings) {
         return new Headers(headers);
     }
 
-    public ContentType contentType() {
+    /**
+     * Gets the one content-type header, or returns an empty string
+     */
+    public String contentType() {
         // find the header that starts with content-type
         List<String> cts = headerStrings().stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
         mustBeTrue(cts.isEmpty() || cts.size() == 1, "The number of content-type headers must be exactly zero or one");
         if (!cts.isEmpty()) {
-            // if we have a content-type, check whether it matches any of our known content-types that we handle
-            final var contentTypeHeader = cts.get(0).trim().toLowerCase(Locale.ROOT);
-            final var matches = Arrays.stream(ContentType.values()).filter(x -> x.headerString.toLowerCase(Locale.ROOT).contains(contentTypeHeader)).toList();
-            mustBeTrue(matches.isEmpty() || matches.size() == 1, "We must either match none or a single content-type.  Anything else is a bug");
-            if (matches.size() == 1) {
-                return matches.get(0);
-            }
+            return cts.get(0);
         }
 
-        // if we don't find a content-type header, or if we don't find one we can handle, return NONE.
-        return ContentType.NONE;
+        // if we don't find a content-type header, or if we don't find one we can handle, return an empty string.
+        return "";
     }
 
     /**

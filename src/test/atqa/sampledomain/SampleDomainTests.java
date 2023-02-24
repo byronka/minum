@@ -8,7 +8,6 @@ import atqa.logging.TestLogger;
 import atqa.web.*;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -90,11 +89,11 @@ public class SampleDomainTests {
     }
 
     private static Request buildRequest(List<String> headers) {
-        return new Request(new Headers(headers), null, "".getBytes(StandardCharsets.UTF_8), Map.of());
+        return new Request(new Headers(headers), null, Map.of());
     }
 
     private static Request buildRequest(String body) {
-        return new Request(new Headers(Collections.emptyList()), null, body.getBytes(StandardCharsets.UTF_8), WebFramework.parseUrlEncodedForm(body));
+        return new Request(new Headers(Collections.emptyList()), null, WebFramework.parseUrlEncodedForm(body));
     }
 
     private static AuthUtils setupAuthUtils(ExecutorService es, TestLogger logger) {

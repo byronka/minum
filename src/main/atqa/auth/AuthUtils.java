@@ -5,7 +5,6 @@ import atqa.logging.ILogger;
 import atqa.utils.CryptoUtils;
 import atqa.utils.InvariantException;
 import atqa.utils.StringUtils;
-import atqa.web.ContentType;
 import atqa.web.Request;
 import atqa.web.Response;
 
@@ -220,14 +219,14 @@ public class AuthUtils {
                 return new Response(_303_SEE_OTHER, List.of("Location: index", "Set-Cookie: "+cookieKey+"=" + loginResult.user().currentSession() ));
             }
             case DID_NOT_MATCH_PASSWORD -> {
-                return new Response(_401_UNAUTHORIZED, ContentType.TEXT_PLAIN, "Invalid account credentials");
+                return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/plain"), "Invalid account credentials");
             }
         }
         return new Response(_303_SEE_OTHER, List.of("Location: index"));
     }
 
     public Response login(Request request) {
-        return new Response(_200_OK, ContentType.TEXT_HTML, """
+        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -258,14 +257,14 @@ public class AuthUtils {
         final var registrationResult = registerUser(username, password);
 
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
-            return new Response(_200_OK, ContentType.TEXT_PLAIN, "This user is already registered");
+            return new Response(_200_OK, List.of("Content-Type: text/plain"), "This user is already registered");
         }
         return new Response(_303_SEE_OTHER, List.of("Location: index"));
 
     }
 
     public Response register(Request request) {
-        return new Response(_200_OK, ContentType.TEXT_HTML, """
+        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -290,7 +289,10 @@ public class AuthUtils {
             return new Response(_303_SEE_OTHER, List.of("Location: sampledomain/index"));
         } else {
             logoutUser(authResult.user());
-            return new Response(_200_OK, ContentType.TEXT_HTML, """
+            return new Response(
+                    _200_OK,
+                    List.of("Content-Type: text/html; charset=UTF-8", "Set-Cookie: "+cookieKey+"="),
+                """
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -303,7 +305,7 @@ public class AuthUtils {
                         <p><a href="index">Index</a></p>
                     </body>
                 </html>
-                """, List.of("Set-Cookie: "+cookieKey+"="));
+                """);
         }
     }
 }
