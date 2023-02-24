@@ -90,11 +90,11 @@ public class SampleDomainTests {
     }
 
     private static Request buildRequest(List<String> headers) {
-        return new Request(new Headers(0, ContentType.NONE, headers), null, "".getBytes(StandardCharsets.UTF_8), Map.of());
+        return new Request(new Headers(headers), null, "".getBytes(StandardCharsets.UTF_8), Map.of());
     }
 
     private static Request buildRequest(String body) {
-        return new Request(new Headers(0, ContentType.NONE, Collections.emptyList()), null, body.getBytes(StandardCharsets.UTF_8), WebFramework.parseUrlEncodedForm(body));
+        return new Request(new Headers(Collections.emptyList()), null, body.getBytes(StandardCharsets.UTF_8), WebFramework.parseUrlEncodedForm(body));
     }
 
     private static AuthUtils setupAuthUtils(ExecutorService es, TestLogger logger) {

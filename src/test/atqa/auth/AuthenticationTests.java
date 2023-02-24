@@ -153,7 +153,7 @@ public class AuthenticationTests {
 
     private static Request buildRequest(List<String> sessionIds) {
         return new Request(
-                new Headers(0, ContentType.NONE, sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
+                new Headers(sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
                 null,
                 "".getBytes(StandardCharsets.UTF_8),
                 Map.of());

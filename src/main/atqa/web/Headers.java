@@ -15,7 +15,7 @@ import static atqa.utils.Invariants.mustBeTrue;
  * is this a keep-alive connection? what is the content-length,
  * and so on.
  */
-public record Headers(int contentLength, ContentType contentType, List<String> rawValues) {
+public record Headers(List<String> headerStrings) {
 
     /**
      * Used for extracting the length of the body, in POSTs and
@@ -30,14 +30,12 @@ public record Headers(int contentLength, ContentType contentType, List<String> r
      */
     public static Headers extractHeaderInformation(SocketWrapper sw) throws IOException {
         List<String> headers = getAllHeaders(sw);
-        int contentLength = extractContentLength(headers);
-        ContentType contentType = extractContentType(headers);
-        return new Headers(contentLength, contentType, headers);
+        return new Headers(headers);
     }
 
-    private static ContentType extractContentType(List<String> headers) {
+    public ContentType contentType() {
         // find the header that starts with content-type
-        List<String> cts = headers.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
+        List<String> cts = headerStrings().stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
         mustBeTrue(cts.isEmpty() || cts.size() == 1, "The number of content-type headers must be exactly zero or one");
         if (!cts.isEmpty()) {
             // if we have a content-type, check whether it matches any of our known content-types that we handle
@@ -57,8 +55,8 @@ public record Headers(int contentLength, ContentType contentType, List<String> r
      * Given the list of headers, find the one with the length of the
      * body of the POST and return that value as a simple integer
      */
-    private static int extractContentLength(List<String> headers) {
-        List<String> cl = headers.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
+    public int contentLength() {
+        List<String> cl = headerStrings().stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
         mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
         int contentLength = 0;
         if (!cl.isEmpty()) {

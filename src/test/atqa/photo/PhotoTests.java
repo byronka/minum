@@ -50,7 +50,7 @@ public class PhotoTests {
      */
     private Request buildPhotoViewRequest(String photoUrl) {
         return new Request(
-                new Headers(0, ContentType.NONE, Collections.emptyList()),
+                new Headers(Collections.emptyList()),
                 new StartLine(
                         StartLine.Verb.GET,
                         new StartLine.PathDetails(photoUrl, "", Map.of()),
@@ -77,7 +77,7 @@ public class PhotoTests {
      */
     private Request buildPhotoSubmitRequest(byte[] imageBytes) {
         return new Request(
-                new Headers(0, ContentType.NONE, Collections.emptyList()),
+                new Headers(Collections.emptyList()),
                 null,
                 imageBytes,
                 Map.of("photo", imageBytes, "description", "bar bar"));

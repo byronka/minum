@@ -74,7 +74,7 @@ public class AuthUtils {
      */
     public AuthResult processAuth(Request request) {
         // grab the headers from the request.
-        final var headers = request.headers().rawValues();
+        final var headers = request.headers().headerStrings();
 
         // get all the headers that start with "cookie", case-insensitive
         final var cookieHeaders = headers.stream()

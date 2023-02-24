@@ -177,7 +177,7 @@ public class WebTests {
                             "Content-Length: 2"
                     );
 
-                    assertEqualsDisregardOrder(hi.rawValues(), expectedResponseHeaders);
+                    assertEqualsDisregardOrder(hi.headerStrings(), expectedResponseHeaders);
 
                     String body = readBody(client, hi.contentLength());
 
