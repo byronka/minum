@@ -120,7 +120,7 @@ all: classes copyresources
 # in the classpath
 ##
 copyresources:
-	    @rsync --recursive --update --perms --extended-attributes src/resources out/main
+	    @rsync --recursive --update --perms src/resources out/main
 
 # make empty arrays for later use
 LIST:=
