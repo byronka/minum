@@ -289,7 +289,7 @@ public class WebTests {
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
             WebFramework wf = new WebFramework(es, logger, default_zdt);
-            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", (x) -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8")));
+            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.bodyMap().get("value_a").toString()));
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
@@ -309,7 +309,7 @@ public class WebTests {
                     Headers hi = Headers.extractHeaderInformation(client);
                     String body = readBody(client, hi.contentLength());
 
-                    assertEquals(body, "value_a=123&value_b=456");
+                    assertEquals(body, "123");
 
                     primaryServer.stop();
                 }

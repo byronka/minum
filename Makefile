@@ -4,6 +4,21 @@
 PROJ_NAME := atqa
 
 ##
+# In cygwin on Windows, if I look at the OS environment value I get "Windows_NT".
+# I can use this to distinguish when I'm running there and change some values, mostly
+# related to the paths.
+##
+
+# the delimiter between directories in the classpath to the Java application
+# on a Windows box is a semicolon, and on a posix box it's a colon.
+ifeq ($(OS),Windows_NT)
+	JAVA_HOME := $(cygpath $(JAVA_HOME))
+    DIR_DELIM := ;
+else
+    DIR_DELIM := :
+endif
+
+##
 # source directory
 ##
 SRC_DIR := src/main
@@ -51,7 +66,7 @@ BUILD_CP := "$(SRC_DIR)/"
 ##
 # build classpath for the tests
 ##
-TEST_BUILD_CP := "$(SRC_DIR)/:$(TST_SRC_DIR)/:$(OUT_DIR_MAIN)/"
+TEST_BUILD_CP := "$(SRC_DIR)/$(DIR_DELIM)$(TST_SRC_DIR)/$(DIR_DELIM)$(OUT_DIR_MAIN)/"
 
 ##
 # run classpath options - the classpaths needed to run the program
@@ -61,7 +76,7 @@ RUN_CP := "$(OUT_DIR_MAIN)"
 ##
 # run classpath for tests
 ##
-TST_RUN_CP := "$(OUT_DIR_MAIN):$(OUT_DIR_TEST)"
+TST_RUN_CP := "$(OUT_DIR_MAIN)$(DIR_DELIM)$(OUT_DIR_TEST)"
 
 ##
 # classes
