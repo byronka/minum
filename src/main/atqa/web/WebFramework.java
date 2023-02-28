@@ -220,21 +220,44 @@ public class WebFramework {
 
     /**
      * read the body if one exists
+     * <br>
+     * This part is "fun".  There are a couple basic modes to this:
+     * 1. the client makes their whole request and then closes the connection, so we
+     *    can just read until read() returns a -1.  Cool.
+     * 2. the client makes a request and doesn't want to drop the connection - also
+     *    known as "connection: keep-alive". If this is the case, the client *must*
+     *    give us the content-length so that we can know we've finished reading
+     *    everything they were going to send us.
+     * 3. when the client sends
      */
     private Map<String, Object> extractData(ISocketWrapper server, Headers h) throws IOException {
-        if (h.contentLength() > 0 && h.contentType().contains("application/x-www-form-urlencoded")) {
-            // if the body is url encoded, then we simply read the number of bytes specified in the
-            // content length header
-            final var bodyString = StringUtils.bytesToString(server.read(h.contentLength()));
-            return parseUrlEncodedForm(bodyString);
-        } else if (h.contentType().contains("multipart/form-data")) {
-            // *********************
-            // *****  WORK ZONE ******
-            // *********************
+        final var contentType = h.contentType();
+
+        byte[] bodyBytes = h.contentLength() > 0 ?
+                server.read(h.contentLength()) :
+                server.readUntilEOF();
+
+        if (h.contentLength() > 0 && contentType.contains("application/x-www-form-urlencoded")) {
+            return parseUrlEncodedForm(StringUtils.bytesToString(bodyBytes));
+        } else if (contentType.contains("multipart/form-data")) {
+            String boundaryKey = "boundary=";
+            int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
+            if (indexOfBoundaryKey > 0) {
+                // grab all the text after the key
+                String boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
+                return parseMultiform(bodyBytes, boundaryValue);
+            }
+            logger.logDebug(() -> "Did not find a valid boundary value for the multipart input.  Returning an empty map for the body");
             return Collections.emptyMap();
         } else {
+            logger.logDebug(() -> "Did not find a recognized content-type, returning an empty map for the body");
             return Collections.emptyMap();
         }
+    }
+
+    private Map<String, Object> parseMultiform(byte[] body, String boundaryValue) {
+        // how to split this up? It's a mix of strings and bytes.
+        return Collections.emptyMap();
     }
 
     public void registerStaticFiles(StaticFilesCache sfc) {

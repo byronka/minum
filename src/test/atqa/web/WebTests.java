@@ -413,11 +413,12 @@ public class WebTests {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
                     // send a GET request
-                    client.sendHttpLine("GET /some_endpoint HTTP/1.1");
+                    client.sendHttpLine("POST /some_endpoint HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
                     client.sendHttpLine("");
                     client.send(multiPartData);
+                    client.closeWriting();
 
                     StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
                     assertEquals(statusLine.status(), _200_OK);

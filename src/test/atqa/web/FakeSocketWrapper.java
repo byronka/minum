@@ -1,5 +1,6 @@
 package atqa.web;
 
+import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -56,6 +57,11 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public byte[] read(int length) {
+        return new byte[0];
+    }
+
+    @Override
+    public byte[] readUntilEOF() throws IOException {
         return new byte[0];
     }
 }

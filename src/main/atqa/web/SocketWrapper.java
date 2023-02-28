@@ -46,6 +46,10 @@ public class SocketWrapper implements ISocketWrapper {
         writer.write(bodyContents);
     }
 
+    public void closeWriting() throws IOException {
+        writer.close();
+    }
+
     @Override
     public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
@@ -106,5 +110,24 @@ public class SocketWrapper implements ISocketWrapper {
         mustBeFalse(lengthRead == -1, "end of file hit");
         mustBeFalse(lengthRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", lengthRead, length));
         return buf;
+    }
+
+    @Override
+    public byte[] readUntilEOF() throws IOException {
+        final var result = new ArrayList<Byte>();
+        int bytesRead = 0;
+        while (true) {
+            int a = inputStream.read();
+            bytesRead += 1;
+            if (a == -1) {
+                final var resultArray = new byte[bytesRead];
+                for(int i = 0; i < result.size(); i++) {
+                    resultArray[i] = result.get(i);
+                }
+                return resultArray;
+            }
+
+            result.add((byte) a);
+        }
     }
 }

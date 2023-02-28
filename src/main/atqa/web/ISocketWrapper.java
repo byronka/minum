@@ -27,4 +27,10 @@ public interface ISocketWrapper extends AutoCloseable {
     void close() throws IOException;
 
     byte[] read(int length) throws IOException;
+
+    /**
+     * Read from the socket until it returns an EOF indicator (that is, -1)
+     * Note: this *will block* until it gets to that EOF.
+     */
+    byte[] readUntilEOF() throws IOException;
 }

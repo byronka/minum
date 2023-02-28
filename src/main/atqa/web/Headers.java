@@ -49,12 +49,13 @@ public record Headers(List<String> headerStrings) {
 
     /**
      * Given the list of headers, find the one with the length of the
-     * body of the POST and return that value as a simple integer
+     * body of the POST and return that value as a simple integer. If
+     * we do not find a content length, return -1.
      */
     public int contentLength() {
         List<String> cl = headerStrings().stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
         mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
-        int contentLength = 0;
+        int contentLength = -1;
         if (!cl.isEmpty()) {
             Matcher clMatcher = contentLengthRegex.matcher(cl.get(0));
             mustBeTrue(clMatcher.matches(), "The content length header value must match the contentLengthRegex");
