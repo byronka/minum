@@ -416,6 +416,72 @@ public class WebTests {
                     client.sendHttpLine("POST /some_endpoint HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+                    client.sendHttpLine("Content-length: " + multiPartData.length);
+                    client.sendHttpLine("");
+                    client.send(multiPartData);
+                    client.closeWriting();
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
+                    assertEquals(statusLine.status(), _200_OK);
+
+                    primaryServer.stop();
+                }
+            }
+        }
+
+        /*
+        If a client is POSTing data to our server, there are two allowed ways of doing it
+        in HTTP/1.1.  One is to include the content-length, and the other is to do
+        transfer-encoding: chunked.  This test is to drive implementation of chunk encoding.
+        see https://www.rfc-editor.org/rfc/rfc7230#section-3.3.3
+         */
+        logger.test("We should be able to handle transfer-encoding: chunked"); {
+              /*
+            Per the specs for multipart, the boundary is preceded by
+            two dashes.
+             */
+            final var first = """
+                    --i_am_a_boundary
+                    Content-Type: text/plain
+                    Content-Disposition: form-data; name="text1"
+                    
+                    I am a value that is text
+                    --i_am_a_boundary
+                    Content-Type: application/octet-stream
+                    Content-Disposition: form-data; name="binary"
+                    
+                    """.getBytes(StandardCharsets.UTF_8);
+            final var second = new byte[]{1,2,3};
+            final var third = """
+                    --i_am_a_boundary
+                    """.getBytes(StandardCharsets.UTF_8);
+
+            // combine the multipart data into one array
+            byte[] multiPartData = Arrays.copyOf(first, first.length + second.length + third.length);
+            System.arraycopy(second, 0, multiPartData, first.length, second.length);
+            System.arraycopy(third, 0, multiPartData, first.length + second.length, third.length);
+
+            final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
+                if (r.bodyMap().get("text1").equals("I am a value that is text") &&
+                        r.bodyMap().get("binary").equals(new byte[]{1,2,3})) {
+                    return new Response(
+                            _200_OK,
+                            List.of("Content-Type: text/html; charset=UTF-8"),
+                            "<p>r was </p>");
+                } else {
+                    return new Response(_404_NOT_FOUND);
+                }
+            });
+
+            WebFramework wf = new WebFramework(es, logger, default_zdt);
+            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler(testHandler))) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+
+                    // send a GET request
+                    client.sendHttpLine("POST /some_endpoint HTTP/1.1");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+                    client.sendHttpLine("Transfer-encoding: chunked");
                     client.sendHttpLine("");
                     client.send(multiPartData);
                     client.closeWriting();
