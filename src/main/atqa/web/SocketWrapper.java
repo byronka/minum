@@ -82,6 +82,10 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public String readLine() throws IOException {
+        return readLine(inputStream);
+    }
+
+    public static String readLine(InputStream inputStream) throws IOException  {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
@@ -105,8 +109,12 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public byte[] read(int length) throws IOException {
+        return read(length, inputStream);
+    }
+
+    public static byte[] read(int length, InputStream inputStream) throws IOException {
         final var buf = new byte[length];
-        final var lengthRead = this.inputStream.read(buf);
+        final var lengthRead = inputStream.read(buf);
         mustBeFalse(lengthRead == -1, "end of file hit");
         mustBeFalse(lengthRead != length, String.format("length of bytes read (%d) wasn't equal to what we specified (%d)", lengthRead, length));
         return buf;
@@ -114,6 +122,10 @@ public class SocketWrapper implements ISocketWrapper {
 
     @Override
     public byte[] readUntilEOF() throws IOException {
+        return readUntilEOF(inputStream);
+    }
+
+    public static byte[] readUntilEOF(InputStream inputStream) throws IOException {
         final var result = new ArrayList<Byte>();
         int bytesRead = 0;
         while (true) {
