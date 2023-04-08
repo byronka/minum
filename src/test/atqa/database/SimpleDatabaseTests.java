@@ -161,7 +161,7 @@ public class SimpleDatabaseTests {
             // if we try deleting something that doesn't exist, we get an error shown in the log
             ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
             MyThread.sleep(10);
-            assertEquals(myLogger.loggedMessages.get(0), "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
+            assertEquals(myLogger.loggedMessages.get(0).replace('\\','/'), "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
 
             ddps_throwaway.stop();
         }
@@ -189,12 +189,12 @@ public class SimpleDatabaseTests {
             // create a corrupted file, to create that edge condition
             Files.write(pathToSampleFile, "invalid data".getBytes());
             final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance)));
-            assertEquals(ex.getMessage(), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
+            assertEquals(ex.getMessage().replace('\\','/'), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             ddps.readAndDeserialize(emptyFooInstance);
             MyThread.sleep(10);
-            assertEquals(myLogger.loggedMessages.get(1), "out/simple_db/foos directory missing, creating empty list of data");
+            assertEquals(myLogger.loggedMessages.get(1).replace('\\','/'), "out/simple_db/foos directory missing, creating empty list of data");
             ddps.stop();
         }
 
