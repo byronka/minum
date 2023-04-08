@@ -64,4 +64,9 @@ public class FakeSocketWrapper implements ISocketWrapper {
     public byte[] readUntilEOF() throws IOException {
         return new byte[0];
     }
+
+    @Override
+    public byte[] readChunkedEncoding() throws IOException {
+        return new byte[0];
+    }
 }

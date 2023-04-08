@@ -4,6 +4,7 @@ import atqa.logging.ILogger;
 import atqa.logging.Logger;
 import atqa.utils.StringUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -127,19 +128,43 @@ public class SocketWrapper implements ISocketWrapper {
 
     public static byte[] readUntilEOF(InputStream inputStream) throws IOException {
         final var result = new ArrayList<Byte>();
-        int bytesRead = 0;
         while (true) {
             int a = inputStream.read();
-            bytesRead += 1;
             if (a == -1) {
-                final var resultArray = new byte[bytesRead];
-                for(int i = 0; i < result.size(); i++) {
-                    resultArray[i] = result.get(i);
-                }
-                return resultArray;
+                return renderByteArray(result);
             }
 
             result.add((byte) a);
         }
+    }
+
+    private static byte[] renderByteArray(ArrayList<Byte> result) {
+        final var resultArray = new byte[result.size()];
+        for(int i = 0; i < result.size(); i++) {
+            resultArray[i] = result.get(i);
+        }
+        return resultArray;
+    }
+
+    @Override
+    public byte[] readChunkedEncoding() throws IOException {
+        return readChunkedEncoding(inputStream);
+    }
+
+    public static byte[] readChunkedEncoding(InputStream inputStream) throws IOException {
+        final var result = new ByteArrayOutputStream( );
+        while (true) {
+            String countToReadString = SocketWrapper.readLine(inputStream);
+            int countToRead = Integer.parseInt(countToReadString, 16);
+
+            result.write(SocketWrapper.read(countToRead, inputStream));
+            SocketWrapper.readLine(inputStream);
+            if (countToRead == 0) {
+                SocketWrapper.readLine(inputStream);
+                break;
+            }
+
+        }
+        return result.toByteArray();
     }
 }

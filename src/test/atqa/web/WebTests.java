@@ -375,26 +375,22 @@ chunks.
 \r
 """;
 
-            // we'll pretend like we're reading this character-by-character over
-            // a socket connection
+            // read through the headers to get to the sweet juicy body below
             InputStream inputStream = new ByteArrayInputStream(receivedData.getBytes(StandardCharsets.UTF_8));
             while(!SocketWrapper.readLine(inputStream).isEmpty()){
-                // do nothing
+                // do nothing, just going through the bytes of this stream
             }
 
-            StringBuilder sb = new StringBuilder();
-            while(true) {
-                String countToReadString = SocketWrapper.readLine(inputStream);
-                int countToRead = Integer.parseInt(countToReadString, 16);
+            // and now, the magic of encoded chunks
+            final var result = new String(SocketWrapper.readChunkedEncoding(inputStream));
 
-                String contentRead = new String(SocketWrapper.read(countToRead, inputStream));
-                sb.append(contentRead);
-                SocketWrapper.readLine(inputStream);
-                if (countToRead == 0) break;
-            }
-            logger.testPrint(sb.toString());
+            assertEquals(result,
+"""
+Wikipedia in \r
+\r
+chunks.""");
 
-            SocketWrapper.readLine(inputStream);
+
         }
 
         /*

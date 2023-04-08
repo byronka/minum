@@ -26,6 +26,9 @@ public interface ISocketWrapper extends AutoCloseable {
 
     void close() throws IOException;
 
+    /**
+     * Reads "length" bytes from the input stream
+     */
     byte[] read(int length) throws IOException;
 
     /**
@@ -33,4 +36,10 @@ public interface ISocketWrapper extends AutoCloseable {
      * Note: this *will block* until it gets to that EOF.
      */
     byte[] readUntilEOF() throws IOException;
+
+    /**
+     * reads following the algorithm for transfer-encoding: chunked.
+     * See https://en.wikipedia.org/wiki/Chunked_transfer_encoding
+     */
+    byte[] readChunkedEncoding() throws IOException;
 }

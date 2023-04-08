@@ -221,14 +221,14 @@ public class WebFramework {
     /**
      * read the body if one exists
      * <br>
-     * This part is "fun".  There are a couple basic modes to this:
-     * 1. the client makes their whole request and then closes the connection, so we
-     *    can just read until read() returns a -1.  Cool.
-     * 2. the client makes a request and doesn't want to drop the connection - also
-     *    known as "connection: keep-alive". If this is the case, the client *must*
-     *    give us the content-length so that we can know we've finished reading
-     *    everything they were going to send us.
-     * 3. when the client sends
+     * There are really only two ways to read the body.
+     * 1. the client tells us how many bytes to read
+     * 2. the client uses "transfer-encoding: chunked"
+     * <br>
+     * In either case, it is absolutely critical that the client gives us
+     * a way to know ahead of time how many bytes to read, so we (the server)
+     * can stop reading at precisely the right point.  There's simply no
+     * other way to reasonably do this.
      */
     private Map<String, Object> extractData(ISocketWrapper server, Headers h) throws IOException {
         final var contentType = h.contentType();
