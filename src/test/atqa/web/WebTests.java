@@ -378,40 +378,22 @@ chunks.
             // we'll pretend like we're reading this character-by-character over
             // a socket connection
             InputStream inputStream = new ByteArrayInputStream(receivedData.getBytes(StandardCharsets.UTF_8));
-            logger.testPrint(SocketWrapper.readLine(inputStream)); // HTTP/1.1 200 OK
-            logger.testPrint(SocketWrapper.readLine(inputStream)); // Content-Type: text/plain
-            logger.testPrint(SocketWrapper.readLine(inputStream)); // Transfer-Encoding: chunked
-            logger.testPrint(SocketWrapper.readLine(inputStream)); //
+            while(!SocketWrapper.readLine(inputStream).isEmpty()){
+                // do nothing
+            }
 
-            String countToReadString = SocketWrapper.readLine(inputStream);
-            int countToRead = Integer.parseInt(countToReadString, 16);
-            logger.testPrint(countToReadString);
+            StringBuilder sb = new StringBuilder();
+            while(true) {
+                String countToReadString = SocketWrapper.readLine(inputStream);
+                int countToRead = Integer.parseInt(countToReadString, 16);
 
-            String contentRead = new String(SocketWrapper.read(countToRead, inputStream));
-            SocketWrapper.readLine(inputStream);
-            logger.testPrint(contentRead);
+                String contentRead = new String(SocketWrapper.read(countToRead, inputStream));
+                sb.append(contentRead);
+                SocketWrapper.readLine(inputStream);
+                if (countToRead == 0) break;
+            }
+            logger.testPrint(sb.toString());
 
-            countToReadString = SocketWrapper.readLine(inputStream);
-            logger.testPrint(countToReadString);
-            countToRead = Integer.parseInt(countToReadString, 16);
-
-            contentRead = new String(SocketWrapper.read(countToRead, inputStream));
-            SocketWrapper.readLine(inputStream);
-            logger.testPrint(contentRead);
-
-            countToReadString = SocketWrapper.readLine(inputStream);
-            logger.testPrint(countToReadString);
-            countToRead = Integer.parseInt(countToReadString, 16);
-
-            contentRead = new String(SocketWrapper.read(countToRead, inputStream));
-            SocketWrapper.readLine(inputStream);
-            logger.testPrint(contentRead);
-
-            countToReadString = SocketWrapper.readLine(inputStream); // 0
-            logger.testPrint(countToReadString);
-            countToRead = Integer.parseInt(countToReadString, 16);
-
-            logger.testPrint(SocketWrapper.readLine(inputStream)); // we're done
             SocketWrapper.readLine(inputStream);
         }
 
