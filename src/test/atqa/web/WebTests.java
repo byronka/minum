@@ -357,22 +357,23 @@ public class WebTests {
         see https://www.rfc-editor.org/rfc/rfc7230#section-3.3.3
          */
         logger.test("We should be able to handle transfer-encoding: chunked");{
-            String receivedData = """
-                    HTTP/1.1 200 OK
-                    Content-Type: text/plain
-                    Transfer-Encoding: chunked
-                    \r
-                    4\r
-                    Wiki\r
-                    6\r
-                    pedia \r
-                    E\r
-                    in \r
-                    \r
-                    chunks.
-                    0\r
-                    \r
-                    """.stripIndent();
+            String receivedData =
+"""
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Transfer-Encoding: chunked
+\r
+4\r
+Wiki\r
+6\r
+pedia \r
+E\r
+in \r
+\r
+chunks.
+0\r
+\r
+""";
 
             // we'll pretend like we're reading this character-by-character over
             // a socket connection
