@@ -38,6 +38,14 @@ public class TestFramework {
         }
     }
 
+    public static void assertEqualByteArray(byte[] left, byte[] right) {
+        if (left == null || right == null) throw new RuntimeException("one of the inputs was null: left:  %s right: %s".formatted(left, right));
+        if (left.length != right.length) throw new RuntimeException("Not equal! left length: %d right length: %d".formatted(left.length, right.length));
+        for (int i = 0; i < left.length; i++) {
+            if (left[i] != right[i]) throw new RuntimeException("Not equal! at index %d left was: %d right was: %d".formatted(i, left[i], right[i]));
+        }
+    }
+
     /**
      * asserts two lists are equal, ignoring the order.
      * For example, (a, b) is equal to (b, a)

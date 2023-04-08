@@ -47,10 +47,6 @@ public class SocketWrapper implements ISocketWrapper {
         writer.write(bodyContents);
     }
 
-    public void closeWriting() throws IOException {
-        writer.close();
-    }
-
     @Override
     public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("socket sending: %s", Logger.showWhiteSpace(msg)));
@@ -149,6 +145,11 @@ public class SocketWrapper implements ISocketWrapper {
     @Override
     public byte[] readChunkedEncoding() throws IOException {
         return readChunkedEncoding(inputStream);
+    }
+
+    @Override
+    public InputStream getInputStream() {
+        return this.inputStream;
     }
 
     public static byte[] readChunkedEncoding(InputStream inputStream) throws IOException {

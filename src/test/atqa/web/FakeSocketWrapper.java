@@ -1,6 +1,7 @@
 package atqa.web;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.SocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -68,5 +69,10 @@ public class FakeSocketWrapper implements ISocketWrapper {
     @Override
     public byte[] readChunkedEncoding() throws IOException {
         return new byte[0];
+    }
+
+    @Override
+    public InputStream getInputStream() {
+        return null;
     }
 }

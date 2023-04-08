@@ -6,6 +6,7 @@ import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -170,7 +171,7 @@ public class WebTests {
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                    Headers hi = Headers.extractHeaderInformation(client);
+                    Headers hi = Headers.extractHeaderInformation(client.getInputStream());
 
                     List<String> expectedResponseHeaders = Arrays.asList(
                             "Server: atqa",
@@ -308,7 +309,7 @@ public class WebTests {
 
                     // the server will respond to us.  Check everything is legit.
                     final var statusLine = StatusLine.extractStatusLine(client.readLine());
-                    Headers hi = Headers.extractHeaderInformation(client);
+                    Headers hi = Headers.extractHeaderInformation(client.getInputStream());
                     String body = readBody(client, hi.contentLength());
 
                     assertEquals(body, "123");
@@ -390,7 +391,14 @@ Wikipedia in \r
 \r
 chunks.""");
 
+        }
 
+        logger.test("Examing the algorithm for parsing multipart data"); {
+            byte[] multiPartData = makeTestMultiPartData();
+
+            final var result = WebFramework.parseMultiform(multiPartData, "i_am_a_boundary");
+            assertEquals(new String((byte[])result.get("text1")).trim(), "I am a value that is text");
+            assertEqualByteArray((byte[])result.get("binary"), new byte[]{1, 2, 3});
         }
 
         /*
@@ -411,39 +419,16 @@ chunks.""");
          * at the beginning of "abc123".
          */
         logger.test("we should be able to receive multipart form data"); {
-            final var headersIndicatingMultipart = List.of(
-                    "Content-Type: multipart/form-data; boundary=i_am_a_boundary");
-
-            /*
-            Per the specs for multipart, the boundary is preceded by
-            two dashes.
-             */
-            final var first = """
-                    --i_am_a_boundary
-                    Content-Type: text/plain
-                    Content-Disposition: form-data; name="text1"
-                    
-                    I am a value that is text
-                    --i_am_a_boundary
-                    Content-Type: application/octet-stream
-                    Content-Disposition: form-data; name="binary"
-                    
-                    """.getBytes(StandardCharsets.UTF_8);
-            final var second = new byte[]{1,2,3};
-            final var third = """
-                    --i_am_a_boundary
-                    """.getBytes(StandardCharsets.UTF_8);
-
-            // combine the multipart data into one array
-            byte[] multiPartData = Arrays.copyOf(first, first.length + second.length + third.length);
-            System.arraycopy(second, 0, multiPartData, first.length, second.length);
-            System.arraycopy(third, 0, multiPartData, first.length + second.length, third.length);
+            byte[] multiPartData = makeTestMultiPartData();
 
             // This is the core of the test - here's where we'll process receiving a multipart data
 
             final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
-                if (r.bodyMap().get("text1").equals("I am a value that is text") &&
-                    r.bodyMap().get("binary").equals(new byte[]{1,2,3})) {
+                if (new String((byte[])r.bodyMap().get("text1")).trim().equals("I am a value that is text") &&
+                        ((byte[])r.bodyMap().get("binary"))[0] == 1 &&
+                        ((byte[])r.bodyMap().get("binary"))[1] == 2 &&
+                        ((byte[])r.bodyMap().get("binary"))[2] == 3
+                ) {
                     return new Response(
                             _200_OK,
                             List.of("Content-Type: text/html; charset=UTF-8"),
@@ -464,7 +449,6 @@ chunks.""");
                     client.sendHttpLine("Content-length: " + multiPartData.length);
                     client.sendHttpLine("");
                     client.send(multiPartData);
-                    client.closeWriting();
 
                     StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
                     assertEquals(statusLine.status(), _200_OK);
@@ -475,6 +459,37 @@ chunks.""");
         }
 
 
+    }
+
+    private static byte[] makeTestMultiPartData() {
+        try {
+        /*
+        Per the specs for multipart, the boundary is preceded by
+        two dashes.
+         */
+            final var baos = new ByteArrayOutputStream();
+            baos.write(
+                """
+                --i_am_a_boundary
+                Content-Type: text/plain
+                Content-Disposition: form-data; name="text1"
+                
+                I am a value that is text
+                --i_am_a_boundary
+                Content-Type: application/octet-stream
+                Content-Disposition: form-data; name="binary"
+                
+                """.getBytes(StandardCharsets.UTF_8));
+            baos.write(new byte[]{1, 2, 3});
+            baos.write(
+                """
+                --i_am_a_boundary
+                """.getBytes(StandardCharsets.UTF_8));
+
+            return baos.toByteArray();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     private static String readBody(SocketWrapper sw, int length) throws IOException {

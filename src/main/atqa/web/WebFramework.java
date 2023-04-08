@@ -7,8 +7,10 @@ import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import javax.net.ssl.SSLException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -83,7 +85,7 @@ public class WebFramework {
                    we're receiving a multipart, there will be no content-length, but
                    the content-type will include the boundary string.
                 */
-                Headers hi = Headers.extractHeaderInformation(sw);
+                Headers hi = Headers.extractHeaderInformation(sw.getInputStream());
 
                 Map<String, Object> bodyMap = new HashMap<>();
 
@@ -235,7 +237,7 @@ public class WebFramework {
 
         byte[] bodyBytes = h.contentLength() > 0 ?
                 server.read(h.contentLength()) :
-                server.readUntilEOF();
+                server.readChunkedEncoding();
 
         if (h.contentLength() > 0 && contentType.contains("application/x-www-form-urlencoded")) {
             return parseUrlEncodedForm(StringUtils.bytesToString(bodyBytes));
@@ -255,9 +257,28 @@ public class WebFramework {
         }
     }
 
-    private Map<String, Object> parseMultiform(byte[] body, String boundaryValue) {
+    public static Map<String, Object> parseMultiform(byte[] body, String boundaryValue) throws IOException {
         // how to split this up? It's a mix of strings and bytes.
-        return Collections.emptyMap();
+        String[] splitString = new String(body).split("--"+boundaryValue+".*\n");
+        final List<String> dataForms = Arrays.stream(splitString).filter(x -> ! x.isBlank()).toList();
+        final String nameEquals = "name=";
+        // What we can bear in mind is that once we've read the headers, and gotten
+        // past the single blank line, *everything else* is pure data.
+        final var result = new HashMap<String, Object>();
+        for (var df : dataForms) {
+            final var is = new ByteArrayInputStream(df.getBytes(StandardCharsets.UTF_8));
+            Headers headers = Headers.extractHeaderInformation(is);
+            String contentDisposition = headers.headerStrings().stream()
+                    .filter(x -> x.toLowerCase().contains("form-data") && x.contains(nameEquals)).collect(Collectors.joining());
+            int i = contentDisposition.indexOf(nameEquals) + nameEquals.length();
+            String textWithQuotes = contentDisposition.substring(i);
+            String name = textWithQuotes.substring(1, textWithQuotes.length() - 1);
+            // at this point our inputstream pointer is at the beginning of the
+            // body data.  From here until the end it's pure data.
+            byte[] data = SocketWrapper.readUntilEOF(is);
+            result.put(name, data);
+        }
+        return result;
     }
 
     public void registerStaticFiles(StaticFilesCache sfc) {

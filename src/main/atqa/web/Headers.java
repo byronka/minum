@@ -1,6 +1,7 @@
 package atqa.web;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -27,8 +28,8 @@ public record Headers(List<String> headerStrings) {
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public static Headers extractHeaderInformation(SocketWrapper sw) throws IOException {
-        List<String> headers = getAllHeaders(sw);
+    public static Headers extractHeaderInformation(InputStream is) throws IOException {
+        List<String> headers = getAllHeaders(is);
         return new Headers(headers);
     }
 
@@ -66,11 +67,11 @@ public record Headers(List<String> headerStrings) {
         return contentLength;
     }
 
-    private static List<String> getAllHeaders(SocketWrapper sw) throws IOException {
+    private static List<String> getAllHeaders(InputStream is) throws IOException {
         List<String> headers = new ArrayList<>();
         while (true) {
-            String value = sw.readLine();
-            if (value.trim().isEmpty()) {
+            String value = SocketWrapper.readLine(is);
+            if (value != null && value.isBlank()) {
                 break;
             } else {
                 headers.add(value);

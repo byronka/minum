@@ -1,6 +1,7 @@
 package atqa.web;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.SocketAddress;
 
 public interface ISocketWrapper extends AutoCloseable {
@@ -42,4 +43,9 @@ public interface ISocketWrapper extends AutoCloseable {
      * See https://en.wikipedia.org/wiki/Chunked_transfer_encoding
      */
     byte[] readChunkedEncoding() throws IOException;
+
+    /**
+     * Returns this socket's input stream for more granular access
+     */
+    InputStream getInputStream();
 }
