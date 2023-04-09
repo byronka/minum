@@ -35,7 +35,7 @@ public interface ILogger {
     void logImperative(String msg);
 
     default String convertExceptionToString(Exception ex) {
-        return ex.getMessage() + " at " + String.join(";", Arrays.stream(ex.getStackTrace()).map(x -> "at " + x.toString()).toList());
+        return ex.toString() + ": " + ex.getMessage() + " at " + String.join(";", Arrays.stream(ex.getStackTrace()).map(x -> "at " + x.toString()).toList());
 
     }
 }
