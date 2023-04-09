@@ -115,7 +115,11 @@ public class WebFramework {
             } catch (SocketException ex) {
                 // if we close the application on the server side, there's a good
                 // likelihood a SocketException will come bubbling through here.
-                if (!ex.getMessage().contains("Socket closed")) {
+                // NOTE:
+                //   it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
+                //   if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
+                if (!ex.getMessage().contains("Socket closed") &&
+                        !ex.getMessage().equals("An established connection was aborted by the software in your host machine")) {
                     throw new RuntimeException(ex);
                 }
             } catch (SSLException ex) {
@@ -201,7 +205,9 @@ public class WebFramework {
             final var pair = splitKeyAndValue(s);
             mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
-            final var result = postedPairs.put(pair[0], decode(pair[1]).getBytes(StandardCharsets.UTF_8));
+            final var value = decode(pair[1]);
+            final var convertedValue = value == null ? "".getBytes(StandardCharsets.UTF_8) : value.getBytes(StandardCharsets.UTF_8);
+            final var result = postedPairs.put(pair[0], convertedValue);
             if (result != null) {
                 throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+StringUtils.byteArrayToString(result)+" and " + pair[1]);
             }

@@ -300,6 +300,11 @@ public class WebTests {
             final var result = WebFramework.parseUrlEncodedForm("mykey=");
             final var convertedResult = WebFramework.convertStringByteMap(result);
             assertEquals(convertedResult, Map.of("mykey", ""));
+
+            // null value - value of %NULL%
+            final var result2 = WebFramework.parseUrlEncodedForm("mykey=%NULL%");
+            final var convertedResult2 = WebFramework.convertStringByteMap(result2);
+            assertEquals(convertedResult2, Map.of("mykey", ""));
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
