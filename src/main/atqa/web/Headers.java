@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static atqa.utils.Invariants.mustBeTrue;
+import static atqa.web.InputStreamUtils.readLine;
 
 /**
  * Details extracted from the headers.  For example,
@@ -70,7 +71,7 @@ public record Headers(List<String> headerStrings) {
     private static List<String> getAllHeaders(InputStream is) throws IOException {
         List<String> headers = new ArrayList<>();
         while (true) {
-            String value = SocketWrapper.readLine(is);
+            String value = readLine(is);
             if (value != null && value.isBlank()) {
                 break;
             } else {

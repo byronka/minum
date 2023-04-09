@@ -1,6 +1,5 @@
 package atqa.web;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
 import java.util.function.Consumer;
@@ -13,7 +12,6 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     Consumer<String> sendAction;
     Consumer<String> sendHttpLineAction;
-    Supplier<String> readLineAction;
     Supplier<String> getLocalAddrAction;
     Supplier<Integer> getLocalPortAction;
     Supplier<SocketAddress> getRemoteAddrAction;
@@ -25,17 +23,11 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public void send(byte[] bodyContents) {
-
     }
 
     @Override
     public void sendHttpLine(String msg) {
         sendHttpLineAction.accept(msg);
-    }
-
-    @Override
-    public String readLine() {
-        return readLineAction.get();
     }
 
     @Override
@@ -55,21 +47,6 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public void close() {}
-
-    @Override
-    public byte[] read(int length) {
-        return new byte[0];
-    }
-
-    @Override
-    public byte[] readUntilEOF() throws IOException {
-        return new byte[0];
-    }
-
-    @Override
-    public byte[] readChunkedEncoding() throws IOException {
-        return new byte[0];
-    }
 
     @Override
     public InputStream getInputStream() {

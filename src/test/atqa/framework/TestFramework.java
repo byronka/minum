@@ -30,7 +30,8 @@ public class TestFramework {
     }
 
     /**
-     * A helper for testing - assert two generics are equal
+     * A helper for testing - assert two generics are equal.  If you
+     * need to compare two byte arrays, see {@link #assertEqualByteArray(byte[], byte[])}
      */
     public static <T> void assertEquals(T left, T right) {
         if (! left.equals(right)) {

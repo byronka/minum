@@ -5,6 +5,7 @@ import atqa.auth.SessionId;
 import atqa.auth.User;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
+import atqa.utils.StringUtils;
 import atqa.web.*;
 
 import java.nio.charset.StandardCharsets;
@@ -31,11 +32,11 @@ public class PhotoTests {
         logger.test("A user should be able to send a photo"); {
             final Request photoSubmitRequest = buildPhotoSubmitRequest(imagesBytes);
             final Response photoSubmitResponse = p.receivePhoto(photoSubmitRequest);
-            final String submitBody = new String(photoSubmitResponse.body(), StandardCharsets.UTF_8);
+            final String submitBody = StringUtils.byteArrayToString(photoSubmitResponse.body());
             assertEquals(submitBody, "myPhotoUrl");
 
         logger.test("A user should be able to view an uploaded photo");
-            final Request photoReceiveRequest = buildPhotoViewRequest(new String(photoSubmitResponse.body(), StandardCharsets.UTF_8));
+            final Request photoReceiveRequest = buildPhotoViewRequest(StringUtils.byteArrayToString(photoSubmitResponse.body()));
             final Response photoReceiveResponse = p.viewPhoto(photoReceiveRequest);
             final byte[] receiveBody = photoReceiveResponse.body();
             final var resultBytesList = List.of(receiveBody);

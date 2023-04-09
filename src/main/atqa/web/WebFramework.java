@@ -9,6 +9,7 @@ import atqa.utils.ThrowingConsumer;
 import javax.net.ssl.SSLException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 import static atqa.utils.Invariants.mustBeTrue;
 import static atqa.utils.StringUtils.decode;
+import static atqa.web.InputStreamUtils.*;
 import static atqa.web.WebEngine.HTTP_CRLF;
 
 /**
@@ -60,9 +62,10 @@ public class WebFramework {
     public ThrowingConsumer<SocketWrapper, IOException> makeHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
         return (sw) -> {
             try (sw) {
+                final var is = sw.getInputStream();
                 // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
                 // e.g. GET /foo HTTP/1.1
-                final var rawStartLine = sw.readLine();
+                final var rawStartLine = readLine(is);
                  /*
                   if the rawStartLine is null, that means the client stopped talking.
                   See ISocketWrapper.readLine()
@@ -92,7 +95,7 @@ public class WebFramework {
                 // Determine whether there is a body (a block of data) in this request
                 final var thereIsABody = ! hi.contentType().isBlank();
                 if (thereIsABody) {
-                    bodyMap = extractData(sw, hi);
+                    bodyMap = extractData(sw.getInputStream(), hi);
                 }
 
                 Function<Request, Response> endpoint = handlerFinder.apply(sl);
@@ -200,7 +203,7 @@ public class WebFramework {
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
             final var result = postedPairs.put(pair[0], decode(pair[1]).getBytes(StandardCharsets.UTF_8));
             if (result != null) {
-                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+new String(result)+" and " + pair[1]);
+                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+StringUtils.byteArrayToString(result)+" and " + pair[1]);
             }
         }
         return postedPairs;
@@ -209,7 +212,7 @@ public class WebFramework {
     public static Map<String, String> convertStringByteMap(Map<String, byte[]> myMap) {
         Map<String, String> result = new HashMap<>();
         for (var key : myMap.keySet()) {
-            result.put(key, new String(myMap.get(key)));
+            result.put(key, StringUtils.byteArrayToString(myMap.get(key)));
         }
         return result;
     }
@@ -240,15 +243,15 @@ public class WebFramework {
      * can stop reading at precisely the right point.  There's simply no
      * other way to reasonably do this.
      */
-    private Map<String, byte[]> extractData(ISocketWrapper server, Headers h) throws IOException {
+    private Map<String, byte[]> extractData(InputStream is, Headers h) throws IOException {
         final var contentType = h.contentType();
 
         byte[] bodyBytes = h.contentLength() > 0 ?
-                server.read(h.contentLength()) :
-                server.readChunkedEncoding();
+                InputStreamUtils.read(h.contentLength(), is) :
+                readChunkedEncoding(is);
 
         if (h.contentLength() > 0 && contentType.contains("application/x-www-form-urlencoded")) {
-            return parseUrlEncodedForm(new String(bodyBytes));
+            return parseUrlEncodedForm(StringUtils.byteArrayToString(bodyBytes));
         } else if (contentType.contains("multipart/form-data")) {
             String boundaryKey = "boundary=";
             int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
@@ -267,7 +270,7 @@ public class WebFramework {
 
     public static Map<String, byte[]> parseMultiform(byte[] body, String boundaryValue) throws IOException {
         // how to split this up? It's a mix of strings and bytes.
-        String[] splitString = new String(body).split("--"+boundaryValue+".*\n");
+        String[] splitString = StringUtils.byteArrayToString(body).split("--"+boundaryValue+".*\n");
         final List<String> dataForms = Arrays.stream(splitString).filter(x -> ! x.isBlank()).toList();
         final String nameEquals = "name=";
         // What we can bear in mind is that once we've read the headers, and gotten
@@ -283,7 +286,7 @@ public class WebFramework {
             String name = textWithQuotes.substring(1, textWithQuotes.length() - 1);
             // at this point our inputstream pointer is at the beginning of the
             // body data.  From here until the end it's pure data.
-            byte[] data = SocketWrapper.readUntilEOF(is);
+            byte[] data = readUntilEOF(is);
             result.put(name, data);
         }
         return result;

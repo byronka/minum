@@ -103,13 +103,25 @@ public class StringUtils {
                 .collect(Collectors.joining());
     }
 
-    public static String bytesToString(List<Byte> byteList) {
+    /**
+     * Converts a list of bytes to a string. Returns null if the input is null.
+     */
+    public static String byteListToString(List<Byte> byteList) {
+        if (byteList == null) return null;
         final int size = byteList.size();
         final var buf = new byte[size];
         for (int i = 0; i < size; i++) {
             buf[i] = byteList.get(i);
         }
         return new String(buf);
+    }
+
+    /**
+     * Converts an array of bytes to a string. Returns null if the input is null.
+     */
+    public static String byteArrayToString(byte[] byteArray) {
+        if (byteArray == null) return null;
+        return new String(byteArray);
     }
 
     /**

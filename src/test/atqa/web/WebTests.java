@@ -2,6 +2,7 @@ package atqa.web;
 
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
+import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.ByteArrayInputStream;
@@ -22,6 +23,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 
 import static atqa.framework.TestFramework.*;
+import static atqa.web.InputStreamUtils.readChunkedEncoding;
+import static atqa.web.InputStreamUtils.readLine;
 import static atqa.web.StartLine.startLineRegex;
 import static atqa.web.StatusLine.StatusCode._200_OK;
 import static atqa.web.StatusLine.StatusCode._404_NOT_FOUND;
@@ -51,9 +54,10 @@ public class WebTests {
             try (Server primaryServer = webEngine.startServer(es)) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     try (SocketWrapper server = primaryServer.getServer(client)) {
+                        InputStream is = server.getInputStream();
 
                         client.send("hello foo!\n");
-                        String result = server.readLine();
+                        String result = readLine(is);
                         assertEquals("hello foo!", result);
                     }
                 }
@@ -69,18 +73,20 @@ public class WebTests {
             try (Server primaryServer = webEngine.startServer(es)) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     try (SocketWrapper server = primaryServer.getServer(client)) {
+                        InputStream sis = server.getInputStream();
+                        InputStream cis = client.getInputStream();
 
                         // client sends, server receives
                         client.sendHttpLine(msg1);
-                        assertEquals(msg1, server.readLine());
+                        assertEquals(msg1, readLine(sis));
 
                         // server sends, client receives
                         server.sendHttpLine(msg2);
-                        assertEquals(msg2, client.readLine());
+                        assertEquals(msg2, readLine(cis));
 
                         // client sends, server receives
                         client.sendHttpLine(msg3);
-                        assertEquals(msg3, server.readLine());
+                        assertEquals(msg3, readLine(sis));
                     }
                 }
                 primaryServer.stop();
@@ -126,7 +132,10 @@ public class WebTests {
         There's nothing to prevent us using this as the entire
         basis of a atqa.web atqa.framework.
        */
-            ThrowingConsumer<SocketWrapper, IOException> handler = (sw) -> logger.logDebug(sw::readLine);
+            ThrowingConsumer<SocketWrapper, IOException> handler = (sw) -> {
+                InputStream is = sw.getInputStream();
+                logger.logDebug(() -> InputStreamUtils.readLine(is));
+            };
 
             try (Server primaryServer = webEngine.startServer(es, handler)) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
@@ -161,16 +170,18 @@ public class WebTests {
             wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    InputStream is = client.getInputStream();
+
                     // send a GET request
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
+                    StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                    Headers hi = Headers.extractHeaderInformation(client.getInputStream());
+                    Headers hi = Headers.extractHeaderInformation(is);
 
                     List<String> expectedResponseHeaders = Arrays.asList(
                             "Server: atqa",
@@ -181,7 +192,7 @@ public class WebTests {
 
                     assertEqualsDisregardOrder(hi.headerStrings(), expectedResponseHeaders);
 
-                    String body = readBody(client, hi.contentLength());
+                    String body = readBody(is, hi.contentLength());
 
                     assertEquals(body, "86");
 
@@ -194,7 +205,7 @@ public class WebTests {
         logger.test("TDD of a handler");{
             FakeSocketWrapper sw = new FakeSocketWrapper();
             AtomicReference<String> result = new AtomicReference<>();
-            sw.sendHttpLineAction = s -> result.set(s);
+            sw.sendHttpLineAction = result::set;
 
             // this is what we're really going to test
             ThrowingConsumer<ISocketWrapper, IOException> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
@@ -296,6 +307,7 @@ public class WebTests {
             wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.bodyMap().get("value_a")));
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    InputStream is = client.getInputStream();
 
                     final var postedData = "value_a=123&value_b=456";
 
@@ -309,9 +321,9 @@ public class WebTests {
                     client.sendHttpLine(postedData);
 
                     // the server will respond to us.  Check everything is legit.
-                    StatusLine.extractStatusLine(client.readLine());
+                    StatusLine.extractStatusLine(readLine(is));
                     Headers hi = Headers.extractHeaderInformation(client.getInputStream());
-                    String body = readBody(client, hi.contentLength());
+                    String body = readBody(is, hi.contentLength());
 
                     assertEquals(body, "123");
 
@@ -324,13 +336,14 @@ public class WebTests {
             WebFramework wf = new WebFramework(es, logger, default_zdt);
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    InputStream is = client.getInputStream();
 
                     // send a GET request
                     client.sendHttpLine("GET /some_endpoint HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
+                    StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
 
                     primaryServer.stop();
@@ -360,45 +373,44 @@ public class WebTests {
          */
         logger.test("We should be able to handle transfer-encoding: chunked");{
             String receivedData =
-"""
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Transfer-Encoding: chunked
-\r
-4\r
-Wiki\r
-6\r
-pedia \r
-E\r
-in \r
-\r
-chunks.
-0\r
-\r
-""";
+                """
+                HTTP/1.1 200 OK
+                Content-Type: text/plain
+                Transfer-Encoding: chunked
+                \r
+                4\r
+                Wiki\r
+                6\r
+                pedia \r
+                E\r
+                in \r
+                \r
+                chunks.
+                0\r
+                \r
+                """.stripLeading();
 
             // read through the headers to get to the sweet juicy body below
             InputStream inputStream = new ByteArrayInputStream(receivedData.getBytes(StandardCharsets.UTF_8));
-            while(!SocketWrapper.readLine(inputStream).isEmpty()){
+            while(!readLine(inputStream).isEmpty()){
                 // do nothing, just going through the bytes of this stream
             }
 
             // and now, the magic of encoded chunks
-            final var result = new String(SocketWrapper.readChunkedEncoding(inputStream));
+            final var result = StringUtils.byteArrayToString(readChunkedEncoding(inputStream));
 
-            assertEquals(result,
-"""
-Wikipedia in \r
-\r
-chunks.""");
+            assertEquals(result, """
+                Wikipedia in \r
+                \r
+                chunks.""".stripLeading());
 
         }
 
-        logger.test("Examing the algorithm for parsing multipart data"); {
+        logger.test("Examining the algorithm for parsing multipart data"); {
             byte[] multiPartData = makeTestMultiPartData();
 
             final var result = WebFramework.parseMultiform(multiPartData, "i_am_a_boundary");
-            assertEquals(new String(result.get("text1")).trim(), "I am a value that is text");
+            assertEquals(StringUtils.byteArrayToString(result.get("text1")).trim(), "I am a value that is text");
             assertEqualByteArray(result.get("binary"), new byte[]{1, 2, 3});
         }
 
@@ -425,7 +437,7 @@ chunks.""");
             // This is the core of the test - here's where we'll process receiving a multipart data
 
             final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
-                if (new String(r.bodyMap().get("text1")).trim().equals("I am a value that is text") &&
+                if (StringUtils.byteArrayToString(r.bodyMap().get("text1")).trim().equals("I am a value that is text") &&
                         (r.bodyMap().get("binary"))[0] == 1 &&
                         (r.bodyMap().get("binary"))[1] == 2 &&
                         (r.bodyMap().get("binary"))[2] == 3
@@ -442,6 +454,7 @@ chunks.""");
             WebFramework wf = new WebFramework(es, logger, default_zdt);
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler(testHandler))) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    InputStream is = client.getInputStream();
 
                     // send a GET request
                     client.sendHttpLine("POST /some_endpoint HTTP/1.1");
@@ -451,7 +464,7 @@ chunks.""");
                     client.sendHttpLine("");
                     client.send(multiPartData);
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(client.readLine());
+                    StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
                     assertEquals(statusLine.status(), _200_OK);
 
                     primaryServer.stop();
@@ -493,8 +506,8 @@ chunks.""");
         }
     }
 
-    private static String readBody(SocketWrapper sw, int length) throws IOException {
-        return new String(sw.read(length));
+    private static String readBody(InputStream is, int length) throws IOException {
+        return StringUtils.byteArrayToString(InputStreamUtils.read(length, is));
     }
 
 }

@@ -5,6 +5,7 @@ import atqa.auth.SessionId;
 import atqa.auth.User;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
+import atqa.utils.StringUtils;
 import atqa.web.*;
 
 import java.io.IOException;
@@ -64,7 +65,7 @@ public class SampleDomainTests {
         logger.test("should prevent registering a user twice"); {
             final var request = buildRequest("username=abc&password=123");
             final var response = authUtils.registerUser(request);
-            assertEquals(new String(response.body()), "This user is already registered");
+            assertEquals(StringUtils.byteArrayToString(response.body()), "This user is already registered");
         }
 
         logger.test("should be able to login a new user"); {
