@@ -7,9 +7,14 @@ import atqa.utils.ThrowingConsumer;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.concurrent.ExecutorService;
@@ -114,7 +119,7 @@ public class WebEngine {
   public ServerSocket createSslSocketWithInternalKeystore(int sslPort) {
     try {
       final var keyPassword = "passphrase".toCharArray();
-      final var keystoreFile = FileUtils.getResourceAsStream("resources/certs/keystore");
+      final var keystoreFile = getTestKeystoreResourceAsStream();
 
       final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
       keyStore.load(keystoreFile, keyPassword);
@@ -149,4 +154,17 @@ public class WebEngine {
     return new SocketWrapper(socket, logger);
   }
 
+
+  private InputStream getTestKeystoreResourceAsStream() {
+    try {
+      final URL url = FileUtils.class.getClassLoader().getResource("resources/certs/keystore");
+      if (url == null) {
+        return null;
+      }
+      byte[] data = Files.readAllBytes(Path.of(url.toURI()));
+      return new ByteArrayInputStream(data);
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
 }

@@ -55,7 +55,7 @@ public class WebFramework {
      * @param handlerFinder bear with me...  This is a function, that takes a {@link StartLine}, and
      *                      returns a {@link Function} that handles the {@link Request} -> {@link Response}.
      *                      Normally, you would just use {@link #makeHandler()} and the default code at
-     *                      {@link #findHandlerForEndpoint(StartLine)} would be called.  However, you can provide
+     *                      {@link #findEndpointForThisStartline(StartLine)} would be called.  However, you can provide
      *                      a handler here if you want to override that behavior, for example in tests when
      *                      you want a bit more control.
      */
@@ -119,7 +119,7 @@ public class WebFramework {
                     throw new RuntimeException(ex);
                 }
             } catch (SSLException ex) {
-                logger.logDebug(() -> ex.getMessage() + " at WebFramework");
+                logger.logDebug(() -> ex.getMessage() + " (at WebFramework final exception.)  " + logger.convertExceptionToString(ex));
             }
         };
     }
@@ -132,15 +132,15 @@ public class WebFramework {
      * function to run for a particular HTTP request.  See {@link #makeHandler(Function)}
      */
     public ThrowingConsumer<SocketWrapper, IOException> makeHandler() {
-        return makeHandler(this::findHandlerForEndpoint);
+        return makeHandler(this::findEndpointForThisStartline);
     }
 
     /**
-     * Looks through the mappings of {@link VerbPath} to endpoint handlers
-     * and returns the appropriate one.  If we do not find anything, return a
-     * very basic 404 NOT FOUND page
+     * Looks through the mappings of {@link VerbPath} and path to registered endpoints
+     * in {@link TheRegister} or the static cache and returns the appropriate one (If we
+     * do not find anything, return a very basic 404 NOT FOUND page)
      */
-    private Function<Request, Response> findHandlerForEndpoint(StartLine sl) {
+    private Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
         final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath().toLowerCase(Locale.ROOT)));
         if (functionFound == null) {
 

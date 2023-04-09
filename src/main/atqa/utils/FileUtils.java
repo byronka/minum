@@ -3,7 +3,6 @@ package atqa.utils;
 import atqa.logging.ILogger;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,11 +64,4 @@ public class FileUtils {
         return Collections.list(FileUtils.class.getClassLoader().getResources(path));
     }
 
-    public static InputStream getResourceAsStream(String path) throws IOException {
-        final var file = FileUtils.class.getClassLoader().getResource(path);
-        if (file == null) {
-            return null;
-        }
-        return file.openStream();
-    }
 }
