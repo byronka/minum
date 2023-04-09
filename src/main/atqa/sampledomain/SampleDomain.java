@@ -66,7 +66,7 @@ public class SampleDomain {
             return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/html; charset=UTF-8"));
         }
 
-        final var nameEntry = (String) r.bodyMap().get("name_entry");
+        final var nameEntry = new String(r.bodyMap().get("name_entry"));
 
         final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);

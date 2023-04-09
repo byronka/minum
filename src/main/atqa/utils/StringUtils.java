@@ -103,17 +103,13 @@ public class StringUtils {
                 .collect(Collectors.joining());
     }
 
-    public static String bytesToString(byte[] byteArray) {
-        return new String(byteArray, StandardCharsets.UTF_8);
-    }
-
     public static String bytesToString(List<Byte> byteList) {
         final int size = byteList.size();
         final var buf = new byte[size];
         for (int i = 0; i < size; i++) {
             buf[i] = byteList.get(i);
         }
-        return bytesToString(buf);
+        return new String(buf);
     }
 
     /**

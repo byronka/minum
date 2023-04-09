@@ -15,7 +15,6 @@ import java.util.concurrent.ExecutorService;
 
 import static atqa.framework.TestFramework.assertEquals;
 import static atqa.framework.TestFramework.assertTrue;
-import static atqa.utils.StringUtils.bytesToString;
 
 public class SampleDomainTests {
 
@@ -65,7 +64,7 @@ public class SampleDomainTests {
         logger.test("should prevent registering a user twice"); {
             final var request = buildRequest("username=abc&password=123");
             final var response = authUtils.registerUser(request);
-            assertEquals(bytesToString(response.body()), "This user is already registered");
+            assertEquals(new String(response.body()), "This user is already registered");
         }
 
         logger.test("should be able to login a new user"); {

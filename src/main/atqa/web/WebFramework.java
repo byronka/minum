@@ -87,7 +87,7 @@ public class WebFramework {
                 */
                 Headers hi = Headers.extractHeaderInformation(sw.getInputStream());
 
-                Map<String, Object> bodyMap = new HashMap<>();
+                Map<String, byte[]> bodyMap = new HashMap<>();
 
                 // Determine whether there is a body (a block of data) in this request
                 final var thereIsABody = ! hi.contentType().isBlank();
@@ -188,22 +188,30 @@ public class WebFramework {
      * <p>
      * for example, valuea=3&valueb=this+is+something
      */
-    public static Map<String, Object> parseUrlEncodedForm(String input) {
+    public static Map<String, byte[]> parseUrlEncodedForm(String input) {
         if (input.isEmpty()) return Collections.emptyMap();
 
-        final var postedPairs = new HashMap<String, Object>();
+        final var postedPairs = new HashMap<String, byte[]>();
         final var splitByAmpersand = StringUtils.tokenizer(input, '&');
 
         for(final var s : splitByAmpersand) {
             final var pair = splitKeyAndValue(s);
             mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
-            final var result = postedPairs.put(pair[0], decode(pair[1]));
+            final var result = postedPairs.put(pair[0], decode(pair[1]).getBytes(StandardCharsets.UTF_8));
             if (result != null) {
-                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+result+" and " + pair[1]);
+                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+new String(result)+" and " + pair[1]);
             }
         }
         return postedPairs;
+    }
+
+    public static Map<String, String> convertStringByteMap(Map<String, byte[]> myMap) {
+        Map<String, String> result = new HashMap<>();
+        for (var key : myMap.keySet()) {
+            result.put(key, new String(myMap.get(key)));
+        }
+        return result;
     }
 
     /**
@@ -232,7 +240,7 @@ public class WebFramework {
      * can stop reading at precisely the right point.  There's simply no
      * other way to reasonably do this.
      */
-    private Map<String, Object> extractData(ISocketWrapper server, Headers h) throws IOException {
+    private Map<String, byte[]> extractData(ISocketWrapper server, Headers h) throws IOException {
         final var contentType = h.contentType();
 
         byte[] bodyBytes = h.contentLength() > 0 ?
@@ -240,7 +248,7 @@ public class WebFramework {
                 server.readChunkedEncoding();
 
         if (h.contentLength() > 0 && contentType.contains("application/x-www-form-urlencoded")) {
-            return parseUrlEncodedForm(StringUtils.bytesToString(bodyBytes));
+            return parseUrlEncodedForm(new String(bodyBytes));
         } else if (contentType.contains("multipart/form-data")) {
             String boundaryKey = "boundary=";
             int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
@@ -257,14 +265,14 @@ public class WebFramework {
         }
     }
 
-    public static Map<String, Object> parseMultiform(byte[] body, String boundaryValue) throws IOException {
+    public static Map<String, byte[]> parseMultiform(byte[] body, String boundaryValue) throws IOException {
         // how to split this up? It's a mix of strings and bytes.
         String[] splitString = new String(body).split("--"+boundaryValue+".*\n");
         final List<String> dataForms = Arrays.stream(splitString).filter(x -> ! x.isBlank()).toList();
         final String nameEquals = "name=";
         // What we can bear in mind is that once we've read the headers, and gotten
         // past the single blank line, *everything else* is pure data.
-        final var result = new HashMap<String, Object>();
+        final var result = new HashMap<String, byte[]>();
         for (var df : dataForms) {
             final var is = new ByteArrayInputStream(df.getBytes(StandardCharsets.UTF_8));
             Headers headers = Headers.extractHeaderInformation(is);

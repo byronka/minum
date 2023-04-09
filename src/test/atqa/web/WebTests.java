@@ -2,7 +2,6 @@ package atqa.web;
 
 import atqa.logging.TestLogger;
 import atqa.utils.InvariantException;
-import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;
 
 import java.io.ByteArrayInputStream;
@@ -273,7 +272,8 @@ public class WebTests {
         logger.test("parseUrlEncodedForm should properly parse data");{
             final var expected = Map.of("value_a", "123", "value_b", "456");
             final var result = WebFramework.parseUrlEncodedForm("value_a=123&value_b=456");
-            assertEquals(expected, result);
+            final var convertedResult = WebFramework.convertStringByteMap(result);
+            assertEquals(expected, convertedResult);
         }
 
         logger.test("parseUrlEncodedForm edge cases"); {
@@ -287,12 +287,13 @@ public class WebTests {
 
             // empty value
             final var result = WebFramework.parseUrlEncodedForm("mykey=");
-            assertEquals(result, Map.of("mykey", ""));
+            final var convertedResult = WebFramework.convertStringByteMap(result);
+            assertEquals(convertedResult, Map.of("mykey", ""));
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
             WebFramework wf = new WebFramework(es, logger, default_zdt);
-            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.bodyMap().get("value_a").toString()));
+            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.bodyMap().get("value_a")));
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
 
@@ -308,7 +309,7 @@ public class WebTests {
                     client.sendHttpLine(postedData);
 
                     // the server will respond to us.  Check everything is legit.
-                    final var statusLine = StatusLine.extractStatusLine(client.readLine());
+                    StatusLine.extractStatusLine(client.readLine());
                     Headers hi = Headers.extractHeaderInformation(client.getInputStream());
                     String body = readBody(client, hi.contentLength());
 
@@ -397,8 +398,8 @@ chunks.""");
             byte[] multiPartData = makeTestMultiPartData();
 
             final var result = WebFramework.parseMultiform(multiPartData, "i_am_a_boundary");
-            assertEquals(new String((byte[])result.get("text1")).trim(), "I am a value that is text");
-            assertEqualByteArray((byte[])result.get("binary"), new byte[]{1, 2, 3});
+            assertEquals(new String(result.get("text1")).trim(), "I am a value that is text");
+            assertEqualByteArray(result.get("binary"), new byte[]{1, 2, 3});
         }
 
         /*
@@ -424,10 +425,10 @@ chunks.""");
             // This is the core of the test - here's where we'll process receiving a multipart data
 
             final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
-                if (new String((byte[])r.bodyMap().get("text1")).trim().equals("I am a value that is text") &&
-                        ((byte[])r.bodyMap().get("binary"))[0] == 1 &&
-                        ((byte[])r.bodyMap().get("binary"))[1] == 2 &&
-                        ((byte[])r.bodyMap().get("binary"))[2] == 3
+                if (new String(r.bodyMap().get("text1")).trim().equals("I am a value that is text") &&
+                        (r.bodyMap().get("binary"))[0] == 1 &&
+                        (r.bodyMap().get("binary"))[1] == 2 &&
+                        (r.bodyMap().get("binary"))[2] == 3
                 ) {
                     return new Response(
                             _200_OK,
@@ -493,7 +494,7 @@ chunks.""");
     }
 
     private static String readBody(SocketWrapper sw, int length) throws IOException {
-        return StringUtils.bytesToString(sw.read(length));
+        return new String(sw.read(length));
     }
 
 }

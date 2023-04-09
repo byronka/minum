@@ -27,8 +27,8 @@ public class Photo {
     }
 
     public Response receivePhoto(Request request) {
-        final var photo = (byte[]) request.bodyMap().get("photo");
-        final var description = (String) request.bodyMap().get("description");
+        final var photo = request.bodyMap().get("photo");
+        final var description = new String(request.bodyMap().get("description"));
         final var newUrl = "myPhotoUrl";
         final Photograph p = new Photograph(newPhotographIndex.getAndIncrement(), photo, newUrl, description);
         photographs.add(p);

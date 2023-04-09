@@ -210,8 +210,8 @@ public class AuthUtils {
             return new Response(_303_SEE_OTHER, List.of("Location: index"));
         }
 
-        final var username = (String) r.bodyMap().get("username");
-        final var password = (String) r.bodyMap().get("password");
+        final var username = new String(r.bodyMap().get("username"));
+        final var password = new String(r.bodyMap().get("password"));
         final var loginResult = loginUser(username, password);
 
         switch (loginResult.status()) {
@@ -252,8 +252,8 @@ public class AuthUtils {
             return new Response(_303_SEE_OTHER, List.of("Location: index"));
         }
 
-        final var username = (String) r.bodyMap().get("username");
-        final var password = (String) r.bodyMap().get("password");
+        final var username = new String(r.bodyMap().get("username"));
+        final var password = new String(r.bodyMap().get("password"));
         final var registrationResult = registerUser(username, password);
 
         if (registrationResult.status() == ALREADY_EXISTING_USER) {

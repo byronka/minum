@@ -78,6 +78,6 @@ public class PhotoTests {
         return new Request(
                 new Headers(Collections.emptyList()),
                 null,
-                Map.of("photo", imageBytes, "description", "bar bar"));
+                Map.of("photo", imageBytes, "description", "bar bar".getBytes(StandardCharsets.UTF_8)));
     }
 }
