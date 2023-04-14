@@ -53,9 +53,13 @@ public class DatabaseDiskPersistenceSimpler<T> {
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, executorService).initialize();
         this.logger = logger;
 
-        actionQueue.enqueue(() -> {
-            if (!Files.exists(this.dbDirectory)) {
+        actionQueue.enqueue("create directory " + this.dbDirectory, () -> {
+            boolean directoryExists = Files.exists(this.dbDirectory);
+            logger.logDebug(() -> "Directory: " + this.dbDirectory + ". Already exists: " + directoryExists);
+            if (!directoryExists) {
+                logger.logDebug(() -> "Creating directory, since it does not already exist: " + this.dbDirectory);
                 Files.createDirectories(this.dbDirectory);
+                logger.logDebug(() -> "Directory: " + this.dbDirectory + " created");
             }
             return null;
         });
@@ -82,8 +86,10 @@ public class DatabaseDiskPersistenceSimpler<T> {
      */
     public void persistToDisk(SimpleDataType<T> data) {
         final String fullPath = makeFullPathFromData(data);
-
-        actionQueue.enqueue(() -> {
+        if (fullPath.contains("phototests")) {
+            logger.logDebug(() -> String.join(";",actionQueue.listActions()));
+        }
+        actionQueue.enqueue("persist data to disk", () -> {
             writeString(fullPath, data.serialize());
 
             // needs to return null because this is a Callable, which allows us to
@@ -99,7 +105,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      */
     public void deleteOnDisk(SimpleDataType<T> data) {
         final String fullPath = makeFullPathFromData(data);
-        actionQueue.enqueue(() -> {
+        actionQueue.enqueue("delete data from disk", () -> {
             try {
                 Files.delete(Path.of(fullPath));
             } catch (Exception ex) {
@@ -117,7 +123,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
         final String fullPath = makeFullPathFromData(data);
         final var file = new File(fullPath);
 
-        actionQueue.enqueue(() -> {
+        actionQueue.enqueue("update data on disk", () -> {
             // if the file isn't already there, throw an exception
             mustBeTrue(file.exists(), "we were asked to update "+file+" but it doesn't exist");
             writeString(fullPath, data.serialize());

@@ -8,6 +8,7 @@ import atqa.logging.TestLogger;
 import atqa.utils.StringUtils;
 import atqa.web.*;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -23,11 +24,11 @@ public class PhotoTests {
         this.logger = logger;
     }
 
-    public void tests(ExecutorService es) {
+    public void tests(ExecutorService es) throws IOException {
         final Photo p = setupPhotoClass(es);
 
         // Basic API functionality - receiving and viewing a photo
-        final byte[] imagesBytes={0xa, 0x2, 0x03, (byte) 0xF2};
+        final byte[] imagesBytes = PhotoTests.class.getClassLoader().getResource("testresources/david_playing_chess.jpeg").openStream().readAllBytes();
 
         logger.test("A user should be able to send a photo"); {
             final Request photoSubmitRequest = buildPhotoSubmitRequest(imagesBytes);
@@ -61,14 +62,14 @@ public class PhotoTests {
     }
 
     private Photo setupPhotoClass(ExecutorService es) {
-        final var photoDdps = new DatabaseDiskPersistenceSimpler<Photograph>("out/simple_db/photos", es, logger);
+        final var photoDdps = new DatabaseDiskPersistenceSimpler<Photograph>("out/simple_db/phototests/photos", es, logger);
         final var authUtils = setupAuthUtils(es, logger);
         return new Photo(photoDdps, authUtils);
     }
 
     private static AuthUtils setupAuthUtils(ExecutorService es, TestLogger logger) {
-        final var sessionDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessionsphotos", es, logger);
-        final var userDdps = new DatabaseDiskPersistenceSimpler<User>("out/simple_db/usersphotos", es, logger);
+        final var sessionDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/phototests/sessions", es, logger);
+        final var userDdps = new DatabaseDiskPersistenceSimpler<User>("out/simple_db/phototests/users", es, logger);
         return new AuthUtils(sessionDdps, userDdps, logger);
     }
 

@@ -63,4 +63,8 @@ public class TestRecordingLogger implements ILogger {
     public void logImperative(String msg) {
     }
 
+    public String findFirstMessageThatContains(String value) {
+        return loggedMessages.stream().filter(x -> x.contains(value)).findFirst().orElseThrow().replace('\\', '/');
+    }
+
 }

@@ -7,7 +7,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyStore;
@@ -114,7 +113,7 @@ public class WebEngine {
   public ServerSocket createSslSocketWithInternalKeystore(int sslPort) {
     try {
       final var keyPassword = "passphrase".toCharArray();
-      final var keystoreFile = WebEngine.getResourceAsStream("resources/certs/keystore");
+      final var keystoreFile = WebEngine.class.getClassLoader().getResource("resources/certs/keystore").openStream();
 
       final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
       keyStore.load(keystoreFile, keyPassword);
@@ -147,14 +146,6 @@ public class WebEngine {
     Socket socket = new Socket(server.getHost(), server.getPort());
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
     return new SocketWrapper(socket, logger);
-  }
-
-  public static InputStream getResourceAsStream(String path) throws IOException {
-    final var file = WebEngine.class.getClassLoader().getResource(path);
-    if (file == null) {
-      return null;
-    }
-    return file.openStream();
   }
 
 }

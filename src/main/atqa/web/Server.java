@@ -46,6 +46,7 @@ public class Server implements AutoCloseable {
      */
     public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
+            Thread.currentThread().setName("Main Server");
             try {
                 // yes, this infinite loop can only exit by an exception.  But this is
                 // the beating heart of a server, and to the best of my current knowledge,

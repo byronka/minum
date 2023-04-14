@@ -1,5 +1,7 @@
 package atqa.logging;
 
+import atqa.utils.ExtendedExecutor;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutorService;
@@ -13,8 +15,16 @@ import java.util.concurrent.ExecutorService;
  */
 public class TestLogger extends Logger {
 
+    private final ExecutorService es;
+
     public TestLogger(ExecutorService es) {
         super(es);
+        this.es = es;
+    }
+
+    public static TestLogger makeTestLogger() {
+        var es = ExtendedExecutor.makeExecutorService();
+        return new TestLogger(es);
     }
 
     private int testCount = 1;
@@ -26,7 +36,7 @@ public class TestLogger extends Logger {
         final var baseLength = 11;
         final var dashes = "-".repeat(msg.length() + baseLength);
 
-        loggerPrinter.enqueue(() -> {
+        loggerPrinter.enqueue("Testlogger log data", () -> {
             printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", testCount++, msg);
             return null;
         });
@@ -37,7 +47,7 @@ public class TestLogger extends Logger {
      * exceptions thrown.
      */
     public void testPrint(String msg) {
-        loggerPrinter.enqueue(() -> {
+        loggerPrinter.enqueue("Testlogger log data", () -> {
             System.out.println(msg);
             return null;
         });
@@ -53,4 +63,7 @@ public class TestLogger extends Logger {
         return sw.toString();
     }
 
+    public ExecutorService getExecutorService() {
+        return es;
+    }
 }

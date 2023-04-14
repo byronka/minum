@@ -71,7 +71,7 @@ public class Logger implements ILogger {
         }
         if (toggles.get(type)) {
             String finalReceivedMessage = receivedMessage;
-            loggerPrinter.enqueue(() -> {
+            loggerPrinter.enqueue("log data", () -> {
                 printf(type.name() + ": %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
                 return null;
             });

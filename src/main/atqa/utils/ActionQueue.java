@@ -1,5 +1,6 @@
 package atqa.utils;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -17,7 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ActionQueue {
     private final String name;
     private final ExecutorService queueExecutor;
-    private final LinkedBlockingQueue<Callable<Void>> queue;
+    private final LinkedBlockingQueue<CallableWithDescription> queue;
     private boolean stop = false;
 
     public ActionQueue(String name, ExecutorService queueExecutor) {
@@ -31,6 +32,7 @@ public class ActionQueue {
     @SuppressWarnings("InfiniteLoopStatement")
     public ActionQueue initialize() {
         queueExecutor.submit(() -> {
+            Thread.currentThread().setName(name);
             try {
                 while (true) {
                     Callable<Void> action = queue.take();
@@ -56,15 +58,10 @@ public class ActionQueue {
     /**
      * Adds something to the queue to be processed.
      * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
-     * @return true if we successfully added something to the queue.  False if not - because if our queue is
-     * in the process of stopping, it won't allow anything new to be added.
      */
-    public boolean enqueue(Callable<Void> action) {
+    public void enqueue(String description, Callable<Void> action) {
         if (! stop) {
-            queue.add(action);
-            return true;
-        } else {
-            return false;
+            queue.add(new CallableWithDescription(action, description));
         }
     }
 
@@ -80,6 +77,10 @@ public class ActionQueue {
         while (queue.size() > 0) {
             MyThread.sleep(50);
         }
+    }
+
+    public List<String> listActions() {
+        return this.queue.stream().map(CallableWithDescription::getDescription).toList();
     }
 
 }

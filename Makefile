@@ -118,7 +118,7 @@ COV_DIR = out/coveragereport
 ##
 # targets that do not produce output files
 ##
-.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses copyresources javadoc
+.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses copyresources copytestresources javadoc
 
 ##
 # default target(s)
@@ -136,6 +136,9 @@ all: classes copyresources
 ##
 copyresources:
 	    @rsync --recursive --update --perms src/resources out/main
+
+copytestresources:
+	    @rsync --recursive --update --perms src/testresources out/main
 
 # make empty arrays for later use
 LIST:=
@@ -176,7 +179,7 @@ rundebug: all
 	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(RUN_CP) atqa.Main
 
 #: run the tests
-test: all testclasses
+test: all testclasses copytestresources
 	    $(JAVA) -cp $(TST_RUN_CP) atqa.primary.Tests
 
 #: run the tests and open a port for debugging.

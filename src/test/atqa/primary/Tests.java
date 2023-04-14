@@ -1,17 +1,16 @@
 package atqa.primary;
 
 import atqa.FullSystem;
+import atqa.auth.AuthenticationTests;
 import atqa.database.SimpleDatabaseTests;
 import atqa.instrumentation.InstrumentationTests;
 import atqa.logging.TestLogger;
 import atqa.photo.PhotoTests;
 import atqa.sampledomain.SampleDomainTests;
-import atqa.utils.ExtendedExecutor;
 import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtilsTests;
 import atqa.web.WebTests;
-import atqa.auth.AuthenticationTests;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -21,6 +20,7 @@ public class Tests {
   public static void main(String[] args) throws Exception {
     unitAndIntegrationTests();
     testFullSystem_Soup_To_Nuts();
+    clearTestDatabase();
   }
 
   /**
@@ -29,10 +29,9 @@ public class Tests {
    * stop short of running {@link FullSystem}.  For that purpose, see {@link #testFullSystem_Soup_To_Nuts()}
    */
   private static void unitAndIntegrationTests() {
-    final var es = ExtendedExecutor.makeExecutorService();
-    final var logger = new TestLogger(es);
+    TestLogger logger = TestLogger.makeTestLogger();
+    var es = logger.getExecutorService();
     try {
-      // Arrr here be the tests
       new WebTests(logger).tests(es);
       new TestAnalysisTests(logger).tests();
       new SimpleDatabaseTests(logger).tests(es);
@@ -46,15 +45,12 @@ public class Tests {
       logger.testPrint(TestLogger.printStackTrace(ex));
     }
     runShutdownSequence(es);
-    clearTestDatabase(logger);
   }
 
-  private static void clearTestDatabase(TestLogger logger) {
-    try {
+  private static void clearTestDatabase() throws IOException {
+      TestLogger logger = TestLogger.makeTestLogger();
       FileUtils.deleteDirectoryRecursivelyIfExists("out/simple_db", logger);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+      runShutdownSequence(logger.getExecutorService());
   }
 
   private static void runShutdownSequence(ExecutorService es) {
@@ -73,8 +69,8 @@ public class Tests {
    * from {@link FullSystem}
    */
   private static void testFullSystem_Soup_To_Nuts() throws IOException {
-    final var es = ExtendedExecutor.makeExecutorService();
-    final var logger = new TestLogger(es);
+    TestLogger logger = TestLogger.makeTestLogger();
+    var es = logger.getExecutorService();
     var fs = new FullSystem(logger, es).start();
     fs.shutdown();
     es.shutdownNow();
