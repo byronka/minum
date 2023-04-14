@@ -57,7 +57,7 @@ public class PhotoTests {
                         new StartLine.PathDetails(photoUrl, "", Map.of()),
                         WebEngine.HttpVersion.ONE_DOT_ONE,
                         ""),
-                Map.of());
+                new Request.Body(Map.of()));
     }
 
     private Photo setupPhotoClass(ExecutorService es) {
@@ -79,6 +79,6 @@ public class PhotoTests {
         return new Request(
                 new Headers(Collections.emptyList()),
                 null,
-                Map.of("photo", imageBytes, "description", "bar bar".getBytes(StandardCharsets.UTF_8)));
+                new Request.Body(Map.of("photo", imageBytes, "description", "bar bar".getBytes(StandardCharsets.UTF_8))));
     }
 }

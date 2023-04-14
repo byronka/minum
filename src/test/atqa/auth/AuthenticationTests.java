@@ -154,7 +154,7 @@ public class AuthenticationTests {
         return new Request(
                 new Headers(sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
                 null,
-                Map.of());
+                new Request.Body(Map.of()));
     }
 
 

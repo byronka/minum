@@ -283,8 +283,8 @@ public class WebTests {
         logger.test("parseUrlEncodedForm should properly parse data");{
             final var expected = Map.of("value_a", "123", "value_b", "456");
             final var result = WebFramework.parseUrlEncodedForm("value_a=123&value_b=456");
-            final var convertedResult = WebFramework.convertStringByteMap(result);
-            assertEquals(expected, convertedResult);
+            assertEquals(expected.get("value_a"), result.asString("value_a"));
+            assertEquals(expected.get("value_b"), result.asString("value_b"));
         }
 
         logger.test("parseUrlEncodedForm edge cases"); {
@@ -298,18 +298,19 @@ public class WebTests {
 
             // empty value
             final var result = WebFramework.parseUrlEncodedForm("mykey=");
-            final var convertedResult = WebFramework.convertStringByteMap(result);
-            assertEquals(convertedResult, Map.of("mykey", ""));
+            assertEquals(result.asString("mykey"), "");
 
             // null value - value of %NULL%
             final var result2 = WebFramework.parseUrlEncodedForm("mykey=%NULL%");
-            final var convertedResult2 = WebFramework.convertStringByteMap(result2);
-            assertEquals(convertedResult2, Map.of("mykey", ""));
+            assertEquals(result2.asString("mykey"), "");
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
             WebFramework wf = new WebFramework(es, logger, default_zdt);
-            wf.registerPath(StartLine.Verb.POST, "some_post_endpoint", request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.bodyMap().get("value_a")));
+            wf.registerPath(
+                    StartLine.Verb.POST,
+                    "some_post_endpoint",
+                    request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.body().asString("value_a")));
             try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
@@ -415,8 +416,8 @@ public class WebTests {
             byte[] multiPartData = makeTestMultiPartData();
 
             final var result = WebFramework.parseMultiform(multiPartData, "i_am_a_boundary");
-            assertEquals(StringUtils.byteArrayToString(result.get("text1")).trim(), "I am a value that is text");
-            assertEqualByteArray(result.get("binary"), new byte[]{1, 2, 3});
+            assertEquals(result.asString("text1"), "I am a value that is text");
+            assertEqualByteArray(result.asBytes("binary"), new byte[]{1, 2, 3});
         }
 
         /*
@@ -442,10 +443,10 @@ public class WebTests {
             // This is the core of the test - here's where we'll process receiving a multipart data
 
             final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
-                if (StringUtils.byteArrayToString(r.bodyMap().get("text1")).trim().equals("I am a value that is text") &&
-                        (r.bodyMap().get("binary"))[0] == 1 &&
-                        (r.bodyMap().get("binary"))[1] == 2 &&
-                        (r.bodyMap().get("binary"))[2] == 3
+                if (r.body().asString("text1").equals("I am a value that is text") &&
+                        (r.body().asBytes("binary"))[0] == 1 &&
+                        (r.body().asBytes("binary"))[1] == 2 &&
+                        (r.body().asBytes("binary"))[2] == 3
                 ) {
                     return new Response(
                             _200_OK,

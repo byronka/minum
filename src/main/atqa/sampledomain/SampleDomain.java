@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static atqa.database.SimpleIndexed.calculateNextIndex;
-import static atqa.utils.StringUtils.byteArrayToString;
 import static atqa.web.StatusLine.StatusCode.*;
 
 public class SampleDomain {
@@ -67,7 +66,7 @@ public class SampleDomain {
             return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/html; charset=UTF-8"));
         }
 
-        final var nameEntry = byteArrayToString(r.bodyMap().get("name_entry"));
+        final var nameEntry = r.body().asString("name_entry");
 
         final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);

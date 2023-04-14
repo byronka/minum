@@ -2,7 +2,6 @@ package atqa.photo;
 
 import atqa.auth.AuthUtils;
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.utils.StringUtils;
 import atqa.web.Request;
 import atqa.web.Response;
 import atqa.web.StatusLine;
@@ -28,8 +27,8 @@ public class Photo {
     }
 
     public Response receivePhoto(Request request) {
-        final var photo = request.bodyMap().get("photo");
-        final var description = StringUtils.byteArrayToString(request.bodyMap().get("description"));
+        final var photo = request.body().asBytes("photo");
+        final var description = request.body().asString("description");
         final var newUrl = "myPhotoUrl";
         final Photograph p = new Photograph(newPhotographIndex.getAndIncrement(), photo, newUrl, description);
         photographs.add(p);

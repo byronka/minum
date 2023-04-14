@@ -89,7 +89,7 @@ public class SampleDomainTests {
     }
 
     private static Request buildRequest(List<String> headers) {
-        return new Request(new Headers(headers), null, Map.of());
+        return new Request(new Headers(headers), null, new Request.Body(Map.of()));
     }
 
     private static Request buildRequest(String body) {

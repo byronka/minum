@@ -90,16 +90,16 @@ public class WebFramework {
                 */
                 Headers hi = Headers.extractHeaderInformation(sw.getInputStream());
 
-                Map<String, byte[]> bodyMap = new HashMap<>();
+                var body = new Request.Body(new HashMap<>());
 
                 // Determine whether there is a body (a block of data) in this request
                 final var thereIsABody = ! hi.contentType().isBlank();
                 if (thereIsABody) {
-                    bodyMap = extractData(sw.getInputStream(), hi);
+                    body = extractData(sw.getInputStream(), hi);
                 }
 
                 Function<Request, Response> endpoint = handlerFinder.apply(sl);
-                Response r = endpoint.apply(new Request(hi, sl, bodyMap));
+                Response r = endpoint.apply(new Request(hi, sl, body));
 
                 String date = Objects.requireNonNullElseGet(zdt, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
@@ -195,8 +195,8 @@ public class WebFramework {
      * <p>
      * for example, valuea=3&valueb=this+is+something
      */
-    public static Map<String, byte[]> parseUrlEncodedForm(String input) {
-        if (input.isEmpty()) return Collections.emptyMap();
+    public static Request.Body parseUrlEncodedForm(String input) {
+        if (input.isEmpty()) return new Request.Body(Collections.emptyMap());
 
         final var postedPairs = new HashMap<String, byte[]>();
         final var splitByAmpersand = StringUtils.tokenizer(input, '&');
@@ -212,15 +212,7 @@ public class WebFramework {
                 throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+StringUtils.byteArrayToString(result)+" and " + pair[1]);
             }
         }
-        return postedPairs;
-    }
-
-    public static Map<String, String> convertStringByteMap(Map<String, byte[]> myMap) {
-        Map<String, String> result = new HashMap<>();
-        for (var key : myMap.keySet()) {
-            result.put(key, StringUtils.byteArrayToString(myMap.get(key)));
-        }
-        return result;
+        return new Request.Body(postedPairs);
     }
 
     /**
@@ -249,7 +241,7 @@ public class WebFramework {
      * can stop reading at precisely the right point.  There's simply no
      * other way to reasonably do this.
      */
-    private Map<String, byte[]> extractData(InputStream is, Headers h) throws IOException {
+    private Request.Body extractData(InputStream is, Headers h) throws IOException {
         final var contentType = h.contentType();
 
         byte[] bodyBytes = h.contentLength() > 0 ?
@@ -267,14 +259,14 @@ public class WebFramework {
                 return parseMultiform(bodyBytes, boundaryValue);
             }
             logger.logDebug(() -> "Did not find a valid boundary value for the multipart input.  Returning an empty map for the body");
-            return Collections.emptyMap();
+            return new Request.Body(Collections.emptyMap());
         } else {
             logger.logDebug(() -> "Did not find a recognized content-type, returning an empty map for the body");
-            return Collections.emptyMap();
+            return new Request.Body(Collections.emptyMap());
         }
     }
 
-    public static Map<String, byte[]> parseMultiform(byte[] body, String boundaryValue) throws IOException {
+    public static Request.Body parseMultiform(byte[] body, String boundaryValue) throws IOException {
         // how to split this up? It's a mix of strings and bytes.
         String[] splitString = StringUtils.byteArrayToString(body).split("--"+boundaryValue+".*\n");
         final List<String> dataForms = Arrays.stream(splitString).filter(x -> ! x.isBlank()).toList();
@@ -295,7 +287,7 @@ public class WebFramework {
             byte[] data = readUntilEOF(is);
             result.put(name, data);
         }
-        return result;
+        return new Request.Body(result);
     }
 
     public void registerStaticFiles(StaticFilesCache sfc) {
