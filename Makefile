@@ -174,6 +174,10 @@ jar: all
 run: all
 	    $(JAVA) -cp $(RUN_CP) atqa.Main
 
+#: run the application using the jar
+runjar: all
+	    $(JAVA) -jar $(OUT_DIR_MAIN)/$(PROJ_NAME).jar
+
 #: run the application and open a port for debugging.
 rundebug: all
 	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(RUN_CP) atqa.Main
