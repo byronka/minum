@@ -175,7 +175,7 @@ run: all
 	    $(JAVA) -cp $(RUN_CP) atqa.Main
 
 #: run the application using the jar
-runjar: all
+runjar: jar
 	    $(JAVA) -jar $(OUT_DIR_MAIN)/$(PROJ_NAME).jar
 
 #: run the application and open a port for debugging.
