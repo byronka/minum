@@ -86,9 +86,6 @@ public class DatabaseDiskPersistenceSimpler<T> {
      */
     public void persistToDisk(SimpleDataType<T> data) {
         final String fullPath = makeFullPathFromData(data);
-        if (fullPath.contains("phototests")) {
-            logger.logDebug(() -> String.join(";",actionQueue.listActions()));
-        }
         actionQueue.enqueue("persist data to disk", () -> {
             writeString(fullPath, data.serialize());
 
