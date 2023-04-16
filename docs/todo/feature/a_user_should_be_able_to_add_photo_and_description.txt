@@ -8,4 +8,6 @@ simplest and smallest new functionality that aligns with our
 overarching need.
 
 Tasks: 
-1. ability to receive photos - requires reading form/multipart data
+1. ability to receive photos - requires reading form/multipart data DONE
+2. simple web page to send a photo: required: short description (3-20 chars), long description (0-1000 chars), the photo itself
+3. simple page to view all photos, with their short and long descriptions
