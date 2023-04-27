@@ -2,7 +2,6 @@ package atqa.database;
 
 import atqa.utils.StringUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,10 +20,12 @@ public interface SimpleSerializable<T> {
     static String serializeHelper(Object... values) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < values.length-1; i++) {
-            sb.append(StringUtils.encode(values[i].toString())).append("|");
+            String value = values[i] == null ? null : values[i].toString();
+            sb.append(StringUtils.encode(value)).append("|");
         }
         // append the last value with no pipe symbol afterwards
-        sb.append(values[values.length-1]);
+        String lastValue = values[values.length - 1] == null ? null : values[values.length - 1].toString();
+        sb.append(StringUtils.encode(lastValue));
         return sb.toString();
     }
 

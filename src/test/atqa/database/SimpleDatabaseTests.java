@@ -1,7 +1,7 @@
 package atqa.database;
 
 import atqa.logging.TestRecordingLogger;
-import atqa.primary.StopWatch;
+import atqa.utils.StopwatchUtils;
 import atqa.logging.TestLogger;
 import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 
-import static atqa.framework.TestFramework.*;
+import static atqa.testing.TestFramework.*;
 import static atqa.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
 import static java.util.stream.IntStream.range;
 
@@ -90,8 +90,9 @@ public class SimpleDatabaseTests {
             assertEquals(foos, deserializedFoos);
         }
 
-        logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");{
-            final var foosDirectory = "out/simple_db/foos";
+        logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");
+        Path foosDirectory = Path.of("out/simple_db/foos");
+        {
             deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, logger);
@@ -104,9 +105,9 @@ public class SimpleDatabaseTests {
             // check that the files are now there.
             // note that since our atqa.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(20);
+            MyThread.sleep(100);
             for (var foo : foos) {
-                assertTrue(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // rebuild some objects from what was written to disk
@@ -145,16 +146,16 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(50);
             for (var foo : foos) {
-                assertFalse(Files.exists(Path.of(foosDirectory, foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // give the action queue time to save files to disk
             // then shut down.
             ddps.stop();
+            deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
-            final var foosDirectory = "out/simple_db/foos";
             final var myLogger = new TestRecordingLogger();
             final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, es, myLogger);
 
@@ -171,7 +172,6 @@ public class SimpleDatabaseTests {
             // what if the directory is missing when try to deserialize?
             // note: this would only happen if, after instantiating our ddps,
             // the directory gets deleted/corruped.
-            final var foosDirectory = "out/simple_db/foos";
             final var myLogger = new TestRecordingLogger();
             final var emptyFooInstance = new Foo(0, 0, "");
 
@@ -181,7 +181,7 @@ public class SimpleDatabaseTests {
             MyThread.sleep(10);
 
             // create an empty file, to create that edge condition
-            final var pathToSampleFile = Path.of(foosDirectory, "1.ddps");
+            final var pathToSampleFile = foosDirectory.resolve("1.ddps");
             Files.createFile(pathToSampleFile);
             ddps.readAndDeserialize(emptyFooInstance);
             MyThread.sleep(10);
@@ -211,7 +211,7 @@ public class SimpleDatabaseTests {
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
 
             // change the foos
-            final var timer = new StopWatch().startTimer();
+            final var timer = new StopwatchUtils().startTimer();
             for (var i = 1; i < 100_000; i++) {
                 final var newFoos = new ArrayList<Foo>();
                 for (var foo : foos) {
@@ -221,7 +221,7 @@ public class SimpleDatabaseTests {
             }
             final var time = timer.stopTimer();
 
-             logger.testPrint("time taken was " + time + " milliseconds for 1 million updates");
+             logger.testPrintToFile(String.valueOf(time), Path.of("docs/perf_data/database_speed_test.txt"));
         }
 
     }

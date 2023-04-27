@@ -24,7 +24,16 @@ public interface ISocketWrapper extends AutoCloseable {
 
     int getLocalPort();
 
-    SocketAddress getRemoteAddr();
+    /**
+     * Returns a {@link SocketAddress}, which includes
+     * the host address and port
+     */
+    SocketAddress getRemoteAddrWithPort();
+
+    /**
+     * Returns a string of the remote host address without port
+     */
+    String getRemoteAddr();
 
     void close() throws IOException;
 

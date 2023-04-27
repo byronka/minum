@@ -2,14 +2,15 @@ package atqa.utils;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static atqa.Constants.MAX_TOKENIZER_PARTITIONS;
 import static atqa.utils.Invariants.mustNotBeNull;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Some simple helper methods for Strings.
@@ -77,7 +78,7 @@ public class StringUtils {
         if (str == null) {
             return "%NULL%";
         }
-        return URLEncoder.encode(str, StandardCharsets.UTF_8);
+        return URLEncoder.encode(str, UTF_8);
     }
 
     /**
@@ -90,7 +91,7 @@ public class StringUtils {
         if (str.equals("%NULL%")) {
             return null;
         }
-        return URLDecoder.decode(str, StandardCharsets.UTF_8);
+        return URLDecoder.decode(str, UTF_8);
     }
 
     public static String generateSecureRandomString(int length) {
@@ -113,7 +114,7 @@ public class StringUtils {
         for (int i = 0; i < size; i++) {
             buf[i] = byteList.get(i);
         }
-        return new String(buf);
+        return new String(buf, UTF_8);
     }
 
     /**
@@ -121,7 +122,7 @@ public class StringUtils {
      */
     public static String byteArrayToString(byte[] byteArray) {
         if (byteArray == null) return null;
-        return new String(byteArray);
+        return new String(byteArray, UTF_8);
     }
 
     /**
@@ -133,7 +134,9 @@ public class StringUtils {
     public static List<String> tokenizer(String serializedText, char delimiter) {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
-        while(true) {
+        // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
+        for(int i = 0; i <= MAX_TOKENIZER_PARTITIONS; i++) {
+            if (i == MAX_TOKENIZER_PARTITIONS) throw new RuntimeException("Request made for too many partitions in the tokenizer.  Current max: " + MAX_TOKENIZER_PARTITIONS);
             final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
             if (nextPipeSymbolIndex == -1) {
                 // if we don't see any pipe symbols ahead, grab the rest of the text from our current place

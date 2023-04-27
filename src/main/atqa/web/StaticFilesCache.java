@@ -10,10 +10,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static atqa.utils.Invariants.mustNotBeNull;
 
@@ -35,9 +32,16 @@ import static atqa.utils.Invariants.mustNotBeNull;
 public class StaticFilesCache {
 
     /**
-     * in the resources, where we store our static files
+     * in the resources, where we store our static files, like jpegs,
+     * css files, scripts
      */
-    static final String STATIC_FILES_DIRECTORY = "resources/static/";
+    public static final String STATIC_FILES_DIRECTORY = "resources/static/";
+
+    /**
+     * This is where we store template files - files meant to be loaded and
+     * modified before serving.  For example, .html files
+     */
+    public static final String TEMPLATES_FILES_DIRECTORY = "resources/templates/";
 
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
@@ -55,6 +59,9 @@ public class StaticFilesCache {
         return staticResponses.get(key);
     }
 
+    /**
+     * This provides all the static files (e.g. .html, .css) in the resources/static directory
+     */
     public StaticFilesCache loadStaticFiles() throws IOException {
             final var urls = mustNotBeNull(FileUtils.getResources(STATIC_FILES_DIRECTORY));
             for (var url : urls) {
@@ -85,28 +92,46 @@ public class StaticFilesCache {
         }
 
     private void processPath(Path myPath) throws IOException {
-        try (final var pathsStream = Files.walk(myPath, 1)) {
+        try (final var pathsStream = Files.walk(myPath, Integer.MAX_VALUE)) {
             for (var path : pathsStream.toList()) {
-                final var fileContents = FileUtils.read(STATIC_FILES_DIRECTORY + path.getFileName().toString());
+                byte[] fileContents = null;
+                if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> path.getFileName().toString().contains(x) )) {
+                    fileContents = Files.readAllBytes(path);
+                }
                 if (fileContents == null) continue;
 
-                final var filename = path.getFileName().toString();
                 Response result;
-                if (filename.endsWith(".css")) {
-                    result = createOkResponse(fileContents,"Content-Type: text/css");
-                } else if (filename.endsWith(".js")) {
-                    result = createOkResponse(fileContents, "Content-Type: application/javascript");
-                } else if (filename.endsWith(".webp")) {
-                    result = createOkResponse(fileContents, "Content-Type: image/webp");
-                } else if (filename.endsWith(".html") || filename.endsWith(".htm")) {
-                    result = createOkResponse(fileContents, "Content-Type: text/html; charset=UTF-8");
+                if (path.toString().endsWith(".css")) {
+                    result = createOkResponseForStaticFiles(fileContents,"Content-Type: text/css");
+                } else if (path.toString().endsWith(".js")) {
+                    result = createOkResponseForStaticFiles(fileContents, "Content-Type: application/javascript");
+                } else if (path.toString().endsWith(".webp")) {
+                    result = createOkResponseForStaticFiles(fileContents, "Content-Type: image/webp");
+                } else if (path.toString().endsWith(".html") || path.toString().endsWith(".htm")) {
+                    result = createOkResponseForStaticFiles(fileContents, "Content-Type: text/html; charset=UTF-8");
                 } else {
                     result = createNotFoundResponse();
                 }
 
-                staticResponses.put(filename, result);
+                String route = getRoute(path);
+
+                logger.logTrace(() -> "Storing in cache - filename: " + route);
+                staticResponses.put(route, result);
             }
         }
+    }
+
+    /**
+     * This crappy little method exists to get a consistent route to a
+     * static file, regardless of if we are running in a Zipfile, on a
+     * Windows machine, on Unix, etc.
+     */
+    private static String getRoute(Path path) {
+        // I imagine this function will be an endless source of mirth
+        String path2 = path.toUri().getPath();
+        String path1 = path2 == null ? path.toString() : path2;
+        int indexToStartSubstring = path1.indexOf("static/") + "static/".length();
+        return path1.substring(indexToStartSubstring);
     }
 
     private Response createNotFoundResponse() {
@@ -116,10 +141,13 @@ public class StaticFilesCache {
                 "<p>404 not found</p>");
     }
 
-    private Response createOkResponse(byte[] fileContents, String contentTypeHeader) {
+    /**
+     * All static responses will get a cache time of 60 seconds
+     */
+    private Response createOkResponseForStaticFiles(byte[] fileContents, String contentTypeHeader) {
         return new Response(
                 StatusLine.StatusCode._200_OK,
-                List.of(contentTypeHeader),
+                List.of(contentTypeHeader, "Cache-Control: max-age=60"),
                 fileContents);
     }
 }

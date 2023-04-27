@@ -26,7 +26,7 @@ public class InstrumentationTests {
         logger.logDebug(() ->"filename is " + fileName + " lineNumber is " + lineNumber);
     }
 
-    public void tests(ExecutorService es) throws IOException, ClassNotFoundException {
+    public void tests(ExecutorService es) {
         logger.test("playing with explicit coverage probes");{
             var a = true;          markCovered("InstrumentationTests.java", 31);
             var b = false;         markCovered("InstrumentationTests.java", 32);

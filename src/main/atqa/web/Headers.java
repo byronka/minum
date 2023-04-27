@@ -2,12 +2,11 @@ package atqa.web;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static atqa.Constants.MAX_HEADERS_COUNT;
 import static atqa.utils.Invariants.mustBeTrue;
 import static atqa.web.InputStreamUtils.readLine;
 
@@ -16,7 +15,14 @@ import static atqa.web.InputStreamUtils.readLine;
  * is this a keep-alive connection? what is the content-length,
  * and so on.
  */
-public record Headers(List<String> headerStrings) {
+public record Headers(
+        /*
+         * Each line of the headers is read into this data structure
+         */
+        List<String> headerStrings
+) {
+
+    public static final Headers EMPTY = new Headers(List.of());
 
     /**
      * Used for extracting the length of the body, in POSTs and
@@ -32,6 +38,33 @@ public record Headers(List<String> headerStrings) {
     public static Headers extractHeaderInformation(InputStream is) throws IOException {
         List<String> headers = getAllHeaders(is);
         return new Headers(headers);
+    }
+
+    /**
+     * Obtain any desired header by looking it up in this map
+     */
+    public Map<String, List<String>> headersAsMap() {
+        var result = new HashMap<String, List<String>>();
+        for (var h : headerStrings) {
+            var indexOfFirstColon = h.indexOf(":");
+
+            // if the header is malformed, just move on
+            if (indexOfFirstColon <= 0) continue;
+
+            String key = h.substring(0, indexOfFirstColon);
+            String value = h.substring(indexOfFirstColon+1).trim();
+
+
+            if (result.containsKey(key)) {
+                var currentValue = result.get(key);
+                currentValue.add(value);
+                result.put(key, currentValue);
+            } else {
+                result.put(key, Arrays.asList(value));
+            }
+
+        }
+        return result;
     }
 
     /**
@@ -70,7 +103,9 @@ public record Headers(List<String> headerStrings) {
 
     private static List<String> getAllHeaders(InputStream is) throws IOException {
         List<String> headers = new ArrayList<>();
-        while (true) {
+        // we'll only grab the first MAX_HEADERS_COUNT headers.
+        for (int i = 0; i <= MAX_HEADERS_COUNT; i++) {
+            if (i == MAX_HEADERS_COUNT) throw new RuntimeException("User tried sending too many headers.  Current max: " + MAX_HEADERS_COUNT);
             String value = readLine(is);
             if (value != null && value.isBlank()) {
                 break;

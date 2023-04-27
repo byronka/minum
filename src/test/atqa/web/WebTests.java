@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 
-import static atqa.framework.TestFramework.*;
+import static atqa.testing.TestFramework.*;
 import static atqa.web.InputStreamUtils.readChunkedEncoding;
 import static atqa.web.InputStreamUtils.readLine;
 import static atqa.web.StartLine.startLineRegex;
@@ -130,7 +130,7 @@ public class WebTests {
         clients call it, this method handles each request.
 
         There's nothing to prevent us using this as the entire
-        basis of a atqa.web atqa.framework.
+        basis of a atqa.web atqa.testing.
        */
             ThrowingConsumer<SocketWrapper, IOException> handler = (sw) -> {
                 InputStream is = sw.getInputStream();
@@ -168,7 +168,7 @@ public class WebTests {
         logger.test("starting server with a handler part 2");{
             WebFramework wf = new WebFramework(es, logger, default_zdt);
             wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
-            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
+            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
 
@@ -236,24 +236,18 @@ public class WebTests {
 
         logger.test("negative cases for extractStartLine");{
             // missing verb
-            final var ex1 = assertThrows(InvariantException.class, "/something HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("/something HTTP/1.1"));
-            assertEquals(ex1.getMessage(), "/something HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
-
-            // missing path
-            final var ex2 = assertThrows(InvariantException.class, "GET HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET HTTP/1.1"));
-            assertEquals(ex2.getMessage(), "GET HTTP/1.1 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
-
-            // missing HTTP version
-            final var ex3 = assertThrows(InvariantException.class, "GET /something must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something"));
-            assertEquals(ex3.getMessage(), "GET /something must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
-
-            // invalid HTTP version
-            final var ex4 = assertThrows(InvariantException.class, "GET /something HTTP/1.2 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something HTTP/1.2"));
-            assertEquals(ex4.getMessage(), "GET /something HTTP/1.2 must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
-
-            // invalid HTTP version syntax
-            final var ex5 = assertThrows(InvariantException.class, "GET /something HTTP/ must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$", () -> StartLine.extractStartLine("GET /something HTTP/"));
-            assertEquals(ex5.getMessage(), "GET /something HTTP/ must match the startLinePattern: ^(GET|POST) /(.*) HTTP/(1.1|1.0)$");
+            List<String> badStartLines = List.of(
+                    "/something HTTP/1.1",
+                    "GET HTTP/1.1",
+                    "GET /something",
+                    "GET /something HTTP/1.2",
+                    "GET /something HTTP/",
+                    ""
+            );
+            for (String s : badStartLines) {
+                assertEquals(StartLine.extractStartLine(s), StartLine.empty);
+            }
+            assertThrows(InvariantException.class, () -> StartLine.extractStartLine(null));
         }
 
         logger.test("positive test for extractStatusLine");{
@@ -282,26 +276,26 @@ public class WebTests {
      */
         logger.test("parseUrlEncodedForm should properly parse data");{
             final var expected = Map.of("value_a", "123", "value_b", "456");
-            final var result = WebFramework.parseUrlEncodedForm("value_a=123&value_b=456");
+            final var result = BodyProcessor.parseUrlEncodedForm("value_a=123&value_b=456");
             assertEquals(expected.get("value_a"), result.asString("value_a"));
             assertEquals(expected.get("value_b"), result.asString("value_b"));
         }
 
         logger.test("parseUrlEncodedForm edge cases"); {
             // blank key
-            final var ex2 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("=123"));
+            final var ex2 = assertThrows(InvariantException.class, () -> BodyProcessor.parseUrlEncodedForm("=123"));
             assertEquals(ex2.getMessage(), "The key must not be blank");
 
             // duplicate keys
-            final var ex3 = assertThrows(InvariantException.class, () -> WebFramework.parseUrlEncodedForm("a=123&a=123"));
+            final var ex3 = assertThrows(InvariantException.class, () -> BodyProcessor.parseUrlEncodedForm("a=123&a=123"));
             assertEquals(ex3.getMessage(), "a was duplicated in the post body - had values of 123 and 123");
 
             // empty value
-            final var result = WebFramework.parseUrlEncodedForm("mykey=");
+            final var result = BodyProcessor.parseUrlEncodedForm("mykey=");
             assertEquals(result.asString("mykey"), "");
 
             // null value - value of %NULL%
-            final var result2 = WebFramework.parseUrlEncodedForm("mykey=%NULL%");
+            final var result2 = BodyProcessor.parseUrlEncodedForm("mykey=%NULL%");
             assertEquals(result2.asString("mykey"), "");
         }
 
@@ -311,7 +305,7 @@ public class WebTests {
                     StartLine.Verb.POST,
                     "some_post_endpoint",
                     request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),  request.body().asString("value_a")));
-            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
+            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
 
@@ -340,7 +334,7 @@ public class WebTests {
 
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
             WebFramework wf = new WebFramework(es, logger, default_zdt);
-            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler())) {
+            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
 
@@ -412,12 +406,23 @@ public class WebTests {
 
         }
 
+        logger.test("Looking into how to split a byte array using a string delimiter"); {
+            byte[] multiPartData = makeTestMultiPartData();
+            var bp = new BodyProcessor(logger);
+
+            List<byte[]> result = bp.split(multiPartData, "--i_am_a_boundary");
+            assertEquals(result.size(), 2);
+            assertEquals(result.get(0).length, 101);
+            assertEquals(result.get(1).length, 129);
+        }
+
         logger.test("Examining the algorithm for parsing multipart data"); {
             byte[] multiPartData = makeTestMultiPartData();
+            var bp = new BodyProcessor(logger);
 
-            final var result = WebFramework.parseMultiform(multiPartData, "i_am_a_boundary");
+            final var result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
             assertEquals(result.asString("text1"), "I am a value that is text");
-            assertEqualByteArray(result.asBytes("binary"), new byte[]{1, 2, 3});
+            assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
         }
 
         /*
@@ -444,9 +449,9 @@ public class WebTests {
 
             final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
                 if (r.body().asString("text1").equals("I am a value that is text") &&
-                        (r.body().asBytes("binary"))[0] == 1 &&
-                        (r.body().asBytes("binary"))[1] == 2 &&
-                        (r.body().asBytes("binary"))[2] == 3
+                        (r.body().asBytes("image_uploads"))[0] == 1 &&
+                        (r.body().asBytes("image_uploads"))[1] == 2 &&
+                        (r.body().asBytes("image_uploads"))[2] == 3
                 ) {
                     return new Response(
                             _200_OK,
@@ -458,7 +463,7 @@ public class WebTests {
             });
 
             WebFramework wf = new WebFramework(es, logger, default_zdt);
-            try (Server primaryServer = webEngine.startServer(es, wf.makeHandler(testHandler))) {
+            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
                 try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
 
@@ -490,20 +495,20 @@ public class WebTests {
             final var baos = new ByteArrayOutputStream();
             baos.write(
                 """
-                --i_am_a_boundary
-                Content-Type: text/plain
-                Content-Disposition: form-data; name="text1"
-                
-                I am a value that is text
-                --i_am_a_boundary
-                Content-Type: application/octet-stream
-                Content-Disposition: form-data; name="binary"
-                
+                --i_am_a_boundary\r
+                Content-Type: text/plain\r
+                Content-Disposition: form-data; name="text1"\r
+                \r
+                I am a value that is text\r
+                --i_am_a_boundary\r
+                Content-Type: application/octet-stream\r
+                Content-Disposition: form-data; name="image_uploads"; filename="photo_preview.jpg"\r
+                \r
                 """.getBytes(StandardCharsets.UTF_8));
             baos.write(new byte[]{1, 2, 3});
             baos.write(
                 """
-                --i_am_a_boundary
+                --i_am_a_boundary--
                 """.getBytes(StandardCharsets.UTF_8));
 
             return baos.toByteArray();

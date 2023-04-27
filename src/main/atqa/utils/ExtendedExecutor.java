@@ -1,5 +1,7 @@
 package atqa.utils;
 
+import atqa.FullSystem;
+
 import java.util.concurrent.*;
 
 /**
@@ -33,13 +35,19 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
     }
 
     public static ExecutorService makeExecutorService() {
-        // the following line is only usable with the virtual threads API, which
-        // is available on OpenJDK 19 in preview mode.
-        // return Executors.newVirtualThreadPerTaskExecutor();
-        return new ExtendedExecutor(0, Integer.MAX_VALUE,
-                60L, TimeUnit.SECONDS,
-                new SynchronousQueue<>(),
-                Executors.defaultThreadFactory());
+        boolean useVirtualThreads = Boolean.parseBoolean(
+                FullSystem.getConfiguredProperties().getProperty("usevirtual", "false"));
+        System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
+        if (useVirtualThreads) {
+            // the following line is only usable with the virtual threads API, which
+            // is available on OpenJDK 19/20 in preview mode.
+            return Executors.newVirtualThreadPerTaskExecutor();
+        } else {
+            return new ExtendedExecutor(0, Integer.MAX_VALUE,
+                    60L, TimeUnit.SECONDS,
+                    new SynchronousQueue<>(),
+                    Executors.defaultThreadFactory());
+        }
     }
 
 }

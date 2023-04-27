@@ -52,12 +52,12 @@ Here's the general series of steps for a new developer:
    JDK to your environment as JAVA_HOME, and also add the path to the Java binaries to your PATH variable.
 2. Download and install IntelliJ Community Edition (which is free of charge) if you don't already have 
    it. Find it here: https://www.jetbrains.com/idea/download/
-4. Obtain this source code from Github, at https://github.com/byronka/atqa.git
-5. Run the tests on your computer, using the command line: make test 
-6. Run the application to get a feel for the user experience: make run (and then go to http://localhost:8080)
-7. Open the software with IntelliJ.  Navigate around the code a bit.
-8. Read through some of this developer documentation to get a feel for some of its unique characteristics.
-9. Examine some tests in the system to get a feel for how the system works and how
+3. Obtain this source code from Github, at https://github.com/byronka/atqa.git
+4. Run the tests on your computer, using the command line: make test 
+5. Run the application to get a feel for the user experience: make run (and then go to http://localhost:8080)
+6. Open the software with IntelliJ.  Navigate around the code a bit.
+7. Read through some of this developer documentation to get a feel for some of its unique characteristics.
+8. Examine some tests in the system to get a feel for how the system works and how
    test automation is done (see the src/test directory).
 
 Optional:

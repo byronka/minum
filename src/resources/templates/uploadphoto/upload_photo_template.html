@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        <title>Complete file example</title>
+        <link rel="stylesheet" href="uploadphoto/upload_photo.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+    <form action="upload" method="POST" enctype="multipart/form-data">
+        <div>
+            <label for="image_uploads">Choose images to upload (PNG, JPG)</label>
+            <input type="file" id="image_uploads" name="image_uploads" accept=".jpg, .jpeg, .png" multiple>
+        </div>
+        <div class="preview">
+            <p>No files currently selected for upload</p>
+        </div>
+        <div>
+            <textarea id="short_description" name="short_description" ></textarea>
+            <textarea id="long_description" name="long_description"></textarea>
+        </div>
+        <div>
+            <button>Submit</button>
+        </div>
+    </form>
+    <script src="uploadPhoto/upload_photo.js"></script>
+    </body>
+</html>

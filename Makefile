@@ -3,6 +3,8 @@
 ##
 PROJ_NAME := atqa
 
+HOST_NAME := atqa.com
+
 ##
 # In cygwin on Windows, if I look at the OS environment value I get "Windows_NT".
 # I can use this to distinguish when I'm running there and change some values, mostly
@@ -44,7 +46,7 @@ OUT_DIR_MAIN := $(OUT_DIR)/main
 OUT_DIR_TEST := $(OUT_DIR)/test
 
 ##
-# the utilties
+# the utilities
 ##
 UTILS := utils
 
@@ -98,14 +100,13 @@ ifneq ($(JAVA_HOME),)
 endif
 
 # the name of our Java compiler
+# -g means generate all debugging info
 # The following line, about enabling preview, is for using virtual threads with java 19
-#JC = $(JAVA_HOME)javac --release 19 --enable-preview
-JC = $(JAVA_HOME)javac -Xlint:all -Werror -g
+JC = $(JAVA_HOME)javac --release 20 --enable-preview -Xlint:all -g
 
 # the name of the java runner
 # The following line, about enabling preview, is for using virtual threads with java 19
-#JAVA = $(JAVA_HOME)java --enable-preview
-JAVA = $(JAVA_HOME)java
+JAVA = $(JAVA_HOME)java  --enable-preview
 
 # the directory where we store the code coverage report
 COV_DIR = out/coveragereport
@@ -115,14 +116,11 @@ COV_DIR = out/coveragereport
 ##
 .SUFFIXES: .java
 
-##
-# targets that do not produce output files
-##
-.PHONY: all clean run test testcov rundebug testdebug jar classes testclasses copyresources copytestresources javadoc
 
 ##
 # default target(s)
 ##
+.PHONY: all
 all: classes copyresources
 
 # note that putting an @ in front of a command in a makefile
@@ -134,11 +132,9 @@ all: classes copyresources
 # note: Java commands like FileUtils.getResources will look into any folder
 # in the classpath
 ##
+.PHONY: copyresources
 copyresources:
 	    @rsync --recursive --update --perms src/resources out/main
-
-copytestresources:
-	    @rsync --recursive --update --perms src/testresources out/main
 
 # make empty arrays for later use
 LIST:=
@@ -162,53 +158,80 @@ $(CLS): $(OUT_DIR_MAIN)/%.class: $(SRC_DIR)/%.java
 $(TST_CLS): $(OUT_DIR_TEST)/%.class: $(TST_SRC_DIR)/%.java
 	    $(eval TEST_LIST+=$$<)
 
+.PHONY: clean
 #: clean up any output files
 clean:
 	    rm -fr $(OUT_DIR)
 
+.PHONY: jar
 #: jar up the application (See Java's jar command)
-jar: all
-	    cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e atqa.Main *
+jar: classes copyresources
+	    cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
+		# move the jar up one directory \
+    	mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 
+.PHONY: localsetup
+#: copy a sample database from the docs directory to the root for local testing
+localsetup:
+	    rsync -r docs/sample_database/db ./
+
+JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
+DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
+.PHONY: run
+# This command includes several system properties so that we can connect to the
+# running Java Virtual Machine with Java Mission Control (JMC)
 #: run the application
 run: all
-	    $(JAVA) -cp $(RUN_CP) atqa.Main
+	    $(JAVA) -Xlog:gc* $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
+.PHONY: runjar
 #: run the application using the jar
 runjar: jar
-	    $(JAVA) -jar $(OUT_DIR_MAIN)/$(PROJ_NAME).jar
+	    $(JAVA) -Xlog:gc* $(JMX_PROPERTIES) -jar $(OUT_DIR)/$(PROJ_NAME).jar
 
+.PHONY: runjardebug
+#: run the application using the jar, debugging
+runjardebug: jar
+	    $(JAVA) -Xlog:gc* $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
+
+.PHONY: rundebug
 #: run the application and open a port for debugging.
 rundebug: all
-	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(RUN_CP) atqa.Main
+	    $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
+.PHONY: test
 #: run the tests
-test: all testclasses copytestresources
-	    $(JAVA) -cp $(TST_RUN_CP) atqa.primary.Tests
+test: all testclasses
+	    $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
 
+.PHONY: testdebug
 #: run the tests and open a port for debugging.
 testdebug: all testclasses
-	    $(JAVA) -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y -cp $(TST_RUN_CP) atqa.primary.Tests
+	    $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
 
+.PHONY: testcov
 #: If you want to obtain code coverage from running the tests. output at out/coveragereport
 testcov: all testclasses
-	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) atqa.primary.Tests
+	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
 	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
 
+.PHONY: javadoc
 #: build the javadoc documentation in the out/javadoc directory
 javadoc:
-	    javadoc --source-path src/main -d out/javadoc -subpackages atqa
+	    javadoc --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
+.PHONY: print-%
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
 # command line:
 #
 #     make print-CLS
 #
-# and you'll get something like: CLS = out/atqa.logging/ILogger.class out/atqa.logging/Logger.class out/atqa.primary/Main.class out/atqa.utils/ActionQueue.class
+# and you'll get something like: CLS = out/atqa.logging/ILogger.class out/atqa.logging/Logger.class out/atqa.testing/Main.class out/atqa.utils/ActionQueue.class
 print-%:
 	    @echo $* = $($*)
 
+.PHONY: help
 # This is a handy helper.  This prints a menu of items
 # from this file - just put hash+colon over a target and type
 # the description of that target.  Run this from the command

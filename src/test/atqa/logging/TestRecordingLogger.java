@@ -37,14 +37,13 @@ public class TestRecordingLogger implements ILogger {
     }
 
     @Override
-    public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+    public void logAudit(ThrowingSupplier<String, Exception> msg) {
         handleMessageForTests(msg);
     }
 
     @Override
-    public void logAsyncError(Exception ex) {
-        final var msg = convertExceptionToString(ex);
-        handleMessageForTests(() -> msg);
+    public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        handleMessageForTests(msg);
     }
 
     /**
@@ -58,9 +57,6 @@ public class TestRecordingLogger implements ILogger {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void logImperative(String msg) {
     }
 
     public String findFirstMessageThatContains(String value) {

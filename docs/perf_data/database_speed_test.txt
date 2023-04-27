@@ -1,0 +1,51 @@
+/*
+ * In this test, we'll turn off disk-syncing.
+ *
+ * For the record... running this takes between 80 and 120 milliseconds.
+ */
+logger.test("Just how fast is our atqa.database? spoiler: about 10 updates in 1 nanosecond");{
+    final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
+
+    // change the foos
+    final var timer = new StopWatch().startTimer();
+    for (var i = 1; i < 100_000; i++) {
+        final var newFoos = new ArrayList<Foo>();
+        for (var foo : foos) {
+            final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+            newFoos.add(newFoo);
+        }
+    }
+    final var time = timer.stopTimer();
+
+     logger.testPrintToFile(String.valueOf(time), Path.of("docs/perf_data/database_speed_test.txt"));
+}
+
+Performance measurements:
+
+2023-04-27	108
+2023-04-27	94
+2023-04-27	109
+2023-04-27	94
+2023-04-27	94
+2023-04-27	94
+2023-04-27	94
+2023-04-27	102
+2023-04-27	94
+2023-04-27	94
+2023-04-27	110
+2023-04-27	94
+2023-05-29	78
+2023-05-29	94
+2023-05-29	95
+2023-05-29	78
+2023-05-29	94
+2023-05-29	98
+2023-05-29	125
+2023-05-29	78
+2023-05-29	96
+2023-05-29	78
+2023-05-29	147
+2023-05-29	94
+2023-05-29	101
+2023-05-29	96
+2023-05-29	85

@@ -2,16 +2,20 @@ package atqa.auth;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.TestLogger;
+import atqa.utils.FileUtils;
 import atqa.web.*;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Month;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
-import static atqa.framework.TestFramework.*;
+import static atqa.testing.TestFramework.*;
 import static atqa.web.StatusLine.StatusCode._200_OK;
 import static atqa.web.StatusLine.StatusCode._401_UNAUTHORIZED;
 
@@ -23,7 +27,7 @@ public class AuthenticationTests {
         this.logger = logger;
     }
 
-    public void tests(ExecutorService es) {
+    public void tests(ExecutorService es) throws IOException {
 
         /*
          * Session management is the term used for making sure we know who we are talking with.
@@ -41,7 +45,7 @@ public class AuthenticationTests {
          * Even though security is a necessary and intrinsic element of the web,
          * one essential aspect - database persistence of session information -
          * makes it better to split out into its own domain.  That is to say, we
-         * don't want to code it too deeply into the inner guts of our web framework.
+         * don't want to code it too deeply into the inner guts of our web testing.
          * And we don't need to.  The important code can be provided as helper methods.
          *
          * Admittedly, there will be a bit of overlap - it's not possible to be
@@ -50,9 +54,10 @@ public class AuthenticationTests {
          *
          */
         logger.test("playing with session management"); {
-            final var sessionsDdps = new DatabaseDiskPersistenceSimpler<SessionId>("out/simple_db/sessions", es, logger);
-            final var usersDdps = new DatabaseDiskPersistenceSimpler<User>("out/simple_db/users", es, logger);
-            final var au = new AuthUtils(sessionsDdps, usersDdps, logger);
+            final var sessionsDdps = new DatabaseDiskPersistenceSimpler<SessionId>(Path.of("out/simple_db/sessions"), es, logger);
+            final var usersDdps = new DatabaseDiskPersistenceSimpler<User>(Path.of("out/simple_db/users"), es, logger);
+            var wf = new WebFramework(es, logger, Path.of("out/simple_db"));
+            final var au = new AuthUtils(sessionsDdps, usersDdps, wf);
 
             /*
             create a pretend web handler just for this test that requires authentication
@@ -145,6 +150,35 @@ public class AuthenticationTests {
             final var updatedUser = au.logoutUser(loginResult.user());
 
             assertTrue(updatedUser.currentSession() == null);
+
+            FileUtils.deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
+            }
+
+            logger.test("Ensure that our code can clear out old sessions"); {
+                // our users hold onto these sessions, abc and jkl.
+                List<User> users = List.of(
+                        new User(1L, "", "", "", "abc"),
+                        new User(2L, "", "", "", "jkl")
+                );
+
+                var default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
+                // in the current list of sessions, there are some stale values, namely def and ghi
+                List<SessionId> sessions = List.of(
+                        new SessionId(1,"abc", default_zdt),
+                        new SessionId(2,"def", default_zdt),
+                        new SessionId(3,"ghi", default_zdt),
+                        new SessionId(4,"jkl", default_zdt)
+                );
+
+                // we expect, running our program, for it to determine def and ghi are to be killed
+                List<SessionId> expected = List.of(
+                        new SessionId(2,"def", default_zdt),
+                        new SessionId(3,"ghi", default_zdt)
+                );
+
+                List<SessionId> actual = LoopingSessionReviewing.determineSessionsToKill(users, sessions);
+
+                assertEquals(expected, actual);
             }
 
 
@@ -154,7 +188,8 @@ public class AuthenticationTests {
         return new Request(
                 new Headers(sessionIds.stream().map(x -> "Cookie: sessionid=" + x).toList()),
                 null,
-                new Request.Body(Map.of()));
+                Body.EMPTY,
+                "the remote requester");
     }
 
 

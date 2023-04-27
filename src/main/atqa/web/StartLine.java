@@ -7,7 +7,9 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static atqa.Constants.MAX_QUERY_STRING_KEYS_COUNT;
 import static atqa.utils.Invariants.mustBeTrue;
+import static atqa.utils.Invariants.mustNotBeNull;
 import static atqa.utils.StringUtils.decode;
 
 /**
@@ -20,7 +22,7 @@ public record StartLine(
         PathDetails pathDetails,
         WebEngine.HttpVersion version,
         /*
-         * The raw value given by the server for status
+         * The entire line of the start line
          */
         String rawValue) {
 
@@ -34,19 +36,30 @@ public record StartLine(
      */
     public static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
+    public static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "");
 
     public Map<String, String> queryString() {
-        return new HashMap<>(pathDetails.queryString);
+        if (pathDetails.queryString.isEmpty()) {
+            return new HashMap<>();
+        } else {
+            return new HashMap<>(pathDetails.queryString);
+        }
+
     }
 
     public enum Verb {
-        GET, POST
+        GET, POST, NONE
     }
 
     public static StartLine extractStartLine(String value) {
+        mustNotBeNull(value);
         Matcher m = StartLine.startLineRegex.matcher(value);
-        mustBeTrue(m.matches(), String.format("%s must match the startLinePattern: %s", value, startLinePattern));
-
+        // run the regex
+        var doesMatch = m.matches();
+        if (!doesMatch) {
+            return StartLine.empty;
+        }
+        mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, startLinePattern));
         Verb verb = extractVerb(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
         WebEngine.HttpVersion httpVersion = getHttpVersion(m.group(3));
@@ -87,7 +100,9 @@ public record StartLine(
 
         // the query is a map of the keys -> values found in the query string
         Map<String, String> queryString
-    ){}
+    ){
+        public static final PathDetails empty = new PathDetails("", "", Map.of());
+    }
 
     /**
      * Given a string containing the combined key-values in
@@ -97,10 +112,13 @@ public record StartLine(
     private static Map<String, String> extractMapFromQueryString(String rawQueryString) {
         Map<String, String> queryStrings = new HashMap<>();
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
-        while (tokenizer.hasMoreTokens()) {
+        // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
+        for (int i = 0; tokenizer.hasMoreTokens() && i <= MAX_QUERY_STRING_KEYS_COUNT; i++) {
+            if (i == MAX_QUERY_STRING_KEYS_COUNT) throw new RuntimeException("User tried providing too many query string keys.  Current max: " + MAX_QUERY_STRING_KEYS_COUNT);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
+            if (equalSignLocation <= 0) return Map.of();
             mustBeTrue(equalSignLocation > 0, "There must be an equals sign");
             String key = currentKeyValue.substring(0, equalSignLocation);
             String value = decode(currentKeyValue.substring(equalSignLocation + 1));

@@ -1,14 +1,14 @@
 package atqa.web;
 
+import atqa.exceptions.ForbiddenUseException;
 import atqa.logging.ILogger;
-import atqa.utils.ConcurrentSet;
-import atqa.utils.ThrowingConsumer;
-import atqa.utils.ThrowingRunnable;
+import atqa.utils.*;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -24,8 +24,9 @@ import java.util.concurrent.Future;
  */
 public class Server implements AutoCloseable {
     private final ServerSocket serverSocket;
-    private final SetOfServers setOfServers;
+    private final SetOfSws setOfSWs;
     private final ILogger logger;
+    private final String serverName;
 
     /**
      * This is the future returned when we submitted the
@@ -33,16 +34,18 @@ public class Server implements AutoCloseable {
      */
     public Future<?> centralLoopFuture;
 
-    public Server(ServerSocket ss, ILogger logger) {
+    public Server(ServerSocket ss, ILogger logger, String serverName) {
         this.serverSocket = ss;
         this.logger = logger;
-        setOfServers = new SetOfServers(new ConcurrentSet<>(), logger);
+        this.serverName = serverName;
+        setOfSWs = new SetOfSws(new ConcurrentSet<>(), logger, serverName);
     }
 
     /**
      * This is the infinite loop running inside the basic socket server code.  Every time we
      * {@link ServerSocket#accept()} a new incoming socket connection, we attach our "end
      * of the phone line" to the code that is "handler", which mainly handles it from there.
+     * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
      */
     public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
@@ -54,24 +57,28 @@ public class Server implements AutoCloseable {
                 // that's just part of its life cycle
                 //noinspection InfiniteLoopStatement
                 while (true) {
-                    logger.logTrace(() -> "server waiting to accept connection");
+                    logger.logTrace(() -> serverName + " waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
-                    SocketWrapper sw = new SocketWrapper(freshSocket, setOfServers, logger);
-                    logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddr()));
-                    setOfServers.add(sw);
+                    SocketWrapper sw = new SocketWrapper(freshSocket, this, logger);
+                    logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
+                    setOfSWs.add(sw);
                     if (handler != null) {
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> {
                             try {
                                 handler.accept(sw);
+                            } catch (SocketException | SocketTimeoutException ex) {
+                                logger.logDebug(() -> "at Server#start: " + ex.getMessage());
+                            } catch (ForbiddenUseException ex) {
+                                logger.logDebug(ex::getMessage);
                             } catch (Exception ex) {
-                                logger.logAsyncError(ex);
+                                logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
                             }
                         }));
                     }
                 }
             } catch (SocketException ex) {
                 if (! (ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
-                    logger.logAsyncError(ex);
+                    logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
                 }
             }
         });
@@ -95,15 +102,30 @@ public class Server implements AutoCloseable {
      * connected to a client SocketWrapper.
      */
     public SocketWrapper getServer(SocketWrapper sw) {
-        return setOfServers.getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
+        return setOfSWs.getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
     }
 
     public void stop() throws IOException {
         // close all the running sockets
-        setOfServers.stopAllServers();
+        setOfSWs.stopAllServers();
 
         // close the primary server socket
         serverSocket.close();
     }
 
+    /**
+     * When we first create a SocketWrapper in Server, we provide it
+     * a reference back to this object, so that it can call
+     * this command.  This class maintains a list of open
+     * sockets in setOfSWs, and allows generated SocketWrappers
+     * to deregister themselves from this list by using this method.
+     */
+    public void removeMyRecord(SocketWrapper socketWrapper) {
+        setOfSWs.remove(socketWrapper);
+    }
+
+    @Override
+    public String toString() {
+        return this.serverName;
+    }
 }

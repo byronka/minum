@@ -1,16 +1,20 @@
 package atqa.web;
 
+import atqa.FullSystem;
 import atqa.logging.ILogger;
 import atqa.utils.ThrowingConsumer;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocketFactory;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -28,41 +32,56 @@ public class WebEngine {
   }
 
   public enum HttpVersion {
-    ONE_DOT_ZERO, ONE_DOT_ONE
+    ONE_DOT_ZERO, ONE_DOT_ONE, NONE
   }
 
   private final ILogger logger;
   public static final String HTTP_CRLF = "\r\n";
 
   public Server startServer(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) throws IOException {
-    int port = 8080;
+    Properties configuredProperties = FullSystem.getConfiguredProperties();
+    int port = Integer.parseInt(configuredProperties.getProperty("nonsslServerPort", "8080"));
     ServerSocket ss = new ServerSocket(port);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, logger);
+    Server server = new Server(ss, logger, "http server");
+    logger.logDebug(() -> String.format("Just created a new Server: %s", server));
     server.start(es, handler);
+    String hostname = configuredProperties.getProperty("hostname", "localhost");
+    logger.logDebug(() -> String.format("%s started at http://%s:%s", server, hostname, port));
     return server;
   }
 
   public Server startSslServer(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) throws IOException {
-    int port = 8443;
 
     /*
      * If we find the keystore and pass in the system properties
      */
-    final var hasKeystoreAndPasswordOnSystemProperties = checkSystemPropertiesForKeystore();
+    final var useExternalKeystore = checkSystemPropertiesForKeystore();
 
     ServerSocket ss;
-    if (hasKeystoreAndPasswordOnSystemProperties) {
-      logger.logDebug(() -> "Using keystore and password provided in system properties");
-      ss = SSLServerSocketFactory.getDefault().createServerSocket(port);
+    Properties configuredProperties = FullSystem.getConfiguredProperties();
+
+    if (useExternalKeystore) {
+      logger.logDebug(() -> "Using keystore and password referenced in app.config");
     } else {
       logger.logDebug(() -> "Using the default (self-signed / testing-only) certificate");
-      ss = createSslSocketWithInternalKeystore(port);
     }
 
+    final URL keystoreUrl = useExternalKeystore ?
+            Path.of(configuredProperties.getProperty("javax.net.ssl.keyStore")).toUri().toURL() :
+            WebEngine.class.getClassLoader().getResource("resources/certs/keystore");
+    final String keystorePassword = useExternalKeystore ?
+            configuredProperties.getProperty("javax.net.ssl.keyStorePassword") :
+            "passphrase";
+
+    int port = Integer.parseInt(configuredProperties.getProperty("sslServerPort", "8443"));
+    ss = createSslSocketWithSpecificKeystore(port, keystoreUrl, keystorePassword);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, logger);
+    Server server = new Server(ss, logger, "https server");
+    logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
     server.start(es, handler);
+    String hostname = configuredProperties.getProperty("hostname", "localhost");
+    logger.logDebug(() -> String.format("%s started at https://%s:%s", server, hostname, port));
     return server;
   }
 
@@ -84,7 +103,7 @@ public class WebEngine {
    * We *do* bundle a cert, but it's for testing and is self-signed.
    */
   private Boolean checkSystemPropertiesForKeystore() {
-    final var props = System.getProperties();
+    final var props = FullSystem.getConfiguredProperties();
 
     // get the directory to the keystore from a system property
     final var keystore = props.getProperty("javax.net.ssl.keyStore");
@@ -101,25 +120,18 @@ public class WebEngine {
     return keystore != null && keystorePassword != null;
   }
 
-  /**
-   * Creates an SSL Socket using a keystore we have internally, meant
-   * for ssl testing and other situations where a self-signed keystore will suffice
-   * <p>
-   * It's so convoluted just because the interface to this stuff on the standard library
-   * doesn't expect the typical user to read a keystore programmatically.  Realistic use
-   * of SSL sockets typically (strongly) suggests using a real key signed by a certificate
-   * authority.
-   */
-  public ServerSocket createSslSocketWithInternalKeystore(int sslPort) {
-    try {
-      final var keyPassword = "passphrase".toCharArray();
-      final var keystoreFile = WebEngine.class.getClassLoader().getResource("resources/certs/keystore").openStream();
 
+  /**
+   * Create an SSL Socket using a specified keystore
+   */
+  public ServerSocket createSslSocketWithSpecificKeystore(int sslPort, URL keystoreUrl, String keystorePassword) {
+    try (InputStream keystoreInputStream = keystoreUrl.openStream()) {
       final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-      keyStore.load(keystoreFile, keyPassword);
+      char[] passwordCharArray = keystorePassword.toCharArray();
+      keyStore.load(keystoreInputStream, passwordCharArray);
 
       final var keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-      keyManagerFactory.init(keyStore, keyPassword);
+      keyManagerFactory.init(keyStore, passwordCharArray);
 
       final var keyManagers = keyManagerFactory.getKeyManagers();
 

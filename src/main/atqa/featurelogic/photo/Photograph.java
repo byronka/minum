@@ -1,15 +1,13 @@
-package atqa.photo;
+package atqa.featurelogic.photo;
 
 import atqa.database.SimpleDataType;
 import atqa.database.SimpleSerializable;
 
-import java.util.Base64;
-
 import static atqa.utils.StringUtils.decode;
 
-public record Photograph(Long index, byte[] photo, String photoUrl, String description) implements SimpleDataType<Photograph> {
+public record Photograph(Long index, String photoUrl, String shortDescription, String description) implements SimpleDataType<Photograph> {
 
-    public static final SimpleDataType<Photograph> EMPTY = new Photograph(0L, new byte[0], "", "");
+    public static final SimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "");
 
     @Override
     public Long getIndex() {
@@ -18,7 +16,7 @@ public record Photograph(Long index, byte[] photo, String photoUrl, String descr
 
     @Override
     public String serialize() {
-        return SimpleSerializable.serializeHelper(index, Base64.getEncoder().encodeToString(photo), photoUrl(), description());
+        return SimpleSerializable.serializeHelper(index, photoUrl(), shortDescription(), description());
     }
 
     @Override
@@ -27,7 +25,7 @@ public record Photograph(Long index, byte[] photo, String photoUrl, String descr
 
         return new Photograph(
                 Long.parseLong(tokens.get(0)),
-                Base64.getDecoder().decode(tokens.get(1)),
+                decode(tokens.get(1)),
                 decode(tokens.get(2)),
                 decode(tokens.get(3)));
     }

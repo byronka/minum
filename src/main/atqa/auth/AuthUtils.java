@@ -1,12 +1,15 @@
 package atqa.auth;
 
+import atqa.FullSystem;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.logging.ILogger;
 import atqa.utils.CryptoUtils;
+import atqa.utils.FileUtils;
 import atqa.utils.InvariantException;
 import atqa.utils.StringUtils;
 import atqa.web.Request;
 import atqa.web.Response;
+import atqa.web.WebFramework;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -16,6 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static atqa.Constants.MOST_COOKIES_WELL_LOOK_THROUGH;
 import static atqa.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
 import static atqa.database.SimpleIndexed.calculateNextIndex;
 import static atqa.utils.Invariants.mustBeTrue;
@@ -25,7 +29,7 @@ import static atqa.web.StatusLine.StatusCode.*;
  * This class provides services for stateful authentication and
  * authorization.
  * <br><br>
- * Interestingly, it uses the underlying web framework similarly
+ * Interestingly, it uses the underlying web testing similarly
  * to any other domain.  It doesn't really require any special
  * deeper magic.
  */
@@ -38,17 +42,21 @@ public class AuthUtils {
     private final DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
     final AtomicLong newSessionIdentifierIndex;
     final AtomicLong newUserIndex;
+    private final String loginPageTemplate;
+    private LoopingSessionReviewing sessionLooper;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
-                     ILogger logger) {
+                     WebFramework wf) {
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;
         sessionIds = sessionDiskData.readAndDeserialize(SessionId.EMPTY);
         users = userDiskData.readAndDeserialize(User.EMPTY);
-        this.logger = logger;
+        this.logger = wf.logger;
+
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
         newUserIndex = new AtomicLong(calculateNextIndex(users));
+        loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
     }
 
     public static final String cookieKey = "sessionid";
@@ -84,7 +92,7 @@ public class AuthUtils {
         // extract session identifiers from the cookies
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
         final var listOfSessionIds = new ArrayList<String>();
-        while (cookieMatcher.find()) {
+        for(int i = 0; cookieMatcher.find() && i < MOST_COOKIES_WELL_LOOK_THROUGH; i++) {
             final var sessionIdValue = cookieMatcher.group("sessionIdValue");
             listOfSessionIds.add(sessionIdValue);
         }
@@ -123,6 +131,23 @@ public class AuthUtils {
         return new AuthResult(true, sessionFoundInDatabase.creationDateTime(), authenticatedUser.get(0));
     }
 
+    public void setSessionLooper(LoopingSessionReviewing sessionLooper) {
+        this.sessionLooper = sessionLooper;
+    }
+
+    public List<User> getUsers() {
+        return this.users.stream().toList();
+    }
+
+    public List<SessionId> getSessions() {
+        return sessionIds.stream().toList();
+    }
+
+    public void deleteSession(SessionId s) {
+        sessionIds.remove(s);
+        sessionDiskData.deleteOnDisk(s);
+    }
+
     public record NewSessionResult(SessionId sessionId, User user){}
 
     /**
@@ -151,7 +176,7 @@ public class AuthUtils {
             return new RegisterResult(RegisterResultStatus.ALREADY_EXISTING_USER, User.EMPTY);
         }
         final var newSalt = StringUtils.generateSecureRandomString(10);
-        final var hashedPassword = CryptoUtils.createHash(newPassword, newSalt);
+        final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
         final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null);
         users.add(newUser);
         userDiskData.persistToDisk(newUser);
@@ -159,13 +184,7 @@ public class AuthUtils {
     }
 
     public LoginResult loginUser(String username, String password) {
-        final var foundUsers = users.stream().filter(x -> x.username().equals(username)).toList();
-        final var loginResult = switch (foundUsers.size()) {
-            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
-            case 1 -> passwordCheck(foundUsers.get(0), password);
-            default ->
-                    throw new InvariantException("there must be zero or one users found. Anything else indicates a bug");
-        };
+        final LoginResult loginResult = findUser(username, password);
 
         if (loginResult.status().equals(LoginResultStatus.SUCCESS)) {
             final var newSessionResult = registerNewSession(loginResult.user());
@@ -175,8 +194,21 @@ public class AuthUtils {
         return loginResult;
     }
 
+    /**
+     * This is the real findUser
+     */
+    private LoginResult findUser(String username, String password) {
+        final var foundUsers = users.stream().filter(x -> x.username().equals(username)).toList();
+        return switch (foundUsers.size()) {
+            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
+            case 1 -> passwordCheck(foundUsers.get(0), password);
+            default ->
+                    throw new InvariantException("there must be zero or one users found. Anything else indicates a bug");
+        };
+    }
+
     private LoginResult passwordCheck(User user, String password) {
-        final var hash = CryptoUtils.createHash(password, user.salt());
+        final var hash = CryptoUtils.createPasswordHash(password, user.salt());
         if (user.hashedPassword().equals(hash)) {
             return new LoginResult(LoginResultStatus.SUCCESS, user);
         } else {
@@ -205,9 +237,9 @@ public class AuthUtils {
 
 
     public Response loginUser(Request r) {
-        final var authResult = processAuth(r);
-        if (authResult.isAuthenticated()) {
-            return new Response(_303_SEE_OTHER, List.of("Location: index"));
+        String hostname = FullSystem.getConfiguredProperties().getProperty("hostname", "localhost");
+        if (processAuth(r).isAuthenticated()) {
+            Response.redirectTo("photos");
         }
 
         final var username = r.body().asString("username");
@@ -216,33 +248,23 @@ public class AuthUtils {
 
         switch (loginResult.status()) {
             case SUCCESS -> {
-                return new Response(_303_SEE_OTHER, List.of("Location: index", "Set-Cookie: "+cookieKey+"=" + loginResult.user().currentSession() ));
+                return new Response(_303_SEE_OTHER, List.of(
+                        "Location: index.html",
+                        "Set-Cookie: %s=%s; Secure; HttpOnly; Domain=%s".formatted(cookieKey, loginResult.user().currentSession(), hostname)));
             }
             case DID_NOT_MATCH_PASSWORD -> {
                 return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/plain"), "Invalid account credentials");
             }
         }
-        return new Response(_303_SEE_OTHER, List.of("Location: index"));
+        return Response.redirectTo("photos");
     }
 
     public Response login(Request request) {
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Login | The auth domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <form action="loginuser" method="post">
-                            <input type="text" name="username" />
-                            <input type="password" name="password" />
-                            <button>Enter</button>
-                        </form>
-                    </body>
-                </html>
-                """);
+        AuthResult authResult = processAuth(request);
+        if (authResult.isAuthenticated()) {
+            Response.redirectTo("photos");
+        }
+        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), loginPageTemplate);
     }
 
 
@@ -259,7 +281,7 @@ public class AuthUtils {
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
             return new Response(_200_OK, List.of("Content-Type: text/plain"), "This user is already registered");
         }
-        return new Response(_303_SEE_OTHER, List.of("Location: index"));
+        return new Response(_303_SEE_OTHER, List.of("Location: index.html"));
 
     }
 
@@ -285,27 +307,10 @@ public class AuthUtils {
 
     public Response logout(Request request) {
         final var authResult = processAuth(request);
-        if (! authResult.isAuthenticated()) {
-            return new Response(_303_SEE_OTHER, List.of("Location: sampledomain/index"));
-        } else {
+        if (authResult.isAuthenticated()) {
             logoutUser(authResult.user());
-            return new Response(
-                    _200_OK,
-                    List.of("Content-Type: text/html; charset=UTF-8", "Set-Cookie: "+cookieKey+"="),
-                """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Logged out | The auth domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <p>You've been logged out</p>
-                        <p><a href="index">Index</a></p>
-                    </body>
-                </html>
-                """);
         }
+
+        return Response.redirectTo("index.html");
     }
 }

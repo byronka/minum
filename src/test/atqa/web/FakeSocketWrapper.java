@@ -41,8 +41,13 @@ public class FakeSocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public SocketAddress getRemoteAddr() {
+    public SocketAddress getRemoteAddrWithPort() {
         return getRemoteAddrAction.get();
+    }
+
+    @Override
+    public String getRemoteAddr() {
+        return "";
     }
 
     @Override

@@ -24,10 +24,12 @@ public class CryptoUtils {
 
     /**
      * Hash the input string with the provided PBKDF2 algorithm, and return a string representation
+     * Note that the PBKDF2WithHmacSHA1 algorithm is specifically designed to take a long time,
+     * to slow down an attacker.
      *<br><br>
      * See docs/http_protocol/password_storage_cheat_sheet
      */
-    public static String createHash(String password, String salt) {
+    public static String createPasswordHash(String password, String salt) {
         final KeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 128);
         final SecretKeyFactory factory;
 

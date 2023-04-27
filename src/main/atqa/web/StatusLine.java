@@ -21,7 +21,6 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
     public enum StatusCode{
         _200_OK(200, "OK"),
         _201_CREATED(201, "CREATED"),
-        _404_NOT_FOUND(404, "NOT FOUND"),
 
         /**
          * Used a lot after receiving a post response.  The pattern is to
@@ -37,7 +36,9 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
          * who they are, they aren't allowed to see this data, in which case we should send
          * back a 403)
          */
-        _401_UNAUTHORIZED(401, "UNAUTHORIZED")
+        _401_UNAUTHORIZED(401, "UNAUTHORIZED"),
+        _404_NOT_FOUND(404, "NOT FOUND"),
+        _500_INTERNAL_SERVER_ERROR(500, "INTERNAL SERVER ERROR")
         ;
 
         public final int code;

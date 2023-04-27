@@ -1,27 +1,34 @@
 package atqa.logging;
 
-import atqa.utils.ThrowingSupplier;
+import atqa.FullSystem;
 import atqa.utils.ActionQueue;
+import atqa.utils.StringUtils;
+import atqa.utils.ThrowingSupplier;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+
+import static atqa.utils.TimeUtils.getTimestampIsoInstant;
 
 public class Logger implements ILogger {
     protected final ActionQueue loggerPrinter;
     private Map<Type, Boolean> toggles;
     public static ILogger INSTANCE;
 
-    public String getTimestamp() {
-        return ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_INSTANT);
-    }
-
     public Logger(ExecutorService es) {
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
-        toggleDefaultLogging();
+        String loglevels = FullSystem.getConfiguredProperties().getProperty("loglevels", "DEBUG");
+        List<String> logLevelStrings = StringUtils.tokenizer(loglevels, ',').stream().map(String::toUpperCase).toList();
+        List<Type> enabledLoggingLevels = new ArrayList<>();
+        for (Type t : Type.values()) {
+            if (logLevelStrings.contains(t.name())) {
+                enabledLoggingLevels.add(t);
+            }
+        }
+        toggleDefaultLogging(enabledLoggingLevels);
         if (INSTANCE == null) {
             INSTANCE = this;
         }
@@ -31,11 +38,11 @@ public class Logger implements ILogger {
      * for the various kinds of atqa.logging which can be enabled/disabled,
      * turn on the expected types of atqa.logging.
      */
-    private void toggleDefaultLogging() {
+    private void toggleDefaultLogging(List<Type> enabledLoggingLevels) {
         toggles = new EnumMap<>(Type.class);
-        toggles.put(Type.DEBUG, true);
-        toggles.put(Type.TRACE, true);
-        toggles.put(Type.ASYNC_ERROR, true);
+        for (Type t : Type.values()) {
+            toggles.put(t, enabledLoggingLevels.contains(t));
+        }
     }
 
     @Override
@@ -49,14 +56,13 @@ public class Logger implements ILogger {
     }
 
     @Override
-    public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, Type.ASYNC_ERROR);
+    public void logAudit(ThrowingSupplier<String, Exception> msg) {
+        logHelper(msg, Type.AUDIT);
     }
 
     @Override
-    public void logAsyncError(Exception ex) {
-        final var msg = convertExceptionToString(ex);
-        logHelper(() -> msg, Type.ASYNC_ERROR);
+    public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        logHelper(msg, Type.ASYNC_ERROR);
     }
 
     /**
@@ -71,16 +77,11 @@ public class Logger implements ILogger {
         }
         if (toggles.get(type)) {
             String finalReceivedMessage = receivedMessage;
-            loggerPrinter.enqueue("log data", () -> {
-                printf(type.name() + ": %s %s%n", getTimestamp(), showWhiteSpace(finalReceivedMessage));
+            loggerPrinter.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
+                printf(type.name() + ": %s %s%n", getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage));
                 return null;
             });
         }
-    }
-
-    @Override
-    public void logImperative(String msg) {
-        System.out.printf("%s IMPERATIVE: %s%n", getTimestamp(), msg);
     }
 
     /**
@@ -104,6 +105,9 @@ public class Logger implements ILogger {
     }
 
     enum Type {
+        /**
+         * Information useful for debugging.
+         */
         DEBUG,
 
         /**
@@ -121,6 +125,13 @@ public class Logger implements ILogger {
          * to find the important information amongst a lot of noise.
          * For that reason, TRACE is usually turned off.
          */
-        TRACE
+        TRACE,
+
+        /**
+         * Information marked audit is for business-related stuff.  Like,
+         * a new user being created.  A photo being looked for.  Stuff
+         * closer to the user needs.
+         */
+        AUDIT
     }
 }

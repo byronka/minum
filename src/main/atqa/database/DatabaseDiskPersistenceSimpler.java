@@ -48,12 +48,13 @@ public class DatabaseDiskPersistenceSimpler<T> {
      *                        operations asynchronously, so that data is *eventually*
      *                        written to disk.
      */
-    public DatabaseDiskPersistenceSimpler(String dbDirectory, ExecutorService executorService, ILogger logger) {
-        this.dbDirectory = Path.of(dbDirectory);
+    public DatabaseDiskPersistenceSimpler(Path dbDirectory, ExecutorService executorService, ILogger logger) {
+        this.dbDirectory = dbDirectory;
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, executorService).initialize();
         this.logger = logger;
 
-        actionQueue.enqueue("create directory " + this.dbDirectory, () -> {
+        actionQueue.enqueue("create directory" + this.dbDirectory, () -> {
+            logger.logDebug(() -> "Creating a directory ("+this.dbDirectory+") for the database");
             boolean directoryExists = Files.exists(this.dbDirectory);
             logger.logDebug(() -> "Directory: " + this.dbDirectory + ". Already exists: " + directoryExists);
             if (!directoryExists) {

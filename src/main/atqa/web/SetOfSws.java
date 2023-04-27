@@ -10,18 +10,32 @@ import java.util.List;
 
 import static atqa.utils.Invariants.mustBeFalse;
 
-public record SetOfServers(ConcurrentSet<SocketWrapper> data, ILogger logger) {
+/**
+ * This is a data structure of the live set of {@link SocketWrapper}
+ * in our system.  It exists so that we can keep tabs on how many
+ * open sockets we have, and can then find them all in one place
+ * when we need to kill them at server shutdown.
+ */
+public record SetOfSws(
+        ConcurrentSet<SocketWrapper> data,
+        ILogger logger,
+       /*
+       This parameter is used to distinguish different servers'
+       list of sockets (e.g.
+       the server for 80 vs 443)
+        */
+        String nameOfSet) {
 
     public void add(SocketWrapper sw) {
         data().add(sw);
         int size = data().size();
-        logger.logTrace(() -> "added " + sw + " to setOfServers. size: " + size);
+        logger.logTrace(() -> nameOfSet + " added " + sw + " to SetOfSws. size: " + size);
     }
 
     public void remove(SocketWrapper sw) {
         data().remove(sw);
         int size = data().size();
-        logger.logTrace(() -> "removed " + sw + " from setOfServers. size: " + size);
+        logger.logTrace(() -> nameOfSet +" removed " + sw + " from SetOfSws. size: " + size);
     }
 
     /**
@@ -40,7 +54,7 @@ public record SetOfServers(ConcurrentSet<SocketWrapper> data, ILogger logger) {
         for (int loopCount = 0; loopCount < maxLoops; loopCount++ ) {
             List<SocketWrapper> servers = data()
                     .asStream()
-                    .filter((x) -> x.getRemoteAddr().equals(new InetSocketAddress(address, port)))
+                    .filter((x) -> x.getRemoteAddrWithPort().equals(new InetSocketAddress(address, port)))
                     .toList();
             mustBeFalse(servers.size() > 1, "Too many sockets found with that address");
             if (servers.size() == 1) {

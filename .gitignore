@@ -12,4 +12,12 @@ out/
 .DS_Store
 
 # Don't store the atqa.database we create with our application
+# that is in the root directory (there is a sample in the docs directory
+# that we *will* store for use in local testing)
 db/
+
+# This file is just a flag to show that the system is running.
+SYSTEM_RUNNING
+
+# Sometimes the Java compiler will fail and output these files, like javac.20230430_000504.args
+*.args

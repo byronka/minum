@@ -1,9 +1,11 @@
 package atqa.logging;
 
 import atqa.utils.ExtendedExecutor;
+import atqa.utils.TimeUtils;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -36,7 +38,7 @@ public class TestLogger extends Logger {
         final var baseLength = 11;
         final var dashes = "-".repeat(msg.length() + baseLength);
 
-        loggerPrinter.enqueue("Testlogger log data", () -> {
+        loggerPrinter.enqueue("Testlogger#test("+msg+")", () -> {
             printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", testCount++, msg);
             return null;
         });
@@ -47,20 +49,21 @@ public class TestLogger extends Logger {
      * exceptions thrown.
      */
     public void testPrint(String msg) {
-        loggerPrinter.enqueue("Testlogger log data", () -> {
+        loggerPrinter.enqueue("Testlogger#testPrint("+msg+")", () -> {
             System.out.println(msg);
             return null;
         });
     }
 
     /**
-     * grabs the stacktrace out of a {@link Throwable} as a string
+     * Appends the message provided to the end of the file indicated by path.
+     * Prepends a time/date stamp.
      */
-    public static String printStackTrace(Throwable ex) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        ex.printStackTrace(pw);
-        return sw.toString();
+    public void testPrintToFile(String msg, Path path) {
+        loggerPrinter.enqueue("Testlogger#testPrintToFile("+msg+","+path+")", () -> {
+            Files.writeString(path, TimeUtils.getLocalDateStamp() + "\t" + msg + "\n", StandardOpenOption.APPEND);
+            return null;
+        });
     }
 
     public ExecutorService getExecutorService() {

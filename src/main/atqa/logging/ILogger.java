@@ -2,8 +2,6 @@ package atqa.logging;
 
 import atqa.utils.ThrowingSupplier;
 
-import java.util.Arrays;
-
 public interface ILogger {
 
     /**
@@ -30,12 +28,8 @@ public interface ILogger {
      */
     void logAsyncError(ThrowingSupplier<String, Exception> msg);
 
-    void logAsyncError(Exception ex);
-
-    void logImperative(String msg);
-
-    default String convertExceptionToString(Exception ex) {
-        return ex.toString() + ": " + ex.getMessage() + " at " + String.join(";", Arrays.stream(ex.getStackTrace()).map(x -> "at " + x.toString()).toList());
-
-    }
+    /**
+     * This is for logging business-related topics
+     */
+    void logAudit(ThrowingSupplier<String, Exception> msg);
 }

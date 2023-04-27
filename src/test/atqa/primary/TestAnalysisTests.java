@@ -3,7 +3,7 @@ package atqa.primary;
 import atqa.logging.TestLogger;
 
 public class TestAnalysisTests {
-    private TestLogger logger;
+    private final TestLogger logger;
 
     public TestAnalysisTests(TestLogger logger) {
 

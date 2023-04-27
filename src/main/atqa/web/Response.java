@@ -21,6 +21,10 @@ public record Response(StatusLine.StatusCode statusCode, List<String> extraHeade
         this(statusCode, extraHeaders, body.getBytes());
     }
 
+    public Response(StatusLine.StatusCode statusCode, byte[] body, List<String> extraHeaders) {
+        this(statusCode, extraHeaders, body);
+    }
+
     public Response(StatusLine.StatusCode statusCode, List<String> extraHeaders) {
         this(statusCode, extraHeaders, "".getBytes());
     }
@@ -31,5 +35,9 @@ public record Response(StatusLine.StatusCode statusCode, List<String> extraHeade
 
     public Response(StatusLine.StatusCode statusCode) {
         this(statusCode, Collections.emptyList(), "".getBytes());
+    }
+
+    public static Response redirectTo(String locationUrl) {
+        return new Response(StatusLine.StatusCode._303_SEE_OTHER, List.of("location: " + locationUrl));
     }
 }
