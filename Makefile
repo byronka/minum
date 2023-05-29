@@ -182,17 +182,17 @@ DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspen
 # running Java Virtual Machine with Java Mission Control (JMC)
 #: run the application
 run: all
-	    $(JAVA) -Xlog:gc* $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
+	    $(JAVA) $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
 .PHONY: runjar
 #: run the application using the jar
 runjar: jar
-	    $(JAVA) -Xlog:gc* $(JMX_PROPERTIES) -jar $(OUT_DIR)/$(PROJ_NAME).jar
+	    $(JAVA) $(JMX_PROPERTIES) -jar $(OUT_DIR)/$(PROJ_NAME).jar
 
 .PHONY: runjardebug
 #: run the application using the jar, debugging
 runjardebug: jar
-	    $(JAVA) -Xlog:gc* $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
+	    $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
 
 .PHONY: rundebug
 #: run the application and open a port for debugging.
