@@ -1,7 +1,7 @@
 Testing
 =======
 
-The main() function is in the Tests class, in the primary package. That is to say, when you 
+The main() function is in the Tests class, in the testing package. That is to say, when you 
 run the tests, that is where the ball starts rolling.
 
 Note that main() calls to some other functions to run tests, particularly unitAndIntegrationTests().  If 
