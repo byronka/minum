@@ -1,14 +1,39 @@
 ATQA
 ====
 
-* To build: `make`
+This code provides all the functionality for a low-risk web application.
+It has very few dependencies, and is written mostly in Java. This software
+is meant as a basis for a variety of useful domains.
+
+Note that the database is non-ACID compliant.  It stores all data to
+memory and puts the data into a queue to be eventually (often < 1
+millisecond later) written to disk.
+
+Benefits of this software is the intention of simplicity and
+documentation.  It should be easier to modify and maintain than most
+frameworks. I am not saying it's _simple_, I'm saying that I value
+simplicity and have put my efforts towards that as a goal.
+
+Study the files ListPhotos.java and TheRegister.java as a crash course
+on adding new functionality.
+
+Features:
+--------
+
+- web server
+- routing
+- database
+
+Quick start:
+------------
+
 * To run: `make run`
 * For help: `make help`
 
 System requirements: 
 --------------------
 
-JDK 20 is _required_
+JDK version 20 is _required_
 
 Developed in two environments:
 * MacBook Pro with OS 12.0.1, with OpenJDK 20, GNU Make 3.81 and Rsync 2.6.9
