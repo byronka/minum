@@ -47,10 +47,14 @@ public class SampleDomain {
                         <link rel="stylesheet" href="main.css" />
                     </head>
                     <body>
+                        <p>
+                            <a href="index.html" >Index</a>
+                        </p>
                         <form method="post" action="testform">
                             <label for="name_entry">Name Entry
-                                <input name="name_entry" id="name_entry" type="text" value="" />
+                                <input name="name_entry" id="name_entry" type="text" value="" autofocus="autofocus" />
                             </label>
+                            <button>Enter</button>
                         </form>
                         <ol>
                         %s

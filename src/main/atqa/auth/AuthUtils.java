@@ -43,6 +43,7 @@ public class AuthUtils {
     final AtomicLong newSessionIdentifierIndex;
     final AtomicLong newUserIndex;
     private final String loginPageTemplate;
+    private final String registerPageTemplate;
     private LoopingSessionReviewing sessionLooper;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
@@ -57,6 +58,7 @@ public class AuthUtils {
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
         newUserIndex = new AtomicLong(calculateNextIndex(users));
         loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
+        registerPageTemplate = FileUtils.readTemplate("auth/register_page_template.html");
     }
 
     public static final String cookieKey = "sessionid";
@@ -253,7 +255,11 @@ public class AuthUtils {
                         "Set-Cookie: %s=%s; Secure; HttpOnly; Domain=%s".formatted(cookieKey, loginResult.user().currentSession(), hostname)));
             }
             default -> {
-                return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/plain"), "Invalid account credentials");
+                return new Response(_401_UNAUTHORIZED,
+                        List.of("Content-Type: text/html"),
+                        """
+                                Invalid account credentials. <a href="index.html">Index</a>
+                                """);
             }
         }
     }
@@ -280,28 +286,16 @@ public class AuthUtils {
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
             return new Response(_200_OK, List.of("Content-Type: text/plain"), "This user is already registered");
         }
-        return new Response(_303_SEE_OTHER, List.of("Location: index.html"));
+        return new Response(_303_SEE_OTHER, List.of("Location: login"));
 
     }
 
     public Response register(Request request) {
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Register | The auth domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <form action="registeruser" method="post">
-                            <input type="text" name="username" />
-                            <input type="password" name="password" />
-                            <button>Enter</button>
-                        </form>
-                    </body>
-                </html>
-                """);
+        AuthResult authResult = processAuth(request);
+        if (authResult.isAuthenticated()) {
+            Response.redirectTo("auth");
+        }
+        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), registerPageTemplate);
     }
 
     public Response logout(Request request) {

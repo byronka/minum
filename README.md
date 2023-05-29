@@ -10,10 +10,32 @@ System requirements:
 
 JDK 20 is _required_
 
-Developed on a MacBook Pro with OS 12.0.1, with OpenJDK 20, GNU Make 3.81 and Rsync 2.6.9
-and on a Windows 10 64-bit professional, on Cygwin, OpenJDK 20, Gnu Make 4.4 and Rsync 3.2.7
+Developed in two environments:
+* MacBook Pro with OS 12.0.1, with OpenJDK 20, GNU Make 3.81 and Rsync 2.6.9
+* Windows 10 64-bit professional, on Cygwin, OpenJDK 20, Gnu Make 4.4 and Rsync 3.2.7
 
-Production deployment to a CentOS-like distro called _Oracle-Linux_ , version 8.7, on Oracle Cloud.
+First-time use
+--------------
+
+1. Start the application: `make clean run`
+2. Go to http://localhost:8080
+3. Soak up the austere beauty of the homepage
+4. Click on **Auth**
+5. Click on **Register**
+6. Enter some credentials, such as _foo_ and _bar_, click Enter
+7. Enter them again (you're logging in this time)
+8. Click on **Sample domain**
+9. Click on **Enter a name**
+10. Enter some names, pressing **Enter** each time.
+11. Click **Index**
+12. Click on **Photos**
+13. Click on **Upload**
+14. Select an image, enter a short caption and longer description 
+15. Click **Submit**
+16. Click **Index**
+17. Click on **Auth**
+18. Click on **Logout**
+19. Go view the other pages again
 
 Directories:
 ------------
