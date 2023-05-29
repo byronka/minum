@@ -51,7 +51,7 @@ public class ListPhotos {
         </li>
         """.formatted(x.photoUrl(), x.shortDescription(), x.description())).collect(Collectors.joining ("\n"));
 
-        String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload</a></p>" : "<a href=\"login\">Login</a>";
+        String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload</a></p>" : "";
 
         String listPhotosHtml = listPhotosTemplateHtml.formatted(navBar, photoHtml);
         return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),listPhotosHtml);

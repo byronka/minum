@@ -91,8 +91,7 @@ public class SampleDomain {
                         <link rel="stylesheet" href="main.css" />
                     </head>
                     <body>
-                    <p><a href="register">Register user</a></p>
-                    <p><a href="login">Sign in</a></p>
+                        <p>There's nothing here to see.  Try logging in.</p>
                     </body>
                 </html>
                 """);
@@ -106,8 +105,7 @@ public class SampleDomain {
                         <link rel="stylesheet" href="main.css" />
                     </head>
                     <body>
-                    <p><a href="formEntry">Enter a name</a></p>
-                    <p><a href="logout">Sign out</a></p>
+                        <p><a href="formEntry">Enter a name</a></p>
                     </body>
                 </html>
                 """);

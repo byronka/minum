@@ -52,6 +52,7 @@ public class TheRegister {
         wf.registerPath(StartLine.Verb.POST, "registeruser", auth::registerUser);
         wf.registerPath(StartLine.Verb.POST, "loginuser", auth::loginUser);
         wf.registerPath(StartLine.Verb.GET, "logout", auth::logout);
+        wf.registerPath(StartLine.Verb.GET, "auth", auth::authPage);
 
     }
 

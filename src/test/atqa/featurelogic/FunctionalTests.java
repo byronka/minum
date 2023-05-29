@@ -43,7 +43,7 @@ public class FunctionalTests {
             var response2 = get("photos");
             var htmlResponse = response2.body().asString();
             String photoSrc = find("photo\\?name=[a-z0-9\\-]*", htmlResponse);
-            get(photoSrc);
+            get(photoSrc, List.of("Cookie: " + cookieValue));
         }
 
     }

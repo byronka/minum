@@ -252,17 +252,16 @@ public class AuthUtils {
                         "Location: index.html",
                         "Set-Cookie: %s=%s; Secure; HttpOnly; Domain=%s".formatted(cookieKey, loginResult.user().currentSession(), hostname)));
             }
-            case DID_NOT_MATCH_PASSWORD -> {
+            default -> {
                 return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/plain"), "Invalid account credentials");
             }
         }
-        return Response.redirectTo("photos");
     }
 
     public Response login(Request request) {
         AuthResult authResult = processAuth(request);
         if (authResult.isAuthenticated()) {
-            Response.redirectTo("photos");
+            Response.redirectTo("auth");
         }
         return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), loginPageTemplate);
     }
@@ -312,5 +311,44 @@ public class AuthUtils {
         }
 
         return Response.redirectTo("index.html");
+    }
+
+    public Response authPage(Request request) {
+        String response;
+        if (processAuth(request).isAuthenticated()) {
+            response = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Authentication | ATQA</title>
+                </head>
+                <body>
+                    <h3>Authenticate</h3>
+                    <p>
+                        <p><a href="logout">Logout</a></p>
+                        <a href="index.html">Index</a>
+                    </p>
+                </body>
+                </html>
+                """.stripIndent();
+        } else {
+            response = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Authentication | ATQA</title>
+                </head>
+                <body>
+                    <h3>Authenticate</h3>
+                    <p>
+                        <a href="register">Register</a>
+                        <a href="login">Login</a>
+                        <a href="index.html">Index</a>
+                    </p>
+                </body>
+                </html>
+                """.stripIndent();
+        }
+        return new Response(_200_OK, response);
     }
 }
