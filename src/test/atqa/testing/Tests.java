@@ -1,6 +1,7 @@
 package atqa.testing;
 
 import atqa.FullSystem;
+import atqa.TheRegister;
 import atqa.auth.AuthenticationTests;
 import atqa.database.SimpleDatabaseTests;
 import atqa.sampledomain.FunctionalTests;
@@ -77,6 +78,7 @@ public class Tests {
     logger.test("Starting a soup-to-nuts tests of the full system");
     var es = logger.getExecutorService();
     var fs = new FullSystem(logger, es).start();
+    TheRegister.registerDomains(fs.webFramework);
     new FunctionalTests(logger, fs.server).test();
     fs.removeShutdownHook();
     fs.shutdown();

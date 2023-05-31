@@ -26,7 +26,7 @@ import java.nio.file.Path;
  */
 public class TheRegister {
 
-    public void registerDomains(WebFramework wf) {
+    public static void registerDomains(WebFramework wf) {
         var auth = buildAuthDomain(wf);
         var up = setupUploadPhotos(wf, auth);
         var lp = setupListPhotos(wf, auth, up);
@@ -61,16 +61,16 @@ public class TheRegister {
         return new SampleDomain(sampleDomainDdps, auth);
     }
 
-    private ListPhotos setupListPhotos(WebFramework wf, AuthUtils auth, UploadPhoto up) {
+    private static ListPhotos setupListPhotos(WebFramework wf, AuthUtils auth, UploadPhoto up) {
         return new ListPhotos(wf, up, auth);
     }
 
-    private UploadPhoto setupUploadPhotos(WebFramework wf, AuthUtils auth) {
+    private static UploadPhoto setupUploadPhotos(WebFramework wf, AuthUtils auth) {
         final var photoDdps = new DatabaseDiskPersistenceSimpler<Photograph>(wf.dbDir.resolve("photos"), wf.executorService, wf.logger);
         return new UploadPhoto(photoDdps, wf.logger, wf.dbDir, auth);
     }
 
-    private AuthUtils buildAuthDomain(WebFramework wf) {
+    private static AuthUtils buildAuthDomain(WebFramework wf) {
 
         wf.logger.logDebug(() -> "using a database directory of " + wf.dbDir);
         final var sessionDdps = new DatabaseDiskPersistenceSimpler<SessionId>(wf.dbDir.resolve("sessions"), wf.executorService, wf.logger);

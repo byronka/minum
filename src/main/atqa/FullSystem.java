@@ -1,6 +1,8 @@
 package atqa;
 
 import atqa.logging.ILogger;
+import atqa.logging.Logger;
+import atqa.utils.ExtendedExecutor;
 import atqa.utils.ThrowingConsumer;
 import atqa.utils.ThrowingRunnable;
 import atqa.utils.TimeUtils;
@@ -27,8 +29,8 @@ public class FullSystem {
 
     final ILogger logger;
     public Server server;
+    public WebFramework webFramework;
     Server sslServer;
-    TheRegister register;
     Thread shutdownHook;
     private static Properties properties;
 
@@ -39,17 +41,22 @@ public class FullSystem {
         this.es = es;
     }
 
+    public static FullSystem initialize() {
+        final var es = ExtendedExecutor.makeExecutorService();
+        final var logger = new Logger(es);
+        return new FullSystem(logger, es);
+    }
+
     public FullSystem start() throws IOException  {
+        createSystemRunningMarker();
+        System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Atqa is starting ***");
         WebEngine webEngine = new WebEngine(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
         Path dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
-        WebFramework wf = new WebFramework(es, logger, dbDir);
+        webFramework = new WebFramework(es, logger, dbDir);
         addShutdownHook();
-        wf.registerStaticFiles(sfc);
-        register = new TheRegister();
-        register.registerDomains(wf);
-
-        final var webHandler = wf.makePrimaryHttpHandler();
+        webFramework.registerStaticFiles(sfc);
+        final var webHandler = webFramework.makePrimaryHttpHandler();
         // should we redirect all insecure traffic to https?
         boolean shouldRedirect = Boolean.parseBoolean(FullSystem.getConfiguredProperties().getProperty("redirect80", "false"));
         var handler = shouldRedirect ? makeRedirectHandler() : webHandler;
