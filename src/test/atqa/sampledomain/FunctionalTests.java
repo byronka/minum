@@ -1,4 +1,4 @@
-package atqa.featurelogic;
+package atqa.sampledomain;
 
 import atqa.logging.TestLogger;
 import atqa.utils.MyThread;

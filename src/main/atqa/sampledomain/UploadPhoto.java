@@ -1,9 +1,9 @@
-package atqa.featurelogic;
+package atqa.sampledomain;
 
 import atqa.auth.AuthResult;
 import atqa.auth.AuthUtils;
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.featurelogic.photo.Photograph;
+import atqa.sampledomain.photo.Photograph;
 import atqa.logging.ILogger;
 import atqa.utils.FileUtils;
 import atqa.utils.StacktraceUtils;

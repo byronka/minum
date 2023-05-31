@@ -1,4 +1,4 @@
-package atqa.featurelogic.photo;
+package atqa.sampledomain.photo;
 
 import atqa.database.SimpleDataType;
 import atqa.database.SimpleSerializable;

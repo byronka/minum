@@ -1,4 +1,4 @@
-package atqa.featurelogic;
+package atqa.sampledomain;
 
 import atqa.auth.AuthUtils;
 import atqa.logging.ILogger;

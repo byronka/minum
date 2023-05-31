@@ -1,4 +1,4 @@
-package atqa.featurelogic;
+package atqa.sampledomain;
 
 import java.io.Serial;
 import java.util.Collections;

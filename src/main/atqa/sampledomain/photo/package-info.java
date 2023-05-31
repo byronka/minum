@@ -2,4 +2,4 @@
  * This package contains files needed to support the capability of receiving and displaying photos and
  * accompanying text.
  */
-package atqa.featurelogic.photo;
+package atqa.sampledomain.photo;
