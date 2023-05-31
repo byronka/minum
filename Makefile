@@ -120,8 +120,7 @@ COV_DIR = out/coveragereport
 ##
 # default target(s)
 ##
-.PHONY: all
-all: classes copyresources
+all:: classes copyresources
 
 # note that putting an @ in front of a command in a makefile
 # will cause that command not to echo out when running Make.
@@ -132,95 +131,83 @@ all: classes copyresources
 # note: Java commands like FileUtils.getResources will look into any folder
 # in the classpath
 ##
-.PHONY: copyresources
-copyresources:
-	    @rsync --recursive --update --perms src/resources out/main
+copyresources::
+	 @rsync --recursive --update --perms src/resources out/main
 
 # make empty arrays for later use
 LIST:=
 TEST_LIST:=
 
-classes: $(CLS)
-	    @if [ ! -z "$(LIST)" ] ; then \
-	        $(JC) -d $(OUT_DIR_MAIN)/ -cp $(BUILD_CP) $(LIST) ; \
-	    fi
+classes:: $(CLS)
+	 @if [ ! -z "$(LIST)" ] ; then \
+	     $(JC) -d $(OUT_DIR_MAIN)/ -cp $(BUILD_CP) $(LIST) ; \
+	 fi
 
 testclasses: $(TST_CLS)
-	    @if [ ! -z "$(TEST_LIST)" ] ; then \
-	        $(JC) -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
-	    fi
+	 @if [ ! -z "$(TEST_LIST)" ] ; then \
+	     $(JC) -d $(OUT_DIR_TEST)/ -cp $(TEST_BUILD_CP) $(TEST_LIST) ; \
+	 fi
 
 # here is the target for the application code
 $(CLS): $(OUT_DIR_MAIN)/%.class: $(SRC_DIR)/%.java
-	   $(eval LIST+=$$<)
+	 $(eval LIST+=$$<)
 
 # here is the target for the test code
 $(TST_CLS): $(OUT_DIR_TEST)/%.class: $(TST_SRC_DIR)/%.java
-	    $(eval TEST_LIST+=$$<)
+	 $(eval TEST_LIST+=$$<)
 
-.PHONY: clean
 #: clean up any output files
-clean:
-	    rm -fr $(OUT_DIR)
+clean::
+	 rm -fr $(OUT_DIR)
 
-.PHONY: jar
 #: jar up the application (See Java's jar command)
-jar: classes copyresources
-	    cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
-		# move the jar up one directory \
-    	mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+jar:: classes copyresources
+	 cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
+    # move the jar up one directory \
+    mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 
-.PHONY: localsetup
 #: copy a sample database from the docs directory to the root for local testing
-localsetup:
-	    rsync -r docs/sample_database/db ./
+localsetup::
+	 rsync -r docs/sample_database/db ./
 
 JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
 DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
-.PHONY: run
+
 # This command includes several system properties so that we can connect to the
 # running Java Virtual Machine with Java Mission Control (JMC)
 #: run the application
-run: all
-	    $(JAVA) $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
+run:: all
+	 $(JAVA) $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
-.PHONY: runjar
 #: run the application using the jar
-runjar: jar
-	    $(JAVA) $(JMX_PROPERTIES) -jar $(OUT_DIR)/$(PROJ_NAME).jar
+runjar:: jar
+	 $(JAVA) $(JMX_PROPERTIES) -jar $(OUT_DIR)/$(PROJ_NAME).jar
 
-.PHONY: runjardebug
 #: run the application using the jar, debugging
-runjardebug: jar
-	    $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
+runjardebug:: jar
+	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
 
-.PHONY: rundebug
 #: run the application and open a port for debugging.
-rundebug: all
-	    $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
+rundebug:: all
+	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
-.PHONY: test
 #: run the tests
-test: all testclasses
-	    $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
+test:: all testclasses
+	 $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
 
-.PHONY: testdebug
 #: run the tests and open a port for debugging.
-testdebug: all testclasses
-	    $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
+testdebug:: all testclasses
+	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
 
-.PHONY: testcov
 #: If you want to obtain code coverage from running the tests. output at out/coveragereport
-testcov: all testclasses
-	    $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
-	    $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
+testcov:: all testclasses
+	 $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
+	 $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
 
-.PHONY: javadoc
 #: build the javadoc documentation in the out/javadoc directory
-javadoc:
-	    javadoc --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
+javadoc::
+	 javadoc --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
-.PHONY: print-%
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
 # command line:
@@ -228,16 +215,15 @@ javadoc:
 #     make print-CLS
 #
 # and you'll get something like: CLS = out/atqa.logging/ILogger.class out/atqa.logging/Logger.class out/atqa.testing/Main.class out/atqa.utils/ActionQueue.class
-print-%:
-	    @echo $* = $($*)
+print-%::
+	 @echo $* = $($*)
 
-.PHONY: help
 # This is a handy helper.  This prints a menu of items
 # from this file - just put hash+colon over a target and type
 # the description of that target.  Run this from the command
 # line with "make help"
-help:
-	    @grep -B1 -E "^[a-zA-Z0-9_-]+\:([^\=]|$$)" Makefile \
+help::
+	 @grep -B1 -E "^[a-zA-Z0-9_-]+\:([^\=]|$$)" Makefile \
      | grep -v -- -- \
      | sed 'N;s/\n/###/' \
      | sed -n 's/^#: \(.*\)###\(.*\):.*/\2###\1/p' \
