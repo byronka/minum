@@ -166,10 +166,6 @@ jar:: classes copyresources
     # move the jar up one directory \
     mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 
-#: copy a sample database from the docs directory to the root for local testing
-localsetup::
-	 rsync -r docs/sample_database/db ./
-
 JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
 DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
 
