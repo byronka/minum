@@ -165,11 +165,13 @@ jar:: classes copyresources
 	 cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
       # move the jar up one directory \
       mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+	 echo "Your new jar file is at out/atqa.jar"
 
 #: Build a jar of the project for use as a library
 publish:: classes copyresources
 	 rm -fr $(OUT_DIR_MAIN)/atqa/sampledomain
-	 rm -fr $(OUT_DIR_MAIN)/atqa/resources
+	 rm -fr $(OUT_DIR_MAIN)/atqa/auth
+	 rm -fr $(OUT_DIR_MAIN)/resources
 	 rm $(OUT_DIR_MAIN)/atqa/Main.class
 	 rm $(OUT_DIR_MAIN)/atqa/TheRegister.class
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
@@ -177,6 +179,7 @@ publish:: classes copyresources
 	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && \
       # move the jar up one directory \
       mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+	 echo "Your new jar file is at out/atqa.jar"
 
 JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
 DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
