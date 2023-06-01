@@ -163,8 +163,19 @@ clean::
 #: jar up the application (See Java's jar command)
 jar:: classes copyresources
 	 cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
-    # move the jar up one directory \
-    mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+      # move the jar up one directory \
+      mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+
+#: Build a jar of the project for use as a library
+publish:: classes copyresources
+	 rm -fr $(OUT_DIR_MAIN)/atqa/sampledomain
+	 rm -fr $(OUT_DIR_MAIN)/atqa/resources
+	 rm $(OUT_DIR_MAIN)/atqa/Main.class
+	 rm $(OUT_DIR_MAIN)/atqa/TheRegister.class
+	 vendor=renomad.com version=1.0.0 utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
+	 cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
+      # move the jar up one directory \
+      mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 
 JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
 DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
