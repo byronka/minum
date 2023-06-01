@@ -172,8 +172,9 @@ publish:: classes copyresources
 	 rm -fr $(OUT_DIR_MAIN)/atqa/resources
 	 rm $(OUT_DIR_MAIN)/atqa/Main.class
 	 rm $(OUT_DIR_MAIN)/atqa/TheRegister.class
+	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 vendor=renomad.com version=1.0.0 utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
-	 cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
+	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && \
       # move the jar up one directory \
       mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 
