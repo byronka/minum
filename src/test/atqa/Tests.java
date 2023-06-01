@@ -1,14 +1,11 @@
-package atqa.testing;
+package atqa;
 
-import atqa.FullSystem;
-import atqa.TheRegister;
 import atqa.auth.AuthenticationTests;
 import atqa.database.SimpleDatabaseTests;
 import atqa.sampledomain.FunctionalTests;
 import atqa.sampledomain.ListPhotosTests;
-import atqa.logging.TestLogger;
-import atqa.primary.TestAnalysisTests;
 import atqa.sampledomain.SampleDomainTests;
+import atqa.testing.TestLogger;
 import atqa.utils.*;
 import atqa.web.Http2Tests;
 import atqa.web.WebTests;
@@ -54,7 +51,6 @@ public class Tests {
     new ListPhotosTests(logger).tests(es);
     new Http2Tests(logger).test(es);
     new SampleDomainTests(logger).tests(es);
-    new TestAnalysisTests(logger).tests();
     runShutdownSequence(es);
   }
 

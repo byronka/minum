@@ -1,6 +1,6 @@
 package atqa.web;
 
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 import atqa.web.http2.Http2Frame;
 
 import java.util.List;

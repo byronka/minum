@@ -1,5 +1,6 @@
-package atqa.logging;
+package atqa.testing;
 
+import atqa.logging.Logger;
 import atqa.utils.ExtendedExecutor;
 import atqa.utils.TimeUtils;
 

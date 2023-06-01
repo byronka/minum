@@ -1,8 +1,8 @@
 package atqa.database;
 
-import atqa.logging.TestRecordingLogger;
+import atqa.testing.TestRecordingLogger;
 import atqa.utils.StopwatchUtils;
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtils;

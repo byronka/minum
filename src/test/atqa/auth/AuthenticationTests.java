@@ -1,7 +1,7 @@
 package atqa.auth;
 
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 import atqa.utils.FileUtils;
 import atqa.web.*;
 

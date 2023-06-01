@@ -1,6 +1,6 @@
 package atqa.web;
 
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 import atqa.utils.InvariantException;
 import atqa.utils.StringUtils;
 import atqa.utils.ThrowingConsumer;

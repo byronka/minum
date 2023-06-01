@@ -1,5 +1,6 @@
-package atqa.logging;
+package atqa.testing;
 
+import atqa.logging.ILogger;
 import atqa.utils.ThrowingSupplier;
 
 import java.util.ArrayList;

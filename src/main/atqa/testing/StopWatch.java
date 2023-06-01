@@ -1,4 +1,4 @@
-package atqa.primary;
+package atqa.testing;
 
 /**
  * This class provides some tools for running a virtual stopwatch

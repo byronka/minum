@@ -120,7 +120,7 @@ COV_DIR = out/coveragereport
 ##
 # default target(s)
 ##
-all:: classes copyresources
+all:: help
 
 # note that putting an @ in front of a command in a makefile
 # will cause that command not to echo out when running Make.
@@ -187,7 +187,7 @@ DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspen
 # This command includes several system properties so that we can connect to the
 # running Java Virtual Machine with Java Mission Control (JMC)
 #: run the application
-run:: all
+run:: classes copyresources
 	 $(JAVA) $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
 #: run the application using the jar
@@ -199,20 +199,20 @@ runjardebug:: jar
 	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
 
 #: run the application and open a port for debugging.
-rundebug:: all
+rundebug:: classes copyresources
 	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
 
 #: run the tests
-test:: all testclasses
-	 $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
+test:: classes copyresources testclasses
+	 $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 
 #: run the tests and open a port for debugging.
-testdebug:: all testclasses
-	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
+testdebug:: classes copyresources testclasses
+	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 
 #: If you want to obtain code coverage from running the tests. output at out/coveragereport
-testcov:: all testclasses
-	 $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).testing.Tests
+testcov:: classes copyresources testclasses
+	 $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 	 $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
 
 #: build the javadoc documentation in the out/javadoc directory
@@ -234,7 +234,11 @@ print-%::
 # the description of that target.  Run this from the command
 # line with "make help"
 help::
-	 @grep -B1 -E "^[a-zA-Z0-9_-]+\:([^\=]|$$)" Makefile \
+	 @echo
+	 @echo Help
+	 @echo ----
+	 @echo
+	 @grep -B1 -E "^[a-zA-Z0-9_-]+:([^\=]|$$)" Makefile \
      | grep -v -- -- \
      | sed 'N;s/\n/###/' \
      | sed -n 's/^#: \(.*\)###\(.*\):.*/\2###\1/p' \

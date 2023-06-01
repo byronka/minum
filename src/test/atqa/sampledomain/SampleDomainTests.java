@@ -4,7 +4,7 @@ import atqa.auth.AuthUtils;
 import atqa.auth.SessionId;
 import atqa.auth.User;
 import atqa.database.DatabaseDiskPersistenceSimpler;
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 import atqa.utils.StringUtils;
 import atqa.web.*;
 
@@ -13,8 +13,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import static atqa.framework.TestFramework.assertEquals;
-import static atqa.framework.TestFramework.assertTrue;
+import static atqa.testing.TestFramework.assertEquals;
+import static atqa.testing.TestFramework.assertTrue;
 
 public class SampleDomainTests {
 

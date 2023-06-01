@@ -1,6 +1,6 @@
 package atqa.sampledomain;
 
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 
 import java.util.concurrent.ExecutorService;
 

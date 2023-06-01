@@ -1,6 +1,6 @@
 package atqa.utils;
 
-import atqa.logging.TestLogger;
+import atqa.testing.TestLogger;
 import static atqa.testing.TestFramework.assertEquals;
 
 public class StringUtilsTests {
