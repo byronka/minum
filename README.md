@@ -1,5 +1,5 @@
-ATQA
-====
+ATQA Framework
+===============
 
 This code provides all the functionality for a low-risk web application.
 It has very few dependencies, and is written mostly in Java. This software
@@ -11,11 +11,9 @@ millisecond later) written to disk.
 
 Benefits of this software is the intention of simplicity and
 documentation.  It should be easier to modify and maintain than most
-frameworks. I am not saying it's _simple_, I'm saying that I value
-simplicity and have put my efforts towards that as a goal.
+frameworks. _Please note_: I am not saying it's **simple**, I'm saying that I _value
+simplicity_ and have put my efforts towards that as a goal.
 
-Study the files ListPhotos.java and TheRegister.java as a crash course
-on adding new functionality.
 
 Features:
 --------
