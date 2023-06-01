@@ -1,5 +1,7 @@
 package atqa.web;
 
+import atqa.exceptions.ForbiddenUseException;
+
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -114,7 +116,7 @@ public record StartLine(
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
         // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
         for (int i = 0; tokenizer.hasMoreTokens() && i <= MAX_QUERY_STRING_KEYS_COUNT; i++) {
-            if (i == MAX_QUERY_STRING_KEYS_COUNT) throw new RuntimeException("User tried providing too many query string keys.  Current max: " + MAX_QUERY_STRING_KEYS_COUNT);
+            if (i == MAX_QUERY_STRING_KEYS_COUNT) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + MAX_QUERY_STRING_KEYS_COUNT);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");

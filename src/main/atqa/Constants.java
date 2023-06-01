@@ -28,7 +28,7 @@ public class Constants {
     /**
      * We'll only read this many headers off a message.  Anything more is bonkers / hacking.
      */
-    public static final int MAX_HEADERS_COUNT = 40;
+    public static final int MAX_HEADERS_COUNT = 70;
 
     /**
      * We have a tokenizer that can split a string into partitions.  When

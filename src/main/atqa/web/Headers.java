@@ -1,5 +1,7 @@
 package atqa.web;
 
+import atqa.exceptions.ForbiddenUseException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -105,7 +107,7 @@ public record Headers(
         List<String> headers = new ArrayList<>();
         // we'll only grab the first MAX_HEADERS_COUNT headers.
         for (int i = 0; i <= MAX_HEADERS_COUNT; i++) {
-            if (i == MAX_HEADERS_COUNT) throw new RuntimeException("User tried sending too many headers.  Current max: " + MAX_HEADERS_COUNT);
+            if (i == MAX_HEADERS_COUNT) throw new ForbiddenUseException("User tried sending too many headers.  Current max: " + MAX_HEADERS_COUNT);
             String value = readLine(is);
             if (value != null && value.isBlank()) {
                 break;

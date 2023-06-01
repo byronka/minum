@@ -1,5 +1,7 @@
 package atqa.utils;
 
+import atqa.exceptions.ForbiddenUseException;
+
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
@@ -136,7 +138,7 @@ public class StringUtils {
         var currentPlace = 0;
         // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
         for(int i = 0; i <= MAX_TOKENIZER_PARTITIONS; i++) {
-            if (i == MAX_TOKENIZER_PARTITIONS) throw new RuntimeException("Request made for too many partitions in the tokenizer.  Current max: " + MAX_TOKENIZER_PARTITIONS);
+            if (i == MAX_TOKENIZER_PARTITIONS) throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + MAX_TOKENIZER_PARTITIONS);
             final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
             if (nextPipeSymbolIndex == -1) {
                 // if we don't see any pipe symbols ahead, grab the rest of the text from our current place

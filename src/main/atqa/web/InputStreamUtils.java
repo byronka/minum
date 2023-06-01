@@ -24,7 +24,7 @@ public class InputStreamUtils {
     public static byte[] readUntilEOF(InputStream inputStream) throws IOException {
         final var result = new ArrayList<Byte>();
         for (int i = 0; i <= (MAX_READ_SIZE_BYTES + 1); i++) {
-            if (i == MAX_READ_SIZE_BYTES) throw new RuntimeException("client sent more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES);
+            if (i == MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES);
             int a = inputStream.read();
             if (a == -1) {
                 return byteListToArray(result);
@@ -42,7 +42,7 @@ public class InputStreamUtils {
     public static byte[] readChunkedEncoding(InputStream inputStream) throws IOException {
         final var result = new ByteArrayOutputStream( );
         for (int countRead = 0; countRead <= (MAX_READ_SIZE_BYTES + 1); )  {
-            if (countRead == MAX_READ_SIZE_BYTES) throw new RuntimeException("client sent more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES);
+            if (countRead == MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES);
             String countToReadString = readLine(inputStream);
             if (countToReadString == null) {
                 return new byte[0];
@@ -98,7 +98,7 @@ public class InputStreamUtils {
      */
     public static byte[] read(int lengthToRead, InputStream inputStream) throws IOException {
         if (lengthToRead > MAX_READ_SIZE_BYTES) {
-            throw new RuntimeException("client requested to send more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES + " asked to receive: " + lengthToRead);
+            throw new ForbiddenUseException("client requested to send more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES + " asked to receive: " + lengthToRead);
         }
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.
