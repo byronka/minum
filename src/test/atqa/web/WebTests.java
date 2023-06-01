@@ -352,20 +352,6 @@ public class WebTests {
         }
 
         /*
-         * The StaticFilesCache is memory storage for all the files we
-         * are sending to clients that don't (typically) change during
-         * the run of the server.  Things like style pages, banner images,
-         * non-dynamic scripts.
-         *
-         * This test presumes that there are static files in the
-         * main/static directory.
-         */
-        logger.test("StaticFilesCache should load static files into a map"); {
-            final var sfc = new StaticFilesCache(logger).loadStaticFiles();
-            assertTrue(sfc.getSize() > 0);
-        }
-
-        /*
         If a client is POSTing data to our server, there are two allowed ways of doing it
         in HTTP/1.1.  One is to include the content-length, and the other is to do
         transfer-encoding: chunked.  This test is to drive implementation of chunk encoding.

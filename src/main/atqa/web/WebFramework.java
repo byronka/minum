@@ -1,6 +1,5 @@
 package atqa.web;
 
-import atqa.TheRegister;
 import atqa.logging.ILogger;
 import atqa.utils.StopwatchUtils;
 import atqa.utils.ThrowingConsumer;
@@ -39,7 +38,7 @@ public class WebFramework {
     public final ILogger logger;
 
     /**
-     * The list of paths that our system is registered to handle.  See {@link TheRegister}
+     * The list of paths that our system is registered to handle.
      */
     private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
 
@@ -196,7 +195,7 @@ public class WebFramework {
 
     /**
      * Looks through the mappings of {@link VerbPath} and path to registered endpoints
-     * in {@link TheRegister} or the static cache and returns the appropriate one (If we
+     * or the static cache and returns the appropriate one (If we
      * do not find anything, return null)
      */
     private Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
@@ -236,7 +235,7 @@ public class WebFramework {
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
      * @param es is the {@link ExecutorService} that will be provided to downstream users. We are
-     *           just requesting it here so we can dole it out to domains during registry in {@link TheRegister}
+     *           just requesting it here so we can dole it out to domains during registry
      * @param logger the {@link ILogger} we will use for logging throughout the system
      * @param overrideForDateTime for those test cases where we need to control the time
      * @param dbDir The root directory of the database

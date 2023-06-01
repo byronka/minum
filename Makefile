@@ -134,6 +134,13 @@ all:: help
 copyresources::
 	 @rsync --recursive --update --perms src/resources out/main
 
+##
+# copy the source code to the output directory.  This is used before we
+# built a jar file for publishing
+##
+copysources::
+	 @rsync --recursive --update --perms src/main/ out/main
+
 # make empty arrays for later use
 LIST:=
 TEST_LIST:=
@@ -168,12 +175,8 @@ jar:: classes copyresources
 	 echo "Your new jar file is at out/atqa.jar"
 
 #: Build a jar of the project for use as a library
-publish:: classes copyresources
-	 rm -fr $(OUT_DIR_MAIN)/atqa/sampledomain
-	 rm -fr $(OUT_DIR_MAIN)/atqa/auth
-	 rm -fr $(OUT_DIR_MAIN)/resources
-	 rm $(OUT_DIR_MAIN)/atqa/Main.class
-	 rm $(OUT_DIR_MAIN)/atqa/TheRegister.class
+publish:: clean classes copyresources copysources
+	 rm -fr $(OUT_DIR_MAIN)/resources/static/* $(OUT_DIR_MAIN)/resources/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 vendor=renomad.com version=1.0.0 utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
 	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && \
