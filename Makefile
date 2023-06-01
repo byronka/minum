@@ -184,27 +184,6 @@ publish:: clean classes copyresources copysources
       mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 	 echo "Your new jar file is at out/atqa.jar"
 
-JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
-DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
-
-# This command includes several system properties so that we can connect to the
-# running Java Virtual Machine with Java Mission Control (JMC)
-#: run the application
-run:: classes copyresources
-	 $(JAVA) $(JMX_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
-
-#: run the application using the jar
-runjar:: jar
-	 $(JAVA) $(JMX_PROPERTIES) -jar $(OUT_DIR)/$(PROJ_NAME).jar
-
-#: run the application using the jar, debugging
-runjardebug:: jar
-	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES)  -jar $(OUT_DIR)/$(PROJ_NAME).jar
-
-#: run the application and open a port for debugging.
-rundebug:: classes copyresources
-	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(RUN_CP) $(PROJ_NAME).Main
-
 #: run the tests
 test:: classes copyresources testclasses
 	 $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests

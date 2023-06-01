@@ -27,7 +27,8 @@ Features:
 Quick start:
 ------------
 
-* To run: `make run`
+* To test: `make test`
+* To create a library jar: `make publish`
 * For help: `make help`
 
 System requirements: 
