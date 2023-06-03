@@ -2,10 +2,7 @@ package atqa.web;
 
 import atqa.logging.ILogger;
 import atqa.logging.Logger;
-import atqa.utils.ExtendedExecutor;
-import atqa.utils.ThrowingConsumer;
-import atqa.utils.ThrowingRunnable;
-import atqa.utils.TimeUtils;
+import atqa.utils.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,6 +15,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static atqa.web.WebEngine.HTTP_CRLF;
 
@@ -142,6 +140,15 @@ public class FullSystem {
      */
     public void shutdown() throws IOException {
         System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
+
+        es.shutdown();
+        try {
+            if (!es.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+                es.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            es.shutdownNow();
+        }
 
         System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
         if (server != null) server.stop();
