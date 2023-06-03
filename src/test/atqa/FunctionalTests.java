@@ -1,7 +1,6 @@
-package atqa.sampledomain;
+package atqa;
 
 import atqa.logging.ILogger;
-import atqa.testing.TestLogger;
 import atqa.utils.MyThread;
 import atqa.web.*;
 

@@ -1,7 +1,6 @@
 package atqa;
 
 import atqa.database.SimpleDatabaseTests;
-import atqa.sampledomain.FunctionalTests;
 import atqa.sampledomain.ListPhotosTests;
 import atqa.testing.TestLogger;
 import atqa.utils.ActionQueue;
