@@ -58,7 +58,7 @@ public class WebFramework implements AutoCloseable {
      *                      <br>
      *                      The common case definition of this is found at {@link #findEndpointForThisStartline}
      */
-    ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
+    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
 
         // build the handler
 
@@ -165,7 +165,7 @@ public class WebFramework implements AutoCloseable {
      * the code to be run in the web testing engine that selects which
      * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(Function)}
      */
-    ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler() {
+    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler() {
         return makePrimaryHttpHandler(this::findEndpointForThisStartline);
     }
 

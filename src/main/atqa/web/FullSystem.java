@@ -85,7 +85,7 @@ public class FullSystem implements AutoCloseable {
      * the help we'll give.  We're not going to extract headers or
      * body, we'll just read the start line and then stop reading from them.
      */
-    private ThrowingConsumer<SocketWrapper, IOException> makeRedirectHandler() {
+    ThrowingConsumer<ISocketWrapper, IOException> makeRedirectHandler() {
         return (sw) -> {
             try (sw) {
                 try (InputStream is = sw.getInputStream()) {

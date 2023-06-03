@@ -37,7 +37,7 @@ public class WebEngine {
   private final ILogger logger;
   public static final String HTTP_CRLF = "\r\n";
 
-  public Server startServer(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) throws IOException {
+  public Server startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
     Properties configuredProperties = FullSystem.getConfiguredProperties();
     int port = Integer.parseInt(configuredProperties.getProperty("nonsslServerPort", "8080"));
     ServerSocket ss = new ServerSocket(port);
@@ -50,7 +50,7 @@ public class WebEngine {
     return server;
   }
 
-  public Server startSslServer(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) throws IOException {
+  public Server startSslServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
 
     /*
      * If we find the keystore and pass in the system properties

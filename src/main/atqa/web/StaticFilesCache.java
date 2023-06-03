@@ -37,12 +37,6 @@ public class StaticFilesCache {
      */
     public static final String STATIC_FILES_DIRECTORY = "resources/static/";
 
-    /**
-     * This is where we store template files - files meant to be loaded and
-     * modified before serving.  For example, .html files
-     */
-    public static final String TEMPLATES_FILES_DIRECTORY = "resources/templates/";
-
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
 

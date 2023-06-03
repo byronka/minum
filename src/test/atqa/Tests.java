@@ -49,6 +49,8 @@ public class Tests {
     new ListPhotosTests(logger).tests(es);
     new StringUtilsTests(logger).tests();
     new Http2Tests(logger).test(es);
+    new FullSystemTests(logger).tests(es);
+    new StaticFilesCacheTests(logger).tests(es);
     runShutdownSequence(es);
   }
 

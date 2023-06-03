@@ -191,6 +191,9 @@ publish:: clean classes copyresources copysources
 test:: classes testclasses copyresources copytestresources
 	 $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 
+JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
+DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
+
 #: run the tests and open a port for debugging.
 testdebug:: classes testclasses copyresources copytestresources
 	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests

@@ -47,7 +47,7 @@ public class Server implements AutoCloseable {
      * of the phone line" to the code that is "handler", which mainly handles it from there.
      * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
      */
-    public void start(ExecutorService es, ThrowingConsumer<SocketWrapper, IOException> handler) {
+    public void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
             Thread.currentThread().setName("Main Server");
             try {

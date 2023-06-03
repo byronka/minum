@@ -128,7 +128,7 @@ public class WebTests {
         There's nothing to prevent us using this as the entire
         basis of a atqa.web atqa.testing.
        */
-            ThrowingConsumer<SocketWrapper, IOException> handler = (sw) -> {
+            ThrowingConsumer<ISocketWrapper, IOException> handler = (sw) -> {
                 InputStream is = sw.getInputStream();
                 logger.logDebug(() -> InputStreamUtils.readLine(is));
             };

@@ -1,7 +1,11 @@
 package atqa.web;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -10,19 +14,26 @@ import java.util.function.Supplier;
  */
 public class FakeSocketWrapper implements ISocketWrapper {
 
-    Consumer<String> sendAction;
-    Consumer<String> sendHttpLineAction;
-    Supplier<String> getLocalAddrAction;
-    Supplier<Integer> getLocalPortAction;
-    Supplier<SocketAddress> getRemoteAddrAction;
+    public Consumer<String> sendHttpLineAction;
+    public Supplier<String> getLocalAddrAction;
+    public Supplier<Integer> getLocalPortAction;
+    public Supplier<SocketAddress> getRemoteAddrAction;
+    public ByteArrayOutputStream baos;
+    public ByteArrayInputStream bais;
 
-    @Override
-    public void send(String msg) {
-        sendAction.accept(msg);
+    public FakeSocketWrapper() {
+        bais = new ByteArrayInputStream(new byte[0]);
+        baos = new ByteArrayOutputStream();
     }
 
     @Override
-    public void send(byte[] bodyContents) {
+    public void send(String msg) throws IOException {
+        baos.write(msg.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void send(byte[] bodyContents) throws IOException {
+        baos.write(bodyContents);
     }
 
     @Override
@@ -55,6 +66,6 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public InputStream getInputStream() {
-        return null;
+        return bais;
     }
 }
