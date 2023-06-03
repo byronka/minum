@@ -1,1 +1,1 @@
-See the sampledomain for usage hints
+See the atqa.sampledomain for usage hints

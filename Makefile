@@ -132,7 +132,10 @@ all:: help
 # in the classpath
 ##
 copyresources::
-	 @rsync --recursive --update --perms src/resources out/main
+	 @rsync --recursive --update --perms src/resources/* out/main/resources
+
+copytestresources::
+	 @rsync --recursive --update --perms src/testresources/* out/main/resources
 
 ##
 # copy the source code to the output directory.  This is used before we
@@ -185,15 +188,15 @@ publish:: clean classes copyresources copysources
 	 echo "Your new jar file is at out/atqa.jar"
 
 #: run the tests
-test:: classes copyresources testclasses
+test:: classes testclasses copyresources copytestresources
 	 $(JAVA) $(JMX_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 
 #: run the tests and open a port for debugging.
-testdebug:: classes copyresources testclasses
+testdebug:: classes testclasses copyresources copytestresources
 	 $(JAVA) $(JMX_PROPERTIES) $(DEBUG_PROPERTIES) -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 
 #: If you want to obtain code coverage from running the tests. output at out/coveragereport
-testcov:: classes copyresources testclasses
+testcov:: classes testclasses copyresources copytestresources
 	 $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 	 $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
 

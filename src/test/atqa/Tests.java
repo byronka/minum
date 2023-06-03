@@ -1,14 +1,16 @@
 package atqa;
 
+import atqa.auth.AuthenticationTests;
 import atqa.database.SimpleDatabaseTests;
+import atqa.sampledomain.FunctionalTests;
+import atqa.sampledomain.ListPhotosTests;
+import atqa.sampledomain.SampleDomainTests;
 import atqa.testing.TestLogger;
 import atqa.utils.ActionQueue;
 import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
 import atqa.utils.StringUtilsTests;
-import atqa.web.FullSystem;
-import atqa.web.Http2Tests;
-import atqa.web.WebTests;
+import atqa.web.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -19,6 +21,8 @@ public class Tests {
   public static void main(String[] args) {
     try {
       unitAndIntegrationTests();
+      clearTestDatabase();
+      testFullSystem_Soup_To_Nuts();
       clearTestDatabase();
       indicateTestsFinished();
     } catch (Exception ex) {
@@ -44,9 +48,28 @@ public class Tests {
     var es = logger.getExecutorService();
     new WebTests(logger).tests(es);
     new SimpleDatabaseTests(logger).tests(es);
+    new SampleDomainTests(logger).tests(es);
+    new ListPhotosTests(logger).tests(es);
+    new AuthenticationTests(logger).tests(es);
     new StringUtilsTests(logger).tests();
     new Http2Tests(logger).test(es);
     runShutdownSequence(es);
+  }
+
+  /**
+   * Run a test of the entire system.  In particular, runs code
+   * from {@link FullSystem}
+   */
+  private static void testFullSystem_Soup_To_Nuts() throws Exception {
+    TestLogger logger = TestLogger.makeTestLogger();
+    logger.test("Starting a soup-to-nuts tests of the full system");
+    var es = logger.getExecutorService();
+    var fs = new FullSystem(logger, es).start();
+    TheRegister.registerDomains(fs.webFramework);
+    new FunctionalTests(logger, fs.server).test();
+    fs.removeShutdownHook();
+    fs.shutdown();
+    es.shutdownNow();
   }
 
   private static void clearTestDatabase() throws IOException {

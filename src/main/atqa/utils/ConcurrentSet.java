@@ -21,13 +21,12 @@ public class ConcurrentSet<T> implements Iterable<T> {
         this.map = new ConcurrentHashMap<>();
     }
 
-    public boolean add(T element) {
+    public void add(T element) {
         map.putIfAbsent(element, NullEnum.NULL);
-        return true;
     }
 
-    public boolean remove(T element) {
-        return map.remove(element) != null;
+    public void remove(T element) {
+        map.remove(element);
     }
 
     public int size() {
