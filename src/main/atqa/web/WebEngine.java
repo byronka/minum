@@ -1,6 +1,5 @@
 package atqa.web;
 
-import atqa.FullSystem;
 import atqa.logging.ILogger;
 import atqa.utils.ThrowingConsumer;
 

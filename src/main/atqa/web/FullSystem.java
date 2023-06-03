@@ -1,4 +1,4 @@
-package atqa;
+package atqa.web;
 
 import atqa.logging.ILogger;
 import atqa.logging.Logger;
@@ -6,7 +6,6 @@ import atqa.utils.ExtendedExecutor;
 import atqa.utils.ThrowingConsumer;
 import atqa.utils.ThrowingRunnable;
 import atqa.utils.TimeUtils;
-import atqa.web.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,17 +35,36 @@ public class FullSystem {
 
     final ExecutorService es;
 
+    /**
+     * This constructor is used when you want to provide the
+     * {@link ILogger} and {@link ExecutorService}. It's easier
+     * if you use {@link #initialize()} since it handles that for you.
+     */
     public FullSystem(ILogger logger, ExecutorService es) {
         this.logger = logger;
         this.es = es;
     }
 
-    public static FullSystem initialize() {
+    /**
+     * Instantiate a FullSystem with freshly-constructed
+     * values for {@link ILogger} and {@link ExecutorService}.
+     */
+    public static WebFramework initialize() {
         final var es = ExtendedExecutor.makeExecutorService();
         final var logger = new Logger(es);
-        return new FullSystem(logger, es);
+        try {
+            return new FullSystem(logger, es).start().webFramework;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    /**
+     * This starts the system running, ** BUT YOU SHOULD
+     * NOT USE THIS!! ** - use {@link #initialize()} instead.  This is
+     * a method only needed if you need a bit greater control
+     * when starting, which is mostly just required for testing.
+     */
     public FullSystem start() throws IOException  {
         createSystemRunningMarker();
         System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Atqa is starting ***");

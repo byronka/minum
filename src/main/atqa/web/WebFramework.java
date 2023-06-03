@@ -1,5 +1,7 @@
 package atqa.web;
 
+import atqa.database.DatabaseDiskPersistenceSimpler;
+import atqa.database.SimpleDataType;
 import atqa.logging.ILogger;
 import atqa.utils.StopwatchUtils;
 import atqa.utils.ThrowingConsumer;
@@ -35,7 +37,7 @@ public class WebFramework {
      * The logger to be used in the system.  Stored here to avoid
      * some boilerplate parameters during registration of request -> response handlers.
      */
-    public final ILogger logger;
+    private final ILogger logger;
 
     /**
      * The list of paths that our system is registered to handle.
@@ -48,24 +50,14 @@ public class WebFramework {
     /**
      * The primary {@link ExecutorService} for the whole dang system
      */
-    public final ExecutorService executorService;
+    private final ExecutorService executorService;
 
     /**
      * The root directory of the database
      */
-    public final Path dbDir;
+    private final Path dbDir;
 
     private StaticFilesCache staticFilesCache;
-
-    /**
-     * Returns a 303 response pointing to the web location you indicate
-     * @param location a string form of a valid web location
-     */
-    public static Function<Request, Response> redirectTo(String location) {
-        return x -> new Response(
-                StatusLine.StatusCode._303_SEE_OTHER,
-                List.of("location: " + location));
-    }
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -81,7 +73,7 @@ public class WebFramework {
      *                      <br>
      *                      The common case definition of this is found at {@link #findEndpointForThisStartline}
      */
-    public ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
+    ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
 
         // build the handler
         ThrowingConsumer<SocketWrapper, IOException> primaryHttpHandler = (sw) -> {
@@ -189,7 +181,7 @@ public class WebFramework {
      * the code to be run in the web testing engine that selects which
      * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(Function)}
      */
-    public ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler() {
+    ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler() {
         return makePrimaryHttpHandler(this::findEndpointForThisStartline);
     }
 
@@ -249,12 +241,45 @@ public class WebFramework {
         this.staticFilesCache = new StaticFilesCache(logger);
     }
 
+    /**
+     * Add a new handler in the web application for a combination
+     * of a {@link atqa.web.StartLine.Verb}, a path, and then provide
+     * the code to handle a request.
+     * <br>
+     * Note that the path text expected is *after* the first forward slash,
+     * so for example with {@code http://foo.com/mypath}, you provide us "mypath"
+     * here.
+     */
     public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
         registeredDynamicPaths.put(new VerbPath(verb, pathName), webHandler);
     }
 
 
-    public void registerStaticFiles(StaticFilesCache sfc) {
+    void registerStaticFiles(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;
     }
+
+    /**
+     * Since this is a generic method, a bit of care is required when
+     * calling.  Try to use a pattern like this:
+     * <pre>
+     * {@code DatabaseDiskPersistenceSimpler<Photograph> photoDdps = wf.getDdps("photos");}
+     * </pre>
+     */
+    public <T extends SimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
+        return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), this.executorService, logger);
+    }
+
+    public ILogger getLogger() {
+        return logger;
+    }
+
+    public Path getDbDir() {
+        return dbDir;
+    }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
 }

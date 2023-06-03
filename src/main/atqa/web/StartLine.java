@@ -40,6 +40,11 @@ public record StartLine(
     public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
     public static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "");
 
+    /**
+     * Returns a map of the key-value pairs in the URL,
+     * for example in {@code http://foo.com?name=alice} you
+     * have a key of name and a value of alice.
+     */
     public Map<String, String> queryString() {
         if (pathDetails.queryString.isEmpty()) {
             return new HashMap<>();
@@ -49,10 +54,17 @@ public record StartLine(
 
     }
 
+    /**
+     * These are the HTTP Verbs we handle
+     */
     public enum Verb {
         GET, POST, NONE
     }
 
+    /**
+     * Given the string value of a startline (like GET /hello HTTP/1.1)
+     * validate and extract the values for our use.
+     */
     public static StartLine extractStartLine(String value) {
         mustNotBeNull(value);
         Matcher m = StartLine.startLineRegex.matcher(value);

@@ -1,6 +1,6 @@
 package atqa.utils;
 
-import atqa.FullSystem;
+import atqa.web.FullSystem;
 
 import java.util.concurrent.*;
 

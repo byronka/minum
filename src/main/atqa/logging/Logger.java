@@ -1,6 +1,6 @@
 package atqa.logging;
 
-import atqa.FullSystem;
+import atqa.web.FullSystem;
 import atqa.utils.ActionQueue;
 import atqa.utils.StringUtils;
 import atqa.utils.ThrowingSupplier;
