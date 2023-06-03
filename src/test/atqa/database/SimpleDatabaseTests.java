@@ -1,7 +1,6 @@
 package atqa.database;
 
 import atqa.testing.TestRecordingLogger;
-import atqa.utils.StopwatchUtils;
 import atqa.testing.TestLogger;
 import atqa.utils.FileUtils;
 import atqa.utils.MyThread;
@@ -199,29 +198,6 @@ public class SimpleDatabaseTests {
             String directoryMissingMessage = myLogger.findFirstMessageThatContains("directory missing").replace('\\', '/');
             assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
             ddps.stop();
-        }
-
-
-        /*
-         * In this test, we'll turn off disk-syncing.
-         *
-         * For the record... running this takes between 80 and 120 milliseconds.
-         */
-        logger.test("Just how fast is our atqa.database? spoiler: about 10 updates in 1 nanosecond");{
-            final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
-
-            // change the foos
-            final var timer = new StopwatchUtils().startTimer();
-            for (var i = 1; i < 100_000; i++) {
-                final var newFoos = new ArrayList<Foo>();
-                for (var foo : foos) {
-                    final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
-                    newFoos.add(newFoo);
-                }
-            }
-            final var time = timer.stopTimer();
-
-             logger.testPrintToFile(String.valueOf(time), Path.of("docs/perf_data/database_speed_test.txt"));
         }
 
     }

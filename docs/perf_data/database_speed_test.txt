@@ -16,8 +16,6 @@ logger.test("Just how fast is our atqa.database? spoiler: about 10 updates in 1 
         }
     }
     final var time = timer.stopTimer();
-
-     logger.testPrintToFile(String.valueOf(time), Path.of("docs/perf_data/database_speed_test.txt"));
 }
 
 Performance measurements:
