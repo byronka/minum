@@ -19,8 +19,10 @@ Features:
 --------
 
 - web server
-- routing
-- database
+- web path routing
+- database pattern - in memory w/ eventual disk persistence
+- logging
+- testing framework
 
 Quick start:
 ------------
