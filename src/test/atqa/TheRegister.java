@@ -66,16 +66,14 @@ public class TheRegister {
 
     private static UploadPhoto setupUploadPhotos(WebFramework wf, AuthUtils auth) {
         DatabaseDiskPersistenceSimpler<Photograph> photoDdps = wf.getDdps("photos");
-        return new UploadPhoto(photoDdps, wf.getLogger(), wf.getDbDir(), auth);
+        return new UploadPhoto(photoDdps, wf.getLogger(), auth);
     }
 
     private static AuthUtils buildAuthDomain(WebFramework wf) {
-
-        wf.getLogger().logDebug(() -> "using a database directory of " + wf.getDbDir());
         DatabaseDiskPersistenceSimpler<SessionId> sessionDdps = wf.getDdps("sessions");
         DatabaseDiskPersistenceSimpler<User> userDdps = wf.getDdps("users");
         var au = new AuthUtils(sessionDdps, userDdps, wf);
-        var sessionLooper = new LoopingSessionReviewing(wf.getExecutorService(), wf.getLogger(), au).initialize();
+        var sessionLooper = new LoopingSessionReviewing(wf.getFullSystem().getExecutorService(), wf.getLogger(), au).initialize();
         au.setSessionLooper(sessionLooper);
         return au;
     }

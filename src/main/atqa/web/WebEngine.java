@@ -153,6 +153,9 @@ public class WebEngine {
     return startServer(es, null);
   }
 
+  /**
+   * Create a client {@link SocketWrapper} connected to the running host server
+   */
   public SocketWrapper startClient(Server server) throws IOException {
     Socket socket = new Socket(server.getHost(), server.getPort());
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));

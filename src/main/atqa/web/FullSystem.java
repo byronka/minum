@@ -21,15 +21,14 @@ import static atqa.web.WebEngine.HTTP_CRLF;
 /**
  * This class is responsible for kicking off the entire system.
  */
-public class FullSystem {
+public class FullSystem implements AutoCloseable {
 
     final ILogger logger;
-    public Server server;
-    public WebFramework webFramework;
-    Server sslServer;
+    private Server server;
+    private WebFramework webFramework;
+    private Server sslServer;
     Thread shutdownHook;
     private static Properties properties;
-
     final ExecutorService es;
 
     /**
@@ -50,7 +49,7 @@ public class FullSystem {
         final var es = ExtendedExecutor.makeExecutorService();
         final var logger = new Logger(es);
         try {
-            return new FullSystem(logger, es).start().webFramework;
+            return new FullSystem(logger, es).start().getWebFramework();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -67,8 +66,7 @@ public class FullSystem {
         System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Atqa is starting ***");
         WebEngine webEngine = new WebEngine(logger);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
-        Path dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
-        webFramework = new WebFramework(es, logger, dbDir);
+        webFramework = new WebFramework(this);
         addShutdownHook();
         webFramework.registerStaticFiles(sfc);
         final var webHandler = webFramework.makePrimaryHttpHandler();
@@ -76,7 +74,6 @@ public class FullSystem {
         boolean shouldRedirect = Boolean.parseBoolean(FullSystem.getConfiguredProperties().getProperty("redirect80", "false"));
         var handler = shouldRedirect ? makeRedirectHandler() : webHandler;
         server = webEngine.startServer(es, handler);
-
         sslServer = webEngine.startSslServer(es, webHandler);
         return this;
     }
@@ -126,27 +123,12 @@ public class FullSystem {
      * will log
      */
     void addShutdownHook() {
-        shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::shutdown));
+        shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::close));
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
     public void removeShutdownHook() {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
-    }
-
-    /**
-     * Systematically shuts down everything in the system,
-     */
-    public void shutdown() throws IOException {
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
-
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
-        if (server != null) server.stop();
-
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
-        if (sslServer != null) sslServer.stop();
-
-        System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
     }
 
     /**
@@ -186,4 +168,32 @@ public class FullSystem {
         return properties;
     }
 
+    public ExecutorService getExecutorService() {
+        return es;
+    }
+
+    public Server getServer() {
+        return server;
+    }
+
+    public Server getSslServer() {
+        return sslServer;
+    }
+
+    public WebFramework getWebFramework() {
+        return webFramework;
+    }
+
+    @Override
+    public void close() throws IOException {
+        System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
+
+        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
+        if (server != null) server.close();
+
+        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
+        if (sslServer != null) sslServer.close();
+
+        System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
+    }
 }

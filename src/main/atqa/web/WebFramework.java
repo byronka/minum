@@ -31,13 +31,7 @@ import static atqa.web.WebEngine.HTTP_CRLF;
  * slot in WebEngine and handles HTTP protocol.  Also handles
  * routing and static files.
  */
-public class WebFramework {
-
-    /**
-     * The logger to be used in the system.  Stored here to avoid
-     * some boilerplate parameters during registration of request -> response handlers.
-     */
-    private final ILogger logger;
+public class WebFramework implements AutoCloseable {
 
     /**
      * The list of paths that our system is registered to handle.
@@ -46,18 +40,9 @@ public class WebFramework {
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
-
-    /**
-     * The primary {@link ExecutorService} for the whole dang system
-     */
-    private final ExecutorService executorService;
-
-    /**
-     * The root directory of the database
-     */
-    private final Path dbDir;
-
+    private final FullSystem fs;
     private StaticFilesCache staticFilesCache;
+    private final ILogger logger;
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -76,7 +61,8 @@ public class WebFramework {
     ThrowingConsumer<SocketWrapper, IOException> makePrimaryHttpHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
 
         // build the handler
-        ThrowingConsumer<SocketWrapper, IOException> primaryHttpHandler = (sw) -> {
+
+        return (sw) -> {
             try (sw) {
                 var fullStopwatch = new StopwatchUtils().startTimer();
                 final var is = sw.getInputStream();
@@ -155,8 +141,6 @@ public class WebFramework {
                 logger.logDebug(() -> ex.getMessage() + " (at WebFramework)");
             }
         };
-
-        return primaryHttpHandler;
     }
 
     /**
@@ -207,36 +191,30 @@ public class WebFramework {
         return functionFound;
     }
 
-    /**
-     * This constructor is used for the real production system
-     */
-    public WebFramework(ExecutorService es, ILogger logger, Path dbDir) {
-        this(es, logger, null, dbDir);
+    public WebFramework(ILogger logger, ZonedDateTime default_zdt) {
+        this(null, logger, default_zdt);
     }
 
     /**
-     * This constructor is more commonly used during testing.  Note the
-     * parameter available for overriding the current date and time, and
-     * no ability to set the database directory!
+     * This constructor is used for the real production system
      */
-    public WebFramework(ExecutorService es, ILogger logger, ZonedDateTime overrideForDateTime) {
-        this(es, logger, overrideForDateTime, Path.of("out/simple_db"));
+    public WebFramework(FullSystem fs) {
+        this(fs, null);
     }
 
     /**
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
-     * @param es is the {@link ExecutorService} that will be provided to downstream users. We are
-     *           just requesting it here so we can dole it out to domains during registry
-     * @param logger the {@link ILogger} we will use for logging throughout the system
      * @param overrideForDateTime for those test cases where we need to control the time
-     * @param dbDir The root directory of the database
      */
-    public WebFramework(ExecutorService es, ILogger logger, ZonedDateTime overrideForDateTime, Path dbDir) {
-        this.executorService = es;
+    public WebFramework(FullSystem fs, ZonedDateTime overrideForDateTime) {
+        this(fs, fs.logger, overrideForDateTime);
+    }
+
+    private WebFramework(FullSystem fs, ILogger logger, ZonedDateTime overrideForDateTime) {
+        this.fs = fs;
         this.logger = logger;
         this.overrideForDateTime = overrideForDateTime;
-        this.dbDir = dbDir;
         this.registeredDynamicPaths = new HashMap<>();
         this.staticFilesCache = new StaticFilesCache(logger);
     }
@@ -267,19 +245,20 @@ public class WebFramework {
      * </pre>
      */
     public <T extends SimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
-        return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), this.executorService, logger);
+        var dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
+        return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), fs.es, fs.logger);
     }
 
     public ILogger getLogger() {
         return logger;
     }
 
-    public Path getDbDir() {
-        return dbDir;
+    public FullSystem getFullSystem() {
+        return this.fs;
     }
 
-    public ExecutorService getExecutorService() {
-        return executorService;
+    @Override
+    public void close() throws IOException {
+        if (fs != null) this.fs.close();
     }
-
 }

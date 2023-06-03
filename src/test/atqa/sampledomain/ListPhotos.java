@@ -4,6 +4,7 @@ import atqa.auth.AuthUtils;
 import atqa.logging.ILogger;
 import atqa.utils.FileUtils;
 import atqa.utils.StacktraceUtils;
+import atqa.web.FullSystem;
 import atqa.web.Request;
 import atqa.web.Response;
 import atqa.web.WebFramework;
@@ -33,7 +34,7 @@ public class ListPhotos {
 
     public ListPhotos(WebFramework wf, UploadPhoto up, AuthUtils auth) {
         this.logger = wf.getLogger();
-        this.dbDir = wf.getDbDir();
+        this.dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
         listPhotosTemplateHtml = FileUtils.readTemplate("listphotos/list_photos_template.html");
         this.up = up;
         this.auth = auth;

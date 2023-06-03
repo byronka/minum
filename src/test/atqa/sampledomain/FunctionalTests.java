@@ -1,6 +1,6 @@
 package atqa.sampledomain;
 
-import atqa.testing.TestLogger;
+import atqa.logging.ILogger;
 import atqa.utils.MyThread;
 import atqa.web.*;
 
@@ -20,19 +20,17 @@ import static atqa.web.StatusLine.StatusCode._303_SEE_OTHER;
  */
 public class FunctionalTests {
 
-    private final TestLogger logger;
     final Server primaryServer;
     final WebEngine webEngine;
+    private final ILogger logger;
 
-    public FunctionalTests(TestLogger logger, Server primaryServer) {
-        this.logger = logger;
-        this.primaryServer = primaryServer;
-        this.webEngine = new WebEngine(logger);
+    public FunctionalTests(WebFramework wf) {
+        this.primaryServer = wf.getFullSystem().getServer();
+        this.webEngine = new WebEngine(wf.getLogger());
+        this.logger = wf.getLogger();
     }
 
     public void test() throws Exception {
-        logger.test("First functional test"); {
-
             get("photos");
             get("login");
             post("registeruser", "username=foo&password=bar");
@@ -44,8 +42,6 @@ public class FunctionalTests {
             var htmlResponse = response2.body().asString();
             String photoSrc = find("photo\\?name=[a-z0-9\\-]*", htmlResponse);
             get(photoSrc, List.of("Cookie: " + cookieValue));
-        }
-
     }
 
     record TestResponse(Headers headers, Body body) {}

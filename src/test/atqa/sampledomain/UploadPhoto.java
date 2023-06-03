@@ -7,6 +7,7 @@ import atqa.logging.ILogger;
 import atqa.sampledomain.photo.Photograph;
 import atqa.utils.FileUtils;
 import atqa.utils.StacktraceUtils;
+import atqa.web.FullSystem;
 import atqa.web.Request;
 import atqa.web.Response;
 import java.io.IOException;
@@ -30,10 +31,10 @@ public class UploadPhoto {
     private final Path dbDir;
     private final AuthUtils auth;
 
-    public UploadPhoto(DatabaseDiskPersistenceSimpler<Photograph> ddps, ILogger logger, Path dbDir, AuthUtils auth) {
+    public UploadPhoto(DatabaseDiskPersistenceSimpler<Photograph> ddps, ILogger logger, AuthUtils auth) {
         this.auth = auth;
         this.logger = logger;
-        this.dbDir = dbDir;
+        this.dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
         uploadPhotoTemplateHtml = FileUtils.readTemplate("uploadphoto/upload_photo_template.html");
         this.ddps = ddps;
         photographs = ddps.readAndDeserialize(Photograph.EMPTY);

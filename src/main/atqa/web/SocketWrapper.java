@@ -14,7 +14,7 @@ import static atqa.Constants.SOCKET_TIMEOUT_MILLIS;
 /**
  * This wraps Sockets to make them more particular to our use case
  */
-public class SocketWrapper implements ISocketWrapper {
+public class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     private final Socket socket;
     private final InputStream inputStream;

@@ -86,6 +86,10 @@ public class Server implements AutoCloseable {
     }
 
     public void close() throws IOException {
+        // close all the running sockets
+        setOfSWs.stopAllServers();
+
+        // close the primary server socket
         serverSocket.close();
     }
 
@@ -103,14 +107,6 @@ public class Server implements AutoCloseable {
      */
     public SocketWrapper getServer(SocketWrapper sw) {
         return setOfSWs.getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
-    }
-
-    public void stop() throws IOException {
-        // close all the running sockets
-        setOfSWs.stopAllServers();
-
-        // close the primary server socket
-        serverSocket.close();
     }
 
     /**
