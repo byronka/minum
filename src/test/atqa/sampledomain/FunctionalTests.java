@@ -1,6 +1,7 @@
 package atqa.sampledomain;
 
 import atqa.logging.ILogger;
+import atqa.testing.TestLogger;
 import atqa.utils.MyThread;
 import atqa.web.*;
 
@@ -10,9 +11,9 @@ import java.util.List;
 
 import static atqa.testing.RegexUtils.find;
 import static atqa.testing.TestFramework.assertEquals;
+import static atqa.testing.TestFramework.assertTrue;
 import static atqa.web.InputStreamUtils.readLine;
-import static atqa.web.StatusLine.StatusCode._200_OK;
-import static atqa.web.StatusLine.StatusCode._303_SEE_OTHER;
+import static atqa.web.StatusLine.StatusCode.*;
 
 /**
  * This test is called after the testing framework has started
@@ -20,31 +21,79 @@ import static atqa.web.StatusLine.StatusCode._303_SEE_OTHER;
  */
 public class FunctionalTests {
 
+    private final ILogger logger;
     final Server primaryServer;
     final WebEngine webEngine;
-    private final ILogger logger;
 
     public FunctionalTests(WebFramework wf) {
-        this.primaryServer = wf.getFullSystem().getServer();
-        this.webEngine = new WebEngine(wf.getLogger());
         this.logger = wf.getLogger();
+        this.primaryServer = wf.getFullSystem().getServer();
+        this.webEngine = new WebEngine(logger);
     }
 
     public void test() throws Exception {
-            get("photos");
-            get("login");
-            post("registeruser", "username=foo&password=bar");
+        System.out.println("First functional test"); {
+
+            // grab the photos page unauthenticated
+            assertEquals(get("photos").statusLine().status(), _200_OK);
+
+            // go to the page for registering a user, while unauthenticated.
+            assertEquals(get("register").statusLine().status(), _200_OK);
+
+            // register a user
+            var registrationResponse = post("registeruser", "username=foo&password=bar");
+            assertEquals(registrationResponse.statusLine().status(), _303_SEE_OTHER);
+            assertEquals(registrationResponse.headers().headersAsMap().get("Location"), List.of("login"));
+
+            // Go to the login page, unauthenticated
+            assertEquals(get("login").statusLine().status(), _200_OK);
+
+            // login as the user we registered
             var response = post("loginuser", "username=foo&password=bar");
             var cookieValue = String.join(";", response.headers().headersAsMap().get("Set-Cookie"));
-            get("upload", List.of("Cookie: " + cookieValue));
-            post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", List.of("Cookie: " + cookieValue));
+
+            // try visiting the registration page while authenticated (should get redirected)
+            List<String> authHeader = List.of("Cookie: " + cookieValue);
+            var registrationResponseAuthd = post("registeruser", "username=foo&password=bar", authHeader);
+            assertEquals(registrationResponseAuthd.statusLine().status(), _303_SEE_OTHER);
+            assertEquals(registrationResponseAuthd.headers().headersAsMap().get("Location"), List.of("index"));
+
+            // try visiting the login page while authenticated (should get redirected)
+            assertEquals(get("login", authHeader).statusLine().status(), _303_SEE_OTHER);
+
+            // visit the page for uploading photos, authenticated
+            get("upload", authHeader);
+
+            // upload some content, authenticated
+            post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", authHeader);
+
+            // check out what's on the photos page now, unauthenticated
             var response2 = get("photos");
             var htmlResponse = response2.body().asString();
             String photoSrc = find("photo\\?name=[a-z0-9\\-]*", htmlResponse);
-            get(photoSrc, List.of("Cookie: " + cookieValue));
+
+            // look at the contents of a particular photo, unauthenticated
+            get(photoSrc, authHeader);
+
+            // check out what's on the sample domain page, authenticated
+            assertTrue(get("index", authHeader).body().asString().contains("Enter a name"));
+            assertTrue(get("formEntry", authHeader).body().asString().contains("Name Entry"));
+            assertEquals(post("testform", "name_entry=abc", authHeader).statusLine().status(), _303_SEE_OTHER);
+
+            // logout
+            assertEquals(get("logout", authHeader).statusLine().status(), _303_SEE_OTHER);
+
+            // if we try to upload a photo unauth, we're prevented
+            assertEquals(post("upload", "foo=bar").statusLine().status(), _401_UNAUTHORIZED);
+
+            // if we try to upload a name on the sampledomain auth, we're prevented
+            assertEquals(post("testform", "foo=bar").statusLine().status(), _401_UNAUTHORIZED);
+
+        }
+
     }
 
-    record TestResponse(Headers headers, Body body) {}
+    record TestResponse(StatusLine statusLine, Headers headers, Body body) {}
 
     public TestResponse get(String path) throws IOException {
         return get(path, List.of());
@@ -53,6 +102,7 @@ public class FunctionalTests {
     public TestResponse get(String path, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY;
         Headers headers;
+        StatusLine statusLine;
         try (SocketWrapper client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
@@ -64,8 +114,7 @@ public class FunctionalTests {
             }
             client.sendHttpLine("");
 
-            StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
-            assertEquals(statusLine.status(), _200_OK);
+            statusLine = StatusLine.extractStatusLine(readLine(is));
 
             headers = Headers.extractHeaderInformation(is);
 
@@ -81,7 +130,7 @@ public class FunctionalTests {
 
         }
         MyThread.sleep(100);
-        return new TestResponse(headers, body);
+        return new TestResponse(statusLine, headers, body);
     }
 
     public TestResponse post(String path, String payload) throws IOException {
@@ -91,6 +140,7 @@ public class FunctionalTests {
     public TestResponse post(String path, String payload, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY;
         Headers headers;
+        StatusLine statusLine;
         try (SocketWrapper client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
@@ -105,8 +155,7 @@ public class FunctionalTests {
             client.sendHttpLine("");
             client.sendHttpLine(payload);
 
-            StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
-            assertEquals(statusLine.status(), _303_SEE_OTHER);
+            statusLine = StatusLine.extractStatusLine(readLine(is));
 
             headers = Headers.extractHeaderInformation(is);
 
@@ -122,7 +171,7 @@ public class FunctionalTests {
 
         }
         MyThread.sleep(100);
-        return new TestResponse(headers, body);
+        return new TestResponse(statusLine, headers, body);
     }
 
 }

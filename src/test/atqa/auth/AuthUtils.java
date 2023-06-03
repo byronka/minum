@@ -267,7 +267,7 @@ public class AuthUtils {
     public Response login(Request request) {
         AuthResult authResult = processAuth(request);
         if (authResult.isAuthenticated()) {
-            Response.redirectTo("auth");
+            return Response.redirectTo("auth");
         }
         return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), loginPageTemplate);
     }
