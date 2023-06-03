@@ -201,7 +201,7 @@ public class WebTests {
             }
         }
 
-        // Just a simple test while controlling the fake socket wrapper
+        // test while controlling the fake socket wrapper
         logger.test("TDD of a handler");{
             FakeSocketWrapper sw = new FakeSocketWrapper();
             AtomicReference<String> result = new AtomicReference<>();
