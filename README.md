@@ -31,6 +31,8 @@ Quick start:
 * To create a library jar: `make publish`
 * For help: `make help`
 
+(There are also sample projects using this framework at https://github.com/byronka/atqa_usage_example and https://github.com/byronka/atqa_usage_example_smaller)
+
 System requirements: 
 --------------------
 
