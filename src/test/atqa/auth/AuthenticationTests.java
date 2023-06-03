@@ -41,7 +41,7 @@ public class AuthenticationTests {
          * There are various ways to handle the duration.  Simplest is: once authenticated,
          * they stay authenticated, until they actively choose to logout.
          *
-         * While the simplest approach may be insecure, it's a good place to start.
+         * While this approach may be insecure, it's a good place to start.
          *
          * Even though security is a necessary and intrinsic element of the web,
          * one essential aspect - database persistence of session information -

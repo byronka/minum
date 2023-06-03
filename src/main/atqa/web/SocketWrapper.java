@@ -12,7 +12,7 @@ import java.net.SocketAddress;
 import static atqa.Constants.SOCKET_TIMEOUT_MILLIS;
 
 /**
- * This wraps Sockets to make them simpler / more particular to our use case
+ * This wraps Sockets to make them more particular to our use case
  */
 public class SocketWrapper implements ISocketWrapper {
 

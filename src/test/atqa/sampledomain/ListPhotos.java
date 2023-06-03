@@ -58,7 +58,7 @@ public class ListPhotos {
     }
 
     /**
-     * Like you would think - a simple way to read a photo from disk to put on the wire
+     * Like you would think - a way to read a photo from disk to put on the wire
      */
     public Response grabPhoto(Request r) {
         String filename = r.startLine().queryString().get("name");

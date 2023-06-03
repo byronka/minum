@@ -86,7 +86,7 @@ public record Headers(
 
     /**
      * Given the list of headers, find the one with the length of the
-     * body of the POST and return that value as a simple integer. If
+     * body of the POST and return that value as an integer. If
      * we do not find a content length, return -1.
      */
     public int contentLength() {

@@ -15,7 +15,7 @@ import static atqa.utils.Invariants.mustNotBeNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Some simple helper methods for Strings.
+ * Some helper methods for Strings.
  */
 public class StringUtils {
 
