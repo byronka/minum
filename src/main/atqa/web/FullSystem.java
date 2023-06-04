@@ -186,18 +186,18 @@ public class FullSystem implements AutoCloseable {
 
     @Override
     public void close() {
-      try {
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
+        try {
+            System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
 
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
-        if (server != null) server.close();
+            System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
+            if (server != null) server.close();
 
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
-        if (sslServer != null) sslServer.close();
+            System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
+            if (sslServer != null) sslServer.close();
 
-        System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
+            System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

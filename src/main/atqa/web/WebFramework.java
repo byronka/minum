@@ -258,15 +258,15 @@ public class WebFramework implements AutoCloseable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         if (fs != null) {
-          try {
-            getFullSystem().getServer().centralLoopFuture.get();
-            getFullSystem().getSslServer().centralLoopFuture.get();
-          } catch (Exception ex) {
-            throw new RuntimeException(ex);
-          }
-          getFullSystem().close();
+            try {
+                getFullSystem().getServer().centralLoopFuture.get();
+                getFullSystem().getSslServer().centralLoopFuture.get();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+            getFullSystem().close();
         }
     }
 }
