@@ -205,7 +205,7 @@ testcov:: classes testclasses copyresources copytestresources
 
 #: build the javadoc documentation in the out/javadoc directory
 javadoc::
-	 javadoc --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
+	 javadoc -Xdoclint:none --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
