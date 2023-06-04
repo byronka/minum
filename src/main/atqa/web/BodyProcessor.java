@@ -70,7 +70,7 @@ public class BodyProcessor {
      * <p>
      * See here for the encoding: <a href="https://developer.mozilla.org/en-US/docs/Glossary/percent-encoding">...</a>
      * <p>
-     * for example, valuea=3&valueb=this+is+something
+     * for example, {@code valuea=3&valueb=this+is+something}
      */
     public static Body parseUrlEncodedForm(String input) {
         if (input.isEmpty()) return Body.EMPTY;
