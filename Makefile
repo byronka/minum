@@ -2,8 +2,8 @@
 # Project name - used to set the jar's file name
 ##
 PROJ_NAME := atqa
-
 HOST_NAME := atqa.com
+VERSION=1.0.0
 
 ##
 # In cygwin on Windows, if I look at the OS environment value I get "Windows_NT".
@@ -170,21 +170,12 @@ $(TST_CLS): $(OUT_DIR_TEST)/%.class: $(TST_SRC_DIR)/%.java
 clean::
 	 rm -fr $(OUT_DIR)
 
-#: jar up the application (See Java's jar command)
-jar:: classes copyresources
-	 cd $(OUT_DIR_MAIN) && jar --create --file $(PROJ_NAME).jar -e $(PROJ_NAME).Main * && \
-      # move the jar up one directory \
-      mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
-	 echo "Your new jar file is at out/atqa.jar"
-
 #: Build a jar of the project for use as a library
-publish:: clean classes copyresources copysources
+jar:: clean classes copyresources copysources
 	 rm -fr $(OUT_DIR_MAIN)/resources/static/* $(OUT_DIR_MAIN)/resources/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
-	 vendor=renomad.com version=1.0.0 utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
-	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && \
-      # move the jar up one directory \
-      mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+	 version=$(VERSION) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
+	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 	 echo "Your new jar file is at out/atqa.jar"
 
 #: run the tests
