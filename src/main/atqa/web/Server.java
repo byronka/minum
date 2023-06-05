@@ -4,6 +4,7 @@ import atqa.exceptions.ForbiddenUseException;
 import atqa.logging.ILogger;
 import atqa.utils.*;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -67,9 +68,18 @@ public class Server implements AutoCloseable {
                             try {
                                 handler.accept(sw);
                             } catch (SocketException | SocketTimeoutException ex) {
-                                logger.logDebug(() -> "at Server#start: " + ex.getMessage());
+                                 /*
+                                 if we close the application on the server side, there's a good
+                                 likelihood a SocketException will come bubbling through here.
+                                 NOTE:
+                                   it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
+                                   if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
+                                 */
+                                logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
                             } catch (ForbiddenUseException ex) {
                                 logger.logDebug(ex::getMessage);
+                            } catch (SSLException ex) {
+                                logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
                             } catch (Exception ex) {
                                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
                             }

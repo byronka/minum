@@ -6,20 +6,20 @@ import atqa.logging.ILogger;
 import atqa.utils.StopwatchUtils;
 import atqa.utils.ThrowingConsumer;
 
-import javax.net.ssl.SSLException;
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static atqa.web.InputStreamUtils.*;
+import static atqa.web.InputStreamUtils.readLine;
 import static atqa.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static atqa.web.WebEngine.HTTP_CRLF;
 
@@ -128,17 +128,6 @@ public class WebFramework implements AutoCloseable {
                 sw.send(resultingResponse.body());
                 logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
 
-            } catch (SocketException | SocketTimeoutException ex) {
-                /*
-                 if we close the application on the server side, there's a good
-                 likelihood a SocketException will come bubbling through here.
-                 NOTE:
-                   it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
-                   if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
-                 */
-                logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
-            } catch (SSLException ex) {
-                logger.logDebug(() -> ex.getMessage() + " (at WebFramework)");
             }
         };
     }
