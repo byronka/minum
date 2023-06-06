@@ -44,6 +44,10 @@ public class Constants {
      */
     public static final int SOCKET_TIMEOUT_MILLIS = getProp("SOCKET_TIMEOUT_MILLIS", 3 * 1000);
 
+    /**
+     * A helper method to remove some redundant boilerplate code for grabbing
+     * configuration values from app.config
+     */
     private static int getProp(String propName, int propDefault) {
         return Integer.parseInt(FullSystem.getConfiguredProperties().getProperty(propName, String.valueOf(propDefault)));
     }
