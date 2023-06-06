@@ -65,6 +65,7 @@ public class Server implements AutoCloseable {
                     setOfSWs.add(sw);
                     if (handler != null) {
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> {
+                            Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
                             try {
                                 handler.accept(sw);
                             } catch (SocketException | SocketTimeoutException ex) {
