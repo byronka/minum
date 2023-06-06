@@ -174,7 +174,8 @@ clean::
 jar:: clean classes copyresources copysources
 	 rm -fr $(OUT_DIR_MAIN)/resources/static/* $(OUT_DIR_MAIN)/resources/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
-	 version=$(VERSION) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
+	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))
+	 version=$(VERSION)_$(GIT_BRANCH) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
 	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 	 echo "Your new jar file is at out/atqa.jar"
 
