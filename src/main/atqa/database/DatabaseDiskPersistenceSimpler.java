@@ -136,6 +136,10 @@ public class DatabaseDiskPersistenceSimpler<T> {
         return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
     }
 
+    /**
+     * Grabs all the data from disk and returns it as a list.  This
+     * method is run by various programs when the system first loads.
+     */
     public List<T> readAndDeserialize(SimpleDataType<T> instance) {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");

@@ -123,7 +123,7 @@ public class FullSystem implements AutoCloseable {
      * will log
      */
     void addShutdownHook() {
-        shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::close));
+        shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::close, logger));
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 

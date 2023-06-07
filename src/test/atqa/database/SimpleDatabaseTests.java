@@ -189,7 +189,7 @@ public class SimpleDatabaseTests {
 
             // create a corrupted file, to create that edge condition
             Files.write(pathToSampleFile, "invalid data".getBytes());
-            final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance)));
+            final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance), logger));
             assertEquals(ex.getMessage().replace('\\','/'), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);

@@ -49,7 +49,7 @@ public class Server implements AutoCloseable {
      * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
      */
     public void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
-        Runnable t = ThrowingRunnable.throwingRunnableWrapper(() -> {
+        ThrowingRunnable<Exception> serverCode = () -> {
             Thread.currentThread().setName("Main Server");
             try {
                 // yes, this infinite loop can only exit by an exception.  But this is
@@ -64,7 +64,7 @@ public class Server implements AutoCloseable {
                     logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
                     setOfSWs.add(sw);
                     if (handler != null) {
-                        es.submit(ThrowingRunnable.throwingRunnableWrapper(() -> {
+                        ThrowingRunnable<Exception> innerServerCode = () -> {
                             Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
                             try {
                                 handler.accept(sw);
@@ -84,15 +84,17 @@ public class Server implements AutoCloseable {
                             } catch (Exception ex) {
                                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
                             }
-                        }));
+                        };
+                        es.submit(ThrowingRunnable.throwingRunnableWrapper(innerServerCode, logger));
                     }
                 }
             } catch (SocketException ex) {
-                if (! (ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
+                if (!(ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
                     logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
                 }
             }
-        });
+        };
+        Runnable t = ThrowingRunnable.throwingRunnableWrapper(serverCode, logger);
         this.centralLoopFuture = es.submit(t);
     }
 

@@ -46,7 +46,7 @@ public record StartLine(
      * have a key of name and a value of alice.
      */
     public Map<String, String> queryString() {
-        if (pathDetails.queryString.isEmpty()) {
+        if (pathDetails == null || pathDetails.queryString == null || pathDetails.queryString.isEmpty()) {
             return new HashMap<>();
         } else {
             return new HashMap<>(pathDetails.queryString);
