@@ -33,7 +33,7 @@ public class SampleDomain {
     public Response formEntry(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/html; charset=UTF-8"));
+            return new Response(_401_UNAUTHORIZED);
         }
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::index))
@@ -69,7 +69,7 @@ public class SampleDomain {
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED, List.of("Content-Type: text/html; charset=UTF-8"));
+            return new Response(_401_UNAUTHORIZED);
         }
 
         final var nameEntry = r.body().asString("name_entry");
@@ -77,7 +77,7 @@ public class SampleDomain {
         final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
-        return new Response(_303_SEE_OTHER, List.of("Content-Type: text/html; charset=UTF-8", "Location: formentry"));
+        return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
     }
 
     /**

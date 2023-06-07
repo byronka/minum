@@ -178,10 +178,10 @@ public class WebTests {
 
                         Headers hi = Headers.extractHeaderInformation(is);
 
-                        assertEquals(hi.headersAsMap().get("Server"), List.of("atqa"));
-                        assertTrue(hi.headersAsMap().get("Date") != null);
-                        assertEquals(hi.headersAsMap().get("Content-Type"), List.of("text/html; charset=UTF-8"));
-                        assertEquals(hi.headersAsMap().get("Content-Length"), List.of("2"));
+                        assertEquals(hi.headersAsMap().get("server"), List.of("atqa"));
+                        assertTrue(hi.headersAsMap().get("date") != null);
+                        assertEquals(hi.headersAsMap().get("content-type"), List.of("text/html; charset=UTF-8"));
+                        assertEquals(hi.headersAsMap().get("content-length"), List.of("2"));
 
                         String body = readBody(is, hi.contentLength());
 

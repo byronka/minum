@@ -42,20 +42,20 @@ public class FunctionalTests {
             // register a user
             var registrationResponse = post("registeruser", "username=foo&password=bar");
             assertEquals(registrationResponse.statusLine().status(), _303_SEE_OTHER);
-            assertEquals(registrationResponse.headers().headersAsMap().get("Location"), List.of("login"));
+            assertEquals(registrationResponse.headers().headersAsMap().get("location"), List.of("login"));
 
             // Go to the login page, unauthenticated
             assertEquals(get("login").statusLine().status(), _200_OK);
 
             // login as the user we registered
             var response = post("loginuser", "username=foo&password=bar");
-            var cookieValue = String.join(";", response.headers().headersAsMap().get("Set-Cookie"));
+            var cookieValue = String.join(";", response.headers().headersAsMap().get("set-cookie"));
 
             // try visiting the registration page while authenticated (should get redirected)
             List<String> authHeader = List.of("Cookie: " + cookieValue);
             var registrationResponseAuthd = post("registeruser", "username=foo&password=bar", authHeader);
             assertEquals(registrationResponseAuthd.statusLine().status(), _303_SEE_OTHER);
-            assertEquals(registrationResponseAuthd.headers().headersAsMap().get("Location"), List.of("index"));
+            assertEquals(registrationResponseAuthd.headers().headersAsMap().get("location"), List.of("index"));
 
             // try visiting the login page while authenticated (should get redirected)
             assertEquals(get("login", authHeader).statusLine().status(), _303_SEE_OTHER);

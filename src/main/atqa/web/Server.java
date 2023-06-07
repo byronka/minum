@@ -2,7 +2,10 @@ package atqa.web;
 
 import atqa.exceptions.ForbiddenUseException;
 import atqa.logging.ILogger;
-import atqa.utils.*;
+import atqa.utils.ConcurrentSet;
+import atqa.utils.StacktraceUtils;
+import atqa.utils.ThrowingConsumer;
+import atqa.utils.ThrowingRunnable;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
@@ -101,7 +104,7 @@ public class Server implements AutoCloseable {
     public void close() throws IOException {
         // close all the running sockets
         setOfSWs.stopAllServers();
-
+        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
         // close the primary server socket
         serverSocket.close();
     }

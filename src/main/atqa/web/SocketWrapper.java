@@ -2,6 +2,7 @@ package atqa.web;
 
 import atqa.logging.ILogger;
 import atqa.logging.Logger;
+import atqa.utils.StacktraceUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,7 +74,7 @@ public class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        logger.logTrace(() -> "close called on " + this);
+        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
         socket.close();
         if (server != null) server.removeMyRecord(this);
     }

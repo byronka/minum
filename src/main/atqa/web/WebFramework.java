@@ -3,6 +3,7 @@ package atqa.web;
 import atqa.database.DatabaseDiskPersistenceSimpler;
 import atqa.database.SimpleDataType;
 import atqa.logging.ILogger;
+import atqa.utils.StacktraceUtils;
 import atqa.utils.StopwatchUtils;
 import atqa.utils.ThrowingConsumer;
 
@@ -110,8 +111,7 @@ public class WebFramework implements AutoCloseable {
                     var bp = new BodyProcessor(logger);
                     Body body = Body.EMPTY;
                     // Determine whether there is a body (a block of data) in this request
-                    final var thereIsABody = !hi.contentType().isBlank();
-                    if (thereIsABody) {
+                    if (isThereIsABody(hi)) {
                         logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
                         body = bp.extractData(sw.getInputStream(), hi);
                     }
@@ -130,6 +130,11 @@ public class WebFramework implements AutoCloseable {
 
             }
         };
+    }
+
+    private static boolean isThereIsABody(Headers hi) {
+        return !hi.contentType().isBlank() &&
+                (hi.contentLength() > 0 || hi.headersAsMap().get("transfer-encoding").stream().anyMatch(x -> x.equalsIgnoreCase("chunked")));
     }
 
     /**
@@ -248,6 +253,7 @@ public class WebFramework implements AutoCloseable {
 
     @Override
     public void close() {
+        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
         if (fs != null) {
             try {
                 getFullSystem().getServer().centralLoopFuture.get();

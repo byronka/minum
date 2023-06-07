@@ -186,6 +186,7 @@ public class FullSystem implements AutoCloseable {
 
     @Override
     public void close() {
+        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
         try {
             System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
 

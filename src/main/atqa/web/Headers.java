@@ -43,7 +43,8 @@ public record Headers(
     }
 
     /**
-     * Obtain any desired header by looking it up in this map
+     * Obtain any desired header by looking it up in this map.  All keys
+     * are made lowercase.
      */
     public Map<String, List<String>> headersAsMap() {
         var result = new HashMap<String, List<String>>();
@@ -53,7 +54,7 @@ public record Headers(
             // if the header is malformed, just move on
             if (indexOfFirstColon <= 0) continue;
 
-            String key = h.substring(0, indexOfFirstColon);
+            String key = h.substring(0, indexOfFirstColon).toLowerCase(Locale.ROOT);
             String value = h.substring(indexOfFirstColon+1).trim();
 
 
@@ -62,7 +63,7 @@ public record Headers(
                 currentValue.add(value);
                 result.put(key, currentValue);
             } else {
-                result.put(key, Arrays.asList(value));
+                result.put(key, List.of(value));
             }
 
         }
