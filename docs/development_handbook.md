@@ -19,14 +19,14 @@ Table of contents
 Description
 ------------
 
-ATQA is a web library with all the components needed to build a web application,
+Atqa is a web library with all the components needed to build a web application,
 include a web server and a database.  
 
 It follows some unusual conventions that new developers should be aware of.
 
 For example, we don't have many dependencies in the system.
 
-Storytime: As we have developed, we would occasionally bring in a
+As we have developed, we would occasionally bring in a
 dependency to handle a need.  Since we operated with sufficient time
 to reflect on things, it often occurred to us that a particular
 dependency was providing relatively little value.  We then could easily
@@ -35,16 +35,6 @@ generally found that the only outside code worth its salt happened to
 already exist in the JDK standard library.  As of this writing, we have no
 dependencies outside the standard library (which is just incredible -
 thanks Java library developers!)
-
-Instead of using a mocking framework, we just create a
-"Fake" version of a class (e.g. FakeSocketWrapper).  This is
-because mocking frameworks actually compile code _at runtime_ which
-slows down tests tremendously.  By using this practice, our unit tests
-often take less than even 1 millisecond.
-
-Another example: the data structures in the database are built on a
-thread-safe data structure (ConcurrentHashMap), so that we don't need
-to synchronize a great deal of the time.  
 
 New Developer Setup
 -------------------
@@ -160,6 +150,11 @@ not really the point of tests.  Instead, the point is to give the developer conf
 recent changes aren't breaking anything.  Until there's a compelling developer-oriented reason
 for a report, it will remain a lower priority.
 
+Instead of using a mocking framework, we just create a
+"Fake" version of a class (e.g. FakeSocketWrapper).  This is
+because mocking frameworks actually compile code _at runtime_ which
+slows down tests tremendously.  By using this practice, our unit tests
+often take less than even 1 millisecond.
 
 Database
 --------
