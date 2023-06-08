@@ -38,7 +38,7 @@ Developed in two environments:
 Developer documentation:
 ------------------------
 
-See `docs/development_handbook.md`
+See [The development handbook](docs/development_handbook.md)
 
 Directories:
 ------------
