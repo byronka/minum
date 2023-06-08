@@ -4,7 +4,6 @@ ATQA Framework
 This code provides all the functionality for a web application.
 It is written mostly in Java.
 
-
 Features:
 --------
 
@@ -18,10 +17,11 @@ Quick start:
 ------------
 
 * To test: `make test`
-* To create a library jar: `make publish`
+* To create a library jar: `make jar`
 * For help: `make help`
 
-There are also sample projects using this framework:
+example projects demonstrating usage:
+-------------------------------------
 
 - [One with a few features](https://github.com/byronka/atqa_usage_example) 
 - [Smallest-possible](https://github.com/byronka/atqa_usage_example_smaller)
