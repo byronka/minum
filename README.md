@@ -11,8 +11,8 @@ millisecond later) written to disk.
 
 Benefits of this software is the intention of simplicity and
 documentation.  It should be easier to modify and maintain than most
-frameworks. _Please note_: I am not saying it's **simple**, I'm saying that I _value
-simplicity_ and have put my efforts towards that as a goal.
+frameworks. This framework isn't **simple**, but I value
+simplicity and have put effort towards that goal.
 
 
 Features:
