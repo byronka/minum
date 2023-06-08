@@ -1,18 +1,8 @@
 ATQA Framework
 ===============
 
-This code provides all the functionality for a low-risk web application.
-It has very few dependencies, and is written mostly in Java. This software
-is meant as a basis for a variety of useful domains.
-
-Note that the database is non-ACID compliant.  It stores all data to
-memory and puts the data into a queue to be eventually (often < 1
-millisecond later) written to disk.
-
-Benefits of this software is the intention of simplicity and
-documentation.  It should be easier to modify and maintain than most
-frameworks. This framework isn't **simple**, but I value
-simplicity and have put effort towards that goal.
+This code provides all the functionality for a web application.
+It is written mostly in Java.
 
 
 Features:
