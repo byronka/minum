@@ -177,7 +177,8 @@ jar:: clean classes copyresources copysources
 	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))
 	 version=$(VERSION)_$(GIT_BRANCH) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
 	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
-	 echo "Your new jar file is at out/atqa.jar"
+	 @echo
+	 @echo "*** Your new jar file is at out/atqa.jar ***"
 
 #: run the tests
 test:: classes testclasses copyresources copytestresources
