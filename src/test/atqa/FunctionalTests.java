@@ -121,8 +121,7 @@ public class FunctionalTests {
 
 
             // Determine whether there is a body (a block of data) in this request
-            final var thereIsABody = !headers.contentType().isBlank();
-            if (thereIsABody) {
+            if (WebFramework.isThereIsABody(headers)) {
                 logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
                 body = bodyProcessor.extractData(is, headers);
             }
@@ -161,9 +160,7 @@ public class FunctionalTests {
             BodyProcessor bodyProcessor = new BodyProcessor(logger);
 
 
-            // Determine whether there is a body (a block of data) in this request
-            final var thereIsABody = !headers.contentType().isBlank();
-            if (thereIsABody) {
+            if (WebFramework.isThereIsABody(headers)) {
                 logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
                 body = bodyProcessor.extractData(is, headers);
             }

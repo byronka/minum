@@ -132,7 +132,11 @@ public class WebFramework implements AutoCloseable {
         };
     }
 
-    private static boolean isThereIsABody(Headers hi) {
+    /**
+     * Determine whether the headers in this HTTP message indicate that
+     * a body is available to read
+     */
+    public static boolean isThereIsABody(Headers hi) {
         return !hi.contentType().isBlank() &&
                 (hi.contentLength() > 0 || hi.headersAsMap().get("transfer-encoding").stream().anyMatch(x -> x.equalsIgnoreCase("chunked")));
     }
