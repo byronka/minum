@@ -249,6 +249,11 @@ This project is a Java rewrite of https://github.com/7ep/r3z, which was inspired
 work on https://github.com/7ep/demo.  So you could say this project has been in
 the works since 2018.
 
+This project was originally meant to be Automated Test Quality Analysis, an attempt
+to evaluate the quality of a codebase.  In the process, I wrote what I considered as
+high-quality web app code as an example to analyze.  That code lived, but the analysis code - maybe
+we'll try that another day.
+
 
 Theme
 -----
