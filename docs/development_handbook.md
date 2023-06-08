@@ -10,7 +10,11 @@ Table of contents
 - [To test with Chrome on localhost with invalid certificates](#to-test-with-chrome-on-localhost-with-invalid-certificates)
 - [TDD](#TDD)
 - [Testing](#testing)
-
+- [Database](#database)
+- [Logging](#logging)
+- [Threads](#threads)
+- [Routing](#routing)
+- [Documentation](#documentation)
 
 Description
 ------------
@@ -91,6 +95,7 @@ it down and let us run locally on SSL, do this:
 In Chrome, go to chrome://flags/#allow-insecure-localhost
 Set this option to enabled
 
+
 TDD
 ---
 
@@ -102,9 +107,127 @@ what that initial attempt might look like.
 The initial code is at commit 79325280441b561c5b2a1b401c2c1125c5ddabd6
 The followup is at a589244cbba806912a08702584de0b78266bab0e
 
+
 Testing
 -------
 
 High-quality programs require good testing.  Given that the overarching theme
 of this project is choosing the simplest thing that could work, the testing framework
 is almost embarrassingly basic, but gets the job done.
+
+The tests start from a plain old-fashioned main() method, which then calls to a
+tree of tests in a procedural fashion.  See main() in the Tests class.
+
+There's really not much magic here - the trick is to follow the conventions.  The TestLogger
+class has a method that we use to document each test.  For example, here's a test:
+
+        logger.test("client / server");{
+            try (Server primaryServer = webEngine.startServer(es)) {
+                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    try (SocketWrapper server = primaryServer.getServer(client)) {
+                        InputStream is = server.getInputStream();
+
+                        client.send("hello foo!\n");
+                        String result = readLine(is);
+                        assertEquals("hello foo!", result);
+                    }
+                }
+            }
+        }
+
+Notice that the first line has a semicolon and a curly brace at the end.  The reason for
+this is that IDE's will allow us to fold the code between braces, and so this just comes out
+looking great:
+
+    + ---   logger.test("client / server");{...}
+
+No magic, just tidy.
+
+The assertions are similarly minimalistic.  Here's assertEquals:
+
+    public static <T> void assertEquals(T left, T right) {
+        if (! left.equals(right)) {
+            throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
+        }
+    }
+
+The rest of the testing framework is about the same.  It's never simple,
+but we can choose to work with fewer tools.
+
+There aren't any reporting tools (other than the code coverage, for which we
+use Jacoco), but in some regards that doesn't diverge from the paradigm too much: Reporting is
+not really the point of tests.  Instead, the point is to give the developer confidence that the
+recent changes aren't breaking anything.  Until there's a compelling developer-oriented reason
+for a report, it will remain a lower priority.
+
+
+Database
+--------
+
+developers are accustomed to using sophisticated databases. We're talking relational or NoSQL
+databases here - there's lots of mechanisms for the CRUD and ACID-compliance, high-availability,
+awesome performance, and so on.
+
+But what if you started with much less?
+
+In the paradigm here, you are given a scarce minimum of abilities.  Here's an example where we
+create a new user in a registration process:
+
+```
+    private final List<User> users;
+    
+    ...
+
+    var newUser = new User(foo, bar);
+    users.add(newUser);
+    userDiskData.persistToDisk(newUser);
+```
+
+You can see here how it works - in this example we're creating a new user and storing it in a 
+list.  Immediately after, we persist that data to disk.
+
+The only time we read this data is at system startup, where we run a command `readAndDeserialize()`
+to load all the data from the disk into a list, and from there into any structure we wish.
+
+
+Logging
+-------
+
+Logging capabilities are provided by the `Logger` class.  When the system starts, it 
+creates one instance of this class and then passes it down the call tree.  It is 
+stored and available for your use in the WebFramework class.
+
+
+Threads
+-------
+
+If you need to run parts of your program in their own threads, it's available.  Your 
+class will need an instance of the ExecutorService class - for example, see `LoopingSessionReviewing`
+in the test folder, which shows some samples of framework use.  In this case, it requires
+the thread so that it can periodically wake up and check whether any of the authentication
+sessions are old and need to be removed.
+
+
+Routing
+-------
+
+See `TheRegister.java` in the tests folder for an example of how routing works.  When you
+first start the program, you are given a WebFramework class instance, which has a method
+called `registerPath()`.  
+
+The commonly used verbs GET and POST are available.  The function you provide must be
+similar to this:
+
+    Response getFoo(Request r) {
+        ...
+    }
+
+
+Documentation
+-------------
+
+THe only way we can keep the complexity tamped down is by keeping vigilant about quality.
+This takes many forms, and one of these is keeping good documentation.  Consider whether
+a helpful explanation would get someone running sooner.  Please keep your words concise.
+Brevity is the soul of wit.
+
