@@ -15,6 +15,7 @@ Table of contents
 - [Threads](#threads)
 - [Routing](#routing)
 - [Documentation](#documentation)
+- [Feature tracking](#feature-tracking)
 
 Description
 ------------
@@ -202,6 +203,9 @@ in the test folder, which shows some samples of framework use.  In this case, it
 the thread so that it can periodically wake up and check whether any of the authentication
 sessions are old and need to be removed.
 
+Our project uses virtual threads, a very recent addition to the Java language.  Also known
+as "Project Loom", it enables our server to handle many concurrent requests with minimal
+resource needs.  See also loom/README.md
 
 Routing
 -------
@@ -225,4 +229,12 @@ THe only way we can keep the complexity tamped down is by keeping vigilant about
 This takes many forms, and one of these is keeping good documentation.  Consider whether
 a helpful explanation would get someone running sooner.  Please keep your words concise.
 Brevity is the soul of wit.
+
+
+Feature tracking
+----------------
+
+Following the pattern of using the simplest thing that works, the features are tracked
+by writing them up and storing them in docs/todo/feature.  When they are finished, they
+move to docs/todo/done
 
