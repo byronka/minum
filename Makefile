@@ -195,6 +195,8 @@ testdebug:: classes testclasses copyresources copytestresources
 testcov:: classes testclasses copyresources copytestresources
 	 $(JAVA) -javaagent:$(UTILS)/jacocoagent.jar=destfile=$(COV_DIR)/jacoco.exec -cp $(TST_RUN_CP) $(PROJ_NAME).Tests
 	 $(JAVA) -jar $(UTILS)/jacococli.jar report $(COV_DIR)/jacoco.exec --html ./$(COV_DIR) --classfiles $(OUT_DIR_MAIN) --sourcefiles $(SRC_DIR)
+	 @echo
+	 @echo "*** The coverage report is at out/coveragereport ***"
 
 #: build the javadoc documentation in the out/javadoc directory
 javadoc::
