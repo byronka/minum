@@ -16,6 +16,9 @@ Table of contents
 - [Routing](#routing)
 - [Documentation](#documentation)
 - [Feature tracking](#feature-tracking)
+- [History](#history)
+- [Theme](#theme)
+
 
 Description
 ------------
@@ -238,3 +241,43 @@ Following the pattern of using the simplest thing that works, the features are t
 by writing them up and storing them in docs/todo/feature.  When they are finished, they
 move to docs/todo/done
 
+
+History
+-------
+
+This project is a Java rewrite of https://github.com/7ep/r3z, which was inspired by
+work on https://github.com/7ep/demo.  So you could say this project has been in
+the works since 2018.
+
+
+Theme
+-----
+
+Software is often written in a rush.  It feels like we're expected to get as many
+capabilities added as fast as possible.  But what would happen if we weren't so
+pressured for time?  We could explore different avenues.  If we wrote in a quality
+fashion, and included good tests, we could refactor fearlessly.
+
+What would happen if you built software in the simplest possible way from scratch?
+
+What if our team held quality sacred?
+
+What if we spent all the necessary time to think things through?
+
+What if we incorporated diverse perspectives?
+
+What if testing drove the design?
+
+If we understand that our software is a reflection of our culture, should we not focus on improving that first?
+
+>A complex system that works is invariably found to have evolved from a simple system
+>that worked. The inverse proposition also appears to be true: A complex system designed
+>from scratch never works and cannot be made to work. You have to start over,
+>beginning with a working simple system.”
+>
+>-- John Gall (Gall's law)
+
+>If you want to build a ship, don't drum up people to collect wood and don't assign
+>them tasks and work, but rather teach them to long for the endless immensity of the sea.
+>
+>-- Antoine de Saint-Exupery
