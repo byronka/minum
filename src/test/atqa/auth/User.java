@@ -3,8 +3,6 @@ package atqa.auth;
 import atqa.database.SimpleDataType;
 import atqa.database.SimpleSerializable;
 
-import static atqa.utils.StringUtils.decode;
-
 /**
  * A data structure representing authentication information for a user.
  * @param id the unique identifier for this record
@@ -31,13 +29,13 @@ public record User(Long id, String username, String hashedPassword, String salt,
 
     @Override
     public User deserialize(String serializedText) {
-        final var tokens = SimpleSerializable.tokenizer(serializedText);
+        final var tokens = SimpleSerializable.deserializeHelper(serializedText);
         return new User(
                 Long.parseLong(tokens.get(0)),
-                decode(tokens.get(1)),
-                decode(tokens.get(2)),
-                decode(tokens.get(3)),
-                decode(tokens.get(4))
+                tokens.get(1),
+                tokens.get(2),
+                tokens.get(3),
+                tokens.get(4)
                 );
     }
 }

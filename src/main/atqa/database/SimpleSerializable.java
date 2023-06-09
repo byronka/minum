@@ -42,13 +42,13 @@ public interface SimpleSerializable<T> {
      *
      * @param serializedText the string we are splitting into tokens
      */
-    static List<String> tokenizer(String serializedText) {
-        return StringUtils.tokenizer(serializedText, '|');
+    static List<String> deserializeHelper(String serializedText) {
+        return StringUtils.tokenizer(serializedText, '|').stream().map(StringUtils::decode).toList();
     }
 
     /**
      * deserializes the text back into an object.  See helper
-     * method {@link #tokenizer(String)} to split a serialized
+     * method {@link #deserializeHelper(String)} to split a serialized
      * string into tokens for rebuilding the object.  See
      * also {@link #serialize()}
      * @param serializedText the serialized string

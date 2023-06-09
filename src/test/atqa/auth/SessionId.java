@@ -9,7 +9,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
-import static atqa.utils.StringUtils.decode;
 import static atqa.utils.StringUtils.generateSecureRandomString;
 
 /**
@@ -50,11 +49,11 @@ public record SessionId(long index, String sessionCode, ZonedDateTime creationDa
 
     @Override
     public SessionId deserialize(String serializedText) {
-        final var tokens = SimpleSerializable.tokenizer(serializedText);
+        final var tokens = SimpleSerializable.deserializeHelper(serializedText);
 
         return new SessionId(
                 Long.parseLong(tokens.get(0)),
-                decode(tokens.get(1)),
-                ZonedDateTime.parse(Objects.requireNonNull(decode(tokens.get(2)))));
+                tokens.get(1),
+                ZonedDateTime.parse(Objects.requireNonNull(tokens.get(2))));
     }
 }

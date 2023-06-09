@@ -2,7 +2,6 @@ package atqa.sampledomain;
 
 import atqa.database.SimpleDataType;
 import atqa.database.SimpleSerializable;
-import atqa.utils.StringUtils;
 
 public record PersonName(Long index, String fullname) implements SimpleDataType<PersonName> {
     public static final SimpleDataType<PersonName> EMPTY = new PersonName(0L, "");
@@ -20,8 +19,8 @@ public record PersonName(Long index, String fullname) implements SimpleDataType<
     @Override
     public PersonName deserialize(String serializedText) {
 
-        final var tokens = SimpleSerializable.tokenizer(serializedText);
+        final var tokens = SimpleSerializable.deserializeHelper(serializedText);
 
-        return new PersonName(Long.parseLong(tokens.get(0)), StringUtils.decode(tokens.get(1)));
+        return new PersonName(Long.parseLong(tokens.get(0)), tokens.get(1));
     }
 }
