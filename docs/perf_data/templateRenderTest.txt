@@ -1,0 +1,34 @@
+
+/*
+Just how fast is it to use string templating the way we are?
+
+rendering the template took 1593 milliseconds
+     ''            ''       1413 milliseconds
+     ''            ''       1409 milliseconds
+     ''            ''       1425 milliseconds
+     ''            ''       1404 milliseconds
+     ''            ''       1424 milliseconds
+     ''            ''       1412 milliseconds
+     ''            ''       1410 milliseconds
+     ''            ''       1409 milliseconds
+     ''            ''       1419 milliseconds
+     ''            ''       1419 milliseconds
+     ''            ''       1419 milliseconds
+     ''            ''       1470 milliseconds
+     ''            ''       1471 milliseconds
+     ''            ''       1484 milliseconds
+
+the average was 1438 for 1 million renders, which
+equals 0.0014 milliseconds per render - which is fine.
+ */
+logger.test("Performance for string templating"); {
+    var personTemplateHtml = FileUtils.readTemplate("person/person_add.html");
+    for (int j = 0; j < 15; j++) {
+        StopWatch stopWatch = new StopWatch().startTimer();
+        for (int i = 0; i < 1_000_000; i++) {
+            var a = String.format(personTemplateHtml, "", "", "", "", "", "", "", "");
+        }
+        var time = stopWatch.stopTimer();
+        logger.testPrint("rendering the template took " + time + " milliseconds");
+    }
+}
