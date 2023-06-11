@@ -36,7 +36,7 @@ public class ListPhotos {
     public ListPhotos(WebFramework wf, UploadPhoto up, AuthUtils auth) {
         this.logger = wf.getLogger();
         this.dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
-        listPhotosTemplateProcessor = TemplateProcessor.makeTemplateList(FileUtils.readTemplate("listphotos/list_photos_template.html"));
+        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("listphotos/list_photos_template.html"));
         this.up = up;
         this.auth = auth;
         this.lruCache = LRUCache.getLruCache();

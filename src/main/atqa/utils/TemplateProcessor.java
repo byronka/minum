@@ -9,10 +9,13 @@ public class TemplateProcessor {
 
     List<TemplateSection> templateSections;
 
-    public TemplateProcessor(List<TemplateSection> templateSections) {
+    private TemplateProcessor(List<TemplateSection> templateSections) {
         this.templateSections = templateSections;
     }
 
+    /**
+     * Given a map of key names -> value, render a template.
+     */
     public String renderTemplate(Map<String, String> myMap) {
         StringBuilder sb = new StringBuilder();
         for (TemplateSection templateSection : templateSections) {
@@ -22,12 +25,11 @@ public class TemplateProcessor {
     }
 
     /**
-     * This parser gets to stay simpler, because the rules are
-     * just this: if we encounter an opening curly brace, we're
-     * now inside a key.  Once we hit a closing brace, we're done
-     * and back into reading substrings.
+     * Builds a {@link TemplateProcessor} from a string
+     * containing a proper template.  Templated values
+     * are surrounded by double-curly-braces, i.e. {{foo}}
      */
-    public static TemplateProcessor makeTemplateList(String template) {
+    public static TemplateProcessor buildProcessor(String template) {
         var tSections = new ArrayList<TemplateSection>();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < template.length(); i++) {

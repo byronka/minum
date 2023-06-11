@@ -6,7 +6,7 @@ import java.util.Map;
 
 import static atqa.testing.TestFramework.assertEquals;
 import static atqa.testing.TestFramework.assertThrows;
-import static atqa.utils.TemplateProcessor.makeTemplateList;
+import static atqa.utils.TemplateProcessor.buildProcessor;
 
 public class TemplatingTests {
     private final TestLogger logger;
@@ -25,7 +25,7 @@ public class TemplatingTests {
         logger.test("testing out a template rendering machine"); {
             String template = "Hello {{name}}, I'm {{animal}}";
             var myMap = Map.of("name", "byron", "animal", "cat");
-            TemplateProcessor tp = makeTemplateList(template);
+            TemplateProcessor tp = buildProcessor(template);
 
             String renderedTemplate = tp.renderTemplate(myMap);
 
@@ -35,7 +35,7 @@ public class TemplatingTests {
         logger.test("template rendering - no keys"); {
             String template = "Hello there byron";
             var myMap = Map.of("name", "byron", "animal", "cat");
-            TemplateProcessor tp = makeTemplateList(template);
+            TemplateProcessor tp = buildProcessor(template);
 
             String renderedTemplate = tp.renderTemplate(myMap);
 
@@ -45,7 +45,7 @@ public class TemplatingTests {
         logger.test("template rendering - missing keys"); {
             String template = "Hello {{name}}, I'm {{animal}} {{missing_key}}";
             var myMap = Map.of("name", "byron", "animal", "cat");
-            TemplateProcessor tp = makeTemplateList(template);
+            TemplateProcessor tp = buildProcessor(template);
 
             assertThrows(TemplateRenderException.class, "Missing a value for key {missing_key}", () -> tp.renderTemplate(myMap));
         }
@@ -86,8 +86,8 @@ public class TemplatingTests {
          */
         logger.test("template for a more realistic input");
         {
-            var individualStockProcessor = TemplateProcessor.makeTemplateList(FileUtils.readTemplate("templatebenchmarks/individual_stock.html"));
-            var stockPrices = TemplateProcessor.makeTemplateList(FileUtils.readTemplate("templatebenchmarks/stock_prices.html"));
+            var individualStockProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("templatebenchmarks/individual_stock.html"));
+            var stockPrices = TemplateProcessor.buildProcessor(FileUtils.readTemplate("templatebenchmarks/stock_prices.html"));
             var expectedOutput = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
 
             StringBuilder sb = new StringBuilder();
