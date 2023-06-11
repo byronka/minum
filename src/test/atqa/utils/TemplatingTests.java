@@ -59,15 +59,15 @@ public class TemplatingTests {
 
         For comparison, the referenced project shows this for other well-known Java template systems:
 
-        Benchmark	Score(renderings / sec)
-        Freemarker	15370
-        Handlebars	17779
-        Mustache	22164
-        Pebble	    32530
-        Rocker	    39739
-        Thymeleaf	1084
-        Trimou	    22787
-        Velocity	20835
+        Benchmark   Score(renderings / sec)
+        Freemarker  15370
+        Handlebars  17779
+        Mustache    22164
+        Pebble      32530
+        Rocker      39739
+        Thymeleaf   1084
+        Trimou      22787
+        Velocity    20835
 
         Notes:
         Mustache: mentioned as really simple. 124 classes and 11,346 lines of
