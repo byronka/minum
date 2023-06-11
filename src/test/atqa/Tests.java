@@ -3,10 +3,7 @@ package atqa;
 import atqa.database.SimpleDatabaseTests;
 import atqa.sampledomain.ListPhotosTests;
 import atqa.testing.TestLogger;
-import atqa.utils.ActionQueue;
-import atqa.utils.FileUtils;
-import atqa.utils.MyThread;
-import atqa.utils.StringUtilsTests;
+import atqa.utils.*;
 import atqa.web.*;
 
 import java.io.IOException;
@@ -47,6 +44,7 @@ public class Tests {
     new SimpleDatabaseTests(logger).tests(es);
     new ListPhotosTests(logger).tests(es);
     new StringUtilsTests(logger).tests();
+    new TemplatingTests(logger).tests();
     new Http2Tests(logger).test(es);
     new FullSystemTests(logger).tests(es);
     new StaticFilesCacheTests(logger).tests(es);

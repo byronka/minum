@@ -20,6 +20,9 @@ rendering the template took 1593 milliseconds
 
 the average was 1438 for 1 million renders, which
 equals 0.0014 milliseconds per render - which is fine.
+That's 695,410 renderings per second.
+
+That's
  */
 logger.test("Performance for string templating"); {
     var personTemplateHtml = FileUtils.readTemplate("person/person_add.html");

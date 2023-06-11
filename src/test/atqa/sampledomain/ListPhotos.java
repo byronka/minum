@@ -4,6 +4,7 @@ import atqa.auth.AuthUtils;
 import atqa.logging.ILogger;
 import atqa.utils.FileUtils;
 import atqa.utils.StacktraceUtils;
+import atqa.utils.TemplateProcessor;
 import atqa.web.FullSystem;
 import atqa.web.Request;
 import atqa.web.Response;
@@ -24,7 +25,7 @@ import static atqa.web.StatusLine.StatusCode.*;
 
 public class ListPhotos {
 
-    private final String listPhotosTemplateHtml;
+    private final TemplateProcessor listPhotosTemplateProcessor;
     private final ILogger logger;
     private final Path dbDir;
 
@@ -35,7 +36,7 @@ public class ListPhotos {
     public ListPhotos(WebFramework wf, UploadPhoto up, AuthUtils auth) {
         this.logger = wf.getLogger();
         this.dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
-        listPhotosTemplateHtml = FileUtils.readTemplate("listphotos/list_photos_template.html");
+        listPhotosTemplateProcessor = TemplateProcessor.makeTemplateList(FileUtils.readTemplate("listphotos/list_photos_template.html"));
         this.up = up;
         this.auth = auth;
         this.lruCache = LRUCache.getLruCache();
@@ -54,7 +55,10 @@ public class ListPhotos {
 
         String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload</a></p>" : "";
 
-        String listPhotosHtml = listPhotosTemplateHtml.formatted(navBar, photoHtml);
+        String listPhotosHtml = listPhotosTemplateProcessor.renderTemplate(Map.of(
+                "nav_bar", navBar,
+                "photo_html", photoHtml
+        ));
         return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),listPhotosHtml);
     }
 
