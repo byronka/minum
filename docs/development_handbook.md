@@ -93,13 +93,16 @@ Set this option to enabled
 TDD
 ---
 
-A nice example of setting up some broken code in the TDD process is available.
+This entire project was built using TDD, but not the dogmatic flavor you often
+hear.  When I started development, I used TDD, and immediately fell in love with
+the technique, and have been advancing my techniques ever since.  In particular,
+a key difference is that I prefer to write as few tests as possible with as much
+impact as possible.  If the test won't have much impact, then it's just costing
+me in the form of slowed momentum.
 
-In this case, we want to write the simplest eloquent concise code.  This particular example is pretty good for showing
-what that initial attempt might look like.
-
-The initial code is at commit 79325280441b561c5b2a1b401c2c1125c5ddabd6
-The followup is at a589244cbba806912a08702584de0b78266bab0e
+Use TDD for intricate things, for helping think through ideas, for reviewing
+correctness.  Use it when it makes sense, and if it doesn't feel right, don't
+use it.
 
 
 Testing
