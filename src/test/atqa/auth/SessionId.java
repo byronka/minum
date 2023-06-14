@@ -12,8 +12,10 @@ import java.util.Objects;
 import static atqa.utils.StringUtils.generateSecureRandomString;
 
 /**
- * A simple record for holding information related to a session. Typically, creation of
+ * A record for holding information related to a session. Typically, creation of
  * this should be handled by {@link #createNewSession(long)}
+ *
+ * For more about this concept, see <a href="https://en.wikipedia.org/wiki/Session_(computer_science)#Web_server_session_management">Web server sessions</a>
  *
  * @param index            a simple numeric identifier that lets us distinguish one record from another
  * @param sessionCode      the sessionCode is a randomly-generated string that will be used

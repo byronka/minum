@@ -46,7 +46,7 @@ public class UploadPhoto {
         if (! authResult.isAuthenticated()) {
             return new Response(_401_UNAUTHORIZED);
         }
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), uploadPhotoTemplateHtml);
+        return Response.htmlOk(uploadPhotoTemplateHtml);
     }
 
     public Response uploadPageReceivePost(Request request) {

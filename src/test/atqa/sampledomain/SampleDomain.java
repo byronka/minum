@@ -40,7 +40,7 @@ public class SampleDomain {
                 .map(x -> "<li>" + StringUtils.safeHtml(x.fullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
+        return Response.htmlOk("""
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -88,7 +88,7 @@ public class SampleDomain {
     public Response sampleDomainIndex(Request request) {
         final var authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
-            return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
+            return Response.htmlOk("""
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -102,7 +102,7 @@ public class SampleDomain {
                 </html>
                 """);
         } else {
-            return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), """
+            return Response.htmlOk("""
                 <!DOCTYPE html>
                 <html>
                     <head>

@@ -59,7 +59,7 @@ public class ListPhotos {
                 "nav_bar", navBar,
                 "photo_html", photoHtml
         ));
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"),listPhotosHtml);
+        return Response.htmlOk(listPhotosHtml);
     }
 
     /**

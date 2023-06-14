@@ -269,7 +269,7 @@ public class AuthUtils {
         if (authResult.isAuthenticated()) {
             return Response.redirectTo("auth");
         }
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), loginPageTemplate);
+        return Response.htmlOk(loginPageTemplate);
     }
 
 
@@ -284,7 +284,7 @@ public class AuthUtils {
         final var registrationResult = registerUser(username, password);
 
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
-            return new Response(_200_OK, List.of("Content-Type: text/plain"), "This user is already registered");
+            return Response.htmlOk("<p>This user is already registered</p><p><a href=\"index.html\">Index</a></p>");
         }
         return new Response(_303_SEE_OTHER, List.of("Location: login"));
 
@@ -295,7 +295,7 @@ public class AuthUtils {
         if (authResult.isAuthenticated()) {
             Response.redirectTo("auth");
         }
-        return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), registerPageTemplate);
+        return Response.htmlOk(registerPageTemplate);
     }
 
     public Response logout(Request request) {
@@ -343,6 +343,6 @@ public class AuthUtils {
                 </html>
                 """.stripIndent();
         }
-        return new Response(_200_OK, response);
+        return Response.htmlOk(response);
     }
 }

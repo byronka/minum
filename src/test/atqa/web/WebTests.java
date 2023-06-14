@@ -156,7 +156,7 @@ public class WebTests {
                 int bValue = Integer.parseInt(r.startLine().pathDetails().queryString().get("b"));
                 int sum = aValue + bValue;
                 String sumString = String.valueOf(sum);
-                return new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), sumString);
+                return Response.htmlOk(sumString);
             }
         }
 
@@ -296,7 +296,7 @@ public class WebTests {
                         wf.registerPath(
                                 StartLine.Verb.POST,
                                 "some_post_endpoint",
-                                request -> new Response(_200_OK, List.of("Content-Type: text/html; charset=UTF-8"), request.body().asString("value_a"))
+                                request -> Response.htmlOk(request.body().asString("value_a"))
                         );
 
                         InputStream is = client.getInputStream();
