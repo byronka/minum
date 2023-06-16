@@ -1,7 +1,7 @@
 package atqa;
 
 import atqa.database.SimpleDatabaseTests;
-import atqa.sampledomain.ListPhotosTests;
+import atqa.sampledomain.LruCacheTests;
 import atqa.testing.TestLogger;
 import atqa.utils.*;
 import atqa.web.*;
@@ -42,7 +42,7 @@ public class Tests {
     var es = logger.getExecutorService();
     new WebTests(logger).tests(es);
     new SimpleDatabaseTests(logger).tests(es);
-    new ListPhotosTests(logger).tests(es);
+    new LruCacheTests(logger).tests(es);
     new StringUtilsTests(logger).tests();
     new TemplatingTests(logger).tests();
     new Http2Tests(logger).test(es);

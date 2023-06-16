@@ -1,16 +1,17 @@
 package atqa.sampledomain;
 
 import atqa.testing.TestLogger;
+import atqa.utils.LRUCache;
 
 import java.util.concurrent.ExecutorService;
 
 import static atqa.testing.TestFramework.*;
 
-public class ListPhotosTests {
+public class LruCacheTests {
 
     private final TestLogger logger;
 
-    public ListPhotosTests(TestLogger logger) {
+    public LruCacheTests(TestLogger logger) {
         this.logger = logger;
     }
 

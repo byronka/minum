@@ -1,4 +1,4 @@
-package atqa.sampledomain;
+package atqa.utils;
 
 import java.io.Serial;
 import java.util.Collections;
