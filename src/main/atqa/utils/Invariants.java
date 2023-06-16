@@ -1,7 +1,12 @@
 package atqa.utils;
 
 /**
- * Utilities for asserting invariants within the code
+ * Utilities for asserting invariants within the code.
+ * <br>
+ * The purpose here is to make firm statements about the code.  This is
+ * to help document the code, (e.g. at this point, x is the sum of the ...),
+ * to include testing mindset in the code, and to guard against adding
+ * bugs during maintenance.
  */
 public class Invariants {
 
