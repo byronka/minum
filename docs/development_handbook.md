@@ -228,6 +228,105 @@ similar to this:
     }
 
 
+Templates
+---------
+
+There's a few things to note when dealing with templates.
+
+First, files you intend to use as a template should be stored under src/resources/templates.
+They should then be placed inside a subdirectory there, to help organize them.  Inside
+a template, wherever you intend to substitute values, use a syntax like this:
+
+    this is some text {{template_key}} this is more text
+
+Once your template is written, you'll need to load the file, like this (note that
+the filetype of html is random - it could be any text file):
+
+    String template = FileUtils.readTemplate("foo/bar.html");
+
+Now that you have the string, you run a command one time to convert it to a form
+that is suitable for fast processing:
+
+    fooProcessor = TemplateProcessor.buildProcessor(template);
+
+And now you can render a template like this:
+
+    String renderedFoo = fooProcessor.renderTemplate(Map.of(
+        "beep", getBeepValue(),
+        "boop", 2 + 2
+    ));
+
+
+Writing to files
+----------------
+
+Occasionally you will need to write to files.  If you want to keep with the paradigm of
+this software, you will want to keep those files in the same root directory as the database,
+but in its own sub-directory.
+
+The steps to this are:
+1. Get the configured root directory for the database: `var dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir"));`
+2. Create the path for a sub-directory: `photoDirectory = dbDir.resolve("photo_files");
+3. Make a directory:
+
+
+    try {
+        FileUtils.makeDirectory(logger, photoDirectory);
+    } catch (IOException e) {
+        logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
+    }
+
+4. Then you can use that to write files, maybe like this:
+
+
+        Path photoPath = photoDirectory.resolve(newFilename);
+        try {
+            Files.write(photoPath, photoBytes);
+        } catch (IOException e) {
+            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
+            return new Response(_500_INTERNAL_SERVER_ERROR, e.toString());
+        }
+
+
+Authentication
+--------------
+
+Authentication is handled like follows:
+
+        AuthResult authResult = auth.processAuth(request);
+        if (! authResult.isAuthenticated()) {
+            return new Response(_401_UNAUTHORIZED);
+        }
+
+Avoidance of null
+-----------------
+
+Throughout this application, it was attempted to avoid null.  Null is fine and all,
+but it has a problem: null is too vague a description, and it's too easy to forget to
+handle the situation when something comes back null.
+
+1) if I request a "user" from the database, and I get null ... what does that mean? Does
+   it mean there was no user?  That there was an error? Who knows.
+
+2) In Java, a lot of methods return an object, and oftentimes it returns null, and it's
+   just so painfully easy to forget to handle what happens when it's null.
+
+Not saying you have to be perfect, but when you can, try to avoid null.
+
+
+Immutability
+------------
+
+Immutable data structures are easier to track.  The basic problem with immutability
+is that when it is possible for a certain data structure to be changed after creation,
+it's just too easy to do so.  When a structure's state can easily change, and the code
+has any parallelization or event-driven code, trying to be certain of the code's behavior
+becomes quite a bit more difficult.
+
+When we create a data structure, we favor doing so immutably - that is, once created, it cannot
+be changed.  To make a change, we have to recreate the data structure.
+
+
 Documentation
 -------------
 
@@ -258,6 +357,7 @@ high-quality web app code as an example to analyze.  That code lived, but the an
 we'll try that another day.
 
 
+
 Theme
 -----
 
@@ -285,7 +385,49 @@ If we understand that our software is a reflection of our culture, should we not
 >
 >-- John Gall (Gall's law)
 
+>Simple ain’t easy
+>
+> -- _Thelonious Monk_
+
+>Slow is smooth, smooth is fast
+>
+> -- _Navy Seals_
+
+>It occurred to him almost instantly, with the instinctive correctness that self-preservation
+>instills in the mind, that he mustn’t try to think about it, that if he did, the law of gravity
+>would suddenly glance sharply in his direction and demand to know what the hell he thought
+>he was doing up there, and all would suddenly be lost.
+>
+> -- _Douglas Adams, Life, The Universe and Everything_
+
+>"I never knew words could be so confusing," Milo said to Tock as he bent down to scratch the
+>dog's ear. "Only when you use a lot to say a little," answered Tock. Milo thought this was
+>quite the wisest thing he'd heard all day.
+>
+> -- _Norton Juster, The Phantom Tollbooth_
+
+>If you’re going to repair a motorcycle, an adequate supply of gumption is the first
+>and most important tool. If you haven’t got that you might as well gather up all
+>the other tools and put them away, because they won’t do you any good.
+>
+> -- _Robert Pirsig, Zen and the Art of Motorcycle Maintenance_
+
 >If you want to build a ship, don't drum up people to collect wood and don't assign
 >them tasks and work, but rather teach them to long for the endless immensity of the sea.
 >
->-- Antoine de Saint-Exupery
+> -- _Antoine de Saint-Exupery_
+
+>I conclude that there are two ways of constructing a software design: One way is to
+>make it so simple that there are obviously no deficiencies and the other way is to
+>make it so complicated that there are no obvious deficiencies. The first method is
+>far more difficult. It demands the same skill, devotion, insight, and even inspiration
+>as the discovery of the simple physical laws which underlie the complex phenomena of
+>nature. It also requires a willingness to accept objectives which are limited by
+>physical, logical, and technological constraints, and to accept a compromise when
+>conflicting objectives cannot be met.
+>
+> -- _Tony Hoare, 1980 ACM Turing award lecture_
+
+>Keep it simple, stupid
+>
+> -- _Kelly Johnson, Lockheed Skunk Works_

@@ -36,9 +36,9 @@ public record StartLine(
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
      */
-    public static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
-    public static final Pattern startLineRegex = Pattern.compile(startLinePattern);
-    public static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "");
+    static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
+    static final Pattern startLineRegex = Pattern.compile(startLinePattern);
+    static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "");
 
     /**
      * Returns a map of the key-value pairs in the URL,

@@ -18,6 +18,10 @@ import static atqa.utils.StringUtils.decode;
 import static atqa.web.InputStreamUtils.readChunkedEncoding;
 import static atqa.web.InputStreamUtils.readUntilEOF;
 
+/**
+ * This code is responsible for extracting the {@link Body} from
+ * an HTTP request.
+ */
 public class BodyProcessor {
 
     private final ILogger logger;

@@ -6,14 +6,17 @@ import java.util.regex.Pattern;
 
 import static atqa.utils.Invariants.mustBeTrue;
 
+/**
+ * This class represents the text that is sent back in a {@link Response}
+ */
 public record StatusLine(StatusCode status, WebEngine.HttpVersion version, String rawValue) {
 
     /**
      * This is the regex used to analyze a status line sent by the server and
      * read by the client.  Servers will send messages like: "HTTP/1.1 200 OK" or "HTTP/1.1 500 Internal Server Error"
      */
-    public static final String statusLinePattern = "^HTTP/(1.1|1.0) (\\d{3}) (.*)$";
-    public static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
+    static final String statusLinePattern = "^HTTP/(1.1|1.0) (\\d{3}) (.*)$";
+    static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
 
     /**
      * See see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">Status Codes</a>

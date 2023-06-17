@@ -35,6 +35,11 @@ import static atqa.web.WebEngine.HTTP_CRLF;
 public class WebFramework implements AutoCloseable {
 
     /**
+     * This is used as a key when registering endpoints
+     */
+    record VerbPath(StartLine.Verb verb, String path) { }
+
+    /**
      * The list of paths that our system is registered to handle.
      */
     private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;

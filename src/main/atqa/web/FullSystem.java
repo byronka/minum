@@ -20,6 +20,7 @@ import static atqa.web.WebEngine.HTTP_CRLF;
 
 /**
  * This class is responsible for kicking off the entire system.
+ * In particular, look at {@link #start()}
  */
 public class FullSystem implements AutoCloseable {
 
@@ -56,8 +57,9 @@ public class FullSystem implements AutoCloseable {
     }
 
     /**
-     * This starts the system running, ** BUT YOU SHOULD
-     * NOT USE THIS!! ** - use {@link #initialize()} instead.  This is
+     * This starts the system running,
+     * <em>but you should not call this directly!!</em>.
+     * Use {@link #initialize()} instead.  This is
      * a method only needed if you need a bit greater control
      * when starting, which is mostly just required for testing.
      */

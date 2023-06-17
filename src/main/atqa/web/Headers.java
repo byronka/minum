@@ -16,6 +16,19 @@ import static atqa.web.InputStreamUtils.readLine;
  * Details extracted from the headers.  For example,
  * is this a keep-alive connection? what is the content-length,
  * and so on.
+ * Here is some detail from <a href="https://en.wikipedia.org/wiki/List_of_HTTP_header_fields">Wikipedia</a> on the subject:
+ * <p>
+ * HTTP header fields are a list of strings sent and received by both
+ * the client program and server on every HTTP request and response. These
+ * headers are usually invisible to the end-user and are only processed or
+ * logged by the server and client applications. They define how information
+ * sent/received through the connection are encoded (as in Content-Encoding),
+ * the session verification and identification of the client (as in browser
+ * cookies, IP address, user-agent) or their anonymity thereof (VPN or
+ * proxy masking, user-agent spoofing), how the server should handle data
+ * (as in Do-Not-Track), the age (the time it has resided in a shared cache)
+ * of the document being downloaded, amongst others.
+ * </p>
  */
 public record Headers(
         /*
@@ -30,7 +43,7 @@ public record Headers(
      * Used for extracting the length of the body, in POSTs and
      * responses from servers
      */
-    static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
+    private static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
 
     /**
      * Loops through reading text lines from the socket wrapper,

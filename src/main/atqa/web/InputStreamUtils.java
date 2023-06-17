@@ -13,9 +13,10 @@ import static atqa.Constants.MAX_READ_SIZE_BYTES;
 import static atqa.utils.Invariants.*;
 import static atqa.utils.ByteUtils.byteListToArray;
 
+/**
+ * Handy helpful utilities for working with input streams.
+ */
 public class InputStreamUtils {
-
-
 
     /**
      * Read from the socket until it returns an EOF indicator (that is, -1)

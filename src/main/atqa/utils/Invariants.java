@@ -47,7 +47,7 @@ public class Invariants {
     }
 
     /**
-     * specifies that the paramter must be not null.
+     * specifies that the parameter must be not null.
      * <p>
      * Throws an {@link InvariantException} if null.
      * @return the object if not null
