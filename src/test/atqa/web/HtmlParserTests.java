@@ -4,6 +4,7 @@ import atqa.testing.TestLogger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static atqa.testing.TestFramework.assertEquals;
@@ -22,7 +23,12 @@ public class HtmlParserTests {
          */
         logger.test("initial happy path MVP html parsing"); {
             String input = "<p></p>";
-            var expected = List.of(new HtmlParser.HtmlParseNode(HtmlParser.ParseNodeType.ELEMENT, "p", List.of(), ""));
+            var expected = List.of(
+                    new HtmlParser.HtmlParseNode(
+                            HtmlParser.ParseNodeType.ELEMENT,
+                            new HtmlParser.TagInfo(HtmlParser.TagName.P, Map.of(), false),
+                            List.of(),
+                            ""));
 
             List<HtmlParser.HtmlParseNode> node = HtmlParser.parse(input);
 
