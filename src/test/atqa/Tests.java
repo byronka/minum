@@ -48,6 +48,7 @@ public class Tests {
     new Http2Tests(logger).test(es);
     new FullSystemTests(logger).tests(es);
     new StaticFilesCacheTests(logger).tests(es);
+    new HtmlParserTests(logger).tests(es);
     runShutdownSequence(es);
   }
 
