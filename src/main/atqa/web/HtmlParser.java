@@ -133,9 +133,10 @@ public class HtmlParser {
 
     public static List<HtmlParseNode> innerParser(StringReader sr, int depth) throws IOException {
         List<HtmlParseNode> nodes = new ArrayList<>();
-        int currentChar = sr.read();
-        if (currentChar < 0) return List.of();
-        if ((char) currentChar == '<') {
+        int readResult = sr.read();
+        if (readResult < 0) return List.of();
+        char currentChar = (char) readResult;
+        if (currentChar == '<') {
             // See https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#syntax-start-tags
             TagInfo sti = getTagInformation(sr);
             if (sti.isClosingTag) return List.of();
@@ -146,23 +147,24 @@ public class HtmlParser {
             nodes.add(new HtmlParseNode(ParseNodeType.ELEMENT, sti, innerContent, ""));
         } else {
             // in this case, We're just looking at inner text content
-            String textContent = getTextContent(sr);
+            String textContent = currentChar + getRestOfTextContent(sr);
             nodes.add(new HtmlParseNode(ParseNodeType.CHARACTERS, null, List.of(), textContent));
         }
         return nodes;
     }
 
-    private static String getTextContent(StringReader sr) throws IOException {
+    private static String getRestOfTextContent(StringReader sr) throws IOException {
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < MAX_CHARACTER_CONTENT_SIZE; i++) {
             if (i == MAX_CHARACTER_CONTENT_SIZE - 1) throw new ForbiddenUseException("Ceasing to parse HTML inner text content - too large");
-            int currentChar = sr.read();
-            if (currentChar < 0) break;
-            if ((char) currentChar == '<')  {
+            int returnValue = sr.read();
+            if (returnValue < 0) break;
+            char currentChar = (char) returnValue;
+            if (currentChar == '<')  {
                 break;
             } else {
-                sb.append((char) currentChar);
+                sb.append(currentChar);
             }
         }
         return sb.toString();

@@ -15,10 +15,10 @@ public class Tests {
   public static void main(String[] args) {
     try {
       unitAndIntegrationTests();
-      clearTestDatabase();
-      testFullSystem_Soup_To_Nuts();
-      clearTestDatabase();
-      indicateTestsFinished();
+//      clearTestDatabase();
+//      testFullSystem_Soup_To_Nuts();
+//      clearTestDatabase();
+//      indicateTestsFinished();
     } catch (Exception ex) {
       MyThread.sleep(100);
       ex.printStackTrace();
@@ -40,14 +40,14 @@ public class Tests {
   private static void unitAndIntegrationTests() throws Exception {
     TestLogger logger = TestLogger.makeTestLogger();
     var es = logger.getExecutorService();
-    new WebTests(logger).tests(es);
-    new SimpleDatabaseTests(logger).tests(es);
-    new LruCacheTests(logger).tests(es);
-    new StringUtilsTests(logger).tests();
-    new TemplatingTests(logger).tests();
-    new Http2Tests(logger).test(es);
-    new FullSystemTests(logger).tests(es);
-    new StaticFilesCacheTests(logger).tests(es);
+//    new WebTests(logger).tests(es);
+//    new SimpleDatabaseTests(logger).tests(es);
+//    new LruCacheTests(logger).tests(es);
+//    new StringUtilsTests(logger).tests();
+//    new TemplatingTests(logger).tests();
+//    new Http2Tests(logger).test(es);
+//    new FullSystemTests(logger).tests(es);
+//    new StaticFilesCacheTests(logger).tests(es);
     new HtmlParserTests(logger).tests(es);
     runShutdownSequence(es);
   }

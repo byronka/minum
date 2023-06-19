@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static atqa.testing.TestFramework.assertEquals;
+import static atqa.web.HtmlParser.ParseNodeType.CHARACTERS;
 
 public class HtmlParserTests {
     private final TestLogger logger;
@@ -22,17 +23,18 @@ public class HtmlParserTests {
         TDD'ing an initial stab at html parsing
          */
         logger.test("initial happy path MVP html parsing"); {
-            String input = "<p></p>";
+            String input = "<p>foo <foo> foo</p>";
             var expected = List.of(
                     new HtmlParser.HtmlParseNode(
                             HtmlParser.ParseNodeType.ELEMENT,
                             new HtmlParser.TagInfo(HtmlParser.TagName.P, Map.of(), false),
-                            List.of(),
+                            List.of(new HtmlParser.HtmlParseNode(CHARACTERS, null, List.of(), "foo <foo> foo")),
                             ""));
 
             List<HtmlParser.HtmlParseNode> node = HtmlParser.parse(input);
 
             assertEquals(expected, node);
         }
+
     }
 }
