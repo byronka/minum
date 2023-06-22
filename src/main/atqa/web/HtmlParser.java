@@ -127,8 +127,13 @@ public class HtmlParser {
 //        return sb.toString();
 //    }
 
-    record State(boolean isInsideTag, StringBuilder stringBuilder, int treeDepth, int tokenCount){
-        static State EMPTY = new State(false, new StringBuilder(), 0, 0);
+    record State(
+            boolean isInsideTag,
+            StringBuilder stringBuilder,
+            int treeDepth,
+            int tokenCount,
+            boolean isHalfClosedTag){
+        static State EMPTY = new State(false, new StringBuilder(), 0, 0, false);
     }
 
     enum ActionType {
@@ -182,15 +187,29 @@ public class HtmlParser {
     private static State processState(State state, Action action, List<HtmlParseNode> nodes) {
         switch (action.actionType()) {
             case ENTERING_TAG -> {
+                if (state.stringBuilder().length() > 0) {
+                    String token = state.stringBuilder().toString();
+                    nodes.add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, List.of(), token));
+                }
+
                 return new State(
                         true,
-                        state.stringBuilder(),
-                        state.treeDepth(),
-                        state.tokenCount());
+                        new StringBuilder(),
+                        state.treeDepth() + 1,
+                        state.tokenCount(),
+                        state.isHalfClosedTag());
             }
             case EXITING_TAG -> {
-                var hasToken = state.isInsideTag() && state.stringBuilder().length() > 0;
-                if (hasToken) {
+                if (state.stringBuilder().length() > 0) {
+                    if (state.isHalfClosedTag()) {
+                        return new State(
+                                false,
+                                new StringBuilder(),
+                                state.treeDepth() - 1,
+                                0,
+                                false
+                        );
+                    }
                     String token = state.stringBuilder().toString();
                     TagName tagName = TagName.valueOf(token.toUpperCase(Locale.ROOT));
                     var tagInfo = new TagInfo(tagName, Map.of());
@@ -199,23 +218,37 @@ public class HtmlParser {
 
                 return new State(
                         false,
-                        state.stringBuilder(),
+                        new StringBuilder(),
                         state.treeDepth(),
-                        state.tokenCount());
+                        state.tokenCount(),
+                        state.isHalfClosedTag());
             }
             case ADDING_TO_TOKEN -> {
                 var isReadingTagName = state.isInsideTag() && state.tokenCount() == 0;
 
                 if (isReadingTagName) {
+
                     var nextChar = action.nextChar();
+
+                    if (nextChar == '/') {
+                        return new State(
+                                true,
+                                new StringBuilder(),
+                                state.treeDepth(),
+                                0,
+                                true);
+                    }
+
                     state.stringBuilder().append(nextChar);
+
                 }
 
                 return new State(
                         state.isInsideTag(),
                         state.stringBuilder(),
                         state.treeDepth(),
-                        state.tokenCount());
+                        state.tokenCount(),
+                        state.isHalfClosedTag());
             }
         }
         return state;

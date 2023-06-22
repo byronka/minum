@@ -23,11 +23,11 @@ public class HtmlParserTests {
         Initial stab at html parsing, round 2
          */
         logger.test("initial happy path MVP html parsing"); {
-            String input = "<br>";
+            String input = "<p></p>";
             var expected = List.of(
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
-                            new TagInfo(TagName.BR, Map.of()),
+                            new TagInfo(TagName.P, Map.of()),
                             List.of(),
                             ""));
 
