@@ -2,10 +2,7 @@ package atqa.web;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static atqa.web.HtmlParser.ActionType.ADDING_TO_TOKEN;
 
@@ -128,12 +125,13 @@ public class HtmlParser {
 //    }
 
     record State(
+            int charsRead,
             boolean isInsideTag,
             StringBuilder stringBuilder,
-            int treeDepth,
+            Stack<String> elementStack,
             int tokenCount,
-            boolean isHalfClosedTag){
-        static State EMPTY = new State(false, new StringBuilder(), 0, 0, false);
+            boolean isStartTag){
+        static State INITIAL_STATE = new State(0,false, new StringBuilder(), new Stack<>(), 0, true);
     }
 
     enum ActionType {
@@ -161,7 +159,7 @@ public class HtmlParser {
      */
     private static List<HtmlParseNode> parse3(StringReader stringReader) throws IOException {
         List<HtmlParseNode> nodes = new ArrayList<>();
-        State state = State.EMPTY;
+        State state = State.INITIAL_STATE;
 
         while(true) {
             int value = stringReader.read();
@@ -170,7 +168,15 @@ public class HtmlParser {
 
             char currentChar = (char) value;
             Action action = parse4(currentChar);
-            state = processState(state, action, nodes);
+            var newState = new State(
+                    state.charsRead + 1,
+                    state.isInsideTag(),
+                    state.stringBuilder(),
+                    state.elementStack(),
+                    state.tokenCount(),
+                    state.isStartTag()
+            );
+            state = processState(newState, action, nodes);
         }
     }
 
@@ -193,35 +199,36 @@ public class HtmlParser {
                 }
 
                 return new State(
+                        state.charsRead(),
                         true,
                         new StringBuilder(),
-                        state.treeDepth() + 1,
+                        state.elementStack(),
                         state.tokenCount(),
-                        state.isHalfClosedTag());
+                        state.isStartTag());
             }
             case EXITING_TAG -> {
-                if (state.stringBuilder().length() > 0) {
-                    if (state.isHalfClosedTag()) {
-                        return new State(
-                                false,
-                                new StringBuilder(),
-                                state.treeDepth() - 1,
-                                0,
-                                false
-                        );
-                    }
-                    String token = state.stringBuilder().toString();
-                    TagName tagName = TagName.valueOf(token.toUpperCase(Locale.ROOT));
-                    var tagInfo = new TagInfo(tagName, Map.of());
+                String token = state.stringBuilder().toString();
+                TagName tagName = TagName.valueOf(token.toUpperCase(Locale.ROOT));
+                var tagInfo = new TagInfo(tagName, Map.of());
+                if (state.isStartTag()) {
+                    state.elementStack().push(token);
                     nodes.add(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, List.of(), ""));
+                } else {
+                    String element = state.elementStack().pop();
+                    if (!element.equals(token)) {
+                        throw new RuntimeException("Did not find expected element. " +
+                                "Expected: " + element + " at character " + (state.charsRead() - (1 + token.length())));
+                    }
                 }
 
+
                 return new State(
+                        state.charsRead(),
                         false,
                         new StringBuilder(),
-                        state.treeDepth(),
+                        state.elementStack(),
                         state.tokenCount(),
-                        state.isHalfClosedTag());
+                        state.isStartTag());
             }
             case ADDING_TO_TOKEN -> {
                 var isReadingTagName = state.isInsideTag() && state.tokenCount() == 0;
@@ -232,11 +239,12 @@ public class HtmlParser {
 
                     if (nextChar == '/') {
                         return new State(
+                                state.charsRead(),
                                 true,
                                 new StringBuilder(),
-                                state.treeDepth(),
+                                state.elementStack(),
                                 0,
-                                true);
+                                false);
                     }
 
                     state.stringBuilder().append(nextChar);
@@ -244,11 +252,12 @@ public class HtmlParser {
                 }
 
                 return new State(
+                        state.charsRead(),
                         state.isInsideTag(),
                         state.stringBuilder(),
-                        state.treeDepth(),
+                        state.elementStack(),
                         state.tokenCount(),
-                        state.isHalfClosedTag());
+                        state.isStartTag());
             }
         }
         return state;
