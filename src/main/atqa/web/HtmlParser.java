@@ -228,14 +228,14 @@ public class HtmlParser {
                         new StringBuilder(),
                         state.elementStack(),
                         state.tokenCount(),
-                        state.isStartTag());
+                        true);
             }
             case ADDING_TO_TOKEN -> {
+                var nextChar = action.nextChar();
+
                 var isReadingTagName = state.isInsideTag() && state.tokenCount() == 0;
 
                 if (isReadingTagName) {
-
-                    var nextChar = action.nextChar();
 
                     if (nextChar == '/') {
                         return new State(
@@ -246,10 +246,9 @@ public class HtmlParser {
                                 0,
                                 false);
                     }
-
-                    state.stringBuilder().append(nextChar);
-
                 }
+
+                state.stringBuilder().append(nextChar);
 
                 return new State(
                         state.charsRead(),
