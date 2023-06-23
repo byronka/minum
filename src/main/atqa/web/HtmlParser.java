@@ -1,5 +1,7 @@
 package atqa.web;
 
+import atqa.exceptions.ForbiddenUseException;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
@@ -12,17 +14,6 @@ public class HtmlParser {
      * Most total chars we'll read.
      */
     final static int MAX_HTML_SIZE = 2 * 1024 * 1024;
-
-    /**
-     * largest element name size we will allow.
-     */
-    final static int MAX_ELEMENT_NAME_SIZE = 50;
-
-    /**
-     * When reading the inner text content of an HTML
-     * element, this is the most we'll read.
-     */
-    final static int MAX_CHARACTER_CONTENT_SIZE = 1024;
 
     record State(
             int charsRead,
@@ -70,6 +61,7 @@ public class HtmlParser {
      * </p>
      */
     public static List<HtmlParseNode> parse(String input) throws IOException {
+        if (input.length() > MAX_HTML_SIZE) throw new ForbiddenUseException("Input exceeds max allowed HTML text size, " + MAX_HTML_SIZE + " chars");
         StringReader stringReader = new StringReader(input);
 
         List<HtmlParseNode> nodes = new ArrayList<>();
