@@ -208,7 +208,14 @@ public class HtmlParser {
             }
             case EXITING_TAG -> {
                 String token = state.stringBuilder().toString();
-                TagName tagName = TagName.valueOf(token.toUpperCase(Locale.ROOT));
+                TagName tagName;
+                String upperCaseToken = token.toUpperCase(Locale.ROOT);
+                try {
+                    tagName = TagName.valueOf(upperCaseToken);
+                } catch (IllegalArgumentException ex) {
+                    throw new IllegalArgumentException("Invalid HTML element: " + upperCaseToken +
+                            " at character " + (state.charsRead() - (1 + upperCaseToken.length())));
+                }
                 var tagInfo = new TagInfo(tagName, Map.of());
                 if (state.isStartTag()) {
                     state.elementStack().push(token);
