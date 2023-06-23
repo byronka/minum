@@ -128,7 +128,7 @@ public class HtmlParser {
             int charsRead,
             boolean isInsideTag,
             StringBuilder stringBuilder,
-            Stack<String> elementStack,
+            Stack<HtmlParseNode> parseStack,
             int tokenCount,
             boolean isStartTag){
         static State INITIAL_STATE = new State(0,false, new StringBuilder(), new Stack<>(), 0, true);
@@ -172,7 +172,7 @@ public class HtmlParser {
                     state.charsRead + 1,
                     state.isInsideTag(),
                     state.stringBuilder(),
-                    state.elementStack(),
+                    state.parseStack(),
                     state.tokenCount(),
                     state.isStartTag()
             );
@@ -195,14 +195,16 @@ public class HtmlParser {
             case ENTERING_TAG -> {
                 if (state.stringBuilder().length() > 0) {
                     String token = state.stringBuilder().toString();
-                    nodes.add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, List.of(), token));
+                    if (state.parseStack().size() > 0) {
+                        state.parseStack().peek().innerContent().add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), token));
+                    }
                 }
 
                 return new State(
                         state.charsRead(),
                         true,
                         new StringBuilder(),
-                        state.elementStack(),
+                        state.parseStack(),
                         state.tokenCount(),
                         state.isStartTag());
             }
@@ -218,13 +220,19 @@ public class HtmlParser {
                 }
                 var tagInfo = new TagInfo(tagName, Map.of());
                 if (state.isStartTag()) {
-                    state.elementStack().push(token);
-                    nodes.add(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, List.of(), ""));
+                    if (state.parseStack().size() > 0) {
+                        state.parseStack().peek().innerContent().add(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), ""));
+                    }
+                    state.parseStack().push(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), ""));
                 } else {
-                    String element = state.elementStack().pop();
-                    if (!element.equals(token)) {
+                    HtmlParseNode htmlParseNode = state.parseStack().pop();
+                    if (state.parseStack().size() == 0) {
+                        nodes.add(htmlParseNode);
+                    }
+                    TagName expectedTagName = htmlParseNode.tagInfo().tagName();
+                    if (expectedTagName != tagName) {
                         throw new RuntimeException("Did not find expected element. " +
-                                "Expected: " + element + " at character " + (state.charsRead() - (1 + token.length())));
+                                "Expected: " + expectedTagName + " at character " + (state.charsRead() - (1 + token.length())));
                     }
                 }
 
@@ -233,7 +241,7 @@ public class HtmlParser {
                         state.charsRead(),
                         false,
                         new StringBuilder(),
-                        state.elementStack(),
+                        state.parseStack(),
                         state.tokenCount(),
                         true);
             }
@@ -249,7 +257,7 @@ public class HtmlParser {
                                 state.charsRead(),
                                 true,
                                 new StringBuilder(),
-                                state.elementStack(),
+                                state.parseStack(),
                                 0,
                                 false);
                     }
@@ -261,7 +269,7 @@ public class HtmlParser {
                         state.charsRead(),
                         state.isInsideTag(),
                         state.stringBuilder(),
-                        state.elementStack(),
+                        state.parseStack(),
                         state.tokenCount(),
                         state.isStartTag());
             }

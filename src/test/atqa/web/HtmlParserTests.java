@@ -28,17 +28,17 @@ public class HtmlParserTests {
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
                             new TagInfo(TagName.P, Map.of()),
-                            List.of(),
-                            ""),
-                    new HtmlParseNode(
-                            ParseNodeType.CHARACTERS,
-                            new TagInfo(TagName.NULL, Map.of()),
-                            List.of(),
-                            "foo"),
-                    new HtmlParseNode(
-                            ParseNodeType.ELEMENT,
-                            new TagInfo(TagName.H1, Map.of()),
-                            List.of(),
+                            List.of(new HtmlParseNode(
+                                    ParseNodeType.CHARACTERS,
+                                    new TagInfo(TagName.NULL, Map.of()),
+                                    List.of(),
+                                    "foo"),
+                                    new HtmlParseNode(
+                                            ParseNodeType.ELEMENT,
+                                            new TagInfo(TagName.H1, Map.of()),
+                                            List.of(),
+                                            "")
+                                    ),
                             ""),
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
