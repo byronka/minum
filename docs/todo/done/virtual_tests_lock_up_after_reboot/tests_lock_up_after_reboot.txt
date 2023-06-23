@@ -2,8 +2,8 @@
 
 Sometimes, after a reboot, I find that when I run tests they will lock up.  For example:
 
-    atqa % make test
-    /Users/byronkatz/java/java19/jdk-19.jdk/Contents/Home/bin/java --enable-preview -cp "out/main:lib/*:out/test" atqa.primary.Tests
+    minum % make test
+    /Users/byronkatz/java/java19/jdk-19.jdk/Contents/Home/bin/java --enable-preview -cp "out/main:lib/*:out/test" minum.primary.Tests
     DEBUG: 2022-10-31T14:07:35.948507Z Using a supplied logger
     DEBUG: 2022-10-31T14:07:36.073344Z Just created a new ServerSocket: ServerSocket[addr=0.0.0.0/0.0.0.0,localport=8080]
     DEBUG: 2022-10-31T14:07:36.080110Z Keystore system property was not set

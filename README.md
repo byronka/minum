@@ -1,4 +1,4 @@
-ATQA Framework
+Minum Framework
 ===============
 
 This code provides all the functionality for a web application.
@@ -23,8 +23,8 @@ Quick start:
 example projects demonstrating usage:
 -------------------------------------
 
-- [One with a few features](https://github.com/byronka/atqa_usage_example) 
-- [Smallest-possible](https://github.com/byronka/atqa_usage_example_smaller)
+- [One with a few features](https://github.com/byronka/minum_usage_example) 
+- [Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
 
 Why?
 ----

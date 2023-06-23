@@ -3,5 +3,5 @@ The following is a record of commits where significant reduction of dead code to
 Some of this dead code may come in handy in the future, but was not used at the time.
 
 SHA             Description
-fb685570        simple ORM for external db, r3z-style atqa.database
+fb685570        simple ORM for external db, r3z-style minum.database
 84c24363        Crypto utilities - hashing

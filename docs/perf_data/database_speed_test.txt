@@ -3,7 +3,7 @@
  *
  * For the record... running this takes between 80 and 120 milliseconds.
  */
-logger.test("Just how fast is our atqa.database? spoiler: about 10 updates in 1 nanosecond");{
+logger.test("Just how fast is our minum.database? spoiler: about 10 updates in 1 nanosecond");{
     final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
 
     // change the foos

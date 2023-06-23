@@ -1,8 +1,8 @@
 ##
 # Project name - used to set the jar's file name
 ##
-PROJ_NAME := atqa
-HOST_NAME := atqa.com
+PROJ_NAME := minum
+HOST_NAME := minum.com
 VERSION=1.0.0
 
 ##
@@ -178,7 +178,7 @@ jar:: clean classes copyresources copysources
 	 version=$(VERSION)_$(GIT_BRANCH) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
 	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
 	 @echo
-	 @echo "*** Your new jar file is at out/atqa.jar ***"
+	 @echo "*** Your new jar file is at out/minum.jar ***"
 
 #: run the tests
 test:: classes testclasses copyresources copytestresources
@@ -208,7 +208,7 @@ javadoc::
 #
 #     make print-CLS
 #
-# and you'll get something like: CLS = out/atqa.logging/ILogger.class out/atqa.logging/Logger.class out/atqa.testing/Main.class out/atqa.utils/ActionQueue.class
+# and you'll get something like: CLS = out/minum.logging/ILogger.class out/minum.logging/Logger.class out/minum.testing/Main.class out/minum.utils/ActionQueue.class
 print-%::
 	 @echo $* = $($*)
 

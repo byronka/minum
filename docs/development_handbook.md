@@ -23,7 +23,7 @@ Table of contents
 Description
 ------------
 
-Atqa is a web library with all the components needed to build a web application,
+Minum is a web library with all the components needed to build a web application,
 include a web server and a database.  
 
 It follows some unusual conventions that new developers should be aware of.
@@ -49,9 +49,9 @@ Here's the general series of steps for a new developer:
    JDK to your environment as JAVA_HOME, and also add the path to the Java binaries to your PATH variable.
 2. Download and install IntelliJ Community Edition (which is free of charge) if you don't already have 
    it. Find it here: https://www.jetbrains.com/idea/download/
-3. Obtain this source code from Github, at https://github.com/byronka/atqa.git
+3. Obtain this source code from Github, at https://github.com/byronka/minum.git
 4. Run the tests on your computer, using the command line: make test 
-5. Run the [using_atqa](https://github.com/byronka/using_atqa) application to get a feel for the user experience: make run (and then go to http://localhost:8080)
+5. Run the [using_minum](https://github.com/byronka/using_minum) application to get a feel for the user experience: make run (and then go to http://localhost:8080)
 6. Open the software with IntelliJ.  Navigate around the code a bit.
 7. Read through some of this developer documentation to get a feel for some of its unique characteristics.
 8. Examine some tests in the system to get a feel for how the system works and how
