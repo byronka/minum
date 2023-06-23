@@ -30,7 +30,7 @@ Why?
 ----
 
 I wanted an opportunity to build software the way I would if allowed enough time and autonomy. It 
-needed to be high quality - built using test-driven development (in a non-dogmatic fashion). By 
+needed to be high quality - built using test-driven development (TDD) (in a non-dogmatic fashion). By 
 following this paradigm, I could develop software with such simplicity and longevity that I would
 be proud use it as an example for future work.
 
@@ -50,7 +50,17 @@ There are multiple practical benefits to using this framework for your web appli
   in the code, you will find easily-navigable code.  This also provides a greater 
   signal-to-noise ratio when examining stacktraces, making the maintenance cheaper and less 
   stressful.
-- Well-documented throughout.
+- Well-documented throughout, easier to maintain into the future.
+- The only dependency is the Java standard library.  That's it!  The commonplace approach
+  of using large frameworks with sub-dependencies, in combination with multitudes of
+  incidental dependencies, leads to dependency hell.  Why would you want to be in a 
+  permanent treadmill of adjusting your code for the never-ending updates? Just cut the 
+  cord.  It turns out that most of what you need doesn't require a lot of code - and 
+  this project is proof of that.
+- The build and testing goes way faster when there's less.  **Less is more**.  When your
+  test pipeline is finished in seconds, your development team's productivity keeps humming.
+  In my experience, most teams are oriented to _short-term_ developer productivity. Using
+  the practices exemplified here, you will attain _long-term_ productivity.
 
 System requirements: 
 --------------------
