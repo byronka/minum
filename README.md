@@ -61,6 +61,12 @@ There are multiple practical benefits to using this framework for your web appli
   test pipeline is finished in seconds, your development team's productivity keeps humming.
   In my experience, most teams are oriented to _short-term_ developer productivity. Using
   the practices exemplified here, you will attain _long-term_ productivity.
+- Oh by the way, did I mention this thing _moves_? It can handle 9000 web requests per 
+  second! The database can perform 1 _million_ writes per second.  The templating engine
+  is pretty dang fast too.  It clocked in at 27,000 renderings per second on the same
+  test where other well-known frameworks like Mustache only made it to 22,000 (and ours
+  uses about a hundredth as much code, meaning you can actually understand it all and
+  even improve it)
 
 System requirements: 
 --------------------
