@@ -46,7 +46,7 @@ public class HtmlParserTests {
                             List.of(),
                             ""));
 
-            List<HtmlParseNode> nodes = HtmlParser.parse2(input);
+            List<HtmlParseNode> nodes = HtmlParser.parse(input);
 
             assertEquals(expected, nodes);
         }

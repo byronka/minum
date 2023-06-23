@@ -24,9 +24,29 @@ public class HtmlParser {
      */
     final static int MAX_CHARACTER_CONTENT_SIZE = 1024;
 
+    record State(
+            int charsRead,
+            boolean isInsideTag,
+            StringBuilder stringBuilder,
+            Stack<HtmlParseNode> parseStack,
+            int tokenCount,
+            boolean isStartTag){
+        static State INITIAL_STATE = new State(0,false, new StringBuilder(), new Stack<>(), 0, true);
+    }
+
+    enum ActionType {
+        ENTERING_TAG,
+        EXITING_TAG,
+        ADDING_TO_TOKEN
+    }
+    record Action(ActionType actionType, char nextChar){
+        static Action ENTERING_TAG = new Action(ActionType.ENTERING_TAG, '<');
+        static Action EXITING_TAG = new Action(ActionType.EXITING_TAG, '>');
+    }
+
     /**
      * Given any HTML input, scan through and generate a tree
-     * of HTML nodes.  Return the root of the tree.
+     * of HTML nodes.  Return a list of the roots of the tree.
      * <p>
      *     This parser operates with a very particular paradigm in mind. I'll explain
      *     it through examples.  Let's look at some typical HTML:
@@ -49,115 +69,9 @@ public class HtmlParser {
      *     or when a user chooses to create an empty tag
      * </p>
      */
-//    public static List<HtmlParseNode> parse(String input) throws IOException {
-//        if (input.length() > MAX_HTML_SIZE)
-//            throw new ForbiddenUseException("We will not parse a string larger than MAX_HTML_SIZE: " + MAX_HTML_SIZE + " characters");
-//        var sr = new StringReader(input);
-//        return innerParser(sr, 0);
-//    }
-
-//    public static List<HtmlParseNode> innerParser(StringReader sr, int depth) throws IOException {
-//        List<HtmlParseNode> nodes = new ArrayList<>();
-//        int readResult = sr.read();
-//        if (readResult < 0) return List.of();
-//        char currentChar = (char) readResult;
-//        if (currentChar == '<') {
-//            // See https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#syntax-start-tags
-//            TagInfo sti = getTagInformation(sr);
-//            if (sti.isClosingTag()) return List.of();
-//            List<HtmlParseNode> innerContent = new ArrayList<>();
-//            if (! sti.tagName().isVoidElement) {
-//                innerContent = innerParser(sr, depth + 1);
-//            }
-//            nodes.add(new HtmlParseNode(ParseNodeType.ELEMENT, sti, innerContent, ""));
-//        } else {
-//            // in this case, We're just looking at inner text content
-//            String textContent = currentChar + getRestOfTextContent(sr);
-//            nodes.add(new HtmlParseNode(ParseNodeType.CHARACTERS, null, List.of(), textContent));
-//        }
-//        return nodes;
-//    }
-
-//    private static String getRestOfTextContent(StringReader sr) throws IOException {
-//        StringBuilder sb = new StringBuilder();
-//
-//        for (int i = 0; i < MAX_CHARACTER_CONTENT_SIZE; i++) {
-//            if (i == MAX_CHARACTER_CONTENT_SIZE - 1) throw new ForbiddenUseException("Ceasing to parse HTML inner text content - too large");
-//            int returnValue = sr.read();
-//            if (returnValue < 0) break;
-//            char currentChar = (char) returnValue;
-//            if (currentChar == '<')  {
-//                break;
-//            } else {
-//                sb.append(currentChar);
-//            }
-//        }
-//        return sb.toString();
-//    }
-
-    /**
-     * Grab the details
-     */
-//    public static TagInfo getTagInformation(StringReader sr) throws IOException {
-//        String tagNameString = getTagName(sr);
-//        if (tagNameString.length() > 1 && tagNameString.charAt(0) == '/') {
-//            TagName tagName = TagName.valueOf(tagNameString.substring(1).toUpperCase(Locale.ROOT));
-//            return new TagInfo(tagName, Map.of(), true);
-//        } else {
-//            TagName tagName = TagName.valueOf(tagNameString.toUpperCase(Locale.ROOT));
-//            return new TagInfo(tagName, Map.of(), false);
-//        }
-//    }
-
-//    private static String getTagName(StringReader sr) throws IOException {
-//        StringBuilder sb = new StringBuilder();
-//        for (int i = 0; i < MAX_ELEMENT_NAME_SIZE; i++) {
-//            if (i == MAX_ELEMENT_NAME_SIZE - 1) throw new ForbiddenUseException("Ceasing to parse HTML element name - too large");
-//            int currentChar = sr.read();
-//            if (currentChar < 0) break;
-//            if ((char) currentChar == ' ' || (char) currentChar == '>')  {
-//                break;
-//            } else {
-//                sb.append((char) currentChar);
-//            }
-//        }
-//        return sb.toString();
-//    }
-
-    record State(
-            int charsRead,
-            boolean isInsideTag,
-            StringBuilder stringBuilder,
-            Stack<HtmlParseNode> parseStack,
-            int tokenCount,
-            boolean isStartTag){
-        static State INITIAL_STATE = new State(0,false, new StringBuilder(), new Stack<>(), 0, true);
-    }
-
-    enum ActionType {
-        ENTERING_TAG,
-        EXITING_TAG,
-        ADDING_TO_TOKEN
-    }
-    record Action(ActionType actionType, char nextChar){
-        static Action ENTERING_TAG = new Action(ActionType.ENTERING_TAG, '<');
-        static Action EXITING_TAG = new Action(ActionType.EXITING_TAG, '>');
-    }
-
-    /**
-     * Outermost parser - convert string to a StringReader
-     */
-    public static List<HtmlParseNode> parse2(String input) throws IOException {
+    public static List<HtmlParseNode> parse(String input) throws IOException {
         StringReader stringReader = new StringReader(input);
 
-        return parse3(stringReader);
-    }
-
-    /**
-     * At this level, instantiate List of Nodes
-     * and loop through characters
-     */
-    private static List<HtmlParseNode> parse3(StringReader stringReader) throws IOException {
         List<HtmlParseNode> nodes = new ArrayList<>();
         State state = State.INITIAL_STATE;
 
@@ -167,7 +81,7 @@ public class HtmlParser {
             if (value < 0) return nodes;
 
             char currentChar = (char) value;
-            Action action = parse4(currentChar);
+            Action action = determineMode(currentChar);
             var newState = new State(
                     state.charsRead + 1,
                     state.isInsideTag(),
@@ -180,7 +94,12 @@ public class HtmlParser {
         }
     }
 
-    private static Action parse4(char currentChar) {
+    /**
+     * Use important symbols in the HTML code to indicate
+     * which mode we are in - reading inside a tag, or between
+     * tags.
+     */
+    private static Action determineMode(char currentChar) {
         if (currentChar == '<') {
             return Action.ENTERING_TAG;
         } else if (currentChar == '>') {
@@ -190,8 +109,15 @@ public class HtmlParser {
         }
     }
 
+    /**
+     * This program takes in an {@link Action}, helping to indicate what
+     * kind of symbol we're examining, a {@link State} object which holds
+     * some important state as we go, and a list of {@link HtmlParseNode}
+     * that we'll occasionally add to (and return as the top of the html tree)
+     */
     private static State processState(State state, Action action, List<HtmlParseNode> nodes) {
         switch (action.actionType()) {
+
             case ENTERING_TAG -> {
                 if (state.stringBuilder().length() > 0) {
                     String token = state.stringBuilder().toString();
@@ -226,6 +152,12 @@ public class HtmlParser {
                     state.parseStack().push(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), ""));
                 } else {
                     HtmlParseNode htmlParseNode = state.parseStack().pop();
+
+                     /*
+                    If the stack is a size of zero at this point, it means we're at the
+                    roots of our HTML code, which means it's the proper time to add the
+                    topmost element we just popped into a list.
+                     */
                     if (state.parseStack().size() == 0) {
                         nodes.add(htmlParseNode);
                     }
@@ -236,7 +168,6 @@ public class HtmlParser {
                     }
                 }
 
-
                 return new State(
                         state.charsRead(),
                         false,
@@ -245,6 +176,7 @@ public class HtmlParser {
                         state.tokenCount(),
                         true);
             }
+
             case ADDING_TO_TOKEN -> {
                 var nextChar = action.nextChar();
 
@@ -252,6 +184,10 @@ public class HtmlParser {
 
                 if (isReadingTagName) {
 
+                    /*
+                    hitting a forward-slash symbol means we're looking
+                    at the closure of a tag
+                    */
                     if (nextChar == '/') {
                         return new State(
                                 state.charsRead(),
