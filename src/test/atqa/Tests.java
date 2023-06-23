@@ -1,7 +1,5 @@
 package atqa;
 
-import atqa.database.SimpleDatabaseTests;
-import atqa.sampledomain.LruCacheTests;
 import atqa.testing.TestLogger;
 import atqa.utils.*;
 import atqa.web.*;

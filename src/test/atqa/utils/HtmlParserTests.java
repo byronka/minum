@@ -1,4 +1,4 @@
-package atqa.web;
+package atqa.utils;
 
 import atqa.testing.TestLogger;
 

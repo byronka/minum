@@ -1,4 +1,4 @@
-package atqa.web;
+package atqa.utils;
 
 import atqa.exceptions.ForbiddenUseException;
 
@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
 
-import static atqa.web.HtmlParser.ActionType.ADDING_TO_TOKEN;
+import static atqa.utils.HtmlParser.ActionType.ADDING_TO_TOKEN;
 
 public class HtmlParser {
 
