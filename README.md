@@ -2,7 +2,7 @@ Minum Framework
 ===============
 
 This code provides all the functionality for a web application.
-It is written mostly in Java.
+It is written in Java.
 
 Features:
 --------
@@ -25,6 +25,8 @@ Quick start:
 
 example projects demonstrating usage:
 -------------------------------------
+
+See the following links for sample projects that use this framework.
 
 - [One with a few features](https://github.com/byronka/minum_usage_example) 
 - [Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
