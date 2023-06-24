@@ -1,8 +1,7 @@
 Minum Framework
 ===============
 
-This code provides all the functionality for a web application.
-It is written in Java.
+This code provides all the functionality for a Java web application.
 
 Features:
 --------
