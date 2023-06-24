@@ -1,5 +1,6 @@
 package minum.utils;
 
+import minum.testing.StopWatch;
 import minum.testing.TestLogger;
 
 import java.io.IOException;
@@ -24,11 +25,12 @@ public class HtmlParserTests {
          */
         logger.test("initial happy path MVP html parsing");
         {
-            String input = "<p class=\"baz\">foo<h1></h1></p><p></p>";
+            String input = "<p class=\"baz biz\" id=\"wut\" fee=fi>foo<h1></h1></p><p></p>";
+            String inputWithSingleTicks = "<p class='baz biz' id='wut' fee=fi>foo<h1></h1></p><p></p>";
             var expected = List.of(
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
-                            new TagInfo(TagName.P, Map.of("class", "baz")),
+                            new TagInfo(TagName.P, Map.of("class", "baz biz", "id", "wut", "fee", "fi")),
                             List.of(new HtmlParseNode(
                                             ParseNodeType.CHARACTERS,
                                             new TagInfo(TagName.NULL, Map.of()),
@@ -47,9 +49,19 @@ public class HtmlParserTests {
                             List.of(),
                             ""));
 
-            List<HtmlParseNode> nodes = HtmlParser.parse(input);
+            List<HtmlParseNode> nodes = null;
+            List<HtmlParseNode> nodesWithSingleTicks = null;
 
+            StopWatch stopWatch = new StopWatch().startTimer();
+            for (int i = 0; i < 1000; i++) {
+                nodes = HtmlParser.parse(input);
+                nodesWithSingleTicks = HtmlParser.parse(inputWithSingleTicks);
+            }
+            long durationMillis = stopWatch.stopTimer();
+
+            logger.testPrint("Duration in millis was " + durationMillis);
             assertEquals(expected, nodes);
+            assertEquals(expected, nodesWithSingleTicks);
         }
 
     }

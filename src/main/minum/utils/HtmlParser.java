@@ -189,7 +189,18 @@ public class HtmlParser {
                 } else {
                     if (state.hasEncounteredTagName && state.tagName.isEmpty() && state.stringBuilder.length() > 0) {
                         state.tagName = state.stringBuilder.toString();
+                    } else if (!state.currentAttributeKey.isBlank()) {
+                        // if we were in the midst of reading attribute stuff when we hit the closing bracket...
+                        if (state.stringBuilder.length() > 0) {
+                            state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
+                        } else {
+                            state.attributes.put(state.currentAttributeKey, "");
+                        }
+                        state.isInsideAttributeValueQuoted = false;
+                        state.stringBuilder = new StringBuilder();
+                        state.currentAttributeKey = "";
                     }
+
                     exitingTag(state, nodes);
                 }
             } else {
@@ -316,7 +327,7 @@ public class HtmlParser {
                 } else {
                     // reading in the (potential) attribute value
                     if (state.isInsideAttributeValueQuoted) {
-                        if (currentChar == '"') {
+                        if (currentChar == '"' || currentChar == '\'') {
                             state.isInsideAttributeValueQuoted = false;
                             state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
                             state.stringBuilder = new StringBuilder();
@@ -325,7 +336,7 @@ public class HtmlParser {
                             state.stringBuilder.append(currentChar);
                         }
                     } else {
-                        if (currentChar == '"') {
+                        if (currentChar == '"' || currentChar == '\'') {
                             state.isInsideAttributeValueQuoted = true;
                         } else if (state.stringBuilder.length() > 0 && currentChar == ' ') {
                             state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
