@@ -330,7 +330,7 @@ be changed.  To make a change, we have to recreate the data structure.
 Documentation
 -------------
 
-THe only way we can keep the complexity tamped down is by keeping vigilant about quality.
+The only way we can keep the complexity tamped down is by keeping vigilant about quality.
 This takes many forms, and one of these is keeping good documentation.  Consider whether
 a helpful explanation would get someone running sooner.  Please keep your words concise.
 Brevity is the soul of wit.
@@ -347,7 +347,7 @@ move to docs/todo/done
 History
 -------
 
-This project is a Java rewrite of https://github.com/7ep/r3z, which was inspired by
+This project is a Java rewrite of https://github.com/byronka/r3z, which was inspired by
 work on https://github.com/7ep/demo.  So you could say this project has been in
 the works since 2018.
 
