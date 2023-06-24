@@ -32,7 +32,8 @@ Why?
 I wanted an opportunity to build software the way I would if allowed enough time and autonomy. It 
 needed to be high quality - built using test-driven development (TDD) (in a non-dogmatic fashion). By 
 following this paradigm, I could develop software with such simplicity and longevity that I would
-be proud use it as an example for future work.
+be proud use it as an example for future work. (Also see the [theme](docs/development_handbook.md#theme) section in the development
+handbook)
 
 There are multiple practical benefits to using this framework for your web application:
 
@@ -50,7 +51,7 @@ There are multiple practical benefits to using this framework for your web appli
   in the code, you will find easily-navigable code.  This also provides a greater 
   signal-to-noise ratio when examining stacktraces, making the maintenance cheaper and less 
   stressful.
-- Well-documented throughout, easier to maintain into the future.
+- Well-documented throughout, easier to maintain.
 - The only dependency is the Java standard library.  That's it!  The commonplace approach
   of using large frameworks with sub-dependencies, in combination with multitudes of
   incidental dependencies, leads to dependency hell.  Why would you want to be in a 
@@ -67,6 +68,30 @@ There are multiple practical benefits to using this framework for your web appli
   test where other well-known frameworks like Mustache only made it to 22,000 (and ours
   uses about a hundredth as much code, meaning you can actually understand it all and
   even improve it)
+- Relatedly, let's talk about resource usage. I'm mainly talking about CPU, memory, and
+  disk here, and consequently number of computers required.  Because this framework contains
+  all the pieces you would need for a web application, the framework lowers your expenses.  
+  It will run on a low-performance machine easily.  On the lower bounds of business capability it only
+  needs about 10 megabytes of memory to run.  Naturally, if your business requirements
+  include large caches, that number would jump, but that's on you.
+- Also, the framework embraces the bleeding edge of Java technology, like virtual threads,
+  which allow it to manage, for example, ten thousand concurrent requests using several
+  dozen megabytes (as opposed to the more typical 10-20 gigs)
+- I will admit that there are individual components out there, like template rendering 
+  engines and loggers, that can smoke us on perf.  But, they do it by incorporating absolutely 
+  humungous, indecipherable code.  Which increases the surface area of the program. Which
+  increases the likelihood of bugs.  Not saying this code is perfect, but the emphasis is
+  on minimalism and simplicity: 
+
+  >I conclude that there are two ways of constructing a software design: One way is to
+  >make it so simple that there are obviously no deficiencies and the other way is to
+  >make it so complicated that there are no obvious deficiencies.
+  > 
+  > Tony Hoare,  _1980 ACM Turing award lecture_ 
+- There's a system approach that glues together all these components.  Yes, you can
+  absolutely pull in other dependencies to work here, but the patterns here show what
+  a user-value-oriented codebase looks like. This system has maintainability,
+  minimal resource consumption, quality, and performance in mind.
 
 System requirements: 
 --------------------
