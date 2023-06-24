@@ -10,6 +10,9 @@ Features:
 - web server
 - web path routing
 - database pattern - in memory w/ eventual disk persistence
+- examples
+- good documentation
+- templating
 - logging
 - testing framework
 
