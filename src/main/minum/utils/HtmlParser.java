@@ -304,12 +304,7 @@ public class HtmlParser {
         } else if (!state.tagName.isEmpty() && state.isInsideTag) {
             // if we're reading beyond the tag name
 
-            if (state.currentAttributeKey.isEmpty() && state.stringBuilder.length() == 0 && currentChar == ' ') {
-                /*
-                Here, we haven't yet found a attribute key, but
-                we're hitting whitespace. Bail.
-                 */
-            } else {
+            if (! (state.currentAttributeKey.isEmpty() && state.stringBuilder.length() == 0 && currentChar == ' ')) {
                 if (state.currentAttributeKey.isBlank()) {
                     // reading in the attribute key
                     if (currentChar == ' ' || currentChar == '=') {
@@ -332,8 +327,6 @@ public class HtmlParser {
                     } else {
                         if (currentChar == '"') {
                             state.isInsideAttributeValueQuoted = true;
-                        } else if (state.stringBuilder.length() == 0 && currentChar == ' ') {
-                            return;
                         } else if (state.stringBuilder.length() > 0 && currentChar == ' ') {
                             state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
                             state.stringBuilder = new StringBuilder();
