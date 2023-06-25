@@ -8,7 +8,7 @@ Features:
 --------
 
 - secure HTTP/1.1 web server
-- in-memory database with eventual disk persistence
+- in-memory database with disk persistence
 - efficient server-side templating
 - defensive security capabilities
 - logging
