@@ -14,6 +14,12 @@ Table of contents
 - [Logging](#logging)
 - [Threads](#threads)
 - [Routing](#routing)
+- [Security](#security)
+- [Templates](#templates)
+- [Writing to files](#writing-to-files)
+- [Authentication](#authentication)
+- [Avoidance of null](#avoidance-of-null)
+- [Immutability](#immutability)
 - [Documentation](#documentation)
 - [Feature tracking](#feature-tracking)
 - [History](#history)
@@ -226,6 +232,29 @@ similar to this:
     Response getFoo(Request r) {
         ...
     }
+
+
+Security
+--------
+
+Since our system is designed to be put on the public internet without an intervening
+load balancer or other reverse proxy, it faces a lot of abuse.  There are two classes
+in particular designed to mitigate this.  They are called UnderInvestigation (UI) and
+TheBrig (TB).  In short, UI has code for determining whether some
+behavior is indicative of an attack, and TB maintains a list of clients who
+have been deemed dangerous, and makes that list available to key parts of the system.
+
+For example, if UI thinks that a client is seeking out vulnerabilities in the system,
+it will indicate that to TB, who will put that client in a list for a week.  Adjacent to
+the ServerSocket.accept() command, there is a check if the newly-accepted client is
+in that list, and if so, drop the connection.
+
+The offending client is designated by a combination of their ip address and a short string
+representing the offense type. For example, if someone tries to force our system to use 
+a version of TLS that has known vulnerabilities, we'll assume they're of no value to us 
+and put them away for a week:
+
+    "123.123.123.123_vuln_seeking", 604800000
 
 
 Templates
