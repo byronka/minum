@@ -59,11 +59,14 @@ There are multiple practical benefits to using this framework for your web appli
   through direct method calls. This also provides a greater signal-to-noise ratio when 
   examining stacktraces, making the maintenance cheaper and less stressful.
 - Well-documented throughout, easier to maintain.
-- The only dependency is the Java standard library.  That's it!  The commonplace approach
-  of using large frameworks with sub-dependencies, in combination with multitudes of
-  incidental dependencies, leads to dependency hell.  Why would anyone want to be in a 
-  permanent treadmill of adjusting your code for the never-ending updates? While it
-  may be this way on most projects, it doesn't need to here.
+- The only dependency is the Java standard library.  Using large frameworks 
+  combined with many incidental dependencies leads to dependency hell.  The commonplace
+  conundrum is how to stay on top of the ensuing treadmill of updates. While it may be 
+  that way on most projects, it doesn't need to be that way
+  here. The pendulum for avoiding programming has swung too far out for many teams. Let's
+  not just be "configurers".  Let's be programmers.  There's a lot we can reasonably 
+  undertake - just look at this project for a sense of how little is actually needed
+  for some code when you work with a general-purpose programming language.
 - The build and testing goes way faster when there's less.  **Less is more**.  When your
   test pipeline is finished in seconds, your development team's productivity keeps humming.
   In my experience, most teams are oriented to _short-term_ developer productivity. Using
