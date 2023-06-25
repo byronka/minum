@@ -1,7 +1,10 @@
 package minum.web;
 
+import minum.Constants;
 import minum.exceptions.ForbiddenUseException;
 import minum.logging.ILogger;
+import minum.security.TheBrig;
+import minum.security.UnderInvestigation;
 import minum.utils.ConcurrentSet;
 import minum.utils.StacktraceUtils;
 import minum.utils.ThrowingConsumer;
@@ -31,6 +34,7 @@ public class Server implements AutoCloseable {
     private final SetOfSws setOfSWs;
     private final ILogger logger;
     private final String serverName;
+    private final TheBrig theBrig;
 
     /**
      * This is the future returned when we submitted the
@@ -38,10 +42,11 @@ public class Server implements AutoCloseable {
      */
     public Future<?> centralLoopFuture;
 
-    public Server(ServerSocket ss, ILogger logger, String serverName) {
+    public Server(ServerSocket ss, ILogger logger, String serverName, TheBrig theBrig) {
         this.serverSocket = ss;
         this.logger = logger;
         this.serverName = serverName;
+        this.theBrig = theBrig;
         setOfSWs = new SetOfSws(new ConcurrentSet<>(), logger, serverName);
     }
 
@@ -84,8 +89,17 @@ public class Server implements AutoCloseable {
                                 logger.logDebug(ex::getMessage);
                             } catch (SSLException ex) {
                                 logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
+                                boolean isLookingForVulnerabilities = UnderInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
+                                logger.logDebug(() -> "is " + sw.getRemoteAddr() + " looking for vulnerabilities? " + isLookingForVulnerabilities);
+                                if (isLookingForVulnerabilities) {
+                                    if (theBrig != null && Constants.IS_THE_BRIG_ENABLED)
+                                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", Constants.VULN_SEEKING_JAIL_DURATION);
+                                }
                             } catch (Exception ex) {
-                                logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
+                                // if we hit here, someone has carried out an action down in the gears that we consider hacking-like.
+                                // ban hammer.
+                                if (theBrig != null && Constants.IS_THE_BRIG_ENABLED)
+                                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", Constants.VULN_SEEKING_JAIL_DURATION);
                             }
                         };
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(innerServerCode, logger));

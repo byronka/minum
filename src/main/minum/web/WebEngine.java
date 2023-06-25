@@ -1,6 +1,8 @@
 package minum.web;
 
+import minum.Constants;
 import minum.logging.ILogger;
+import minum.security.TheBrig;
 import minum.utils.ThrowingConsumer;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -13,7 +15,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -25,9 +26,20 @@ import java.util.concurrent.ExecutorService;
  */
 public class WebEngine {
 
-  public WebEngine(ILogger logger) {
-      this.logger = logger;
-      this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
+  private final TheBrig theBrig;
+
+  public WebEngine(FullSystem fs) {
+    this(fs.getLogger(), fs.getTheBrig());
+  }
+
+  /**
+   * @param logger Required.
+   * @param theBrig Optional.  May pass in null.
+   */
+  public WebEngine(ILogger logger, TheBrig theBrig) {
+    this.logger = logger;
+    this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
+    this.theBrig = theBrig;
   }
 
   public enum HttpVersion {
@@ -38,14 +50,13 @@ public class WebEngine {
   public static final String HTTP_CRLF = "\r\n";
 
   public Server startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
-    Properties configuredProperties = FullSystem.getConfiguredProperties();
-    int port = Integer.parseInt(configuredProperties.getProperty("nonsslServerPort", "8080"));
+    int port = Constants.SERVER_PORT;
     ServerSocket ss = new ServerSocket(port);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, logger, "http server");
+    Server server = new Server(ss, logger, "http server", theBrig);
     logger.logDebug(() -> String.format("Just created a new Server: %s", server));
     server.start(es, handler);
-    String hostname = configuredProperties.getProperty("hostname", "localhost");
+    String hostname = Constants.HOST_NAME;
     logger.logDebug(() -> String.format("%s started at http://%s:%s", server, hostname, port));
     return server;
   }
@@ -58,7 +69,6 @@ public class WebEngine {
     final var useExternalKeystore = checkSystemPropertiesForKeystore();
 
     ServerSocket ss;
-    Properties configuredProperties = FullSystem.getConfiguredProperties();
 
     if (useExternalKeystore) {
       logger.logDebug(() -> "Using keystore and password referenced in app.config");
@@ -67,19 +77,19 @@ public class WebEngine {
     }
 
     final URL keystoreUrl = useExternalKeystore ?
-            Path.of(configuredProperties.getProperty("javax.net.ssl.keyStore")).toUri().toURL() :
+            Path.of(Constants.KEYSTORE_PATH).toUri().toURL() :
             WebEngine.class.getClassLoader().getResource("resources/certs/keystore");
     final String keystorePassword = useExternalKeystore ?
-            configuredProperties.getProperty("javax.net.ssl.keyStorePassword") :
+            Constants.KEYSTORE_PASSWORD :
             "passphrase";
 
-    int port = Integer.parseInt(configuredProperties.getProperty("sslServerPort", "8443"));
+    int port = Constants.SECURE_SERVER_PORT;
     ss = createSslSocketWithSpecificKeystore(port, keystoreUrl, keystorePassword);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, logger, "https server");
+    Server server = new Server(ss, logger, "https server", theBrig);
     logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
     server.start(es, handler);
-    String hostname = configuredProperties.getProperty("hostname", "localhost");
+    String hostname = Constants.HOST_NAME;
     logger.logDebug(() -> String.format("%s started at https://%s:%s", server, hostname, port));
     return server;
   }
@@ -102,21 +112,22 @@ public class WebEngine {
    * We *do* bundle a cert, but it's for testing and is self-signed.
    */
   private Boolean checkSystemPropertiesForKeystore() {
-    final var props = FullSystem.getConfiguredProperties();
 
     // get the directory to the keystore from a system property
-    final var keystore = props.getProperty("javax.net.ssl.keyStore");
-    if (keystore == null) {
+    final var keystore = Constants.KEYSTORE_PATH;
+    boolean hasKeystore = ! (keystore == null || keystore.isBlank());
+    if (! hasKeystore) {
       logger.logDebug(() -> "Keystore system property was not set");
     }
 
     // get the password to that keystore from a system property
-    final var keystorePassword = props.getProperty("javax.net.ssl.keyStorePassword");
-    if (keystorePassword == null) {
+    final var keystorePassword = Constants.KEYSTORE_PASSWORD;
+    boolean hasKeystorePassword = ! (keystorePassword == null || keystorePassword.isBlank());
+    if (! hasKeystorePassword) {
       logger.logDebug(() -> "keystorePassword system property was not set");
     }
 
-    return keystore != null && keystorePassword != null;
+    return hasKeystore && hasKeystorePassword;
   }
 
 

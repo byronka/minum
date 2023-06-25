@@ -1,8 +1,7 @@
 package minum.logging;
 
-import minum.web.FullSystem;
+import minum.Constants;
 import minum.utils.ActionQueue;
-import minum.utils.StringUtils;
 import minum.utils.ThrowingSupplier;
 
 import java.util.ArrayList;
@@ -20,8 +19,7 @@ public class Logger implements ILogger {
 
     public Logger(ExecutorService es) {
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
-        String loglevels = FullSystem.getConfiguredProperties().getProperty("loglevels", "DEBUG");
-        List<String> logLevelStrings = StringUtils.tokenizer(loglevels, ',').stream().map(String::toUpperCase).toList();
+        List<String> logLevelStrings = Constants.LOG_LEVELS.stream().map(String::toUpperCase).toList();
         List<Type> enabledLoggingLevels = new ArrayList<>();
         for (Type t : Type.values()) {
             if (logLevelStrings.contains(t.name())) {

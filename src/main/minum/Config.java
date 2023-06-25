@@ -3,6 +3,13 @@ package minum;
 public class Config {
     public static String getDefaultConfig() {
         return """
+                ###
+                ### The following was generated as a stop-gap measure because the
+                ### mandatory config file was missing.  Please see the documentation
+                ### for including a more proper configuration file.  This version
+                ### lacks some fine-tuning keys.
+                
+                
                 ###  The port used for our plain, non-secure server
 
                 #nonsslServerPort=8080
@@ -19,15 +26,6 @@ public class Config {
                 ###  system when it needs to build a self-referencing URL.
 
                 #hostname=localhost
-
-                #-----------------------------
-
-                ###  information needed for the TLS certs
-
-                #javax.net.ssl.keyStore=
-                #javax.net.ssl.keyStorePassword=
-
-                #-----------------------------
 
                 ###  database top-level directory
 
@@ -62,33 +60,6 @@ public class Config {
                 ###  list them here, separated by commas
 
                 #loglevels=DEBUG,TRACE,ASYNC_ERROR,AUDIT
-
-                #-----------------------------
-
-                ###  This property is to switch between using OS-level threads or
-                ###  the more-recent virtual threads feature in Java (see https://openjdk.org/jeps/425)
-
-                #usevirtual=false
-
-                #-----------------------------
-
-                ###  This property will cause port 80 to serve solely as a
-                ###  redirector to the HTTPS endpoint.  Used on prod.
-
-                #redirect80=false
-
-                #-----------------------------
-
-                ###  Advanced configuration
-                ###  Mainly used for testing purposes.  **Be careful**.  See minum.Constants
-
-                #MAX_READ_SIZE_BYTES=
-                #MAX_READ_LINE_SIZE_BYTES=
-                #MAX_QUERY_STRING_KEYS_COUNT=
-                #MOST_COOKIES_WELL_LOOK_THROUGH=
-                #MAX_HEADERS_COUNT=
-                #MAX_TOKENIZER_PARTITIONS=
-                #SOCKET_TIMEOUT_MILLIS=
 
                 """.stripLeading();
     }

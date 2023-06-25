@@ -1,8 +1,11 @@
 package minum.web;
 
+import minum.Constants;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.database.SimpleDataType;
 import minum.logging.ILogger;
+import minum.security.TheBrig;
+import minum.security.UnderInvestigation;
 import minum.utils.StacktraceUtils;
 import minum.utils.StopwatchUtils;
 import minum.utils.ThrowingConsumer;
@@ -70,6 +73,19 @@ public class WebFramework implements AutoCloseable {
 
         return (sw) -> {
             try (sw) {
+
+                // if we recognize this client as an attacker, dump them.
+                TheBrig theBrig = (fs != null && fs.getTheBrig() != null) ? fs.getTheBrig() : null;
+                if (theBrig != null && Constants.IS_THE_BRIG_ENABLED) {
+                    String remoteClient = sw.getRemoteAddr();
+                    if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
+                        // if this client is a vulnerability seeker, just dump them unceremoniously
+                        logger.logDebug(() -> "closing the socket on " + remoteClient);
+                        sw.close();
+                        return;
+                    }
+                }
+
                 var fullStopwatch = new StopwatchUtils().startTimer();
                 final var is = sw.getInputStream();
                 // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
@@ -99,6 +115,9 @@ public class WebFramework implements AutoCloseable {
 
                 if (endpoint == null) {
                     logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.pathDetails().isolatedPath()));
+                    boolean isVulnSeeking = UnderInvestigation.isLookingForSuspiciousPaths(sl.pathDetails().isolatedPath());
+                    logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
+                    if (isVulnSeeking) if (theBrig != null && Constants.IS_THE_BRIG_ENABLED) theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking",  Constants.VULN_SEEKING_JAIL_DURATION);
                     resultingResponse = new Response(_404_NOT_FOUND);
                 } else {
                     /*
@@ -248,7 +267,7 @@ public class WebFramework implements AutoCloseable {
      * </pre>
      */
     public <T extends SimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
-        var dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
+        var dbDir = Path.of(Constants.DB_DIRECTORY);
         return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), fs.es, fs.logger);
     }
 

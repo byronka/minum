@@ -1,12 +1,12 @@
 package minum.auth;
 
+import minum.Constants;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.logging.ILogger;
 import minum.utils.CryptoUtils;
 import minum.utils.FileUtils;
 import minum.utils.InvariantException;
 import minum.utils.StringUtils;
-import minum.web.FullSystem;
 import minum.web.Request;
 import minum.web.Response;
 import minum.web.WebFramework;
@@ -239,7 +239,7 @@ public class AuthUtils {
 
 
     public Response loginUser(Request r) {
-        String hostname = FullSystem.getConfiguredProperties().getProperty("hostname", "localhost");
+        String hostname = Constants.HOST_NAME;
         if (processAuth(r).isAuthenticated()) {
             Response.redirectTo("photos");
         }

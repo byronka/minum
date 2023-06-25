@@ -1,5 +1,6 @@
 package minum.sampledomain;
 
+import minum.Constants;
 import minum.auth.AuthResult;
 import minum.auth.AuthUtils;
 import minum.database.DatabaseDiskPersistenceSimpler;
@@ -7,7 +8,6 @@ import minum.logging.ILogger;
 import minum.sampledomain.photo.Photograph;
 import minum.utils.FileUtils;
 import minum.utils.StacktraceUtils;
-import minum.web.FullSystem;
 import minum.web.Request;
 import minum.web.Response;
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class UploadPhoto {
     public UploadPhoto(DatabaseDiskPersistenceSimpler<Photograph> ddps, ILogger logger, AuthUtils auth) {
         this.auth = auth;
         this.logger = logger;
-        this.dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
+        this.dbDir = Path.of(Constants.DB_DIRECTORY);
         uploadPhotoTemplateHtml = FileUtils.readTemplate("uploadphoto/upload_photo_template.html");
         this.ddps = ddps;
         photographs = ddps.readAndDeserialize(Photograph.EMPTY);

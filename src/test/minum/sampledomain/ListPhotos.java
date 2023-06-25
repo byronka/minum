@@ -1,12 +1,12 @@
 package minum.sampledomain;
 
+import minum.Constants;
 import minum.auth.AuthUtils;
 import minum.logging.ILogger;
 import minum.utils.FileUtils;
 import minum.utils.LRUCache;
 import minum.utils.StacktraceUtils;
 import minum.utils.TemplateProcessor;
-import minum.web.FullSystem;
 import minum.web.Request;
 import minum.web.Response;
 import minum.web.WebFramework;
@@ -36,7 +36,7 @@ public class ListPhotos {
 
     public ListPhotos(WebFramework wf, UploadPhoto up, AuthUtils auth) {
         this.logger = wf.getLogger();
-        this.dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir", "out/simple_db/"));
+        this.dbDir = Path.of(Constants.DB_DIRECTORY);
         listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("listphotos/list_photos_template.html"));
         this.up = up;
         this.auth = auth;

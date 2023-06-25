@@ -1,6 +1,6 @@
 package minum.utils;
 
-import minum.web.FullSystem;
+import minum.Constants;
 
 import java.util.concurrent.*;
 
@@ -35,8 +35,7 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
     }
 
     public static ExecutorService makeExecutorService() {
-        boolean useVirtualThreads = Boolean.parseBoolean(
-                FullSystem.getConfiguredProperties().getProperty("usevirtual", "false"));
+        boolean useVirtualThreads = Constants.USE_VIRTUAL;
         System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
         if (useVirtualThreads) {
             // the following line is only usable with the virtual threads API, which

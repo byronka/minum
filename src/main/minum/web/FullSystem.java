@@ -1,8 +1,10 @@
 package minum.web;
 
 import minum.Config;
+import minum.Constants;
 import minum.logging.ILogger;
 import minum.logging.Logger;
+import minum.security.TheBrig;
 import minum.utils.*;
 
 import java.io.File;
@@ -30,6 +32,7 @@ public class FullSystem implements AutoCloseable {
     private WebFramework webFramework;
     private Server sslServer;
     Thread shutdownHook;
+    private TheBrig theBrig;
     private static Properties properties;
     final ExecutorService es;
 
@@ -66,15 +69,16 @@ public class FullSystem implements AutoCloseable {
      */
     public FullSystem start() throws IOException  {
         createSystemRunningMarker();
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting ***");
-        WebEngine webEngine = new WebEngine(logger);
+        System.out.print("\n\n" + TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting ***");
+        theBrig = new TheBrig(es, logger).initialize();
+        WebEngine webEngine = new WebEngine(logger, theBrig);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
         webFramework = new WebFramework(this);
         addShutdownHook();
         webFramework.registerStaticFiles(sfc);
         final var webHandler = webFramework.makePrimaryHttpHandler();
         // should we redirect all insecure traffic to https?
-        boolean shouldRedirect = Boolean.parseBoolean(FullSystem.getConfiguredProperties().getProperty("redirect80", "false"));
+        boolean shouldRedirect = Constants.REDIRECT_80;
         var handler = shouldRedirect ? makeRedirectHandler() : webHandler;
         server = webEngine.startServer(es, handler);
         sslServer = webEngine.startSslServer(es, webHandler);
@@ -106,7 +110,7 @@ public class FullSystem implements AutoCloseable {
                     // just ignore all the rest of the incoming lines.  TCP is duplex -
                     // we'll just start talking back the moment we understand the first line.
                     String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
-                    String hostname = FullSystem.getConfiguredProperties().getProperty("hostname", "no hostname configured. see app.config");
+                    String hostname = Constants.HOST_NAME;
                     sw.send(
                             "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
                                     "Date: " + date + HTTP_CRLF +
@@ -189,6 +193,18 @@ public class FullSystem implements AutoCloseable {
 
     public WebFramework getWebFramework() {
         return webFramework;
+    }
+
+    public TheBrig getTheBrig() {
+        return theBrig;
+    }
+
+    public ILogger getLogger() {
+        return logger;
+    }
+
+    public Thread getShutdownHook() {
+        return shutdownHook;
     }
 
     @Override

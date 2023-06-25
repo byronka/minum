@@ -47,7 +47,7 @@ public class WebTests {
     |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
     public void tests(ExecutorService es) throws IOException {
 
-        WebEngine webEngine = new WebEngine(logger);
+        WebEngine webEngine = new WebEngine(logger, null);
 
         logger.test("client / server");{
             try (Server primaryServer = webEngine.startServer(es)) {

@@ -27,7 +27,7 @@ public class FunctionalTests {
     public FunctionalTests(WebFramework wf) {
         this.logger = wf.getLogger();
         this.primaryServer = wf.getFullSystem().getServer();
-        this.webEngine = new WebEngine(logger);
+        this.webEngine = new WebEngine(logger, null);
     }
 
     public void test() throws Exception {
