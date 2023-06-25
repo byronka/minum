@@ -107,7 +107,7 @@ public class Constants {
      * TheBrig is what puts client ip's in jail, if we feel they are attacking us.
      * If this is disabled, that functionality is removed.
      */
-    public static final boolean IS_THE_BRIG_ENABLED = getProp("theBrigEnabled", false);
+    public static final boolean IS_THE_BRIG_ENABLED = getProp("IS_THE_BRIG_ENABLED", false);
 
     /**
      * These are a list of error messages that often indicate unusual behavior, maybe an attacker

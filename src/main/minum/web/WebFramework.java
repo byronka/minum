@@ -117,7 +117,9 @@ public class WebFramework implements AutoCloseable {
                     logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.pathDetails().isolatedPath()));
                     boolean isVulnSeeking = UnderInvestigation.isLookingForSuspiciousPaths(sl.pathDetails().isolatedPath());
                     logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
-                    if (isVulnSeeking) if (theBrig != null && Constants.IS_THE_BRIG_ENABLED) theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking",  Constants.VULN_SEEKING_JAIL_DURATION);
+                    if (isVulnSeeking && theBrig != null && Constants.IS_THE_BRIG_ENABLED) {
+                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", Constants.VULN_SEEKING_JAIL_DURATION);
+                    }
                     resultingResponse = new Response(_404_NOT_FOUND);
                 } else {
                     /*
