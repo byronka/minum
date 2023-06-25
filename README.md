@@ -39,7 +39,7 @@ Why?
 I wanted an opportunity to build software the way I would if allowed enough time and autonomy. It 
 needed to be high quality - built using test-driven development (TDD) (in a non-dogmatic fashion). By 
 following this paradigm, I could develop software with such simplicity and longevity that I would
-be proud use it as an example for future work. (Also see the [theme](docs/development_handbook.md#theme) section in the development
+be proud to use it as an example for future work. (Also see the [theme](docs/development_handbook.md#theme) section in the development
 handbook)
 
 There are multiple practical benefits to using this framework for your web application:
