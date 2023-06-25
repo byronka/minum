@@ -4,14 +4,12 @@ import minum.logging.ILogger;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static minum.utils.Invariants.mustNotBeNull;
@@ -55,8 +53,26 @@ public class FileUtils {
      * those subdirectories here, but resources/templates is prepended.
      */
     public static String readTemplate(String filename) {
+        return readFile(filename, "templates/");
+    }
+
+    /**
+     * Read a file as a string from the resources/ directory.
+     * Any files placed in subdirectories there will need to specify
+     * those subdirectories here, but resources/ is prepended.
+     */
+    public static String readFile(String filename) {
+        return readFile(filename, "");
+    }
+
+    /**
+     * Reads files that are stored in the resources directory,
+     * whether that is in a regular directory or in a jar file.
+     */
+    private static String readFile(String filename, String subdirectory) {
+        String templatesDirectory = "resources/" + subdirectory;
         try {
-            final var url = mustNotBeNull(FileUtils.class.getClassLoader().getResource("resources/templates/"));
+            final var url = mustNotBeNull(FileUtils.class.getClassLoader().getResource(templatesDirectory));
             URI uri = url.toURI();
 
             String result;
@@ -68,7 +84,7 @@ public class FileUtils {
                 we have to do it this way.
                  */
                 try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-                    final var myPath = fileSystem.getPath("resources/templates/");
+                    final var myPath = fileSystem.getPath(templatesDirectory);
                     result = Files.readString(myPath.resolve(filename));
                 }
             } else {
@@ -81,8 +97,5 @@ public class FileUtils {
         }
     }
 
-    public static List<URL> getResources(String path) throws IOException {
-        return Collections.list(FileUtils.class.getClassLoader().getResources(path));
-    }
 
 }

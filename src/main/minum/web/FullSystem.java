@@ -1,5 +1,6 @@
 package minum.web;
 
+import minum.Config;
 import minum.logging.ILogger;
 import minum.logging.Logger;
 import minum.utils.*;
@@ -149,12 +150,17 @@ public class FullSystem implements AutoCloseable {
         return getConfiguredProperties(false);
     }
 
+    /**
+     * This overload allows you to specify that the contents of the
+     * properties file should be shown when it's read.
+     */
     public static Properties getConfiguredProperties(boolean showContents) {
         if (properties == null) {
             properties = new Properties();
             String fileName = "app.config";
             try (FileInputStream fis = new FileInputStream(fileName)) {
-                System.out.println(TimeUtils.getTimestampIsoInstant() + " found properties file at ./app.config.  Loading properties");
+                System.out.println(TimeUtils.getTimestampIsoInstant() +
+                        " found properties file at ./app.config.  Loading properties");
                 properties.load(fis);
                 if (showContents) {
                     System.out.println("Elements:");
@@ -163,8 +169,7 @@ public class FullSystem implements AutoCloseable {
                     }
                 }
             } catch (Exception ex) {
-                System.out.println(TimeUtils.getTimestampIsoInstant() + " no properties file found at ./app.config.  Instantiating empty properties object");
-                return new Properties();
+                Config.printConfigError();
             }
         }
         return properties;

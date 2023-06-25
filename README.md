@@ -3,14 +3,18 @@ Minum Framework
 
 This code provides all the functionality for a Java web application.
 
+
 Features:
 --------
 
-- web server
-- database
-- templating
+- secure HTTP/1.1 web server
+- in-memory database with eventual disk persistence
+- efficient server-side templating
+- defensive security capabilities
 - logging
 - testing
+- authentication
+
 
 Quick start:
 ------------
@@ -19,13 +23,15 @@ Quick start:
 * To create a library jar: `make jar`
 * For help: `make help`
 
-example projects demonstrating usage:
+
+Example projects demonstrating usage:
 -------------------------------------
 
 See the following links for sample projects that use this framework.
 
 - [One with a few features](https://github.com/byronka/minum_usage_example) 
 - [Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
+
 
 Why?
 ----
@@ -49,9 +55,9 @@ There are multiple practical benefits to using this framework for your web appli
   It's a much easier project to read and understand than any other web framework.
 - No magic.  There's no special machinery running in the shadows, like you will often
   find with web frameworks using annotations/decorators or naming conventions.  Everywhere 
-  in the code, you will find easily-navigable code.  This also provides a greater 
-  signal-to-noise ratio when examining stacktraces, making the maintenance cheaper and less 
-  stressful.
+  in the code, you will find easily-navigable code.  All the functionality is supported 
+  through direct method calls. This also provides a greater signal-to-noise ratio when 
+  examining stacktraces, making the maintenance cheaper and less stressful.
 - Well-documented throughout, easier to maintain.
 - The only dependency is the Java standard library.  That's it!  The commonplace approach
   of using large frameworks with sub-dependencies, in combination with multitudes of
@@ -63,7 +69,7 @@ There are multiple practical benefits to using this framework for your web appli
   test pipeline is finished in seconds, your development team's productivity keeps humming.
   In my experience, most teams are oriented to _short-term_ developer productivity. Using
   the practices exemplified here, you will attain _long-term_ productivity.
-- Oh by the way, did I mention this thing _moves_? It can handle 9000 web requests per 
+- It _moves_. It can handle 9000 web requests per 
   second! The database can perform 1 _million_ writes per second.  The templating engine
   is pretty dang fast too.  It clocked in at 27,000 renderings per second on the same
   test where other well-known frameworks like Mustache only made it to 22,000 (and ours
@@ -89,10 +95,12 @@ There are multiple practical benefits to using this framework for your web appli
   >make it so complicated that there are no obvious deficiencies.
   > 
   > Tony Hoare,  _1980 ACM Turing award lecture_ 
+
 - There's a system approach that glues together all these components.  Yes, you can
   absolutely pull in other dependencies to work here, but the patterns here show what
   a user-value-oriented codebase looks like. This system has maintainability,
   minimal resource consumption, quality, and performance in mind.
+
 
 System requirements: 
 --------------------
@@ -103,19 +111,21 @@ Developed in two environments:
 * MacBook Pro with OS 12.0.1, with OpenJDK 20, GNU Make 3.81 and Rsync 2.6.9
 * Windows 10 64-bit professional, on Cygwin, OpenJDK 20, Gnu Make 4.4 and Rsync 3.2.7
 
+
 Developer documentation:
 ------------------------
 
 See [The development handbook](docs/development_handbook.md)
 
+
 Directories:
 ------------
 
-- src: All the source code, including production and test code
+- src: All the source code
 - docs: documentation for the project
-- lib: essential utilities and dependencies
-- .git: necessary files for Git.
-- utils: useful software for our system
+- .git: necessary files for Git source-code management.
+- utils: testing utilities
+
 
 Root-level files:
 -----------------

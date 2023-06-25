@@ -1,11 +1,11 @@
 package minum.web;
 
 import minum.logging.ILogger;
-import minum.utils.FileUtils;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +57,9 @@ public class StaticFilesCache {
      * This provides all the static files (e.g. .html, .css) in the resources/static directory
      */
     public StaticFilesCache loadStaticFiles() throws IOException {
-            final var urls = mustNotBeNull(FileUtils.getResources(STATIC_FILES_DIRECTORY));
+            final List<URL> urls = mustNotBeNull(
+                    Collections.list(
+                            StaticFilesCache.class.getClassLoader().getResources(STATIC_FILES_DIRECTORY)));
             for (var url : urls) {
                 URI uri = URI.create("");
                 try {
