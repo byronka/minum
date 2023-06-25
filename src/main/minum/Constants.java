@@ -19,7 +19,7 @@ public class Constants {
     /**
      * The port for our encrypted server
      */
-    public static final int SECURE_SERVER_PORT = getProp("SERVER_PORT",  8443);
+    public static final int SECURE_SERVER_PORT = getProp("SSL_SERVER_PORT",  8443);
 
     /**
      * This is returned as the "host:" attribute in an HTTP request
@@ -58,7 +58,7 @@ public class Constants {
      * redirect to the secure schema.  This is mostly used in production
      * environments and is thus defaulted to false.
      */
-    public static final boolean REDIRECT_80 = getProp("REDIRECT_80", false);
+    public static final boolean REDIRECT_TO_SECURE = getProp("REDIRECT_TO_SECURE", false);
 
     /**
      * this is the most bytes we'll read from a socket

@@ -12,24 +12,24 @@ public class Config {
                 
                 ###  The port used for our plain, non-secure server
 
-                #nonsslServerPort=8080
+                #SERVER_PORT=8080
 
                 #-----------------------------
 
                 ###  the port for our secure, TLS 1.3 server
 
-                #sslServerPort=8443
+                #SECURE_SERVER_PORT=8443
 
                 #-----------------------------
 
                 ###  the name of our host on the internet.  Used by our
                 ###  system when it needs to build a self-referencing URL.
 
-                #hostname=localhost
+                #HOST_NAME=localhost
 
                 ###  database top-level directory
 
-                #dbdir=out/simple_db
+                #DB_DIRECTORY=out/simple_db
 
                 #-----------------------------
 
@@ -59,7 +59,7 @@ public class Config {
                 ###
                 ###  list them here, separated by commas
 
-                #loglevels=DEBUG,TRACE,ASYNC_ERROR,AUDIT
+                #LOG_LEVELS=DEBUG,TRACE,ASYNC_ERROR,AUDIT
 
                 """.stripLeading();
     }

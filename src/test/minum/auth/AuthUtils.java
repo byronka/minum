@@ -284,7 +284,7 @@ public class AuthUtils {
         final var registrationResult = registerUser(username, password);
 
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
-            return Response.htmlOk("<p>This user is already registered</p><p><a href=\"index.html\">Index</a></p>");
+            return new Response(_401_UNAUTHORIZED, "<p>This user is already registered</p><p><a href=\"index.html\">Index</a></p>", List.of("content-type: text/html"));
         }
         return new Response(_303_SEE_OTHER, List.of("Location: login"));
 

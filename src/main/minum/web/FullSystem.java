@@ -78,7 +78,7 @@ public class FullSystem implements AutoCloseable {
         webFramework.registerStaticFiles(sfc);
         final var webHandler = webFramework.makePrimaryHttpHandler();
         // should we redirect all insecure traffic to https?
-        boolean shouldRedirect = Constants.REDIRECT_80;
+        boolean shouldRedirect = Constants.REDIRECT_TO_SECURE;
         var handler = shouldRedirect ? makeRedirectHandler() : webHandler;
         server = webEngine.startServer(es, handler);
         sslServer = webEngine.startSslServer(es, webHandler);

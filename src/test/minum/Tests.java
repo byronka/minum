@@ -70,7 +70,7 @@ public class Tests {
 
   private static void clearTestDatabase() throws IOException {
       TestLogger logger = TestLogger.makeTestLogger();
-      FileUtils.deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
+      FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(Constants.DB_DIRECTORY), logger);
       runShutdownSequence(logger.getExecutorService());
   }
 
