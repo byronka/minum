@@ -94,6 +94,7 @@ public class HtmlParser {
                     state.stringBuilder.append(currentChar);
                 } else {
                     if (state.hasEncounteredTagName && state.tagName.isEmpty() && state.stringBuilder.length() > 0) {
+                        // We've built the tagname
                         state.tagName = state.stringBuilder.toString();
                     } else if ( state.stringBuilder.length() > 0 && state.currentAttributeKey.isBlank() && state.isReadingAttributeKey) {
                         state.attributes.put(state.stringBuilder.toString(), "");
@@ -160,6 +161,7 @@ public class HtmlParser {
         state.isHalfClosedTag = false;
         state.isInsideTag = false;
         state.isStartTag = false;
+        state.isReadingTagName = false;
         state.tagName = "";
         state.attributes = new HashMap<>();
         state.hasEncounteredTagName = false;
@@ -223,7 +225,10 @@ public class HtmlParser {
             is to check whether we're in the whitespace between the tagname and
             the start of the (potential) key.
             */
-            boolean atYetAnotherWhitespaceBetweenTagAndAttributes = state.currentAttributeKey.isEmpty() && state.stringBuilder.length() == 0 && currentChar == ' ';
+            boolean atYetAnotherWhitespaceBetweenTagAndAttributes =
+                    state.currentAttributeKey.isEmpty() &&
+                    state.stringBuilder.length() == 0
+                            && currentChar == ' ';
 
             // once we cross the chasm between the tag and the potential key,
             // there's a whole set of logic to run through. Yum. (but by the

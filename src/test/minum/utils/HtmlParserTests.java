@@ -1,7 +1,6 @@
 package minum.utils;
 
 import minum.htmlparsing.*;
-import minum.testing.StopWatch;
 import minum.testing.TestLogger;
 
 import java.io.IOException;
@@ -49,8 +48,13 @@ public class HtmlParserTests {
             var expected = List.of(
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
-                            new TagInfo(TagName.DOCTYPE, Map.of("html", "")),
-                            List.of(),
+                            new TagInfo(TagName.TITLE, Map.of()),
+                            List.of(new HtmlParseNode(
+                                    ParseNodeType.CHARACTERS,
+                                    TagInfo.EMPTY,
+                                    List.of(),
+                                    "Stock Prices"
+                            )),
                             ""));
             List<HtmlParseNode> result = HtmlParser.parse(input);
             assertEquals(expected, result);
@@ -95,24 +99,10 @@ public class HtmlParserTests {
                             List.of(),
                             ""));
 
-            List<HtmlParseNode> nodes = null;
-            List<HtmlParseNode> nodesWithSingleTicks = null;
-
-            StopWatch stopWatch = new StopWatch().startTimer();
-            for (int i = 0; i < 1000; i++) {
-                nodes = HtmlParser.parse(input);
-                nodesWithSingleTicks = HtmlParser.parse(inputWithSingleTicks);
-            }
-            long durationMillis = stopWatch.stopTimer();
-
-            logger.testPrint("Duration in millis was " + durationMillis);
+            var nodes = HtmlParser.parse(input);
+            var nodesWithSingleTicks = HtmlParser.parse(inputWithSingleTicks);
             assertEquals(expected, nodes);
             assertEquals(expected, nodesWithSingleTicks);
-        }
-
-        logger.test("explosions!!!"); {
-            String input = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
-            HtmlParser.parse(input);
         }
 
     }
