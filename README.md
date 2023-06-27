@@ -36,29 +36,30 @@ See the following links for sample projects that use this framework.
 Why?
 ----
 
-I wanted an opportunity to build software the way I would if allowed enough time and autonomy. It 
-needed to be high quality - built using test-driven development (TDD) (in a non-dogmatic fashion). By 
-following this paradigm, I could develop software with such simplicity and longevity that I would
-be proud to use it as an example for future work. (Also see the [theme](docs/development_handbook.md#theme) section in the development
-handbook)
+To build software like if I was allowed enough time and autonomy. It 
+needed to be quality - built using TDD - [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en). Something 
+I would be proud to use for future work. 
 
-There are multiple practical benefits to using this framework for your web application:
+I benefit from several aspects:
 
 - The binary is tiny - 150 kilobytes.  That includes the database code, the web server,
   the templating library, the logging utilities, the HTML parsing library.  The example
   projects show how to continue that pattern with the business logic so that the total
   remains small.  With such a small size, everything becomes faster - moving
-  the project onto your production server takes just a couple seconds.
+  the project onto your production server takes just a couple seconds.  That's part of
+  how I am able to type a command and have new code running on the production server just
+  seconds later.
 - The code is minimal.  It doesn't handle every imaginable case, but there's so little
-  there, you can add or modify the code.  By the way, there's nothing preventing
-  you from adding extra libraries if you need them, but all the basics are handed to you.
-  It's a much less difficult project to read and understand than any other web framework.
+  there, I can easily add or modify the code.  There's no technical reason why I couldn't
+  include extra libraries if I needed, but I pretty much have all the basics handled. 
+- It's a much less difficult project to read and understand than any other web framework.
 - No magic.  There's no special machinery running in the shadows, like you will often
   find with web frameworks using annotations/decorators or naming conventions.  Everywhere 
-  in the code, you will find navigable code.  All the functionality is supported 
-  through direct method calls. This also provides a greater signal-to-noise ratio when 
+  is plain navigable code.  All the functionality is supported 
+  through direct method calls. It is a higher signal-to-noise ratio when 
   examining stacktraces, making the maintenance cheaper and less stressful.
-- Well-documented throughout, more supportive of long-term maintenance.
+- Well-documented throughout, more supportive of long-term maintenance. I love being reminded
+  of the context I am within by concise documentation, without having to read code.
 - The only dependency is the Java standard library.  Using large frameworks 
   combined with many incidental dependencies leads to dependency hell.  The commonplace
   conundrum is how to stay on top of the ensuing treadmill of updates. While it may be 
@@ -67,22 +68,20 @@ There are multiple practical benefits to using this framework for your web appli
   not just be "configurers" - let's be programmers.  There's a lot we can reasonably 
   undertake - just look at this project for a sense of how little is actually needed
   for functionality when you work with a general-purpose programming language.
-- The build and testing goes way faster when there's less.  **Less is more**.  When your
+- My typical cycle time of coding plus testing is a few seconds. When your
   test pipeline is finished in seconds, your development team's productivity keeps humming.
-  In my experience, most teams are oriented to _short-term_ developer productivity. Using
-  the practices exemplified here, you will attain _long-term_ productivity.
-- It _moves_. It can handle 9000 web requests per 
-  second! The database can perform 1 _million_ writes per second.  The templating engine
-  is pretty dang fast too.  It clocked in at 27,000 renderings per second on the same
-  test where other well-known frameworks like Mustache only made it to 22,000 (and ours
-  uses about a hundredth as much code, meaning you can actually understand it all and
-  even improve it)
-- It can run on a low-performance machine.  On the lower bounds of business capability it only
-  needs about 10 megabytes of memory to run.
+  What enables this is a focus on keeping the tests fast and minimal in number but high
+  in value.  If you haven't seen this approach in practice, definitely take a moment
+  to read through it here.
+- It is decently performant, because performance has been a target from inception. For example, 
+  it can handle 9000 web requests per second. The database can perform 1 _million_ writes per 
+  second.  The templating engine did 27,000 renderings per second.
+- It can run on a low-performance machine.  This saves me a lot of money, since I can 
+  run on the free tier for cloud providers, and only need one computer.
 - Embraces the bleeding edge of Java technology, like virtual threads.
   This allows it to manage, for example, ten thousand concurrent requests using hundreds of
   megabytes rather than many gigabytes.
-- Other projects strive to support universal cases.  Because we don't, there is less here
+- Other projects strive to support universal cases.  This doesn't, so there is less code here
   to hide bugs.  
 
   >I conclude that there are two ways of constructing a software design: One way is to
@@ -90,6 +89,11 @@ There are multiple practical benefits to using this framework for your web appli
   >make it so complicated that there are no obvious deficiencies.
   > 
   > Tony Hoare,  _1980 ACM Turing award lecture_ 
+
+
+See the [theme](docs/development_handbook.md#theme) section in
+the development handbook.
+
 
 System requirements: 
 --------------------
