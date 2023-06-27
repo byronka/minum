@@ -1,4 +1,4 @@
-package minum.utils;
+package minum.templating;
 
 import java.io.Serial;
 

@@ -1,12 +1,14 @@
 package minum.utils;
 
+import minum.templating.TemplateProcessor;
+import minum.templating.TemplateRenderException;
 import minum.testing.TestLogger;
 
 import java.util.Map;
 
 import static minum.testing.TestFramework.assertEquals;
 import static minum.testing.TestFramework.assertThrows;
-import static minum.utils.TemplateProcessor.buildProcessor;
+import static minum.templating.TemplateProcessor.buildProcessor;
 
 public class TemplatingTests {
     private final TestLogger logger;

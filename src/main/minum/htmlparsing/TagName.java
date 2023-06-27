@@ -1,4 +1,4 @@
-package minum.utils;
+package minum.htmlparsing;
 
 
 /**
@@ -23,6 +23,13 @@ public enum TagName {
     DFN(false), ABBR(false), TIME(false), CODE(false), VAR(false),
     SAMP(false), KBD(false), SUB(false), SUP(false), I(false),
     B(false),
+
+    /**
+     * This is a special one, maybe I need to handle this better,
+     * but it's mostly unimportant to me for now.
+     */
+     DOCTYPE(true),
+
 
     /**
      * Used to indicate that no tag was found, to avoid use of null

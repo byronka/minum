@@ -33,7 +33,10 @@ public class FunctionalTests {
     public void test() throws Exception {
         System.out.println("First functional test"); {
 
-            // grab the photos page unauthenticated
+            /*
+            grab the photos page unauthenticated. We should be able
+            to view the photos.
+             */
             assertEquals(get("photos").statusLine().status(), _200_OK);
 
             // go to the page for registering a user, while unauthenticated.

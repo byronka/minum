@@ -1,4 +1,4 @@
-package minum.utils;
+package minum.htmlparsing;
 
 import java.util.List;
 

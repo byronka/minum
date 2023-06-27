@@ -6,7 +6,7 @@ import minum.logging.ILogger;
 import minum.utils.FileUtils;
 import minum.utils.LRUCache;
 import minum.utils.StacktraceUtils;
-import minum.utils.TemplateProcessor;
+import minum.templating.TemplateProcessor;
 import minum.web.Request;
 import minum.web.Response;
 import minum.web.WebFramework;

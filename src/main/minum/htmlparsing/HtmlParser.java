@@ -1,4 +1,4 @@
-package minum.utils;
+package minum.htmlparsing;
 
 import minum.exceptions.ForbiddenUseException;
 
@@ -12,100 +12,6 @@ public class HtmlParser {
      * Most total chars we'll read.
      */
     final static int MAX_HTML_SIZE = 2 * 1024 * 1024;
-
-    static class State {
-        /**
-         * total number of chars read of this HTML file
-         */
-        int charsRead;
-
-        /**
-         * True if we are inside angle brackets (may be a closing tag)
-         */
-        boolean isInsideTag;
-
-        /**
-         * Where we build up tokens a character at a time
-         */
-        StringBuilder stringBuilder;
-
-        /**
-         * A stack of HtmlParseNodes, used to see how far deep in the tree we are
-         */
-        Stack<HtmlParseNode> parseStack;
-
-        /**
-         * True if we have successfully encountered the first letter of the tag
-         */
-        boolean hasEncounteredTagName;
-
-        /**
-         * True if we are in the process of reading the tag (e.g. p, a, h1, etc)
-         */
-        boolean isReadingTagName;
-
-        /**
-         * True if we determine we are probably in the start tag (rather than the closing tag)
-         */
-        boolean isStartTag;
-
-        /**
-         * True if we're inside the quoted area inside an attribute value in an element
-         * tag - this could be where we encounter some symbols that may not be allowed elsewhere.
-         */
-        boolean isInsideAttributeValueQuoted;
-
-        /**
-         * The string value of the tag name
-         */
-        String tagName;
-
-        /**
-         * The attribute key we just read
-         */
-        String currentAttributeKey;
-
-        /**
-         * a map of string to values (in some cases there won't be an equals
-         * sign, meaning the value is null.  In other cases there will be an
-         * equals sign but no value, meaning the value is empty string)
-         */
-        Map<String, String> attributes;
-
-
-        /**
-         * Holds the state so we can remember where we are as we examine the HTML
-         * a character at a time.
-         */
-        public State(
-                int charsRead,
-                boolean isInsideTag,
-                StringBuilder stringBuilder,
-                Stack<HtmlParseNode> parseStack,
-                boolean hasEncounteredTagName,
-                boolean isReadingTagName,
-                boolean isStartTag,
-                boolean isInsideAttributeValueQuoted,
-                String tagName,
-                String currentAttributeKey,
-                Map<String, String> attributes
-        ) {
-
-            this.charsRead = charsRead;
-            this.isInsideTag = isInsideTag;
-            this.stringBuilder = stringBuilder;
-            this.parseStack = parseStack;
-            this.hasEncounteredTagName = hasEncounteredTagName;
-            this.isReadingTagName = isReadingTagName;
-            this.isStartTag = isStartTag;
-            this.isInsideAttributeValueQuoted = isInsideAttributeValueQuoted;
-            this.tagName = tagName;
-            this.currentAttributeKey = currentAttributeKey;
-            this.attributes = attributes;
-        }
-
-        static State INITIAL_STATE = new State(0, false, new StringBuilder(), new Stack<>(), false, false, true, false, "", "", new HashMap<>());
-    }
 
     /**
      * Given any HTML input, scan through and generate a tree
@@ -138,7 +44,7 @@ public class HtmlParser {
         StringReader stringReader = new StringReader(input);
 
         List<HtmlParseNode> nodes = new ArrayList<>();
-        State state = State.INITIAL_STATE;
+        State state = State.buildNewState();
 
         while (true) {
             int value = stringReader.read();
@@ -189,6 +95,10 @@ public class HtmlParser {
                 } else {
                     if (state.hasEncounteredTagName && state.tagName.isEmpty() && state.stringBuilder.length() > 0) {
                         state.tagName = state.stringBuilder.toString();
+                    } else if ( state.stringBuilder.length() > 0 && state.currentAttributeKey.isBlank() && state.isReadingAttributeKey) {
+                        state.attributes.put(state.stringBuilder.toString(), "");
+                        state.stringBuilder = new StringBuilder();
+                        state.isReadingAttributeKey = false;
                     } else if (!state.currentAttributeKey.isBlank()) {
                         // if we were in the midst of reading attribute stuff when we hit the closing bracket...
                         if (state.stringBuilder.length() > 0) {
@@ -225,15 +135,7 @@ public class HtmlParser {
             String textContent = state.stringBuilder.toString();
 
             if (state.parseStack.size() > 0) {
-
-                state.parseStack.peek()
-                        .innerContent()
-                        .add(
-                                new HtmlParseNode(
-                                        ParseNodeType.CHARACTERS,
-                                        TagInfo.EMPTY,
-                                        new ArrayList<>(),
-                                        textContent));
+                state.parseStack.peek().innerContent().add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), textContent));
             }
         }
 
@@ -255,6 +157,7 @@ public class HtmlParser {
     private static void exitingTag(State state, List<HtmlParseNode> nodes) {
         processTag(state, nodes);
 
+        state.isHalfClosedTag = false;
         state.isInsideTag = false;
         state.isStartTag = false;
         state.tagName = "";
@@ -273,8 +176,8 @@ public class HtmlParser {
 
             if (currentChar == ' ') {
                 /*
-                At this point, we're inside the tag and we've encountered whitespace.
-                Seeking the tag name (although we may be inside a closing tag.
+                At this point, we're inside the tag, and we've encountered whitespace.
+                Seeking the tag name (although we may be inside a closing tag).
                  */
                 state.stringBuilder = new StringBuilder();
             } else if (currentChar == '/') {
@@ -313,36 +216,88 @@ public class HtmlParser {
                 state.stringBuilder.append(currentChar);
             }
         } else if (!state.tagName.isEmpty() && state.isInsideTag) {
-            // if we're reading beyond the tag name
+            // at this point we have a tagname for our tag, and we're still in the tag
 
-            if (! (state.currentAttributeKey.isEmpty() && state.stringBuilder.length() == 0 && currentChar == ' ')) {
+            /*
+            the following logic looks crazy (sorry) but what it's trying to do
+            is to check whether we're in the whitespace between the tagname and
+            the start of the (potential) key.
+            */
+            boolean atYetAnotherWhitespaceBetweenTagAndAttributes = state.currentAttributeKey.isEmpty() && state.stringBuilder.length() == 0 && currentChar == ' ';
+
+            // once we cross the chasm between the tag and the potential key,
+            // there's a whole set of logic to run through. Yum. (but by the
+            // way, it's not uncommon to never see a key inside a tag, so none
+            // of this code would ever get run in that case)
+            boolean handlingAttributes = !atYetAnotherWhitespaceBetweenTagAndAttributes;
+            if (handlingAttributes) {
+
                 if (state.currentAttributeKey.isBlank()) {
-                    // reading in the attribute key
+                    /*
+                    because the key is blank, we know we haven't read it all. That's
+                    because when we finish reading the key, we'll add it to currentAttributeKey
+                    and be in the mode of reading the value.
+                     */
                     if (currentChar == ' ' || currentChar == '=') {
+                        // if we hit whitespace or an equals sign, we're done reading the key
                         state.currentAttributeKey = state.stringBuilder.toString();
+                        state.isReadingAttributeKey = false;
                         state.stringBuilder = new StringBuilder();
+                    } else if (currentChar == '/') {
+                        // a forward-slash cannot be in the attribute key
+                        state.isReadingAttributeKey = false;
+                        state.isHalfClosedTag = true;
+                    } else if (state.isHalfClosedTag) {
+                        /*
+                        if we got here, it means the previous char was
+                        a forward slash, so the current character *should*
+                        be a closing angle, but it's not! So.. panic.
+                         */
+                        throw new ParsingException("char after forward slash must be angle bracket.  Char: " + currentChar);
                     } else {
+                        // otherwise keep on reading
                         state.stringBuilder.append(currentChar);
+                        // and note we are reading the key
+                        state.isReadingAttributeKey = true;
                     }
                 } else {
                     // reading in the (potential) attribute value
+
                     if (state.isInsideAttributeValueQuoted) {
-                        if (currentChar == '"' || currentChar == '\'') {
+                        // if we're already inside a quoted area, encountering a
+                        // closing quote will take us out of it.
+                        if (currentChar == state.quoteType.literal) {
+                            // if we hit the matching end-quote, switch modes
                             state.isInsideAttributeValueQuoted = false;
+                            state.quoteType = QuoteType.NONE;
                             state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
                             state.stringBuilder = new StringBuilder();
                             state.currentAttributeKey = "";
+                            state.isReadingAttributeKey = false;
                         } else {
+                            // otherwise keep on trucking, adding characters
                             state.stringBuilder.append(currentChar);
                         }
                     } else {
                         if (currentChar == '"' || currentChar == '\'') {
+                            /*
+                            if we're not currently inside a quoted area but encounter
+                            a quote, switch modes.
+                             */
                             state.isInsideAttributeValueQuoted = true;
+                            state.quoteType = QuoteType.byLiteral(currentChar);
                         } else if (state.stringBuilder.length() > 0 && currentChar == ' ') {
+                            /*
+                            if we're not in a quoted area and encounter a space, then
+                            we're done reading the attribute value and can add the key-value
+                            pair to the map.
+                             */
                             state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
+                            state.isReadingAttributeKey = false;
                             state.stringBuilder = new StringBuilder();
                             state.currentAttributeKey = "";
                         } else {
+                            // otherwise keep trucking along adding characters
                             state.stringBuilder.append(currentChar);
                         }
                     }
@@ -366,15 +321,21 @@ public class HtmlParser {
         try {
             tagName = TagName.valueOf(upperCaseToken);
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid HTML element: " + upperCaseToken +
-                    " at character " + (state.charsRead - (1 + upperCaseToken.length())));
+            throw new ParsingException("Invalid HTML element: " + upperCaseToken + " at character " + (state.charsRead - (1 + upperCaseToken.length())));
         }
         var tagInfo = new TagInfo(tagName, state.attributes);
         if (state.isStartTag) {
+            HtmlParseNode newNode = new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), "");
+
             if (state.parseStack.size() > 0) {
-                state.parseStack.peek().innerContent().add(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), ""));
+                state.parseStack.peek().innerContent().add(newNode);
             }
-            state.parseStack.push(new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), ""));
+
+            if (tagName.isVoidElement) {
+                nodes.add(newNode);
+            } else {
+                state.parseStack.push(newNode);
+            }
         } else {
             HtmlParseNode htmlParseNode = state.parseStack.pop();
 
@@ -388,9 +349,125 @@ public class HtmlParser {
             }
             TagName expectedTagName = htmlParseNode.tagInfo().tagName();
             if (expectedTagName != tagName) {
-                throw new RuntimeException("Did not find expected element. " +
-                        "Expected: " + expectedTagName + " at character " + (state.charsRead - (1 + tagNameString.length())));
+                throw new ParsingException("Did not find expected element. " + "Expected: " + expectedTagName + " at character " + (state.charsRead - (1 + tagNameString.length())));
             }
+        }
+    }
+
+    enum QuoteType {
+        SINGLE_QUOTED('\''), DOUBLE_QUOTED('"'), NONE(Character.MIN_VALUE);
+
+        public final char literal;
+
+        QuoteType(char literal) {
+            this.literal = literal;
+        }
+
+        public static QuoteType byLiteral(char currentChar) {
+            if (currentChar == '\'') {
+                return QuoteType.SINGLE_QUOTED;
+            } else if (currentChar == '"') {
+                return QuoteType.DOUBLE_QUOTED;
+            } else {
+                throw new ParsingException("Error: code was searching for a quote literal with this character: " + currentChar);
+            }
+        }
+    }
+
+    static class State {
+        static State buildNewState() {
+            return new State(0, false, new StringBuilder(), new Stack<>(), false, false, true, false, "", "", new HashMap<>(), QuoteType.NONE, false, false);
+        }
+
+        /**
+         * If we encounter a forward-slash in a tag, and we're
+         * not in the midst of reading an attribute value, then
+         * we expect the next character to be a greater-than symbol.
+         */
+        public boolean isHalfClosedTag;
+        /**
+         * total number of chars read of this HTML file
+         */
+        int charsRead;
+        /**
+         * True if we are inside angle brackets (may be a closing tag)
+         */
+        boolean isInsideTag;
+        /**
+         * Where we build up tokens a character at a time
+         */
+        StringBuilder stringBuilder;
+        /**
+         * A stack of HtmlParseNodes, used to see how far deep in the tree we are
+         */
+        Stack<HtmlParseNode> parseStack;
+        /**
+         * True if we have successfully encountered the first letter of the tag
+         */
+        boolean hasEncounteredTagName;
+        /**
+         * True if we are in the process of reading the tag (e.g. p, a, h1, etc)
+         */
+        boolean isReadingTagName;
+
+        /**
+         * if we determine we are in the midst of reading an attribute key
+         */
+        boolean isReadingAttributeKey;
+
+        /**
+         * True if we determine we are probably in the start tag (rather than the closing tag)
+         */
+        boolean isStartTag;
+        /**
+         * True if we're inside the quoted area inside an attribute value in an element
+         * tag - this could be where we encounter some symbols that may not be allowed elsewhere.
+         */
+        boolean isInsideAttributeValueQuoted;
+        /**
+         * If we're in a quoted area, it's either single or double-quoted.
+         * These quotes need to be paired properly, so we need to keep track.
+         */
+        QuoteType quoteType;
+        /**
+         * The string value of the tag name
+         */
+        String tagName;
+        /**
+         * The attribute key we just read
+         */
+        String currentAttributeKey;
+        /**
+         * a map of string to values (in some cases there won't be an equals
+         * sign, meaning the value is null.  In other cases there will be an
+         * equals sign but no value, meaning the value is empty string)
+         */
+        Map<String, String> attributes;
+
+        /**
+         * Holds the state so we can remember where we are as we examine the HTML
+         * a character at a time.
+         */
+        public State(int charsRead, boolean isInsideTag, StringBuilder stringBuilder,
+                     Stack<HtmlParseNode> parseStack, boolean hasEncounteredTagName, boolean isReadingTagName,
+                     boolean isStartTag, boolean isInsideAttributeValueQuoted, String tagName,
+                     String currentAttributeKey, Map<String, String> attributes, QuoteType quoteType,
+                     boolean isReadingAttributeKey, boolean isHalfClosedTag) {
+
+            this.charsRead = charsRead;
+            this.isInsideTag = isInsideTag;
+            this.stringBuilder = stringBuilder;
+            this.parseStack = parseStack;
+            this.hasEncounteredTagName = hasEncounteredTagName;
+            this.isReadingTagName = isReadingTagName;
+            this.isStartTag = isStartTag;
+            this.isInsideAttributeValueQuoted = isInsideAttributeValueQuoted;
+            this.tagName = tagName;
+            this.currentAttributeKey = currentAttributeKey;
+            this.attributes = attributes;
+            this.quoteType = quoteType;
+            this.isReadingAttributeKey = isReadingAttributeKey;
+            this.isHalfClosedTag = isHalfClosedTag;
         }
     }
 
