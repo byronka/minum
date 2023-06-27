@@ -37,7 +37,7 @@ Why?
 ----
 
 To build software like if I was allowed enough time and autonomy. It 
-needed to be quality - built using TDD - [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en). Something 
+must be quality - built using TDD - [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en). Something 
 I would be proud to use for future work. 
 
 I benefit from several aspects:
