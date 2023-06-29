@@ -40,6 +40,7 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
          * back a 403)
          */
         _401_UNAUTHORIZED(401, "UNAUTHORIZED"),
+        _429_TOO_MANY_REQUESTS(429, "TOO MANY REQUESTS"),
         _404_NOT_FOUND(404, "NOT FOUND"),
         _500_INTERNAL_SERVER_ERROR(500, "INTERNAL SERVER ERROR")
         ;

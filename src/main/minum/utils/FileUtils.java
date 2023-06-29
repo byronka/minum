@@ -98,4 +98,22 @@ public class FileUtils {
     }
 
 
+    /**
+     * Creates a directory if it doesn't already exist.
+     * <br>
+     * If the directory does exist, the program will simply skip
+     * building it, and mention it in the logs.
+     * @throws IOException needs to get handled.
+     */
+    public static void makeDirectory(ILogger logger, Path directory) throws IOException {
+        logger.logDebug(() -> "Creating a directory " + directory);
+        boolean directoryExists = Files.exists(directory);
+        logger.logDebug(() -> "Directory: " + directory + ". Already exists: " + directory);
+        if (!directoryExists) {
+            logger.logDebug(() -> "Creating directory, since it does not already exist: " + directory);
+            Files.createDirectories(directory);
+            logger.logDebug(() -> "Directory: " + directory + " created");
+        }
+    }
+
 }

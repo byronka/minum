@@ -2,6 +2,8 @@ package minum.database;
 
 import minum.logging.ILogger;
 import minum.utils.ActionQueue;
+import minum.utils.FileUtils;
+import minum.utils.StacktraceUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,13 +56,10 @@ public class DatabaseDiskPersistenceSimpler<T> {
         this.logger = logger;
 
         actionQueue.enqueue("create directory" + this.dbDirectory, () -> {
-            logger.logDebug(() -> "Creating a directory ("+this.dbDirectory+") for the database");
-            boolean directoryExists = Files.exists(this.dbDirectory);
-            logger.logDebug(() -> "Directory: " + this.dbDirectory + ". Already exists: " + directoryExists);
-            if (!directoryExists) {
-                logger.logDebug(() -> "Creating directory, since it does not already exist: " + this.dbDirectory);
-                Files.createDirectories(this.dbDirectory);
-                logger.logDebug(() -> "Directory: " + this.dbDirectory + " created");
+            try {
+                FileUtils.makeDirectory(logger, this.dbDirectory);
+            } catch (IOException ex) {
+                logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
             }
             return null;
         });
