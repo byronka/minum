@@ -33,8 +33,8 @@ public class WebTests {
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
 
     public WebTests(TestLogger logger) {
-
         this.logger = logger;
+        logger.testSuite("Web Tests");
     }
 
     /*$      /$$           /$$               /$$                           /$$

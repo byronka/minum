@@ -8,8 +8,8 @@ public class StringUtilsTests {
     private final TestLogger logger;
 
     public StringUtilsTests(TestLogger logger) {
-
         this.logger = logger;
+        logger.testSuite("String Utils Tests");
     }
 
     public void tests() {

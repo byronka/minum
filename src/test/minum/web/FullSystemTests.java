@@ -15,6 +15,7 @@ public class FullSystemTests {
 
     public FullSystemTests(TestLogger logger) {
         this.logger = logger;
+        logger.testSuite("FullSystem Tests");
     }
 
     /*

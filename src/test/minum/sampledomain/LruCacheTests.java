@@ -14,6 +14,7 @@ public class LruCacheTests {
 
     public LruCacheTests(TestLogger logger) {
         this.logger = logger;
+        logger.testSuite("LruCache Tests");
     }
 
     public void tests(ExecutorService es) {

@@ -51,6 +51,7 @@ public class Tests {
     new StaticFilesCacheTests(logger).tests(es);
     new TheBrigTests(logger).tests(es);
     new HtmlParserTests(logger).tests(es);
+    logger.writeTestReport();
     runShutdownSequence(es);
   }
 

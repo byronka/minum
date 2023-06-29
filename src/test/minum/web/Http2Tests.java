@@ -15,6 +15,7 @@ public class Http2Tests {
 
     public Http2Tests(TestLogger logger) {
         this.logger = logger;
+        logger.testSuite("Http2 Tests");
     }
 
     public void test(ExecutorService es) {

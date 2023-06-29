@@ -7,7 +7,7 @@ package minum.testing;
  * <pre>
  *     {@code
  *     example:
- *     final var timer = new StopWatch().startTimer();
+ *     final var timer = new StopWatch();
  *     for (var i = 1; i < 5; i++) {
  *         doStuff();
  *     }
@@ -18,15 +18,10 @@ package minum.testing;
  */
 public class StopWatch {
 
-    private long startTime = 0;
-
-    public StopWatch startTimer() {
-        this.startTime = System.currentTimeMillis();
-        return this;
-    }
+    private long startTime;
 
     public StopWatch() {
-
+        this.startTime = System.currentTimeMillis();
     }
 
 
