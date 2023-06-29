@@ -14,7 +14,7 @@ public class TheBrigTests {
 
     public TheBrigTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("TheBrig Tests");
+        logger.testSuite("TheBrig Tests", "TheBrigTests");
     }
 
     public void tests(ExecutorService es) {

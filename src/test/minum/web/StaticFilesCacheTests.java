@@ -10,7 +10,7 @@ public class StaticFilesCacheTests {
 
     public StaticFilesCacheTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("StaticFilesCache Tests");
+        logger.testSuite("StaticFilesCache Tests", "StaticFilesCacheTests");
     }
 
     public void tests(ExecutorService es) throws IOException {

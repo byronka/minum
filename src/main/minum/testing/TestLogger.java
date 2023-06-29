@@ -44,11 +44,11 @@ public class TestLogger extends Logger {
         long totalTime = 0;
         long totalCountTests = 0;
         for (TestSuite ts : testSuites) {
-            List<String> testCaseStrings = ts.testCases().stream().map(x -> String.format("\t\t<testcase name=\"%s\" time=\"%.3f\" />", x.name, x.duration() / 1000.0)).toList();
+            List<String> testCaseStrings = ts.testCases().stream().map(x -> String.format("\t\t<testcase classname=\"%s\" name=\"%s\" time=\"%.3f\" />", ts.className(), x.name, x.duration() / 1000.0)).toList();
             long sumOfTestCaseDurations = ts.testCases.stream().mapToLong(x -> x.duration).sum();
             totalTime += sumOfTestCaseDurations;
             totalCountTests += testCaseStrings.size();
-            String testSuiteString = String.format("\t<testsuite name=\"%s\" time=\"%.2f\" tests=\"%d\">", ts.name, sumOfTestCaseDurations / 1000.0, testCaseStrings.size());
+            String testSuiteString = String.format("\t<testsuite name=\"%s\" time=\"%.2f\" tests=\"%d\">", ts.suiteName, sumOfTestCaseDurations / 1000.0, testCaseStrings.size());
             sb.append(String.format("%n" + testSuiteString + "%n" + String.join("\n", testCaseStrings) + "%n" + "\t</testsuite>" + "%n"));
         }
         innerXmlReport = """
@@ -61,13 +61,13 @@ public class TestLogger extends Logger {
         FileUtils.writeString("out/reports/tests/tests.xml", innerXmlReport);
     }
 
-    public void testSuite(String msg) {
-        currentTestSuite = new TestSuite(msg, new ArrayList<>());
+    public void testSuite(String suiteName, String className) {
+        currentTestSuite = new TestSuite(suiteName, className, new ArrayList<>());
         testSuites.add(currentTestSuite);
     }
 
     record TestCase(String name, long duration) {}
-    record TestSuite(String name, List<TestCase> testCases) {}
+    record TestSuite(String suiteName, String className, List<TestCase> testCases) {}
 
     public TestLogger(ExecutorService es) {
         super(es);
@@ -98,7 +98,7 @@ public class TestLogger extends Logger {
         stopWatch = new StopWatch();
         previousTestName = msg;
 
-        // put together some pretty-looking text graphics to show the name of our test in log
+        // put together some pretty-looking text graphics to show the suiteName of our test in log
         final var baseLength = 11;
         final var dashes = "-".repeat(msg.length() + baseLength);
 

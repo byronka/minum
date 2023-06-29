@@ -9,7 +9,7 @@ public class StringUtilsTests {
 
     public StringUtilsTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("String Utils Tests");
+        logger.testSuite("String Utils Tests", "StringUtilsTests");
     }
 
     public void tests() {

@@ -15,7 +15,7 @@ public class HtmlParserTests {
 
     public HtmlParserTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("HtmlParser Tests");
+        logger.testSuite("HtmlParser Tests", "TheBrigTests");
     }
 
     public void tests(ExecutorService es) throws IOException {

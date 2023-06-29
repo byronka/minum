@@ -15,7 +15,7 @@ public class TemplatingTests {
 
     public TemplatingTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("Templating Tests");
+        logger.testSuite("Templating Tests", "TemplatingTests");
     }
 
     public void tests() {

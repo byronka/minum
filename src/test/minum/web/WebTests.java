@@ -34,7 +34,7 @@ public class WebTests {
 
     public WebTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("Web Tests");
+        logger.testSuite("Web Tests", "WebTests");
     }
 
     /*$      /$$           /$$               /$$                           /$$

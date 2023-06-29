@@ -22,7 +22,7 @@ public class SimpleDatabaseTests {
 
     public SimpleDatabaseTests(TestLogger logger) {
         this.logger = logger;
-        logger.testSuite("SimpleDatabase Tests");
+        logger.testSuite("SimpleDatabase Tests", "SimpleDatabaseTests");
     }
 
     public void tests(ExecutorService es) throws IOException {
