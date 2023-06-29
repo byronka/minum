@@ -49,7 +49,7 @@ I benefit from several aspects:
   the project onto your production server takes just a couple seconds.  That's part of
   how I am able to type a command and have new code running on the production server just
   seconds later.
-- The code is minimal.  It doesn't handle every imaginable case, but there's so little
+- The code is minimal[^1].  It doesn't handle every imaginable case, but there's so little
   there, I can easily add or modify the code.  There's no technical reason why I couldn't
   include extra libraries if I needed, but I pretty much have all the basics handled. 
 - It's a much less difficult project to read and understand than any other web framework.
@@ -149,6 +149,9 @@ Root-level files:
 - Makefile: the configuration for Gnu Make, which is our build tool
 - README.md: this file
 
+Footnotes:
+----------
+[^1]: See [Comparison to Javalin](docs/comparison_to_javalin.md)
 
 Appendix
 --------

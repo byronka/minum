@@ -83,8 +83,7 @@ public class TemplatingTests {
         Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
 
 
-        My "templating library" is 100 lines, spread over three classes, and a lot
-        of that is documentation and whitespace.
+        My templating code is 69 lines of code.
          */
         logger.test("template for a more realistic input");
         {
