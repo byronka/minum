@@ -7,6 +7,17 @@ used [cloc](https://github.com/AlDanial/cloc/) for lines-of-code calculations.
 
 Javalin is 53 times the size of Minum when you take its dependencies into account.
 
+Why did I pick on Javalin?
+
+>"A simple web framework for Java and Kotlin"
+>"Lightweight - Javalin is just a few thousand lines of code on top of Jetty, and its 
+> performance is equivalent to raw Jetty code. Due to its size, it's very easy to 
+> reason about the source code.
+
+
+Lines of code table
+-------------------
+
 | Minum  | Javalin |
 |--------|---------|
 | 4,799  | 255,384 |
