@@ -152,6 +152,7 @@ Root-level files:
 
 Appendix
 --------
+
 * [The Javadoc](https://byronka.github.io/javadoc/)
 * [Test coverage](https://byronka.github.io/coveragereport/)
 * [Tests](https://byronka.github.io/minum_tests.html)
