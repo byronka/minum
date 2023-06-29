@@ -27,10 +27,13 @@ public class Tests {
   }
 
   private static void indicateTestsFinished() {
+    MyThread.sleep(20);
     System.out.println();
     System.out.println("-------------------------");
-    System.out.println("----  Tests finished ---- ");
+    System.out.println("----  Tests finished ----");
     System.out.println("-------------------------");
+    System.out.println();
+    System.out.println("See test report at out/reports/tests/tests.xml\n");
   }
 
   /**
