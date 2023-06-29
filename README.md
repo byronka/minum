@@ -148,3 +148,10 @@ Root-level files:
 - .gitignore: files we want Git to ignore.
 - Makefile: the configuration for Gnu Make, which is our build tool
 - README.md: this file
+
+
+Appendix
+--------
+* [The Javadoc](https://byronka.github.io/javadoc/)
+* [Test coverage](https://byronka.github.io/coveragereport/)
+* [Tests](https://byronka.github.io/minum_tests.html)
