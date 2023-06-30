@@ -25,7 +25,7 @@ Lines of code table
 Basis for Javalin's size:
 -------------------------
 
-| Minum                   | 4,799   |
+| Component               | LOC     |
 |-------------------------|---------|
 |                         |         |
 | Javalin                 | 5,485   |
@@ -38,7 +38,7 @@ Basis for Javalin's size:
 | websocket-jetty-server  | 890     |
 | websocket-jetty-api     | 800     |
 | ***subtotal***          | 49,485  |
-|                          |         |
+|                         |         |
 | optional dependencies:  |         |
 | jvmbrotli               | 895     |
 | brotli4j                | 1,492   |
@@ -46,7 +46,7 @@ Basis for Javalin's size:
 | jackson-module-kotlin   | 1,407   |
 | gson                    | 9,042   |
 | ***subtotal***          | 86,078  |
-|                          |         |
+|                         |         |
 | test dependencies:      |         |
 | junit-jupiter-api       | 5,810   |
 | assertj-core            | 48,153  |
