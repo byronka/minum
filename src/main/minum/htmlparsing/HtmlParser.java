@@ -6,6 +6,17 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
 
+/**
+ * This class converts HTML strings to HTML
+ * object trees.
+ * <p>
+ *     Its main purpose is to support functional testing.  HTML
+ *     parsing is intricate because of how flexible
+ *     the specification is.  We have no need
+ *     to perfectly meet the criteria of the spec, so
+ *     this is understood to be a subset of the spec.
+ * </p>
+ */
 public class HtmlParser {
 
     /**

@@ -1,4 +1,4 @@
 /**
- * Generally-useful utilities.  Widely useful.
+ * Generally-useful utilities.
  */
 package minum.utils;

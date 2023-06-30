@@ -5,10 +5,53 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * In order to perform speedy template rendering, it is necessary
+ * to get the template converted into this class.  The way to do
+ * that is as follows.
+ * <ol>
+ *     <li>
+ *     First, you will be started with some suitable template. The values
+ *     to be substituted are surrounded by double brackets.  Here's an example:
+ *     <br>
+ *     <pre>
+ *         Hello, my name is {{name}}
+ *     </pre>
+ *     </li>
+ *     <li>
+ *         Then, feed that string into {@link #buildProcessor}, like
+ *         this:
+ *         <pre>
+ *             <code>
+ *                 {@code String input = "Hello, my name is {{name}}"
+ *                 var helloProcessor = TemplateProcessor.buildProcessor(input);
+ *                 }
+ *             </code>
+ *         </pre>
+ *     </li>
+ *     <li>
+ *         Now that you have built a template processor, hold onto it! The generation of
+ *         the template processor is the costly activity.  After that, you can use it
+ *         efficiently, by feeding it a {@link Map} of key names to desired values. For
+ *         our example, maybe we want <em>name</em> to be replaced with <em>Susanne</em>.
+ *         In that case, we would do this:
+ *         <pre>
+ *             <code>
+ *                 {@code var myMap = Map.of("name", "Susanne");
+ *                 String fullyRenderedString = helloProcessor.renderTemplate(myMap);
+ *                 }
+ *             </code>
+ *         </pre>
+ *     </li>
+ * </ol>
+ */
 public class TemplateProcessor {
 
-    List<TemplateSection> templateSections;
+    final private List<TemplateSection> templateSections;
 
+    /**
+     * Instantiate a new object with a list of {@link TemplateSection}.
+     */
     private TemplateProcessor(List<TemplateSection> templateSections) {
         this.templateSections = templateSections;
     }

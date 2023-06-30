@@ -2,8 +2,26 @@ package minum.testing;
 
 import java.util.List;
 
+/**
+ * These are utility functions for basic automated
+ * testing.  It turns out you don't really need fancy tools
+ * to do excellent testing.  Just a committment to
+ * quality.  Don't let anyone tell you differently.
+ */
 public class TestFramework {
 
+    /**
+     * assert that a particular chunk of code throws a particular
+     * exception.
+     * <p>
+     *     Example usage:
+     * </p>
+     * <pre>
+     *     <code>
+     *         {@code assertThrows(TemplateRenderException.class, "Missing a value for key {missing_key}", () -> tp.renderTemplate(myMap));}
+     *     </code>
+     * </pre>
+     */
     public static <T extends Exception> T assertThrows(Class<T> myEx, Runnable r) {
         return assertThrows(myEx, null, r);
     }
@@ -39,6 +57,9 @@ public class TestFramework {
         }
     }
 
+    /**
+     * Compares two byte arrays for equality
+     */
     public static void assertEqualByteArray(byte[] left, byte[] right) {
         if (left == null || right == null) throw new RuntimeException("one of the inputs was null: left:  %s right: %s".formatted(left, right));
         if (left.length != right.length) throw new RuntimeException("Not equal! left length: %d right length: %d".formatted(left.length, right.length));
@@ -111,6 +132,31 @@ public class TestFramework {
       assertTrue(value, "");
     }
 
+    /**
+     * Assert that something is true, and show a message if it fails. This
+     * is also handy for including a kind of documentation in your test
+     * code.  So, please carefully note this example of its use, because
+     * there's a certain subtlety at play:
+     * <p>
+     *     <pre>
+     *      {@code assertTrue(foo == true, "foo must be true");}
+     *     </pre>
+     * </p>
+     * <p>
+     * Notice something here: The message is a statement about what *should*
+     * be true.  Sometimes, I see people who do it wrong here - they
+     * add a message like *foo was wrong*, but that's a disconcerting
+     * thing to see in a test.  Do it like the example above, instead.
+     * </p>
+     * <p>
+     *     One other detail to mention: If this test fails, it doesn't really
+     *     give you much help about what the value should have been, it merely
+     *     insists it be true.  In some cases, like where you are
+     *     asserting that a string contains a substring, it is handy to include
+     *     what you were looking for and what the string was as part of the
+     *     failure message.
+     * </p>
+     */
     public static void assertTrue(boolean value, String failureMessage) {
         if (!value) {
             throw new RuntimeException("value was unexpectedly false. " + failureMessage);
@@ -124,7 +170,21 @@ public class TestFramework {
     }
 
     /**
-     * Given a string that may have whitespace chars, render it in a way we can see
+     * Given a string that may have whitespace chars,
+     * render it in a way we can see.
+     * <p>
+     *     More specifically, it will replace tabs with (TAB),
+     *     newlines with (NEWLINE), carriage returns with (RETURN).
+     *     Also, if the entire text is empty (it's got a 0 length), you'll
+     *     get back (EMPTY), and if blank (it's full of whitespace),
+     *     you'll get back (BLANK).
+     * </p>
+     * <p>
+     *     Note that this method is not very performant.  It carries out
+     *     its work through multiple string replacements, so it's
+     *     basically O(3*n) (that is, it scans through
+     *     the whole string three times).
+     * </p>
      */
     private static String showWhiteSpace(String msg) {
         // if we have tabs, returns, newlines in the text, show them

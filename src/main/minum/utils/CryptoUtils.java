@@ -5,6 +5,9 @@ import javax.crypto.spec.PBEKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.spec.KeySpec;
 
+/**
+ * Handy helpers for dealing with cryptographic functions
+ */
 public class CryptoUtils {
 
     /**

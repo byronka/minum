@@ -14,6 +14,9 @@ import java.util.stream.Stream;
 
 import static minum.utils.Invariants.mustNotBeNull;
 
+/**
+ * Helper functions for working with files.
+ */
 public class FileUtils {
 
     private FileUtils() {
@@ -21,6 +24,9 @@ public class FileUtils {
         // all these methods are static
     }
 
+    /**
+     * Write a string to a path on disk.
+     */
     public static void writeString(String path, String content) {
         try {
             Files.writeString(Path.of(path), content);
@@ -29,6 +35,11 @@ public class FileUtils {
         }
     }
 
+    /**
+     * Deletes a directory, deleting everything inside it
+     * recursively afterwards.  A more dangerous method than
+     * many others, take care.
+     */
     public static void deleteDirectoryRecursivelyIfExists(Path myPath, ILogger logger) throws IOException {
         if (Files.exists(myPath)) {
             try (Stream<Path> walk = Files.walk(myPath)) {

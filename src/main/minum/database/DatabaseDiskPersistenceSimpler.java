@@ -23,7 +23,10 @@ import static minum.utils.Invariants.mustBeTrue;
  */
 public class DatabaseDiskPersistenceSimpler<T> {
 
-    public static final String databaseFileSuffix = ".ddps";
+    /**
+     * The suffix we will apply to each database file
+     */
+    static final String databaseFileSuffix = ".ddps";
 
     private final Path dbDirectory;
     private final ActionQueue actionQueue;

@@ -12,11 +12,22 @@ import java.util.concurrent.ExecutorService;
 
 import static minum.utils.TimeUtils.getTimestampIsoInstant;
 
+/**
+ * Implementation of {@link ILogger}
+ */
 public class Logger implements ILogger {
+    /**
+     * The {@link ActionQueue} that handles all
+     * our messages thread-safely by taking
+     * them off the top of a queue.
+     */
     protected final ActionQueue loggerPrinter;
     private Map<Type, Boolean> toggles;
-    public static ILogger INSTANCE;
 
+    /**
+     * This constructor initializes an {@link ActionQueue}
+     * to handle log messages.
+     */
     public Logger(ExecutorService es) {
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
         List<String> logLevelStrings = Constants.LOG_LEVELS.stream().map(String::toUpperCase).toList();
@@ -27,9 +38,6 @@ public class Logger implements ILogger {
             }
         }
         toggleDefaultLogging(enabledLoggingLevels);
-        if (INSTANCE == null) {
-            INSTANCE = this;
-        }
     }
 
     /**

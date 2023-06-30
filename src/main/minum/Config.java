@@ -1,7 +1,12 @@
 package minum;
 
+/**
+ * If the user has no configuration file, this class
+ * contains code that will run to assist them.
+ */
 public class Config {
-    public static String getDefaultConfig() {
+
+    private static String getDefaultConfig() {
         return """
                 ###
                 ### The following was generated as a stop-gap measure because the
@@ -64,6 +69,13 @@ public class Config {
                 """.stripLeading();
     }
 
+    /**
+     * If the user has no app.config file in the location they
+     * run the software, this message will be shown to assist. It
+     * is required that they have a configuration file, to make it
+     * explicit where the "knobs and dials" of the application are
+     * located.
+     */
     public static void printConfigError() {
         System.out.print("\n\n\n");
         System.out.println("----------------------------------------------------------------");

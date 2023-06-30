@@ -2,6 +2,9 @@ package minum.logging;
 
 import minum.utils.ThrowingSupplier;
 
+/**
+ * The functions necessary for logging runtime information
+ */
 public interface ILogger {
 
     /**
