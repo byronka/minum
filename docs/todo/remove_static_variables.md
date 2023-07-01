@@ -86,63 +86,63 @@ List of statics to adjust
 
 (yuck.  Sigh...)
 
-ActionQueue.allQueues
-ActionQueue.killAllQueues
-Constants.java values (all of them)
-AuthUtils.sessionIdCookieRegex
-BodyProcessor.parseUrlEncodedForm
-BodyProcessor.splitKeyAndValue
-BodyProcessor.multiformNameRegex
-CryptoUtils.bytesToHex
-CryptoUtils.createPasswordHash
-FileUtils.writeString
-FileUtils.deleteDirectoryRecursivelyIfExists
-FileUtils.readTemplate
-FileUtils.readFile
-FileUtils.makeDirectory
-FullSystem.createSystemRunningMarker
-FullSystem.getConfiguredProperties
-FullSystem.properties
-Headers.extractHeaderInformation
-Headers.getAllHeaders
-Headers.contentLengthRegex
-HtmlParser.parse
-HtmlParser.processState
-HtmlParser.enteringTag
-HtmlParser.exitingTag
-HtmlParser.addingToken
-HtmlParser.processTag
-HtmlParser.processTag
-HtmlParser.State.buildNewState
-InputStreamUtils.readUntilEOF
-InputStreamUtils.readChunkedEncoding
-InputStreamUtils.readLine
-InputStreamUtils.read
-Logger.convertLoggingStringsToEnums
-Logger.showWhiteSpace
-Logger.printf
-LoopingSessionReviewing.determineSessionsToKill
-LoopingSessionReviewing.isLive
-StartLine.extractStartLine
-StartLine.extractVerb
-StartLine.extractPathDetails
-StartLine.extractMapFromQueryString
-StartLine.getHttpVersion
-... most of StartLine ...
-StatusLine.extractStatusLine
-StatusLine.statusLinePattern
-StatusLine.statusLineRegex
-pull tokenizer out of StringUtils into an instance.  It's too complex to be a static helper function.
-TemplateProcessor.buildProcessor
-Tests should be encapsulated into an object before running.
-TheRegister.registerDomains
-TheRegister.setupSampleDomains
-TheRegister.setupListPhotos
-TheRegister.setupUploadPhotos
-TheRegister.buildAuthDomain
-UnderInvestigation.isClientLookingForVulnerabilities - because these methods rely on state
-UnderInvestigation.isLookingForSuspiciousPaths - because these methods rely on state
-WebFramework, basically the whole thing
+* ActionQueue.allQueues
+* ActionQueue.killAllQueues
+* Constants.java values (all of them)
+* AuthUtils.sessionIdCookieRegex
+* BodyProcessor.parseUrlEncodedForm
+* BodyProcessor.splitKeyAndValue
+* BodyProcessor.multiformNameRegex
+* CryptoUtils.bytesToHex
+* CryptoUtils.createPasswordHash
+* FileUtils.writeString
+* FileUtils.deleteDirectoryRecursivelyIfExists
+* FileUtils.readTemplate
+* FileUtils.readFile
+* FileUtils.makeDirectory
+* FullSystem.createSystemRunningMarker
+* FullSystem.getConfiguredProperties
+* FullSystem.properties
+* Headers.extractHeaderInformation
+* Headers.getAllHeaders
+* Headers.contentLengthRegex
+* HtmlParser.parse
+* HtmlParser.processState
+* HtmlParser.enteringTag
+* HtmlParser.exitingTag
+* HtmlParser.addingToken
+* HtmlParser.processTag
+* HtmlParser.processTag
+* HtmlParser.State.buildNewState
+* InputStreamUtils.readUntilEOF
+* InputStreamUtils.readChunkedEncoding
+* InputStreamUtils.readLine
+* InputStreamUtils.read
+* Logger.convertLoggingStringsToEnums
+* Logger.showWhiteSpace
+* Logger.printf
+* LoopingSessionReviewing.determineSessionsToKill
+* LoopingSessionReviewing.isLive
+* StartLine.extractStartLine
+* StartLine.extractVerb
+* StartLine.extractPathDetails
+* StartLine.extractMapFromQueryString
+* StartLine.getHttpVersion
+* ... most of StartLine ...
+* StatusLine.extractStatusLine
+* StatusLine.statusLinePattern
+* StatusLine.statusLineRegex
+* pull tokenizer out of StringUtils into an instance.  It's too complex to be a static helper function.
+* TemplateProcessor.buildProcessor
+* Tests should be encapsulated into an object before running.
+* TheRegister.registerDomains
+* TheRegister.setupSampleDomains
+* TheRegister.setupListPhotos
+* TheRegister.setupUploadPhotos
+* TheRegister.buildAuthDomain
+* UnderInvestigation.isClientLookingForVulnerabilities - because these methods rely on state
+* UnderInvestigation.isLookingForSuspiciousPaths - because these methods rely on state
+* WebFramework, basically the whole thing
 
 
 
