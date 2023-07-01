@@ -50,5 +50,7 @@ static values and methods are well-designed (See remove_static_variables.md).
           logging, regular expressions, running threads I'll need to kill, ExecutorService, etc.
         * static factory methods are allowed, but they should receive ILogger so we can log.
 
-        [^1]: It would require us to do context.emptyObjects().EmptyFoo() instead of Foo.EMPTY, a plainly
+
+
+[^1]: It would require us to do context.emptyObjects().EmptyFoo() instead of Foo.EMPTY, a plainly
               worse outcome with minimal benefits.
