@@ -1,6 +1,8 @@
 package minum.auth;
 
+import minum.Constants;
 import minum.logging.ILogger;
+import minum.logging.LoggingLevel;
 import minum.utils.MyThread;
 import minum.utils.TimeUtils;
 
@@ -62,7 +64,7 @@ public class LoopingSessionReviewing {
                     down cleanly
                      */
 
-                    System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoopingSessionReviewing is stopped.%n");
+                    if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoopingSessionReviewing is stopped.%n");
                     return null;
                 } catch (Exception ex) {
                     System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: LoopingSessionReviewing has stopped unexpectedly. error: %s%n", ex);

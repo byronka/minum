@@ -6,7 +6,6 @@ import minum.database.SimpleDataType;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
-import minum.utils.StacktraceUtils;
 import minum.utils.StopwatchUtils;
 import minum.utils.ThrowingConsumer;
 
@@ -283,7 +282,7 @@ public class WebFramework implements AutoCloseable {
 
     @Override
     public void close() {
-        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
+        logger.logTrace(() -> "close called on " + this);
         if (fs != null) {
             try {
                 getFullSystem().getServer().centralLoopFuture.get();

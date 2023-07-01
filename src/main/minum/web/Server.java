@@ -118,7 +118,7 @@ public class Server implements AutoCloseable {
     public void close() throws IOException {
         // close all the running sockets
         setOfSWs.stopAllServers();
-        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
+        logger.logTrace(() -> "close called on " + this);
         // close the primary server socket
         serverSocket.close();
     }

@@ -22,7 +22,7 @@ public class Logger implements ILogger {
      * them off the top of a queue.
      */
     protected final ActionQueue loggerPrinter;
-    private Map<Type, Boolean> toggles;
+    private Map<LoggingLevel, Boolean> activeLogLevels;
 
     /**
      * This constructor initializes an {@link ActionQueue}
@@ -30,61 +30,70 @@ public class Logger implements ILogger {
      */
     public Logger(ExecutorService es) {
         loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
-        List<String> logLevelStrings = Constants.LOG_LEVELS.stream().map(String::toUpperCase).toList();
-        List<Type> enabledLoggingLevels = new ArrayList<>();
-        for (Type t : Type.values()) {
+        toggleDefaultLogging(Constants.LOG_LEVELS);
+    }
+
+    /**
+     * Given a list of strings representing logging levels,
+     * convert it to a list of enums.  Log levels are enumerated
+     * in {@link LoggingLevel}.
+     */
+    public static List<LoggingLevel> convertLoggingStringsToEnums(List<String> logLevels) {
+        List<String> logLevelStrings = logLevels.stream().map(String::toUpperCase).toList();
+        List<LoggingLevel> enabledLoggingLevels = new ArrayList<>();
+        for (LoggingLevel t : LoggingLevel.values()) {
             if (logLevelStrings.contains(t.name())) {
                 enabledLoggingLevels.add(t);
             }
         }
-        toggleDefaultLogging(enabledLoggingLevels);
+        return enabledLoggingLevels;
     }
 
     /**
      * for the various kinds of minum.logging which can be enabled/disabled,
      * turn on the expected types of minum.logging.
      */
-    private void toggleDefaultLogging(List<Type> enabledLoggingLevels) {
-        toggles = new EnumMap<>(Type.class);
-        for (Type t : Type.values()) {
-            toggles.put(t, enabledLoggingLevels.contains(t));
+    private void toggleDefaultLogging(List<LoggingLevel> enabledLoggingLevels) {
+        activeLogLevels = new EnumMap<>(LoggingLevel.class);
+        for (LoggingLevel t : LoggingLevel.values()) {
+            activeLogLevels.put(t, enabledLoggingLevels.contains(t));
         }
     }
 
     @Override
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, Type.DEBUG);
+        logHelper(msg, LoggingLevel.DEBUG);
     }
 
     @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, Type.TRACE);
+        logHelper(msg, LoggingLevel.TRACE);
     }
 
     @Override
     public void logAudit(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, Type.AUDIT);
+        logHelper(msg, LoggingLevel.AUDIT);
     }
 
     @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, Type.ASYNC_ERROR);
+        logHelper(msg, LoggingLevel.ASYNC_ERROR);
     }
 
     /**
      * A helper method to reduce duplication
      */
-    public void logHelper(ThrowingSupplier<String, Exception> msg, Type type) {
+    public void logHelper(ThrowingSupplier<String, Exception> msg, LoggingLevel loggingLevel) {
         String receivedMessage;
         try {
             receivedMessage = msg.get();
         } catch (Exception ex) {
             receivedMessage = "EXCEPTION DURING GET: " + ex;
         }
-        if (toggles.get(type)) {
+        if (activeLogLevels.get(loggingLevel)) {
             String finalReceivedMessage = receivedMessage;
             loggerPrinter.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
-                printf(type.name() + ": %s %s%n", getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage));
+                printf(loggingLevel.name() + ": %s %s%n", getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage));
                 return null;
             });
         }
@@ -110,34 +119,4 @@ public class Logger implements ILogger {
         System.out.printf(msg, args);
     }
 
-    enum Type {
-        /**
-         * Information useful for debugging.
-         */
-        DEBUG,
-
-        /**
-         * Represents an error that occurs in a separate thread, so
-         * that we are not able to catch it bubbling up
-         */
-        ASYNC_ERROR,
-
-        /**
-         * Information marked as trace is pretty much entered for
-         * the same reason as DEBUG - i.e. so we can see important
-         * information about the running state of the program. The
-         * only difference is that trace information is very voluminous.
-         * That is, there's tons of it, and it could make it harder
-         * to find the important information amongst a lot of noise.
-         * For that reason, TRACE is usually turned off.
-         */
-        TRACE,
-
-        /**
-         * Information marked audit is for business-related stuff.  Like,
-         * a new user being created.  A photo being looked for.  Stuff
-         * closer to the user needs.
-         */
-        AUDIT
-    }
 }

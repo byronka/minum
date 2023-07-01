@@ -1,6 +1,7 @@
 package minum.utils;
 
 import minum.Constants;
+import minum.logging.LoggingLevel;
 
 import java.util.concurrent.*;
 
@@ -36,7 +37,7 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
 
     public static ExecutorService makeExecutorService() {
         boolean useVirtualThreads = Constants.USE_VIRTUAL;
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
+        if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
         if (useVirtualThreads) {
             // the following line is only usable with the virtual threads API, which
             // is available on OpenJDK 19/20 in preview mode.

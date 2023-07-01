@@ -1,5 +1,7 @@
 package minum;
 
+import minum.logging.Logger;
+import minum.logging.LoggingLevel;
 import minum.web.FullSystem;
 
 import java.util.Arrays;
@@ -34,7 +36,7 @@ public class Constants {
     /**
      * The default logging levels
      */
-    public static final List<String> LOG_LEVELS = getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT");
+    public static final List<LoggingLevel> LOG_LEVELS = Logger.convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT"));
 
     /**
      * If true, use the new Java "Project Loom" virtual threads instead of

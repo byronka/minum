@@ -2,7 +2,6 @@ package minum.web;
 
 import minum.logging.ILogger;
 import minum.logging.Logger;
-import minum.utils.StacktraceUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,7 +73,7 @@ public class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
+        logger.logTrace(() -> "close called on " + this);
         socket.close();
         if (server != null) server.removeMyRecord(this);
     }

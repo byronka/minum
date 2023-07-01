@@ -4,6 +4,7 @@ import minum.Config;
 import minum.Constants;
 import minum.logging.ILogger;
 import minum.logging.Logger;
+import minum.logging.LoggingLevel;
 import minum.security.TheBrig;
 import minum.utils.*;
 
@@ -209,17 +210,17 @@ public class FullSystem implements AutoCloseable {
 
     @Override
     public void close() {
-        logger.logTrace(() -> "close called on " + this + ". Stacktrace:" + StacktraceUtils.stackTraceToString(Thread.currentThread().getStackTrace()));
+        logger.logTrace(() -> "close called on " + this);
         try {
-            System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
+            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
 
-            System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
+            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
             if (server != null) server.close();
 
-            System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
+            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
             if (sslServer != null) sslServer.close();
 
-            System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
+            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }

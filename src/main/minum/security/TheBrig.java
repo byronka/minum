@@ -5,6 +5,7 @@ import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.database.SimpleDataType;
 import minum.database.SimpleSerializable;
 import minum.logging.ILogger;
+import minum.logging.LoggingLevel;
 import minum.utils.MyThread;
 import minum.utils.TimeUtils;
 
@@ -163,7 +164,7 @@ public class TheBrig {
                     down cleanly
                      */
 
-                    System.out.printf(TimeUtils.getTimestampIsoInstant() + " TheBrig is stopped.%n");
+                    if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " TheBrig is stopped.%n");
                     return null;
                 } catch (Exception ex) {
                     System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: TheBrig has stopped unexpectedly. error: %s%n", ex);

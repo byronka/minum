@@ -1,5 +1,8 @@
 package minum.utils;
 
+import minum.Constants;
+import minum.logging.LoggingLevel;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -50,7 +53,7 @@ public class ActionQueue {
             this only gets called when we are trying to shut everything
             down cleanly
              */
-                System.out.printf(TimeUtils.getTimestampIsoInstant() + " ActionQueue for %s is stopped.%n", name);
+                if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " ActionQueue for %s is stopped.%n", name);
             } catch (Exception ex) {
                 System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
                 throw ex;
@@ -79,22 +82,22 @@ public class ActionQueue {
      * block until the queue is empty.
      */
     public void stop() {
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
+        if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
         stop = true;
         for (int i = 0; i < 5; i++) {
             int size = queue.size();
             if (!(size > 0)) return;
-            System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
+            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
             MyThread.sleep(20);
         }
         System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
     }
 
     public static void killAllQueues() {
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all queue threads");
+        if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all queue threads");
         for (var aq : allQueues) {
             aq.stop();
-            System.out.println(TimeUtils.getTimestampIsoInstant() + " killing " + aq.queueThread);
+            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " killing " + aq.queueThread);
             if (aq.queueThread != null) {
                 aq.queueThread.interrupt();
             }
