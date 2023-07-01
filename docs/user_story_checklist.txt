@@ -1,4 +1,4 @@
-User story checklist:
+User story code-review checklist:
 
 The following is used during story development as a reminder to the development team
 what is needed for high-quality software.
@@ -37,3 +37,18 @@ rendered text is highly correct:
      [ ] rendered HTML is valid (through a tool like W3C's https://validator.w3.org/)
      [ ] dynamic parts are cleaned, e.g. using code like safeAttr(), safeHTML()
      [ ] CSS is valid (using a tool like W3C https://jigsaw.w3.org/css-validator/ )
+
+static values and methods are well-designed (See remove_static_variables.md).
+    [] Any new or modified values must be:
+        * true, literal constants.  if any processing is required to build the constant, it's off the
+          table, except for:
+          * [null objects](https://en.wikipedia.org/wiki/Null_object_pattern), because the alternative is
+            purely worse[^1].
+        * small helper utility methods that require no state - functional-style.
+        * complex methods should not be static, because I may need to put logging in them, which is state.
+        * Use a context object to hold items that have broader scope, such as
+          logging, regular expressions, running threads I'll need to kill, ExecutorService, etc.
+        * static factory methods are allowed, but they should receive ILogger so we can log.
+
+        [^1]: It would require us to do context.emptyObjects().EmptyFoo() instead of Foo.EMPTY, a plainly
+              worse outcome with minimal benefits.
