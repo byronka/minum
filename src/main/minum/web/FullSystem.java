@@ -70,7 +70,8 @@ public class FullSystem implements AutoCloseable {
      */
     public FullSystem start() throws IOException  {
         createSystemRunningMarker();
-        System.out.print("\n\n" + TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting ***");
+        String serverComment = "at http://" + Constants.HOST_NAME + ":" + Constants.SERVER_PORT + " and https://" + Constants.HOST_NAME + ":" + Constants.SECURE_SERVER_PORT;
+        System.out.print("\n\n" + TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting "+serverComment+" ***\n\n");
         theBrig = new TheBrig(es, logger).initialize();
         WebEngine webEngine = new WebEngine(logger, theBrig);
         StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
