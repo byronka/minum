@@ -1,6 +1,7 @@
 package minum.web;
 
 import minum.Constants;
+import minum.FullSystem;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.database.SimpleDataType;
 import minum.logging.ILogger;
@@ -188,7 +189,7 @@ public class WebFramework implements AutoCloseable {
      * the code to be run in the web testing engine that selects which
      * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(Function)}
      */
-    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler() {
+    public ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler() {
         return makePrimaryHttpHandler(this::findEndpointForThisStartline);
     }
 
@@ -231,7 +232,7 @@ public class WebFramework implements AutoCloseable {
      * @param overrideForDateTime for those test cases where we need to control the time
      */
     public WebFramework(FullSystem fs, ZonedDateTime overrideForDateTime) {
-        this(fs, fs.logger, overrideForDateTime);
+        this(fs, fs.getLogger(), overrideForDateTime);
     }
 
     private WebFramework(FullSystem fs, ILogger logger, ZonedDateTime overrideForDateTime) {
@@ -256,7 +257,7 @@ public class WebFramework implements AutoCloseable {
     }
 
 
-    void registerStaticFiles(StaticFilesCache sfc) {
+    public void registerStaticFiles(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;
     }
 
@@ -269,7 +270,7 @@ public class WebFramework implements AutoCloseable {
      */
     public <T extends SimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
         var dbDir = Path.of(Constants.DB_DIRECTORY);
-        return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), fs.es, fs.logger);
+        return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), fs.getExecutorService(), fs.getLogger());
     }
 
     public ILogger getLogger() {

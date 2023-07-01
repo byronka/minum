@@ -1,12 +1,11 @@
-package minum.web;
+package minum;
 
-import minum.Config;
-import minum.Constants;
 import minum.logging.ILogger;
 import minum.logging.Logger;
 import minum.logging.LoggingLevel;
 import minum.security.TheBrig;
 import minum.utils.*;
+import minum.web.*;
 
 import java.io.File;
 import java.io.FileInputStream;

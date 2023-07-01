@@ -1,6 +1,7 @@
 package minum.web;
 
 import minum.Constants;
+import minum.FullSystem;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.utils.ThrowingConsumer;

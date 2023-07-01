@@ -2,7 +2,6 @@ package minum;
 
 import minum.logging.Logger;
 import minum.logging.LoggingLevel;
-import minum.web.FullSystem;
 
 import java.util.Arrays;
 import java.util.List;

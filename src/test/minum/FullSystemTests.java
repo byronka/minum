@@ -1,6 +1,8 @@
-package minum.web;
+package minum;
 
+import minum.FullSystem;
 import minum.testing.TestLogger;
+import minum.web.FakeSocketWrapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
