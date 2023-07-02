@@ -32,6 +32,10 @@ public class TestContext extends Context {
         this.inputStreamUtils = new InputStreamUtils(this, stringUtils);
     }
 
+    @Override
+    public IFullSystem getFullSystem() {
+        return new FakeFullSystem();
+    }
 
     public TestLogger getLogger() {
         return logger;

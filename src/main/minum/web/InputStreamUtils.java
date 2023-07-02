@@ -98,7 +98,7 @@ public class InputStreamUtils {
             result.add((byte) a);
 
         }
-        return stringUtils.byteListToString(result);
+        return StringUtils.byteListToString(result);
     }
 
 

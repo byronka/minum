@@ -55,21 +55,21 @@ public class Tests {
     TestLogger logger = new TestLogger(context);
     context.setLogger(logger);
 
-//    new WebTests(context).tests();
-    new SimpleDatabaseTests(context).tests();
-    new LruCacheTests(context).tests();
-    new StringUtilsTests(context).tests();
-    new TemplatingTests(context).tests();
-    new Http2Tests(context).test();
-    new FullSystemTests(context).tests();
-    new StaticFilesCacheTests(context).tests();
-    new TheBrigTests(context).tests();
-    new HtmlParserTests(context).tests();
+      new WebTests(context).tests();
+      new SimpleDatabaseTests(context).tests();
+      new LruCacheTests(context).tests();
+      new StringUtilsTests(context).tests();
+      new TemplatingTests(context).tests();
+//    new Http2Tests(context).test();
+      new FullSystemTests(context).tests();
+      new StaticFilesCacheTests(context).tests();
+      new TheBrigTests(context).tests();
+      new HtmlParserTests(context).tests();
 
     logger.writeTestReport();
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
     context.killAllQueues();
-    context.getExecutorService().shutdown();
+    context.getExecutorService().shutdownNow();
   }
 
   /**

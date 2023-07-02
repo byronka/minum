@@ -1,7 +1,6 @@
 package minum.auth;
 
 
-import minum.Context;
 import minum.database.SimpleDataTypeImpl;
 import minum.utils.StringUtils;
 
@@ -21,7 +20,6 @@ public class SessionId extends SimpleDataTypeImpl<SessionId> {
     private final long index;
     private final String sessionCode;
     private final ZonedDateTime creationDateTime;
-    private final StringUtils stringUtils;
 
     /**
      * @param index            a simple numeric identifier that lets us distinguish one record from another
@@ -29,16 +27,15 @@ public class SessionId extends SimpleDataTypeImpl<SessionId> {
      *                         in a cookie value so requests can authenticate.
      * @param creationDateTime the zoned date and time at which this session was created
      */
-    public SessionId(long index, String sessionCode, ZonedDateTime creationDateTime, Context context) {
-        super(context);
+    public SessionId(long index, String sessionCode, ZonedDateTime creationDateTime) {
+        super();
 
         this.index = index;
         this.sessionCode = sessionCode;
         this.creationDateTime = creationDateTime;
-        this.stringUtils = new StringUtils(context);
     }
 
-    public static final SessionId EMPTY = new SessionId(0, "", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()), null);
+    public static final SessionId EMPTY = new SessionId(0, "", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()));
 
     /**
      * Builds a proper session, with a randomly-generated sessionCode and a creation time.  Just provide the index.
@@ -49,9 +46,8 @@ public class SessionId extends SimpleDataTypeImpl<SessionId> {
      * siblings.  For that reason, providing a proper index is the responsibility of the
      * class which manages the whole collection.
      */
-    public static SessionId createNewSession(long index, Context context) {
-        StringUtils stringUtils1 = new StringUtils(context);
-        return new SessionId(index, stringUtils1.generateSecureRandomString(20), ZonedDateTime.now(ZoneId.of("UTC")), context);
+    public static SessionId createNewSession(long index) {
+        return new SessionId(index, StringUtils.generateSecureRandomString(20), ZonedDateTime.now(ZoneId.of("UTC")));
     }
 
     @Override
@@ -79,7 +75,6 @@ public class SessionId extends SimpleDataTypeImpl<SessionId> {
         return new SessionId(
                 Long.parseLong(tokens.get(0)),
                 tokens.get(1),
-                ZonedDateTime.parse(Objects.requireNonNull(tokens.get(2))),
-                context);
+                ZonedDateTime.parse(Objects.requireNonNull(tokens.get(2))));
     }
 }

@@ -57,7 +57,7 @@ public class BodyProcessor {
                 inputStreamUtils.readChunkedEncoding(is);
 
         if (h.contentLength() > 0 && contentType.contains("application/x-www-form-urlencoded")) {
-            return parseUrlEncodedForm(stringUtils.byteArrayToString(bodyBytes));
+            return parseUrlEncodedForm(StringUtils.byteArrayToString(bodyBytes));
         } else if (contentType.contains("multipart/form-data")) {
             String boundaryKey = "boundary=";
             int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
@@ -67,10 +67,10 @@ public class BodyProcessor {
                 return parseMultiform(bodyBytes, boundaryValue);
             }
             logger.logDebug(() -> "Did not find a valid boundary value for the multipart input.  Returning an empty map for the body");
-            return Body.EMPTY;
+            return Body.EMPTY(context);
         } else {
             logger.logDebug(() -> "Did not find a recognized content-type, returning an empty map and the raw bytes for the body");
-            return new Body(Map.of(), bodyBytes, stringUtils);
+            return new Body(Map.of(), bodyBytes, context);
         }
     }
 
@@ -84,7 +84,7 @@ public class BodyProcessor {
      * for example, {@code valuea=3&valueb=this+is+something}
      */
     public Body parseUrlEncodedForm(String input) {
-        if (input.isEmpty()) return Body.EMPTY;
+        if (input.isEmpty()) return Body.EMPTY(context);
 
         final var postedPairs = new HashMap<String, byte[]>();
         final var splitByAmpersand = stringUtils.tokenizer(input, '&');
@@ -93,14 +93,14 @@ public class BodyProcessor {
             final var pair = splitKeyAndValue(s);
             mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
-            final var value = stringUtils.decode(pair[1]);
+            final var value = StringUtils.decode(pair[1]);
             final var convertedValue = value == null ? "".getBytes(StandardCharsets.UTF_8) : value.getBytes(StandardCharsets.UTF_8);
             final var result = postedPairs.put(pair[0], convertedValue);
             if (result != null) {
-                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+stringUtils.byteArrayToString(result)+" and " + pair[1]);
+                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+StringUtils.byteArrayToString(result)+" and " + pair[1]);
             }
         }
-        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), stringUtils);
+        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), context);
     }
 
     /**
@@ -149,11 +149,11 @@ public class BodyProcessor {
             }
             else {
                 logger.logDebug(() -> "no name found for one of the multipart partitions.  Bailing and returning an empty body");
-                return Body.EMPTY;
+                return Body.EMPTY(context);
             }
 
         }
-        return new Body(result, body, stringUtils);
+        return new Body(result, body, context);
     }
 
     /**

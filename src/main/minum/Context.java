@@ -15,13 +15,12 @@ public class Context {
     private ILogger logger;
     private final ExecutorService executorService;
     private final Constants constants;
-    private final FullSystem fullSystem;
+    private final IFullSystem fullSystem;
     private final List<ActionQueue> actionQueueList;
 
     /**
      * In order to avoid statics or singletons allow certain objects to be widely
      * available, we'll store them in this class.
-     * @param logger the logger we'll use throughout the system
      * @param executorService the code which controls threads
      * @param constants constants that apply throughout the code, configurable by the
      *                  user in the app.config file.
@@ -51,7 +50,7 @@ public class Context {
         return constants;
     }
 
-    public FullSystem getFullSystem() {
+    public IFullSystem getFullSystem() {
         return fullSystem;
     }
 

@@ -2,9 +2,12 @@ package minum;
 
 import minum.logging.Logger;
 import minum.logging.LoggingLevel;
+import minum.utils.TimeUtils;
 
+import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Very important system design decisions are made here.  All
@@ -12,15 +15,19 @@ import java.util.List;
  */
 public class Constants {
 
+    private Properties properties;
+
     public Constants() {
+        properties = getConfiguredProperties();
+
         SERVER_PORT = getProp("SERVER_PORT",  8080);
         SECURE_SERVER_PORT = getProp("SSL_SERVER_PORT",  8443);
-        HOST_NAME = FullSystem.getConfiguredProperties().getProperty("HOST_NAME",  "localhost");
-        DB_DIRECTORY = FullSystem.getConfiguredProperties().getProperty("DB_DIRECTORY",  "db");
+        HOST_NAME = properties.getProperty("HOST_NAME",  "localhost");
+        DB_DIRECTORY = properties.getProperty("DB_DIRECTORY",  "db");
         LOG_LEVELS = Logger.convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT"));
         USE_VIRTUAL = getProp("USE_VIRTUAL", false);
-        KEYSTORE_PATH = FullSystem.getConfiguredProperties().getProperty("KEYSTORE_PATH",  "");
-        KEYSTORE_PASSWORD = FullSystem.getConfiguredProperties().getProperty("KEYSTORE_PASSWORD",  "");
+        KEYSTORE_PATH = properties.getProperty("KEYSTORE_PATH",  "");
+        KEYSTORE_PASSWORD = properties.getProperty("KEYSTORE_PASSWORD",  "");
         REDIRECT_TO_SECURE = getProp("REDIRECT_TO_SECURE", false);
         MAX_READ_SIZE_BYTES = getProp("MAX_READ_SIZE_BYTES",  10 * 1024 * 1024);
         MAX_READ_LINE_SIZE_BYTES = getProp("MAX_READ_LINE_SIZE_BYTES", 200);
@@ -148,7 +155,7 @@ public class Constants {
      * configuration values from app.config
      */
     private int getProp(String propName, int propDefault) {
-        return Integer.parseInt(FullSystem.getConfiguredProperties().getProperty(propName, String.valueOf(propDefault)));
+        return Integer.parseInt(properties.getProperty(propName, String.valueOf(propDefault)));
     }
 
     /**
@@ -156,7 +163,7 @@ public class Constants {
      * configuration values from app.config
      */
     private boolean getProp(String propName, boolean propDefault) {
-        return Boolean.parseBoolean(FullSystem.getConfiguredProperties().getProperty(propName, String.valueOf(propDefault)));
+        return Boolean.parseBoolean(properties.getProperty(propName, String.valueOf(propDefault)));
     }
 
     /**
@@ -164,9 +171,26 @@ public class Constants {
      * configuration values from app.config
      */
     private List<String> getProp(String propName, String propDefault) {
-        return Arrays.asList(FullSystem.getConfiguredProperties().getProperty(propName, propDefault).split(","));
+        return Arrays.asList(properties.getProperty(propName, propDefault).split(","));
     }
 
+
+    /**
+     * This overload allows you to specify that the contents of the
+     * properties file should be shown when it's read.
+     */
+    public Properties getConfiguredProperties() {
+        var properties = new Properties();
+        String fileName = "app.config";
+        try (FileInputStream fis = new FileInputStream(fileName)) {
+            System.out.println(TimeUtils.getTimestampIsoInstant() +
+                    " found properties file at ./app.config.  Loading properties");
+            properties.load(fis);
+        } catch (Exception ex) {
+            Config.printConfigError();
+        }
+        return properties;
+    }
 }
 
 

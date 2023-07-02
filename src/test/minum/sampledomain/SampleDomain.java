@@ -78,7 +78,7 @@ public class SampleDomain {
 
         final var nameEntry = r.body().asString("name_entry");
 
-        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry, context);
+        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));

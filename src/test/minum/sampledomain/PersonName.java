@@ -9,14 +9,13 @@ public class PersonName extends SimpleDataTypeImpl<PersonName> {
     private final Long index;
     private final String fullname;
 
-    public PersonName(Long index, String fullname, Context context) {
-        super(context);
+    public PersonName(Long index, String fullname) {
         this.index = index;
 
         this.fullname = fullname;
     }
 
-    public static final ISimpleDataType<PersonName> EMPTY = new PersonName(0L, "", null);
+    public static final ISimpleDataType<PersonName> EMPTY = new PersonName(0L, "");
 
     @Override
     public Long getIndex() {
@@ -37,6 +36,6 @@ public class PersonName extends SimpleDataTypeImpl<PersonName> {
 
         final var tokens = deserializeHelper(serializedText);
 
-        return new PersonName(Long.parseLong(tokens.get(0)), tokens.get(1), context);
+        return new PersonName(Long.parseLong(tokens.get(0)), tokens.get(1));
     }
 }

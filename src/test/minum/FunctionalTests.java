@@ -111,7 +111,7 @@ public class FunctionalTests {
     }
 
     public TestResponse get(String path, List<String> extraHeaders) throws IOException {
-        Body body = Body.EMPTY;
+        Body body = Body.EMPTY(context);
         Headers headers;
         StatusLine statusLine;
         try (SocketWrapper client = webEngine.startClient(primaryServer)) {
@@ -148,13 +148,13 @@ public class FunctionalTests {
     }
 
     public TestResponse post(String path, String payload, List<String> extraHeaders) throws IOException {
-        Body body = Body.EMPTY;
+        Body body = Body.EMPTY(context);
         Headers headers;
         StatusLine statusLine;
         try (SocketWrapper client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
-            // send a GET request
+            // send a POST request
             client.sendHttpLine("POST /"+path+" HTTP/1.1");
             client.sendHttpLine("Host: localhost:8080");
             client.sendHttpLine("Content-Length: " + payload.length());

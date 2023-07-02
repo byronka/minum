@@ -2,7 +2,7 @@ package minum.web;
 
 import minum.Constants;
 import minum.Context;
-import minum.FullSystem;
+import minum.IFullSystem;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.database.ISimpleDataType;
 import minum.logging.ILogger;
@@ -57,7 +57,7 @@ public class WebFramework implements AutoCloseable {
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
-    private final FullSystem fs;
+    private final IFullSystem fs;
     private StaticFilesCache staticFilesCache;
     private final ILogger logger;
     private final Context context;
@@ -144,7 +144,7 @@ public class WebFramework implements AutoCloseable {
                     var headers = Headers.make(context, inputStreamUtils);
                     Headers hi = headers.extractHeaderInformation(sw.getInputStream());
 
-                    Body body = Body.EMPTY;
+                    Body body = Body.EMPTY(context);
                     // Determine whether there is a body (a block of data) in this request
                     if (isThereIsABody(hi)) {
                         logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
@@ -277,14 +277,14 @@ public class WebFramework implements AutoCloseable {
      * </pre>
      */
     public <T extends ISimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
-        return new DatabaseDiskPersistenceSimpler<>(Path.of(name), context);
+        return new DatabaseDiskPersistenceSimpler<>(Path.of(constants.DB_DIRECTORY, name), context);
     }
 
     public ILogger getLogger() {
         return logger;
     }
 
-    public FullSystem getFullSystem() {
+    public IFullSystem getFullSystem() {
         return this.fs;
     }
 
@@ -293,12 +293,12 @@ public class WebFramework implements AutoCloseable {
         logger.logTrace(() -> "close called on " + this);
         if (fs != null) {
             try {
-                getFullSystem().getServer().centralLoopFuture.get();
-                getFullSystem().getSslServer().centralLoopFuture.get();
+                fs.getServer().centralLoopFuture.get();
+                fs.getSslServer().centralLoopFuture.get();
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
-            getFullSystem().close();
+            fs.close();
         }
     }
 }

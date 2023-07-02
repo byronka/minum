@@ -1,9 +1,6 @@
 package minum.sampledomain.photo;
 
-
-import minum.Context;
 import minum.database.ISimpleDataType;
-import minum.database.ISimpleSerializable;
 import minum.database.SimpleDataTypeImpl;
 
 public class Photograph extends SimpleDataTypeImpl<Photograph> {
@@ -12,18 +9,15 @@ public class Photograph extends SimpleDataTypeImpl<Photograph> {
     private final String photoUrl;
     private final String shortDescription;
     private final String description;
-    private final Context context;
 
-    public Photograph(Long index, String photoUrl, String shortDescription, String description, Context context) {
-        super(context);
-        this.context = context;
+    public Photograph(Long index, String photoUrl, String shortDescription, String description) {
         this.index = index;
         this.photoUrl = photoUrl;
         this.shortDescription = shortDescription;
         this.description = description;
     }
 
-    public static final ISimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "", null);
+    public static final ISimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "");
 
     @Override
     public Long getIndex() {
@@ -55,7 +49,6 @@ public class Photograph extends SimpleDataTypeImpl<Photograph> {
                 Long.parseLong(tokens.get(0)),
                 tokens.get(1),
                 tokens.get(2),
-                tokens.get(3),
-                context);
+                tokens.get(3));
     }
 }

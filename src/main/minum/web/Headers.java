@@ -51,7 +51,9 @@ public class Headers{
         this.headerStrings = headerStrings;
     }
 
-    public static final Headers EMPTY = new Headers(List.of(), null);
+    public static Headers EMPTY(Context context) {
+        return new Headers(List.of(), context);
+    }
 
     public List<String> getHeaderStrings() {
         return headerStrings;

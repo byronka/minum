@@ -64,7 +64,7 @@ public class UploadPhoto {
         var description = request.body().asString("long_description");
 
         var newFilename = UUID.nameUUIDFromBytes(photoBytes).toString();
-        final var newPhotograph = new Photograph(newPhotographIndex.getAndIncrement(), newFilename, shortDescription, description, context);
+        final var newPhotograph = new Photograph(newPhotographIndex.getAndIncrement(), newFilename, shortDescription, description);
         Path photoDirectory = dbDir.resolve("photo_files");
         Path photoPath = photoDirectory.resolve(newFilename);
         try {

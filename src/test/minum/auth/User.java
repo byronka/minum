@@ -1,6 +1,5 @@
 package minum.auth;
 
-import minum.Context;
 import minum.database.SimpleDataTypeImpl;
 
 /**
@@ -23,8 +22,7 @@ public class User extends SimpleDataTypeImpl<User> {
      *             See "Salting" in docs/http_protocol/password_storage_cheat_sheet.txt
      * @param currentSession If this use is currently authenticated, there will be a {@link SessionId} for them
      */
-    public User(Long id, String username, String hashedPassword, String salt, String currentSession, Context context) {
-        super(context);
+    public User(Long id, String username, String hashedPassword, String salt, String currentSession) {
         this.id = id;
         this.username = username;
         this.hashedPassword = hashedPassword;
@@ -32,7 +30,7 @@ public class User extends SimpleDataTypeImpl<User> {
         this.currentSession = currentSession;
     }
 
-    public static final User EMPTY = new User(0L, "", "", "", null, null);
+    public static final User EMPTY = new User(0L, "", "", "", null);
 
     @Override
     public Long getIndex() {
@@ -61,7 +59,7 @@ public class User extends SimpleDataTypeImpl<User> {
 
     @Override
     public String serialize() {
-        return serializeHelper(id, username, hashedPassword, salt, currentSession, context);
+        return serializeHelper(id, username, hashedPassword, salt, currentSession);
     }
 
     @Override
@@ -72,8 +70,7 @@ public class User extends SimpleDataTypeImpl<User> {
                 tokens.get(1),
                 tokens.get(2),
                 tokens.get(3),
-                tokens.get(4),
-                context
+                tokens.get(4)
                 );
     }
 }

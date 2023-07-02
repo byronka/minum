@@ -47,6 +47,8 @@ public class AuthUtils {
     private final Constants constants;
     private final StringUtils stringUtils;
     private LoopingSessionReviewing sessionLooper;
+    private final User emptyUser;
+    private final SessionId emptySessionId;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
@@ -56,9 +58,12 @@ public class AuthUtils {
         this.stringUtils = new StringUtils(context);
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;
-        sessionIds = sessionDiskData.readAndDeserialize(SessionId.EMPTY);
-        users = userDiskData.readAndDeserialize(User.EMPTY);
+        emptyUser = User.EMPTY;
+        emptySessionId = SessionId.EMPTY;
+        sessionIds = sessionDiskData.readAndDeserialize(emptySessionId);
+        users = userDiskData.readAndDeserialize(emptyUser);
         this.logger = context.getLogger();
+
 
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
         newUserIndex = new AtomicLong(calculateNextIndex(users));
@@ -106,7 +111,7 @@ public class AuthUtils {
         if (listOfSessionIds.size() >= 2) {
             logger.logDebug(() -> "there must be either zero or one session id found " +
                     "in the request headers.  Anything more is invalid");
-            return new AuthResult(false, null, User.EMPTY);
+            return new AuthResult(false, null, emptyUser);
         }
 
         // examine whether there is just one session identifier
@@ -114,20 +119,20 @@ public class AuthUtils {
 
         // if we don't find any sessions in the request, they are not authenticated.
         if (! isExactlyOneSessionInRequest) {
-            return new AuthResult(false, null, User.EMPTY);
+            return new AuthResult(false, null, emptyUser);
         }
 
         // Did we find that session identifier in the database?
         final SessionId sessionFoundInDatabase = sessionIds.stream()
                 .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
                 .findFirst()
-                .orElse(SessionId.EMPTY);
+                .orElse(emptySessionId);
 
         // they are authenticated if we find their session id in the database
-        final var isAuthenticated = sessionFoundInDatabase != SessionId.EMPTY;
+        final var isAuthenticated = !Objects.equals(sessionFoundInDatabase, emptySessionId);
 
         if (! isAuthenticated) {
-            return new AuthResult(false, ZonedDateTime.now(), User.EMPTY);
+            return new AuthResult(false, ZonedDateTime.now(), emptyUser);
         }
 
         // find the user
@@ -161,7 +166,7 @@ public class AuthUtils {
      * A temporary method used during construction, to add a session to the database.
      */
     public NewSessionResult registerNewSession(User user) {
-        final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1), context);
+        final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
 
         // add a new session to memory and the disk
         sessionIds.add(newSession);
@@ -171,7 +176,7 @@ public class AuthUtils {
         users.remove(user);
 
         // create details of the new user (the one who has a session)
-        final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), newSession.getSessionCode(), context);
+        final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), newSession.getSessionCode());
         users.add(updatedUser);
         userDiskData.updateOnDisk(updatedUser);
 
@@ -180,11 +185,11 @@ public class AuthUtils {
 
     public RegisterResult registerUser(String newUsername, String newPassword) {
         if (users.stream().anyMatch(x -> x.getUsername().equals(newUsername))) {
-            return new RegisterResult(ALREADY_EXISTING_USER, User.EMPTY);
+            return new RegisterResult(ALREADY_EXISTING_USER, emptyUser);
         }
-        final var newSalt = stringUtils.generateSecureRandomString(10);
+        final var newSalt = StringUtils.generateSecureRandomString(10);
         final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
-        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null, context);
+        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null);
         users.add(newUser);
         userDiskData.persistToDisk(newUser);
         return new RegisterResult(RegisterResultStatus.SUCCESS, newUser);
@@ -207,7 +212,7 @@ public class AuthUtils {
     private LoginResult findUser(String username, String password) {
         final var foundUsers = users.stream().filter(x -> x.getUsername().equals(username)).toList();
         return switch (foundUsers.size()) {
-            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
+            case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, emptyUser);
             case 1 -> passwordCheck(foundUsers.get(0), password);
             default ->
                     throw new InvariantException("there must be zero or one users found. Anything else indicates a bug");
@@ -219,7 +224,7 @@ public class AuthUtils {
         if (user.getHashedPassword().equals(hash)) {
             return new LoginResult(LoginResultStatus.SUCCESS, user);
         } else {
-            return new LoginResult(LoginResultStatus.DID_NOT_MATCH_PASSWORD, User.EMPTY);
+            return new LoginResult(LoginResultStatus.DID_NOT_MATCH_PASSWORD, emptyUser);
         }
     }
 
@@ -235,7 +240,7 @@ public class AuthUtils {
         sessionDiskData.deleteOnDisk(userSession.get(0));
 
         users.remove(user);
-        final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), null, context);
+        final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), null);
         users.add(updatedUser);
         userDiskData.updateOnDisk(updatedUser);
 

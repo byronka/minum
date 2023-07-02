@@ -37,7 +37,7 @@ public class Http2Tests {
                         StartLine.Verb.GET,
                         new StartLine.PathDetails("resource", "", Map.of()),
                         WebEngine.HttpVersion.ONE_DOT_ONE, "GET /resource HTTP/1.1", context),
-                Body.EMPTY,
+                Body.EMPTY(context),
                 "REMOTE_REQUESTER");
 
         /*

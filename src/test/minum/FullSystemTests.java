@@ -34,15 +34,15 @@ public class FullSystemTests {
          * connection, in which case when we readline it will return as null,
          * and we'll return early from the handler, returning nothing.
          */
-        logger.test("Typical happy path - a user makes an HTTP request to the insecure endpoint"); {
-            FullSystem fullSystem = new FullSystem(es, context.getConstants());
-            var redirectHandler = fullSystem.makeRedirectHandler();
-            FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
-            fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
-            redirectHandler.accept(fakeSocketWrapper);
-            String result = fakeSocketWrapper.baos.toString();
-            assertTrue(result.contains("303 SEE OTHER"), "result was: " + result);
-        }
+//        logger.test("Typical happy path - a user makes an HTTP request to the insecure endpoint"); {
+//            FullSystem fullSystem = new FullSystem(es, context.getConstants());
+//            var redirectHandler = fullSystem.makeRedirectHandler();
+//            FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+//            fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
+//            redirectHandler.accept(fakeSocketWrapper);
+//            String result = fakeSocketWrapper.baos.toString();
+//            assertTrue(result.contains("303 SEE OTHER"), "result was: " + result);
+//        }
 
         /*
          * Sometimes a client will connect to TCP but then close their

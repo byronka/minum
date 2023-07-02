@@ -1,5 +1,6 @@
 package minum.web;
 
+import minum.Context;
 import minum.utils.StringUtils;
 
 import java.util.Map;
@@ -29,22 +30,24 @@ import java.util.Map;
  * @param bodyMap
  * @param raw
  */
-public record Body(Map<String, byte[]> bodyMap, byte[] raw, StringUtils stringUtils) {
+public record Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
 
-    public static final Body EMPTY = new Body(Map.of(), new byte[0], null);
+    public static Body EMPTY(Context context) {
+        return new Body(Map.of(), new byte[0], context);
+    }
 
     public String asString(String key) {
         byte[] byteArray = bodyMap.get(key);
         if (byteArray == null) {
             return "";
         } else {
-            return stringUtils.byteArrayToString(byteArray).trim();
+            return StringUtils.byteArrayToString(byteArray).trim();
         }
 
     }
 
     public String asString() {
-        return stringUtils.byteArrayToString(raw).trim();
+        return StringUtils.byteArrayToString(raw).trim();
     }
 
     public byte[] asBytes(String key) {

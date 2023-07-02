@@ -44,7 +44,7 @@ public class StringUtils {
      * If the text is going inside an attribute (e.g. {@code <div class="TEXT_GOES_HERE">} )
      * Then you need to escape slightly differently. In that case see [safeAttr]
      */
-    public String safeHtml(String input) {
+    public static String safeHtml(String input) {
         if (input == null) {
             return "";
         }
@@ -67,7 +67,7 @@ public class StringUtils {
      *      alert(&apos;XSS Attack&apos;)
      * }</pre>
      */
-    public String safeAttr(String input) {
+    public static String safeAttr(String input) {
         if (input == null) {
             return "";
         }
@@ -79,7 +79,7 @@ public class StringUtils {
     /**
      * Encodes UTF-8 text using URL-encoding
      */
-    public String encode(String str) {
+    public static String encode(String str) {
         if (str == null) {
             return "%NULL%";
         }
@@ -91,7 +91,7 @@ public class StringUtils {
      * first check if the string value is the token %NULL%,
      * which is our way to signify null.
      */
-    public String decode(String str) {
+    public static String decode(String str) {
         mustNotBeNull(str);
         if (str.equals("%NULL%")) {
             return null;
@@ -99,7 +99,7 @@ public class StringUtils {
         return URLDecoder.decode(str, UTF_8);
     }
 
-    public String generateSecureRandomString(int length) {
+    public static String generateSecureRandomString(int length) {
         final var allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         final var sr = new SecureRandom();
 
@@ -112,7 +112,7 @@ public class StringUtils {
     /**
      * Converts a list of bytes to a string. Returns null if the input is null.
      */
-    public String byteListToString(List<Byte> byteList) {
+    public static String byteListToString(List<Byte> byteList) {
         if (byteList == null) return null;
         final int size = byteList.size();
         final var buf = new byte[size];
@@ -125,7 +125,7 @@ public class StringUtils {
     /**
      * Converts an array of bytes to a string. Returns null if the input is null.
      */
-    public String byteArrayToString(byte[] byteArray) {
+    public static String byteArrayToString(byte[] byteArray) {
         if (byteArray == null) return null;
         return new String(byteArray, UTF_8);
     }

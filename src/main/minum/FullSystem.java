@@ -8,7 +8,6 @@ import minum.utils.*;
 import minum.web.*;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -16,7 +15,6 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
 import static minum.web.WebEngine.HTTP_CRLF;
@@ -25,7 +23,7 @@ import static minum.web.WebEngine.HTTP_CRLF;
  * This class is responsible for kicking off the entire system.
  * In particular, look at {@link #start()}
  */
-public class FullSystem implements AutoCloseable {
+public class FullSystem implements AutoCloseable, IFullSystem {
 
     final ILogger logger;
     private final Constants constants;
@@ -34,7 +32,6 @@ public class FullSystem implements AutoCloseable {
     private Server sslServer;
     Thread shutdownHook;
     private TheBrig theBrig;
-    private static Properties properties;
     final ExecutorService es;
     final InputStreamUtils inputStreamUtils;
 
@@ -139,11 +136,12 @@ public class FullSystem implements AutoCloseable {
      * server socket will be shutdown and some messages about closing the server
      * will log
      */
-    void addShutdownHook() {
+    private void addShutdownHook() {
         shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::close, logger));
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
+    @Override
     public void removeShutdownHook() {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }
@@ -152,71 +150,47 @@ public class FullSystem implements AutoCloseable {
      * this saves a file to the home directory, SYSTEM_RUNNING,
      * that will indicate the system is active
      */
-    public static void createSystemRunningMarker() throws IOException {
+    private void createSystemRunningMarker() throws IOException {
         Files.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
-    /**
-     * Gets values out of the properties file at app.config
-     */
-    public static Properties getConfiguredProperties() {
-        return getConfiguredProperties(false);
-    }
-
-    /**
-     * This overload allows you to specify that the contents of the
-     * properties file should be shown when it's read.
-     */
-    public static Properties getConfiguredProperties(boolean showContents) {
-        if (properties == null) {
-            properties = new Properties();
-            String fileName = "app.config";
-            try (FileInputStream fis = new FileInputStream(fileName)) {
-                System.out.println(TimeUtils.getTimestampIsoInstant() +
-                        " found properties file at ./app.config.  Loading properties");
-                properties.load(fis);
-                if (showContents) {
-                    System.out.println("Elements:");
-                    for (var e : properties.entrySet()) {
-                        System.out.println("key: " + e.getKey() + " value: " + e.getValue());
-                    }
-                }
-            } catch (Exception ex) {
-                Config.printConfigError();
-            }
-        }
-        return properties;
-    }
-
+    @Override
     public ExecutorService getExecutorService() {
         return es;
     }
 
+    @Override
     public Server getServer() {
         return server;
     }
 
+    @Override
     public Server getSslServer() {
         return sslServer;
     }
 
+    @Override
     public WebFramework getWebFramework() {
         return webFramework;
     }
 
+    @Override
     public TheBrig getTheBrig() {
         return theBrig;
     }
 
+    @Override
     public ILogger getLogger() {
         return logger;
     }
 
+    @Override
     public Thread getShutdownHook() {
         return shutdownHook;
     }
 
+    @Override
     public Context getContext() {
         return context;
     }

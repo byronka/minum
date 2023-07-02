@@ -4,7 +4,6 @@ import minum.Constants;
 import minum.Context;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.database.ISimpleDataType;
-import minum.database.ISimpleSerializable;
 import minum.database.SimpleDataTypeImpl;
 import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
@@ -62,7 +61,11 @@ public class TheBrig {
      */
     private static class Inmate extends SimpleDataTypeImpl<Inmate> {
 
-        public static final ISimpleDataType<Inmate> EMPTY = new Inmate(0L, "", 0L, null);
+        /**
+         * Builds an empty version of this class, except
+         * that it has a current Context object
+         */
+        public static final ISimpleDataType<Inmate> EMPTY = new Inmate(0L, "", 0L);
         private final Long index;
         private final String clientId;
         private final Long duration;
@@ -73,9 +76,7 @@ public class TheBrig {
          *                 for example, "1.2.3.4_vuln_seeking" - 1.2.3.4 was seeking out vulnerabilities.
          * @param duration how long they are stuck in jail, in milliseconds
          */
-        public Inmate(Long index, String clientId, Long duration, Context context) {
-            super(context);
-
+        public Inmate(Long index, String clientId, Long duration) {
             this.index = index;
             this.clientId = clientId;
             this.duration = duration;
@@ -98,8 +99,7 @@ public class TheBrig {
             return new Inmate(
                     Long.parseLong(tokens.get(0)),
                     tokens.get(1),
-                    Long.parseLong(tokens.get(2)),
-                    context);
+                    Long.parseLong(tokens.get(2)));
         }
 
         public String getClientId() {
@@ -236,7 +236,7 @@ public class TheBrig {
         var existingInmates = inmates.stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
         mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug" );
         if (existingInmates == 0) {
-            Inmate newInmate = new Inmate(newInmateIndex.getAndIncrement(), clientIdentifier, System.currentTimeMillis() + sentenceDuration, context);
+            Inmate newInmate = new Inmate(newInmateIndex.getAndIncrement(), clientIdentifier, System.currentTimeMillis() + sentenceDuration);
             inmates.add(newInmate);
             if (isUsingDiskPersistence) ddps.persistToDisk(newInmate);
         }

@@ -61,7 +61,10 @@ public class StartLine{
      */
     static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
-    static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", null);
+
+    static StartLine empty(Context context) {
+        return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
+    }
 
     public static StartLine make(Context context) {
         return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
@@ -98,7 +101,7 @@ public class StartLine{
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return StartLine.empty;
+            return StartLine.empty(context);
         }
         mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, startLinePattern));
         Verb verb = extractVerb(m.group(1));
@@ -162,7 +165,7 @@ public class StartLine{
             if (equalSignLocation <= 0) return Map.of();
             mustBeTrue(equalSignLocation > 0, "There must be an equals sign");
             String key = currentKeyValue.substring(0, equalSignLocation);
-            String value = stringUtils.decode(currentKeyValue.substring(equalSignLocation + 1));
+            String value = StringUtils.decode(currentKeyValue.substring(equalSignLocation + 1));
             queryStrings.put(key, value);
         }
         return queryStrings;
