@@ -7,10 +7,8 @@ import static minum.testing.TestFramework.assertEquals;
 public class StringUtilsTests {
 
     private final TestLogger logger;
-    private final Context context;
 
     public StringUtilsTests(Context context) {
-        this.context = context;
         this.logger = (TestLogger) context.getLogger();
         logger.testSuite("String Utils Tests", "StringUtilsTests");
     }

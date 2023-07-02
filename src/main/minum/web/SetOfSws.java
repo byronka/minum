@@ -11,13 +11,13 @@ import java.util.List;
 import static minum.utils.Invariants.mustBeFalse;
 
 /**
- * This is a data structure of the live set of {@link SocketWrapper}
+ * This is a data structure of the live set of {@link ISocketWrapper}
  * in our system.  It exists so that we can keep tabs on how many
  * open sockets we have, and can then find them all in one place
  * when we need to kill them at server shutdown.
  */
 public record SetOfSws(
-        ConcurrentSet<SocketWrapper> data,
+        ConcurrentSet<ISocketWrapper> data,
         ILogger logger,
        /*
        This parameter is used to distinguish different servers'
@@ -26,13 +26,13 @@ public record SetOfSws(
         */
         String nameOfSet) {
 
-    public void add(SocketWrapper sw) {
+    public void add(ISocketWrapper sw) {
         data().add(sw);
         int size = data().size();
         logger.logTrace(() -> nameOfSet + " added " + sw + " to SetOfSws. size: " + size);
     }
 
-    public void remove(SocketWrapper sw) {
+    public void remove(ISocketWrapper sw) {
         data().remove(sw);
         int size = data().size();
         logger.logTrace(() -> nameOfSet +" removed " + sw + " from SetOfSws. size: " + size);
@@ -49,10 +49,10 @@ public record SetOfSws(
      * For that reason, if we come in here and don't find it initially, we'll
      * sleep and then try again, up to three times.
      */
-    public SocketWrapper getSocketWrapperByRemoteAddr(String address, int port) {
+    public ISocketWrapper getSocketWrapperByRemoteAddr(String address, int port) {
         int maxLoops = 3;
         for (int loopCount = 0; loopCount < maxLoops; loopCount++ ) {
-            List<SocketWrapper> servers = data()
+            List<ISocketWrapper> servers = data()
                     .asStream()
                     .filter((x) -> x.getRemoteAddrWithPort().equals(new InetSocketAddress(address, port)))
                     .toList();

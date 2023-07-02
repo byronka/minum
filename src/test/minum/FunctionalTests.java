@@ -112,7 +112,7 @@ public class FunctionalTests {
         Body body = Body.EMPTY(context);
         Headers headers;
         StatusLine statusLine;
-        try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+        try (var client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
             // send a GET request
@@ -149,7 +149,7 @@ public class FunctionalTests {
         Body body = Body.EMPTY(context);
         Headers headers;
         StatusLine statusLine;
-        try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+        try (var client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
             // send a POST request

@@ -25,7 +25,6 @@ public class StartLine{
     private final String rawValue;
     private final Context context;
     private final Constants constants;
-    private final StringUtils stringUtils;
 
     /**
      * @param verb GET, POST, etc.
@@ -46,7 +45,6 @@ public class StartLine{
         this.rawValue = rawValue;
         this.context = context;
         this.constants = context.getConstants();
-        this.stringUtils = new StringUtils(context);
     }
     /**
      * This is our regex for looking at a client's request

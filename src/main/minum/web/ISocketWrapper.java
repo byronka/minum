@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.net.SocketAddress;
 
 /**
- * This is the public interface to {@link SocketWrapper}, whose
+ * This is the public interface to {@link ISocketWrapper}, whose
  * purpose is to make our lives easier when working with {@link java.net.Socket}.
  */
 public interface ISocketWrapper extends AutoCloseable {

@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A fake of {@link SocketWrapper} used in tests
+ * A fake of {@link ISocketWrapper} used in tests
  */
 public class FakeSocketWrapper implements ISocketWrapper {
 

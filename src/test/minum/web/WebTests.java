@@ -55,9 +55,9 @@ public class WebTests {
         WebEngine webEngine = new WebEngine(context);
 
         logger.test("client / server");{
-            try (Server primaryServer = webEngine.startServer(es)) {
-                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
-                    try (SocketWrapper server = primaryServer.getServer(client)) {
+            try (var primaryServer = webEngine.startServer(es)) {
+                try (var client = webEngine.startClient(primaryServer)) {
+                    try (var server = primaryServer.getServer(client)) {
                         InputStream is = server.getInputStream();
 
                         client.send("hello foo!\n");
@@ -73,9 +73,9 @@ public class WebTests {
             String msg2 = "and how are you?";
             String msg3 = "oh, fine";
 
-            try (Server primaryServer = webEngine.startServer(es)) {
-                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
-                    try (SocketWrapper server = primaryServer.getServer(client)) {
+            try (var primaryServer = webEngine.startServer(es)) {
+                try (var client = webEngine.startClient(primaryServer)) {
+                    try (var server = primaryServer.getServer(client)) {
                         InputStream sis = server.getInputStream();
                         InputStream cis = client.getInputStream();
 
@@ -106,9 +106,9 @@ public class WebTests {
         }
 
         logger.test("like we're a minum.web server");{
-            try (Server primaryServer = webEngine.startServer(es)) {
-                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
-                    try (SocketWrapper server = primaryServer.getServer(client)) {
+            try (var primaryServer = webEngine.startServer(es)) {
+                try (var client = webEngine.startClient(primaryServer)) {
+                    try (var server = primaryServer.getServer(client)) {
                         // send a GET request
                         client.sendHttpLine("GET /index.html HTTP/1.1");
                         client.sendHttpLine("cookie: abc=123");
@@ -139,7 +139,7 @@ public class WebTests {
             };
 
             try (Server primaryServer = webEngine.startServer(es, handler)) {
-                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                try (var client = webEngine.startClient(primaryServer)) {
                     // send a GET request
                     client.sendHttpLine("GET /index.html HTTP/1.1");
 
@@ -166,10 +166,10 @@ public class WebTests {
         }
 
         logger.test("starting server with a handler part 2");{
-            try (WebFramework wf = new WebFramework(context, default_zdt)) {
+            try (var wf = new WebFramework(context, default_zdt)) {
                 wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
                 try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
-                    try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    try (var client = webEngine.startClient(primaryServer)) {
                         InputStream is = client.getInputStream();
 
                         // send a GET request
@@ -295,9 +295,9 @@ public class WebTests {
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
-            try (WebFramework wf = new WebFramework(context, default_zdt)) {
-                try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
-                    try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+            try (var wf = new WebFramework(context, default_zdt)) {
+                try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+                    try (var client = webEngine.startClient(primaryServer)) {
                         wf.registerPath(
                                 StartLine.Verb.POST,
                                 "some_post_endpoint",
@@ -329,9 +329,9 @@ public class WebTests {
         }
 
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
-            try (WebFramework wf = new WebFramework(context, default_zdt)) {
-                try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
-                    try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+            try (var wf = new WebFramework(context, default_zdt)) {
+                try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+                    try (var client = webEngine.startClient(primaryServer)) {
                         InputStream is = client.getInputStream();
 
                         // send a GET request
@@ -445,7 +445,7 @@ public class WebTests {
 
             try (WebFramework wf = new WebFramework(context, default_zdt)) {
                 try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
-                    try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+                    try (var client = webEngine.startClient(primaryServer)) {
                         InputStream is = client.getInputStream();
 
                         // send a GET request

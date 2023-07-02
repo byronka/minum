@@ -73,7 +73,7 @@ public class Server implements AutoCloseable {
                 while (true) {
                     logger.logTrace(() -> serverName + " waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
-                    SocketWrapper sw = new SocketWrapper(freshSocket, this, logger, constants.SOCKET_TIMEOUT_MILLIS);
+                    ISocketWrapper sw = new SocketWrapper(freshSocket, this, logger, constants.SOCKET_TIMEOUT_MILLIS);
                     logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
                     setOfSWs.add(sw);
                     if (handler != null) {
@@ -140,7 +140,7 @@ public class Server implements AutoCloseable {
      * This is a helper method to find the server SocketWrapper
      * connected to a client SocketWrapper.
      */
-    public SocketWrapper getServer(SocketWrapper sw) {
+    public ISocketWrapper getServer(ISocketWrapper sw) {
         return setOfSWs.getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
     }
 
@@ -151,7 +151,7 @@ public class Server implements AutoCloseable {
      * sockets in setOfSWs, and allows generated SocketWrappers
      * to deregister themselves from this list by using this method.
      */
-    public void removeMyRecord(SocketWrapper socketWrapper) {
+    public void removeMyRecord(ISocketWrapper socketWrapper) {
         setOfSWs.remove(socketWrapper);
     }
 

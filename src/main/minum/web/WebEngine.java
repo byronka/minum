@@ -162,9 +162,9 @@ public class WebEngine {
   }
 
   /**
-   * Create a client {@link SocketWrapper} connected to the running host server
+   * Create a client {@link ISocketWrapper} connected to the running host server
    */
-  public SocketWrapper startClient(Server server) throws IOException {
+  public ISocketWrapper startClient(Server server) throws IOException {
     Socket socket = new Socket(server.getHost(), server.getPort());
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
     return new SocketWrapper(socket, logger, constants.SOCKET_TIMEOUT_MILLIS);

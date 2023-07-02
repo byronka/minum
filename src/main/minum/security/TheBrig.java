@@ -140,12 +140,6 @@ public class TheBrig {
         this(10 * 1000, context, true);
     }
 
-    public TheBrig(Context context, boolean isUsingDiskPersistence) {
-        this(10 * 1000, context, isUsingDiskPersistence);
-    }
-
-
-
     // Regarding the BusyWait - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings({"BusyWait"})
