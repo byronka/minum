@@ -2,6 +2,7 @@ package minum.database;
 
 import minum.TestContext;
 import minum.testing.TestLogger;
+import minum.testing.TestRecordingLogger;
 import minum.utils.MyThread;
 import minum.utils.StringUtils;
 
@@ -20,14 +21,12 @@ import static minum.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
 public class SimpleDatabaseTests {
     private final TestLogger logger;
     private final ExecutorService es;
-    private final StringUtils stringUtils;
     private final TestContext context;
 
     public SimpleDatabaseTests(TestContext context) {
         this.context = context;
         this.logger = context.getLogger();
         this.es = context.getExecutorService();
-        this.stringUtils = context.getStringUtils();
         logger.testSuite("SimpleDatabase Tests", "SimpleDatabaseTests");
     }
 
@@ -123,18 +122,18 @@ public class SimpleDatabaseTests {
             deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
         }
 
-//        logger.test("what happens if we try deleting a file that doesn't exist?"); {
-//            final var myLogger = new TestRecordingLogger();
-//            final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
-//
-//            // if we try deleting something that doesn't exist, we get an error shown in the log
-//            ddps_throwaway.deleteOnDisk(new Foo(123, 123, "", context));
-//            MyThread.sleep(10);
-//            String failureMessage = myLogger.findFirstMessageThatContains("failed to").replace('\\', '/');
-//            assertEquals(failureMessage, "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
-//
-//            ddps_throwaway.stop();
-//        }
+        logger.test("what happens if we try deleting a file that doesn't exist?"); {
+            final var myLogger = new TestRecordingLogger();
+            final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+
+            // if we try deleting something that doesn't exist, we get an error shown in the log
+            ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
+            MyThread.sleep(10);
+            String failureMessage = myLogger.findFirstMessageThatContains("failed to").replace('\\', '/');
+            assertEquals(failureMessage, "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
+
+            ddps_throwaway.stop();
+        }
 
 //        logger.test("edge cases for deserialization"); {
 //            // what if the directory is missing when try to deserialize?

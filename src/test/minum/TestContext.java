@@ -33,8 +33,8 @@ public class TestContext extends Context {
     }
 
     @Override
-    public IFullSystem getFullSystem() {
-        return new FakeFullSystem();
+    public FullSystem getFullSystem() {
+        return null;
     }
 
     public TestLogger getLogger() {

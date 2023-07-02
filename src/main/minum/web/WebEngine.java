@@ -34,7 +34,7 @@ public class WebEngine {
   public WebEngine(Context context) {
     this.logger = context.getLogger();
     this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
-    this.theBrig = context.getFullSystem().getTheBrig();
+    this.theBrig = context.getFullSystem() != null ? context.getFullSystem().getTheBrig() : null;
     this.constants = context.getConstants();
     this.context = context;
   }

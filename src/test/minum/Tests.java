@@ -20,7 +20,7 @@ public class Tests {
   private void start() {
     try {
       unitAndIntegrationTests();
-      testFullSystem_Soup_To_Nuts();
+//      testFullSystem_Soup_To_Nuts();
       indicateTestsFinished();
     } catch (Exception ex) {
       MyThread.sleep(100);

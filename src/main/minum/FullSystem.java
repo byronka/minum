@@ -23,7 +23,7 @@ import static minum.web.WebEngine.HTTP_CRLF;
  * This class is responsible for kicking off the entire system.
  * In particular, look at {@link #start()}
  */
-public class FullSystem implements AutoCloseable, IFullSystem {
+public class FullSystem implements AutoCloseable {
 
     final ILogger logger;
     private final Constants constants;
@@ -141,7 +141,6 @@ public class FullSystem implements AutoCloseable, IFullSystem {
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
-    @Override
     public void removeShutdownHook() {
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }
@@ -155,47 +154,38 @@ public class FullSystem implements AutoCloseable, IFullSystem {
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
-    @Override
     public ExecutorService getExecutorService() {
         return es;
     }
 
-    @Override
     public Server getServer() {
         return server;
     }
 
-    @Override
     public Server getSslServer() {
         return sslServer;
     }
 
-    @Override
     public WebFramework getWebFramework() {
         return webFramework;
     }
 
-    @Override
     public TheBrig getTheBrig() {
         return theBrig;
     }
 
-    @Override
     public ILogger getLogger() {
         return logger;
     }
 
-    @Override
     public Thread getShutdownHook() {
         return shutdownHook;
     }
 
-    @Override
     public Context getContext() {
         return context;
     }
 
-    @Override
     public void close() {
         logger.logTrace(() -> "close called on " + this);
         try {

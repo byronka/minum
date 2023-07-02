@@ -15,7 +15,7 @@ public class Context {
     private ILogger logger;
     private final ExecutorService executorService;
     private final Constants constants;
-    private final IFullSystem fullSystem;
+    private final FullSystem fullSystem;
     private final List<ActionQueue> actionQueueList;
 
     /**
@@ -50,7 +50,7 @@ public class Context {
         return constants;
     }
 
-    public IFullSystem getFullSystem() {
+    public FullSystem getFullSystem() {
         return fullSystem;
     }
 

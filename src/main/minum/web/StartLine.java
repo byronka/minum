@@ -5,10 +5,7 @@ import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 import minum.utils.StringUtils;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,10 +59,6 @@ public class StartLine{
     static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
-    static StartLine empty(Context context) {
-        return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
-    }
-
     public static StartLine make(Context context) {
         return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
     }
@@ -101,7 +94,7 @@ public class StartLine{
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return StartLine.empty(context);
+            return StartLine.make(context);
         }
         mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, startLinePattern));
         Verb verb = extractVerb(m.group(1));
@@ -190,4 +183,16 @@ public class StartLine{
         return pathDetails;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        StartLine startLine = (StartLine) o;
+        return verb == startLine.verb && Objects.equals(pathDetails, startLine.pathDetails) && version == startLine.version && Objects.equals(rawValue, startLine.rawValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(verb, pathDetails, version, rawValue);
+    }
 }

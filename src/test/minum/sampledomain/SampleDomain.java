@@ -41,7 +41,7 @@ public class SampleDomain {
         }
         final String names = personNames
                 .stream().sorted(Comparator.comparingLong(PersonName::getIndex))
-                .map(x -> "<li>" + stringUtils.safeHtml(x.getFullname()) + "</li>\n")
+                .map(x -> "<li>" + StringUtils.safeHtml(x.getFullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
         return Response.htmlOk("""

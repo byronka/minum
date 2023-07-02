@@ -2,7 +2,7 @@ package minum.web;
 
 import minum.Constants;
 import minum.Context;
-import minum.IFullSystem;
+import minum.FullSystem;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.database.ISimpleDataType;
 import minum.logging.ILogger;
@@ -57,7 +57,7 @@ public class WebFramework implements AutoCloseable {
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
-    private final IFullSystem fs;
+    private final FullSystem fs;
     private StaticFilesCache staticFilesCache;
     private final ILogger logger;
     private final Context context;
@@ -284,7 +284,7 @@ public class WebFramework implements AutoCloseable {
         return logger;
     }
 
-    public IFullSystem getFullSystem() {
+    public FullSystem getFullSystem() {
         return this.fs;
     }
 
