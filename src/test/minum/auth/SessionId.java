@@ -51,7 +51,7 @@ public class SessionId extends SimpleDataTypeImpl<SessionId> {
     }
 
     @Override
-    public Long getIndex() {
+    public long getIndex() {
         return index;
     }
 

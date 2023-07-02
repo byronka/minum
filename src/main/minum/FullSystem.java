@@ -48,7 +48,7 @@ public class FullSystem implements AutoCloseable {
         this.context = new Context(es, constants, this);
         this.logger = new Logger(context);
         this.context.setLogger(logger);
-        this.inputStreamUtils = new InputStreamUtils(context, new StringUtils(context));
+        this.inputStreamUtils = new InputStreamUtils(context);
     }
 
     /**
@@ -172,14 +172,6 @@ public class FullSystem implements AutoCloseable {
 
     public TheBrig getTheBrig() {
         return theBrig;
-    }
-
-    public ILogger getLogger() {
-        return logger;
-    }
-
-    public Thread getShutdownHook() {
-        return shutdownHook;
     }
 
     public Context getContext() {

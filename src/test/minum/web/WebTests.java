@@ -38,8 +38,7 @@ public class WebTests {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
         this.es = context.getExecutorService();
-        StringUtils stringUtils = new StringUtils(context);
-        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
+        this.inputStreamUtils = new InputStreamUtils(context);
         logger.testSuite("Web Tests", "WebTests");
     }
 

@@ -25,16 +25,14 @@ public class BodyProcessor {
 
     private final ILogger logger;
     private final InputStreamUtils inputStreamUtils;
-    private final Constants constants;
     private final Context context;
     private final StringUtils stringUtils;
 
     public BodyProcessor(Context context) {
         this.context = context;
         this.logger = context.getLogger();
-        this.constants = context.getConstants();
         this.stringUtils = new StringUtils(context);
-        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
+        this.inputStreamUtils = new InputStreamUtils(context);
     }
 
     /**

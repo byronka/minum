@@ -244,8 +244,7 @@ public class WebFramework implements AutoCloseable {
         this.staticFilesCache = new StaticFilesCache(logger);
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
-        StringUtils stringUtils = new StringUtils(context);
-        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
+        this.inputStreamUtils = new InputStreamUtils(context);
         this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);
     }

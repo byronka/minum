@@ -5,12 +5,12 @@ import minum.database.SimpleDataTypeImpl;
 
 public class Photograph extends SimpleDataTypeImpl<Photograph> {
 
-    private final Long index;
+    private final long index;
     private final String photoUrl;
     private final String shortDescription;
     private final String description;
 
-    public Photograph(Long index, String photoUrl, String shortDescription, String description) {
+    public Photograph(long index, String photoUrl, String shortDescription, String description) {
         this.index = index;
         this.photoUrl = photoUrl;
         this.shortDescription = shortDescription;
@@ -20,7 +20,7 @@ public class Photograph extends SimpleDataTypeImpl<Photograph> {
     public static final ISimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "");
 
     @Override
-    public Long getIndex() {
+    public long getIndex() {
         return index;
     }
 

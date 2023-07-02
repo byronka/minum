@@ -6,7 +6,7 @@ import minum.database.SimpleDataTypeImpl;
 
 public class PersonName extends SimpleDataTypeImpl<PersonName> {
 
-    private final Long index;
+    private final long index;
     private final String fullname;
 
     public PersonName(Long index, String fullname) {
@@ -18,7 +18,7 @@ public class PersonName extends SimpleDataTypeImpl<PersonName> {
     public static final ISimpleDataType<PersonName> EMPTY = new PersonName(0L, "");
 
     @Override
-    public Long getIndex() {
+    public long getIndex() {
         return index;
     }
 

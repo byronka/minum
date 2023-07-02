@@ -24,7 +24,6 @@ public class FunctionalTests {
     final Server primaryServer;
     final WebEngine webEngine;
     private final Context context;
-    private final StringUtils stringUtils;
     private final InputStreamUtils inputStreamUtils;
     private final WebFramework webFramework;
 
@@ -34,8 +33,7 @@ public class FunctionalTests {
         this.context = wf.getFullSystem().getContext();
         this.primaryServer = wf.getFullSystem().getServer();
         this.webEngine = new WebEngine(context);
-        this.stringUtils = new StringUtils(context);
-        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
+        this.inputStreamUtils = new InputStreamUtils(context);
 
     }
 

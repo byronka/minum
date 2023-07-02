@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 import static minum.utils.FileUtils.writeString;
@@ -155,6 +157,28 @@ public class DatabaseDiskPersistenceSimpler<T> {
             throw new RuntimeException(e);
         }
         return data;
+    }
+
+    /**
+     * Calculate what the next index should be for the data.
+     * <p>
+     * The data we use in our application uses indexes (that is, just
+     * a plain old number [of Long type]) to distinguish one from
+     * another.  When we start the system, we need to calculate what
+     * the next index will be (for example, on disk we might already
+     * have data with indexes of 1, 2, and 3 - and therefore the next
+     * index would be 4).
+     * </p>
+     * <p>
+     * If there is no data in the collection, just return the number 1.
+     * </p>
+     */
+    public long calculateNextIndex(Collection<? extends SimpleIndexed> data) {
+        return data
+                .stream()
+                .max(Comparator.comparingLong(SimpleIndexed::getIndex))
+                .map(SimpleIndexed::getIndex)
+                .orElse(0L) + 1L;
     }
 
 }

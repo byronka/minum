@@ -65,7 +65,7 @@ public class TheRegister {
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
         DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDdps = webFramework.getDdps("names");
-        return new SampleDomain(sampleDomainDdps, auth, context);
+        return new SampleDomain(sampleDomainDdps, auth);
     }
 
     private ListPhotos setupListPhotos(AuthUtils auth, UploadPhoto up) {
@@ -81,8 +81,8 @@ public class TheRegister {
         DatabaseDiskPersistenceSimpler<SessionId> sessionDdps = webFramework.getDdps("sessions");
         DatabaseDiskPersistenceSimpler<User> userDdps = webFramework.getDdps("users");
         var au = new AuthUtils(sessionDdps, userDdps, context);
-        var sessionLooper = new LoopingSessionReviewing(context, au).initialize();
-        au.setSessionLooper(sessionLooper);
+        new LoopingSessionReviewing(context, au).initialize();
+        au.setSessionLooper();
         return au;
     }
 }

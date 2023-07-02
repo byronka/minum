@@ -7,7 +7,7 @@ import minum.database.SimpleDataTypeImpl;
  */
 public class User extends SimpleDataTypeImpl<User> {
 
-    private final Long id;
+    private final long id;
     private final String username;
     private final String hashedPassword;
     private final String salt;
@@ -22,7 +22,7 @@ public class User extends SimpleDataTypeImpl<User> {
      *             See "Salting" in docs/http_protocol/password_storage_cheat_sheet.txt
      * @param currentSession If this use is currently authenticated, there will be a {@link SessionId} for them
      */
-    public User(Long id, String username, String hashedPassword, String salt, String currentSession) {
+    public User(long id, String username, String hashedPassword, String salt, String currentSession) {
         this.id = id;
         this.username = username;
         this.hashedPassword = hashedPassword;
@@ -33,7 +33,7 @@ public class User extends SimpleDataTypeImpl<User> {
     public static final User EMPTY = new User(0L, "", "", "", null);
 
     @Override
-    public Long getIndex() {
+    public long getIndex() {
         return id;
     }
 

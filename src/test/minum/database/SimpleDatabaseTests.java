@@ -23,13 +23,11 @@ import static minum.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
 
 public class SimpleDatabaseTests {
     private final TestLogger logger;
-    private final ExecutorService es;
     private final Context context;
 
     public SimpleDatabaseTests(Context context) {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
-        this.es = context.getExecutorService();
         logger.testSuite("SimpleDatabase Tests", "SimpleDatabaseTests");
     }
 
@@ -232,7 +230,7 @@ public class SimpleDatabaseTests {
         }
 
         @Override
-        public Long getIndex() {
+        public long getIndex() {
             return (long) index;
         }
 

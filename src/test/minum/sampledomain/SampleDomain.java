@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static minum.database.SimpleIndexed.calculateNextIndex;
 import static minum.web.StatusLine.StatusCode.*;
 
 
@@ -22,16 +21,12 @@ public class SampleDomain {
     private final List<PersonName> personNames;
     private final AuthUtils auth;
     private final AtomicLong newPersonIndex;
-    private final Context context;
-    private final StringUtils stringUtils;
 
-    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth, Context context) {
+    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
         personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
-        this.context = context;
-        this.stringUtils = new StringUtils(context);
-        newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
+        newPersonIndex = new AtomicLong(ddps.calculateNextIndex(personNames));
     }
 
     public Response formEntry(Request r) {

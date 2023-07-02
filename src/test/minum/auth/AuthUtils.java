@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static minum.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
-import static minum.database.SimpleIndexed.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
 import static minum.web.StatusLine.StatusCode.*;
 
@@ -43,19 +42,14 @@ public class AuthUtils {
     final AtomicLong newUserIndex;
     private final String loginPageTemplate;
     private final String registerPageTemplate;
-    private final Context context;
     private final Constants constants;
-    private final StringUtils stringUtils;
-    private LoopingSessionReviewing sessionLooper;
     private final User emptyUser;
     private final SessionId emptySessionId;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
                      Context context) {
-        this.context = context;
         this.constants = context.getConstants();
-        this.stringUtils = new StringUtils(context);
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;
         emptyUser = User.EMPTY;
@@ -65,8 +59,8 @@ public class AuthUtils {
         this.logger = context.getLogger();
 
 
-        newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
-        newUserIndex = new AtomicLong(calculateNextIndex(users));
+        newSessionIdentifierIndex = new AtomicLong(sessionDiskData.calculateNextIndex(sessionIds));
+        newUserIndex = new AtomicLong(userDiskData.calculateNextIndex(users));
         loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
         registerPageTemplate = FileUtils.readTemplate("auth/register_page_template.html");
     }
@@ -143,8 +137,7 @@ public class AuthUtils {
         return new AuthResult(true, sessionFoundInDatabase.getCreationDateTime(), authenticatedUser.get(0));
     }
 
-    public void setSessionLooper(LoopingSessionReviewing sessionLooper) {
-        this.sessionLooper = sessionLooper;
+    public void setSessionLooper() {
     }
 
     public List<User> getUsers() {

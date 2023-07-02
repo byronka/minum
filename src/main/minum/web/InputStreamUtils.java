@@ -19,11 +19,9 @@ import static minum.utils.ByteUtils.byteListToArray;
 public class InputStreamUtils {
 
     private final Constants constants;
-    private final StringUtils stringUtils;
 
-    public InputStreamUtils(Context context, StringUtils stringUtils) {
+    public InputStreamUtils(Context context) {
         this.constants = context.getConstants();
-        this.stringUtils = stringUtils;
     }
 
     /**

@@ -20,7 +20,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static minum.database.SimpleIndexed.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
 
 /**
@@ -38,7 +37,6 @@ public class TheBrig {
     private final ILogger logger;
     private final boolean isUsingDiskPersistence;
     private final Constants constants;
-    private final Context context;
 
     private Thread myThread;
     private final AtomicLong newInmateIndex;
@@ -83,7 +81,7 @@ public class TheBrig {
         }
 
         @Override
-        public Long getIndex() {
+        public long getIndex() {
             return index;
         }
 
@@ -112,7 +110,6 @@ public class TheBrig {
     }
 
     public TheBrig(int sleepTime, Context context, boolean isUsingDiskPersistence) {
-        this.context = context;
         this.es = context.getExecutorService();
         this.constants = context.getConstants();
         this.logger = context.getLogger();
@@ -122,7 +119,7 @@ public class TheBrig {
             this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("TheBrig"), context);
             this.inmates = ddps.readAndDeserialize(Inmate.EMPTY);
             this.clientKeys = this.inmates.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
-            newInmateIndex = new AtomicLong(calculateNextIndex(inmates));
+            newInmateIndex = new AtomicLong(ddps.calculateNextIndex(inmates));
         } else {
             this.ddps = null;
             this.inmates = new ArrayList<>();

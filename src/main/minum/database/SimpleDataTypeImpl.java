@@ -39,7 +39,7 @@ public abstract class SimpleDataTypeImpl<T> implements ISimpleDataType<T> {
      * @param delimiter the character acting as a boundary between sections
      * @return a list of strings.  If the delimiter is not found, we will just return the whole string
      */
-    public List<String> tokenizer(String serializedText, char delimiter) {
+    private List<String> tokenizer(String serializedText, char delimiter) {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
         int maxTokens = 200;
