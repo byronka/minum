@@ -8,7 +8,7 @@ import minum.database.ISimpleDataType;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
-import minum.utils.StopwatchUtils;
+import minum.testing.StopwatchUtils;
 import minum.utils.StringUtils;
 import minum.utils.ThrowingConsumer;
 
@@ -43,7 +43,6 @@ public class WebFramework implements AutoCloseable {
     private final InputStreamUtils inputStreamUtils;
     private final StopwatchUtils stopWatchUtils;
     private final BodyProcessor bodyProcessor;
-    private final StringUtils stringUtils;
 
     /**
      * This is used as a key when registering endpoints
@@ -245,7 +244,7 @@ public class WebFramework implements AutoCloseable {
         this.staticFilesCache = new StaticFilesCache(logger);
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
-        this.stringUtils = new StringUtils(context);
+        StringUtils stringUtils = new StringUtils(context);
         this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
         this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);

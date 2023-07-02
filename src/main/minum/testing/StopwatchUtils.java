@@ -1,4 +1,4 @@
-package minum.utils;
+package minum.testing;
 
 /**
  * This class provides some tools for running a virtual stopwatch

@@ -4,8 +4,6 @@ import minum.Constants;
 import minum.Context;
 import minum.logging.LoggingLevel;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -26,7 +24,7 @@ public class ActionQueue {
     private final LinkedBlockingQueue<CallableWithDescription> queue;
     private boolean stop = false;
     private Thread queueThread;
-    private Constants constants;
+    private final Constants constants;
 
     public ActionQueue(String name, Context context) {
         this.name = name;
