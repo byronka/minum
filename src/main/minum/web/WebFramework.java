@@ -1,13 +1,15 @@
 package minum.web;
 
 import minum.Constants;
+import minum.Context;
 import minum.FullSystem;
 import minum.database.DatabaseDiskPersistenceSimpler;
-import minum.database.SimpleDataType;
+import minum.database.ISimpleDataType;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
 import minum.utils.StopwatchUtils;
+import minum.utils.StringUtils;
 import minum.utils.ThrowingConsumer;
 
 import java.io.IOException;
@@ -23,7 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static minum.web.InputStreamUtils.readLine;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static minum.web.WebEngine.HTTP_CRLF;
 
@@ -36,6 +37,13 @@ import static minum.web.WebEngine.HTTP_CRLF;
  * routing and static files.
  */
 public class WebFramework implements AutoCloseable {
+
+    private final Constants constants;
+    private final UnderInvestigation underInvestigation;
+    private final InputStreamUtils inputStreamUtils;
+    private final StopwatchUtils stopWatchUtils;
+    private final BodyProcessor bodyProcessor;
+    private final StringUtils stringUtils;
 
     /**
      * This is used as a key when registering endpoints
@@ -52,6 +60,7 @@ public class WebFramework implements AutoCloseable {
     private final FullSystem fs;
     private StaticFilesCache staticFilesCache;
     private final ILogger logger;
+    private final Context context;
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -76,7 +85,7 @@ public class WebFramework implements AutoCloseable {
 
                 // if we recognize this client as an attacker, dump them.
                 TheBrig theBrig = (fs != null && fs.getTheBrig() != null) ? fs.getTheBrig() : null;
-                if (theBrig != null && Constants.IS_THE_BRIG_ENABLED) {
+                if (theBrig != null && constants.IS_THE_BRIG_ENABLED) {
                     String remoteClient = sw.getRemoteAddr();
                     if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
                         // if this client is a vulnerability seeker, just dump them unceremoniously
@@ -86,11 +95,11 @@ public class WebFramework implements AutoCloseable {
                     }
                 }
 
-                var fullStopwatch = new StopwatchUtils().startTimer();
+                var fullStopwatch = stopWatchUtils.startTimer();
                 final var is = sw.getInputStream();
                 // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
                 // e.g. GET /foo HTTP/1.1
-                final var rawStartLine = readLine(is);
+                final var rawStartLine = inputStreamUtils.readLine(is);
                  /*
                   if the rawStartLine is null, that means the client stopped talking.
                   See ISocketWrapper.readLine()
@@ -101,7 +110,7 @@ public class WebFramework implements AutoCloseable {
                 }
 
                 logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
-                StartLine sl = StartLine.extractStartLine(rawStartLine);
+                var sl = StartLine.make(context).extractStartLine(rawStartLine);
                 logger.logTrace(() -> sw + ": StartLine received: " + sl);
 
                 /*
@@ -114,11 +123,11 @@ public class WebFramework implements AutoCloseable {
                 Response resultingResponse;
 
                 if (endpoint == null) {
-                    logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.pathDetails().isolatedPath()));
-                    boolean isVulnSeeking = UnderInvestigation.isLookingForSuspiciousPaths(sl.pathDetails().isolatedPath());
+                    logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
+                    boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
                     logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
-                    if (isVulnSeeking && theBrig != null && Constants.IS_THE_BRIG_ENABLED) {
-                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", Constants.VULN_SEEKING_JAIL_DURATION);
+                    if (isVulnSeeking && theBrig != null && constants.IS_THE_BRIG_ENABLED) {
+                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                     }
                     resultingResponse = new Response(_404_NOT_FOUND);
                 } else {
@@ -132,14 +141,14 @@ public class WebFramework implements AutoCloseable {
                        we're receiving a multipart, there will be no content-length, but
                        the content-type will include the boundary string.
                     */
-                    Headers hi = Headers.extractHeaderInformation(sw.getInputStream());
+                    var headers = Headers.make(context, inputStreamUtils);
+                    Headers hi = headers.extractHeaderInformation(sw.getInputStream());
 
-                    var bp = new BodyProcessor(logger);
                     Body body = Body.EMPTY;
                     // Determine whether there is a body (a block of data) in this request
                     if (isThereIsABody(hi)) {
                         logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
-                        body = bp.extractData(sw.getInputStream(), hi);
+                        body = bodyProcessor.extractData(sw.getInputStream(), hi);
                     }
 
                     var handlerStopwatch = new StopwatchUtils().startTimer();
@@ -162,7 +171,7 @@ public class WebFramework implements AutoCloseable {
      * Determine whether the headers in this HTTP message indicate that
      * a body is available to read
      */
-    public static boolean isThereIsABody(Headers hi) {
+    public boolean isThereIsABody(Headers hi) {
         return !hi.contentType().isBlank() &&
                 (hi.contentLength() > 0 || hi.headersAsMap().get("transfer-encoding").stream().anyMatch(x -> x.equalsIgnoreCase("chunked")));
     }
@@ -199,12 +208,12 @@ public class WebFramework implements AutoCloseable {
      * do not find anything, return null)
      */
     private Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
-        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.verb(), sl.pathDetails().isolatedPath().toLowerCase(Locale.ROOT)));
+        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT)));
         if (functionFound == null) {
 
             // if nothing was found in the registered dynamic endpoints, look
             // through the static endpoints
-            final var staticResponseFound = staticFilesCache.getStaticResponse(sl.pathDetails().isolatedPath().toLowerCase(Locale.ROOT));
+            final var staticResponseFound = staticFilesCache.getStaticResponse(sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT));
 
             if (staticResponseFound != null) {
                 return request -> staticResponseFound;
@@ -215,15 +224,11 @@ public class WebFramework implements AutoCloseable {
         return functionFound;
     }
 
-    public WebFramework(ILogger logger, ZonedDateTime default_zdt) {
-        this(null, logger, default_zdt);
-    }
-
     /**
      * This constructor is used for the real production system
      */
-    public WebFramework(FullSystem fs) {
-        this(fs, null);
+    public WebFramework(Context context) {
+        this(context, null);
     }
 
     /**
@@ -231,16 +236,19 @@ public class WebFramework implements AutoCloseable {
      * can set the current date (for testing purposes)
      * @param overrideForDateTime for those test cases where we need to control the time
      */
-    public WebFramework(FullSystem fs, ZonedDateTime overrideForDateTime) {
-        this(fs, fs.getLogger(), overrideForDateTime);
-    }
-
-    private WebFramework(FullSystem fs, ILogger logger, ZonedDateTime overrideForDateTime) {
-        this.fs = fs;
-        this.logger = logger;
+    public WebFramework(Context context, ZonedDateTime overrideForDateTime) {
+        this.fs = context.getFullSystem();
+        this.logger = context.getLogger();
+        this.constants = context.getConstants();
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
         this.staticFilesCache = new StaticFilesCache(logger);
+        this.context = context;
+        this.underInvestigation = new UnderInvestigation(constants);
+        this.stringUtils = new StringUtils(context);
+        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
+        this.stopWatchUtils = new StopwatchUtils();
+        this.bodyProcessor = new BodyProcessor(context);
     }
 
     /**
@@ -268,9 +276,8 @@ public class WebFramework implements AutoCloseable {
      * {@code DatabaseDiskPersistenceSimpler<Photograph> photoDdps = wf.getDdps("photos");}
      * </pre>
      */
-    public <T extends SimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
-        var dbDir = Path.of(Constants.DB_DIRECTORY);
-        return new DatabaseDiskPersistenceSimpler<>(dbDir.resolve(name), fs.getExecutorService(), fs.getLogger());
+    public <T extends ISimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
+        return new DatabaseDiskPersistenceSimpler<>(Path.of(name), context);
     }
 
     public ILogger getLogger() {

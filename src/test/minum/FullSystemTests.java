@@ -1,6 +1,5 @@
 package minum;
 
-import minum.FullSystem;
 import minum.testing.TestLogger;
 import minum.web.FakeSocketWrapper;
 
@@ -14,9 +13,13 @@ import static minum.testing.TestFramework.assertTrue;
 
 public class FullSystemTests {
     private final TestLogger logger;
+    private final ExecutorService es;
+    private final TestContext context;
 
-    public FullSystemTests(TestLogger logger) {
-        this.logger = logger;
+    public FullSystemTests(TestContext context) {
+        this.logger = context.getLogger();
+        this.es = context.getExecutorService();
+        this.context = context;
         logger.testSuite("FullSystem Tests", "FullSystemTests");
     }
 
@@ -24,7 +27,7 @@ public class FullSystemTests {
     When we run the redirection handler, it will redirect all traffic
     on the socket to the HTTPS endpoint.
      */
-    public void tests(ExecutorService es) throws IOException {
+    public void tests() throws IOException {
 
         /*
          * Sometimes a client will connect to TCP but then close their
@@ -32,7 +35,7 @@ public class FullSystemTests {
          * and we'll return early from the handler, returning nothing.
          */
         logger.test("Typical happy path - a user makes an HTTP request to the insecure endpoint"); {
-            FullSystem fullSystem = new FullSystem(logger, es);
+            FullSystem fullSystem = new FullSystem(es, context.getConstants());
             var redirectHandler = fullSystem.makeRedirectHandler();
             FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
             fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
@@ -47,7 +50,7 @@ public class FullSystemTests {
          * and we'll return early from the handler, returning nothing.
          */
         logger.test("If the redirect handler receives no start line, return nothing"); {
-            FullSystem fullSystem = new FullSystem(logger, es);
+            FullSystem fullSystem = new FullSystem(es, context.getConstants());
             var redirectHandler = fullSystem.makeRedirectHandler();
             FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
             redirectHandler.accept(fakeSocketWrapper);

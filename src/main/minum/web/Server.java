@@ -1,6 +1,7 @@
 package minum.web;
 
 import minum.Constants;
+import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
@@ -35,6 +36,8 @@ public class Server implements AutoCloseable {
     private final ILogger logger;
     private final String serverName;
     private final TheBrig theBrig;
+    private final Constants constants;
+    private final UnderInvestigation underInvestigation;
 
     /**
      * This is the future returned when we submitted the
@@ -42,12 +45,14 @@ public class Server implements AutoCloseable {
      */
     public Future<?> centralLoopFuture;
 
-    public Server(ServerSocket ss, ILogger logger, String serverName, TheBrig theBrig) {
+    public Server(ServerSocket ss, Context context, String serverName, TheBrig theBrig) {
         this.serverSocket = ss;
-        this.logger = logger;
+        this.logger = context.getLogger();
+        this.constants = context.getConstants();
         this.serverName = serverName;
         this.theBrig = theBrig;
         setOfSWs = new SetOfSws(new ConcurrentSet<>(), logger, serverName);
+        this.underInvestigation = new UnderInvestigation(constants);
     }
 
     /**
@@ -68,7 +73,7 @@ public class Server implements AutoCloseable {
                 while (true) {
                     logger.logTrace(() -> serverName + " waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
-                    SocketWrapper sw = new SocketWrapper(freshSocket, this, logger);
+                    SocketWrapper sw = new SocketWrapper(freshSocket, this, logger, constants.SOCKET_TIMEOUT_MILLIS);
                     logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
                     setOfSWs.add(sw);
                     if (handler != null) {
@@ -89,17 +94,17 @@ public class Server implements AutoCloseable {
                                 logger.logDebug(ex::getMessage);
                             } catch (SSLException ex) {
                                 logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
-                                boolean isLookingForVulnerabilities = UnderInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
+                                boolean isLookingForVulnerabilities = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
                                 logger.logDebug(() -> "is " + sw.getRemoteAddr() + " looking for vulnerabilities? " + isLookingForVulnerabilities);
                                 if (isLookingForVulnerabilities) {
-                                    if (theBrig != null && Constants.IS_THE_BRIG_ENABLED)
-                                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", Constants.VULN_SEEKING_JAIL_DURATION);
+                                    if (theBrig != null && constants.IS_THE_BRIG_ENABLED)
+                                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                                 }
                             } catch (Exception ex) {
                                 // if we hit here, someone has carried out an action down in the gears that we consider hacking-like.
                                 // ban hammer.
-                                if (theBrig != null && Constants.IS_THE_BRIG_ENABLED)
-                                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", Constants.VULN_SEEKING_JAIL_DURATION);
+                                if (theBrig != null && constants.IS_THE_BRIG_ENABLED)
+                                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                             }
                         };
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(innerServerCode, logger));

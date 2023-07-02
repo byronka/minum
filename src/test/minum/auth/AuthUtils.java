@@ -1,6 +1,7 @@
 package minum.auth;
 
 import minum.Constants;
+import minum.Context;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.logging.ILogger;
 import minum.utils.CryptoUtils;
@@ -9,7 +10,6 @@ import minum.utils.InvariantException;
 import minum.utils.StringUtils;
 import minum.web.Request;
 import minum.web.Response;
-import minum.web.WebFramework;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static minum.Constants.MOST_COOKIES_WELL_LOOK_THROUGH;
 import static minum.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
 import static minum.database.SimpleIndexed.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
@@ -44,16 +43,22 @@ public class AuthUtils {
     final AtomicLong newUserIndex;
     private final String loginPageTemplate;
     private final String registerPageTemplate;
+    private final Context context;
+    private final Constants constants;
+    private final StringUtils stringUtils;
     private LoopingSessionReviewing sessionLooper;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      DatabaseDiskPersistenceSimpler<User> userDiskData,
-                     WebFramework wf) {
+                     Context context) {
+        this.context = context;
+        this.constants = context.getConstants();
+        this.stringUtils = new StringUtils(context);
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;
         sessionIds = sessionDiskData.readAndDeserialize(SessionId.EMPTY);
         users = userDiskData.readAndDeserialize(User.EMPTY);
-        this.logger = wf.getLogger();
+        this.logger = context.getLogger();
 
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
         newUserIndex = new AtomicLong(calculateNextIndex(users));
@@ -83,7 +88,7 @@ public class AuthUtils {
      */
     public AuthResult processAuth(Request request) {
         // grab the headers from the request.
-        final var headers = request.headers().headerStrings();
+        final var headers = request.headers().getHeaderStrings();
 
         // get all the headers that start with "cookie", case-insensitive
         final var cookieHeaders = headers.stream()
@@ -94,7 +99,7 @@ public class AuthUtils {
         // extract session identifiers from the cookies
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
         final var listOfSessionIds = new ArrayList<String>();
-        for(int i = 0; cookieMatcher.find() && i < MOST_COOKIES_WELL_LOOK_THROUGH; i++) {
+        for(int i = 0; cookieMatcher.find() && i < constants.MOST_COOKIES_WELL_LOOK_THROUGH; i++) {
             final var sessionIdValue = cookieMatcher.group("sessionIdValue");
             listOfSessionIds.add(sessionIdValue);
         }
@@ -114,7 +119,7 @@ public class AuthUtils {
 
         // Did we find that session identifier in the database?
         final SessionId sessionFoundInDatabase = sessionIds.stream()
-                .filter(x -> Objects.equals(x.sessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
+                .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
                 .findFirst()
                 .orElse(SessionId.EMPTY);
 
@@ -126,11 +131,11 @@ public class AuthUtils {
         }
 
         // find the user
-        final List<User> authenticatedUser = users.stream().filter(x -> Objects.equals(x.currentSession(), sessionFoundInDatabase.sessionCode())).toList();
+        final List<User> authenticatedUser = users.stream().filter(x -> Objects.equals(x.getCurrentSession(), sessionFoundInDatabase.getSessionCode())).toList();
 
         mustBeTrue(authenticatedUser.size() == 1, "There must be exactly one user found for a current session. We found: " + authenticatedUser.size());
 
-        return new AuthResult(true, sessionFoundInDatabase.creationDateTime(), authenticatedUser.get(0));
+        return new AuthResult(true, sessionFoundInDatabase.getCreationDateTime(), authenticatedUser.get(0));
     }
 
     public void setSessionLooper(LoopingSessionReviewing sessionLooper) {
@@ -156,7 +161,7 @@ public class AuthUtils {
      * A temporary method used during construction, to add a session to the database.
      */
     public NewSessionResult registerNewSession(User user) {
-        final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
+        final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1), context);
 
         // add a new session to memory and the disk
         sessionIds.add(newSession);
@@ -166,7 +171,7 @@ public class AuthUtils {
         users.remove(user);
 
         // create details of the new user (the one who has a session)
-        final User updatedUser = new User(user.id(), user.username(), user.hashedPassword(), user.salt(), newSession.sessionCode());
+        final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), newSession.getSessionCode(), context);
         users.add(updatedUser);
         userDiskData.updateOnDisk(updatedUser);
 
@@ -174,12 +179,12 @@ public class AuthUtils {
     }
 
     public RegisterResult registerUser(String newUsername, String newPassword) {
-        if (users.stream().anyMatch(x -> x.username().equals(newUsername))) {
+        if (users.stream().anyMatch(x -> x.getUsername().equals(newUsername))) {
             return new RegisterResult(ALREADY_EXISTING_USER, User.EMPTY);
         }
-        final var newSalt = StringUtils.generateSecureRandomString(10);
+        final var newSalt = stringUtils.generateSecureRandomString(10);
         final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
-        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null);
+        final var newUser = new User(newUserIndex.getAndAdd(1), newUsername, hashedPassword, newSalt, null, context);
         users.add(newUser);
         userDiskData.persistToDisk(newUser);
         return new RegisterResult(RegisterResultStatus.SUCCESS, newUser);
@@ -200,7 +205,7 @@ public class AuthUtils {
      * This is the real findUser
      */
     private LoginResult findUser(String username, String password) {
-        final var foundUsers = users.stream().filter(x -> x.username().equals(username)).toList();
+        final var foundUsers = users.stream().filter(x -> x.getUsername().equals(username)).toList();
         return switch (foundUsers.size()) {
             case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
             case 1 -> passwordCheck(foundUsers.get(0), password);
@@ -210,8 +215,8 @@ public class AuthUtils {
     }
 
     private LoginResult passwordCheck(User user, String password) {
-        final var hash = CryptoUtils.createPasswordHash(password, user.salt());
-        if (user.hashedPassword().equals(hash)) {
+        final var hash = CryptoUtils.createPasswordHash(password, user.getSalt());
+        if (user.getHashedPassword().equals(hash)) {
             return new LoginResult(LoginResultStatus.SUCCESS, user);
         } else {
             return new LoginResult(LoginResultStatus.DID_NOT_MATCH_PASSWORD, User.EMPTY);
@@ -223,14 +228,14 @@ public class AuthUtils {
      * the user to have a null session value.
      */
     public User logoutUser(User user) {
-        final List<SessionId> userSession = sessionIds.stream().filter(s -> Objects.equals(s.sessionCode(), user.currentSession())).toList();
+        final List<SessionId> userSession = sessionIds.stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
 
         sessionIds.remove(userSession.get(0));
         sessionDiskData.deleteOnDisk(userSession.get(0));
 
         users.remove(user);
-        final User updatedUser = new User(user.id(), user.username(), user.hashedPassword(), user.salt(), null);
+        final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), null, context);
         users.add(updatedUser);
         userDiskData.updateOnDisk(updatedUser);
 
@@ -239,7 +244,7 @@ public class AuthUtils {
 
 
     public Response loginUser(Request r) {
-        String hostname = Constants.HOST_NAME;
+        String hostname = constants.HOST_NAME;
         if (processAuth(r).isAuthenticated()) {
             Response.redirectTo("photos");
         }
@@ -252,7 +257,7 @@ public class AuthUtils {
             case SUCCESS -> {
                 return new Response(_303_SEE_OTHER, List.of(
                         "Location: index.html",
-                        "Set-Cookie: %s=%s; Secure; HttpOnly; Domain=%s".formatted(cookieKey, loginResult.user().currentSession(), hostname)));
+                        "Set-Cookie: %s=%s; Secure; HttpOnly; Domain=%s".formatted(cookieKey, loginResult.user().getCurrentSession(), hostname)));
             }
             default -> {
                 return new Response(_401_UNAUTHORIZED,

@@ -1,7 +1,7 @@
 package minum.web;
 
 import minum.Constants;
-import minum.FullSystem;
+import minum.Context;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.utils.ThrowingConsumer;
@@ -28,19 +28,15 @@ import java.util.concurrent.ExecutorService;
 public class WebEngine {
 
   private final TheBrig theBrig;
+  private final Constants constants;
+  private final Context context;
 
-  public WebEngine(FullSystem fs) {
-    this(fs.getLogger(), fs.getTheBrig());
-  }
-
-  /**
-   * @param logger Required.
-   * @param theBrig Optional.  May pass in null.
-   */
-  public WebEngine(ILogger logger, TheBrig theBrig) {
-    this.logger = logger;
+  public WebEngine(Context context) {
+    this.logger = context.getLogger();
     this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
-    this.theBrig = theBrig;
+    this.theBrig = context.getFullSystem().getTheBrig();
+    this.constants = context.getConstants();
+    this.context = context;
   }
 
   public enum HttpVersion {
@@ -51,13 +47,13 @@ public class WebEngine {
   public static final String HTTP_CRLF = "\r\n";
 
   public Server startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
-    int port = Constants.SERVER_PORT;
+    int port = constants.SERVER_PORT;
     ServerSocket ss = new ServerSocket(port);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, logger, "http server", theBrig);
+    Server server = new Server(ss, context, "http server", theBrig);
     logger.logDebug(() -> String.format("Just created a new Server: %s", server));
     server.start(es, handler);
-    String hostname = Constants.HOST_NAME;
+    String hostname = constants.HOST_NAME;
     logger.logDebug(() -> String.format("%s started at http://%s:%s", server, hostname, port));
     return server;
   }
@@ -78,19 +74,19 @@ public class WebEngine {
     }
 
     final URL keystoreUrl = useExternalKeystore ?
-            Path.of(Constants.KEYSTORE_PATH).toUri().toURL() :
+            Path.of(constants.KEYSTORE_PATH).toUri().toURL() :
             WebEngine.class.getClassLoader().getResource("resources/certs/keystore");
     final String keystorePassword = useExternalKeystore ?
-            Constants.KEYSTORE_PASSWORD :
+            constants.KEYSTORE_PASSWORD :
             "passphrase";
 
-    int port = Constants.SECURE_SERVER_PORT;
+    int port = constants.SECURE_SERVER_PORT;
     ss = createSslSocketWithSpecificKeystore(port, keystoreUrl, keystorePassword);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, logger, "https server", theBrig);
+    Server server = new Server(ss, context, "https server", theBrig);
     logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
     server.start(es, handler);
-    String hostname = Constants.HOST_NAME;
+    String hostname = constants.HOST_NAME;
     logger.logDebug(() -> String.format("%s started at https://%s:%s", server, hostname, port));
     return server;
   }
@@ -115,14 +111,14 @@ public class WebEngine {
   private Boolean checkSystemPropertiesForKeystore() {
 
     // get the directory to the keystore from a system property
-    final var keystore = Constants.KEYSTORE_PATH;
+    final var keystore = constants.KEYSTORE_PATH;
     boolean hasKeystore = ! (keystore == null || keystore.isBlank());
     if (! hasKeystore) {
       logger.logDebug(() -> "Keystore system property was not set");
     }
 
     // get the password to that keystore from a system property
-    final var keystorePassword = Constants.KEYSTORE_PASSWORD;
+    final var keystorePassword = constants.KEYSTORE_PASSWORD;
     boolean hasKeystorePassword = ! (keystorePassword == null || keystorePassword.isBlank());
     if (! hasKeystorePassword) {
       logger.logDebug(() -> "keystorePassword system property was not set");
@@ -171,7 +167,7 @@ public class WebEngine {
   public SocketWrapper startClient(Server server) throws IOException {
     Socket socket = new Socket(server.getHost(), server.getPort());
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-    return new SocketWrapper(socket, logger);
+    return new SocketWrapper(socket, logger, constants.SOCKET_TIMEOUT_MILLIS);
   }
 
 }

@@ -1,5 +1,6 @@
 package minum.sampledomain;
 
+import minum.Context;
 import minum.auth.AuthUtils;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.utils.StringUtils;
@@ -21,12 +22,15 @@ public class SampleDomain {
     private final List<PersonName> personNames;
     private final AuthUtils auth;
     private final AtomicLong newPersonIndex;
+    private final Context context;
+    private final StringUtils stringUtils;
 
-    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
+    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth, Context context) {
         this.ddps = diskData;
         personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
-
+        this.context = context;
+        this.stringUtils = new StringUtils(context);
         newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
     }
 
@@ -36,8 +40,8 @@ public class SampleDomain {
             return new Response(_401_UNAUTHORIZED);
         }
         final String names = personNames
-                .stream().sorted(Comparator.comparingLong(PersonName::index))
-                .map(x -> "<li>" + StringUtils.safeHtml(x.fullname()) + "</li>\n")
+                .stream().sorted(Comparator.comparingLong(PersonName::getIndex))
+                .map(x -> "<li>" + stringUtils.safeHtml(x.getFullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
         return Response.htmlOk("""
@@ -74,7 +78,7 @@ public class SampleDomain {
 
         final var nameEntry = r.body().asString("name_entry");
 
-        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
+        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry, context);
         personNames.add(newPersonName);
         ddps.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));

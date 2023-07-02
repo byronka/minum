@@ -25,55 +25,63 @@ import minum.web.WebFramework;
  */
 public class TheRegister {
 
-    public static void registerDomains(WebFramework wf) {
-        var auth = buildAuthDomain(wf);
-        var up = setupUploadPhotos(wf, auth);
-        var lp = setupListPhotos(wf, auth, up);
-        var sd = setupSampleDomain(wf, auth);
+    private final Context context;
+    private final WebFramework webFramework;
+
+    public TheRegister(WebFramework webFramework) {
+        this.context = webFramework.getFullSystem().getContext();
+        this.webFramework = webFramework;
+    }
+
+    public void registerDomains() {
+        var auth = buildAuthDomain();
+        var up = setupUploadPhotos(auth);
+        var lp = setupListPhotos(auth, up);
+        var sd = setupSampleDomain(auth);
 
         // homepage
-        wf.registerPath(StartLine.Verb.GET, "", r -> Response.redirectTo("index.html"));
-        wf.registerPath(StartLine.Verb.GET, "index", sd::sampleDomainIndex);
+        webFramework.registerPath(StartLine.Verb.GET, "", r -> Response.redirectTo("index.html"));
+        webFramework.registerPath(StartLine.Verb.GET, "index", sd::sampleDomainIndex);
 
         // sample domain stuff
-        wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
-        wf.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        webFramework.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
+        webFramework.registerPath(StartLine.Verb.POST, "testform", sd::testform);
 
         // photos stuff
-        wf.registerPath(StartLine.Verb.GET, "photos", lp::ListPhotosPage);
-        wf.registerPath(StartLine.Verb.GET, "upload", up::uploadPage);
-        wf.registerPath(StartLine.Verb.POST, "upload", up::uploadPageReceivePost);
-        wf.registerPath(StartLine.Verb.GET, "photo", lp::grabPhoto);
+        webFramework.registerPath(StartLine.Verb.GET, "photos", lp::ListPhotosPage);
+        webFramework.registerPath(StartLine.Verb.GET, "upload", up::uploadPage);
+        webFramework.registerPath(StartLine.Verb.POST, "upload", up::uploadPageReceivePost);
+        webFramework.registerPath(StartLine.Verb.GET, "photo", lp::grabPhoto);
 
         // minum.auth stuff
-        wf.registerPath(StartLine.Verb.GET, "login", auth::login);
-        wf.registerPath(StartLine.Verb.GET, "register", auth::register);
-        wf.registerPath(StartLine.Verb.POST, "registeruser", auth::registerUser);
-        wf.registerPath(StartLine.Verb.POST, "loginuser", auth::loginUser);
-        wf.registerPath(StartLine.Verb.GET, "logout", auth::logout);
-        wf.registerPath(StartLine.Verb.GET, "auth", auth::authPage);
+        webFramework.registerPath(StartLine.Verb.GET, "login", auth::login);
+        webFramework.registerPath(StartLine.Verb.GET, "register", auth::register);
+        webFramework.registerPath(StartLine.Verb.POST, "registeruser", auth::registerUser);
+        webFramework.registerPath(StartLine.Verb.POST, "loginuser", auth::loginUser);
+        webFramework.registerPath(StartLine.Verb.GET, "logout", auth::logout);
+        webFramework.registerPath(StartLine.Verb.GET, "auth", auth::authPage);
 
     }
 
-    private static SampleDomain setupSampleDomain(WebFramework wf, AuthUtils auth) {
-        DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDdps = wf.getDdps("names");
-        return new SampleDomain(sampleDomainDdps, auth);
+    private SampleDomain setupSampleDomain(AuthUtils auth) {
+        DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDdps = webFramework.getDdps("names");
+        return new SampleDomain(sampleDomainDdps, auth, context);
     }
 
-    private static ListPhotos setupListPhotos(WebFramework wf, AuthUtils auth, UploadPhoto up) {
-        return new ListPhotos(wf, up, auth);
+    private ListPhotos setupListPhotos(AuthUtils auth, UploadPhoto up) {
+        return new ListPhotos(context, up, auth);
     }
 
-    private static UploadPhoto setupUploadPhotos(WebFramework wf, AuthUtils auth) {
-        DatabaseDiskPersistenceSimpler<Photograph> photoDdps = wf.getDdps("photos");
-        return new UploadPhoto(photoDdps, wf.getLogger(), auth);
+    private UploadPhoto setupUploadPhotos(AuthUtils auth) {
+        DatabaseDiskPersistenceSimpler<Photograph> photoDdps = webFramework.getDdps("photos");
+        return new UploadPhoto(photoDdps, auth, context);
     }
 
-    private static AuthUtils buildAuthDomain(WebFramework wf) {
-        DatabaseDiskPersistenceSimpler<SessionId> sessionDdps = wf.getDdps("sessions");
-        DatabaseDiskPersistenceSimpler<User> userDdps = wf.getDdps("users");
-        var au = new AuthUtils(sessionDdps, userDdps, wf);
-        var sessionLooper = new LoopingSessionReviewing(wf.getFullSystem().getExecutorService(), wf.getLogger(), au).initialize();
+    private AuthUtils buildAuthDomain() {
+        DatabaseDiskPersistenceSimpler<SessionId> sessionDdps = webFramework.getDdps("sessions");
+        DatabaseDiskPersistenceSimpler<User> userDdps = webFramework.getDdps("users");
+        var au = new AuthUtils(sessionDdps, userDdps, context);
+        var sessionLooper = new LoopingSessionReviewing(context, au).initialize();
         au.setSessionLooper(sessionLooper);
         return au;
     }

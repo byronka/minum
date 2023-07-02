@@ -1,6 +1,7 @@
 package minum.logging;
 
 import minum.Constants;
+import minum.Context;
 import minum.utils.ActionQueue;
 import minum.utils.ThrowingSupplier;
 
@@ -8,7 +9,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import static minum.utils.TimeUtils.getTimestampIsoInstant;
 
@@ -28,9 +28,10 @@ public class Logger implements ILogger {
      * This constructor initializes an {@link ActionQueue}
      * to handle log messages.
      */
-    public Logger(ExecutorService es) {
-        loggerPrinter = new ActionQueue("loggerPrinter", es).initialize();
-        toggleDefaultLogging(Constants.LOG_LEVELS);
+    public Logger(Context context) {
+        Constants constants = context.getConstants();
+        loggerPrinter = new ActionQueue("loggerPrinter", context).initialize();
+        toggleDefaultLogging(constants.LOG_LEVELS);
     }
 
     /**

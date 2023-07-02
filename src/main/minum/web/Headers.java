@@ -1,6 +1,9 @@
 package minum.web;
 
+import minum.Constants;
+import minum.Context;
 import minum.exceptions.ForbiddenUseException;
+import minum.utils.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,9 +11,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static minum.Constants.MAX_HEADERS_COUNT;
 import static minum.utils.Invariants.mustBeTrue;
-import static minum.web.InputStreamUtils.readLine;
 
 /**
  * Details extracted from the headers.  For example,
@@ -30,29 +31,51 @@ import static minum.web.InputStreamUtils.readLine;
  * of the document being downloaded, amongst others.
  * </p>
  */
-public record Headers(
-        /*
-         * Each line of the headers is read into this data structure
-         */
-        List<String> headerStrings
-) {
+public class Headers{
 
-    public static final Headers EMPTY = new Headers(List.of());
+    private static InputStreamUtils inputStreamUtils;
+    /**
+     * Each line of the headers is read into this data structure
+     */
+    private final List<String> headerStrings;
+    private final Constants constants;
+    private final Context context;
+
+
+    public Headers(
+            List<String> headerStrings,
+            Context context
+    ) {
+        this.context = context;
+        this.constants = context.getConstants();
+        this.headerStrings = headerStrings;
+    }
+
+    public static final Headers EMPTY = new Headers(List.of(), null);
+
+    public List<String> getHeaderStrings() {
+        return headerStrings;
+    }
 
     /**
      * Used for extracting the length of the body, in POSTs and
      * responses from servers
      */
-    private static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
+    private final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
+
+    public static Headers make(Context context, InputStreamUtils inputStreamUtils) {
+        Headers.inputStreamUtils = inputStreamUtils;
+        return new Headers(List.of(), context);
+    }
 
     /**
      * Loops through reading text lines from the socket wrapper,
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public static Headers extractHeaderInformation(InputStream is) throws IOException {
+    public Headers extractHeaderInformation(InputStream is) throws IOException {
         List<String> headers = getAllHeaders(is);
-        return new Headers(headers);
+        return new Headers(headers, context);
     }
 
     /**
@@ -88,7 +111,7 @@ public record Headers(
      */
     public String contentType() {
         // find the header that starts with content-type
-        List<String> cts = headerStrings().stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
+        List<String> cts = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
         mustBeTrue(cts.isEmpty() || cts.size() == 1, "The number of content-type headers must be exactly zero or one");
         if (!cts.isEmpty()) {
             return cts.get(0);
@@ -104,7 +127,7 @@ public record Headers(
      * we do not find a content length, return -1.
      */
     public int contentLength() {
-        List<String> cl = headerStrings().stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
+        List<String> cl = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
         mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
         int contentLength = -1;
         if (!cl.isEmpty()) {
@@ -117,12 +140,12 @@ public record Headers(
         return contentLength;
     }
 
-    private static List<String> getAllHeaders(InputStream is) throws IOException {
+    private List<String> getAllHeaders(InputStream is) throws IOException {
         List<String> headers = new ArrayList<>();
         // we'll only grab the first MAX_HEADERS_COUNT headers.
-        for (int i = 0; i <= MAX_HEADERS_COUNT; i++) {
-            if (i == MAX_HEADERS_COUNT) throw new ForbiddenUseException("User tried sending too many headers.  Current max: " + MAX_HEADERS_COUNT);
-            String value = readLine(is);
+        for (int i = 0; i <= constants.MAX_HEADERS_COUNT; i++) {
+            if (i == constants.MAX_HEADERS_COUNT) throw new ForbiddenUseException("User tried sending too many headers.  Current max: " + constants.MAX_HEADERS_COUNT);
+            String value = inputStreamUtils.readLine(is);
             if (value != null && value.isBlank()) {
                 break;
             } else {

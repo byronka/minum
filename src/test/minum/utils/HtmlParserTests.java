@@ -1,5 +1,6 @@
 package minum.utils;
 
+import minum.TestContext;
 import minum.htmlparsing.*;
 import minum.testing.TestLogger;
 
@@ -13,12 +14,12 @@ import static minum.testing.TestFramework.assertEquals;
 public class HtmlParserTests {
     private final TestLogger logger;
 
-    public HtmlParserTests(TestLogger logger) {
-        this.logger = logger;
+    public HtmlParserTests(TestContext context) {
+        this.logger = context.getLogger();
         logger.testSuite("HtmlParser Tests", "TheBrigTests");
     }
 
-    public void tests(ExecutorService es) throws IOException {
+    public void tests() throws IOException {
 
         logger.test("detail work"); {
             String input = "<br foo=bar />";

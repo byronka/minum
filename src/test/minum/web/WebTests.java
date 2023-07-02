@@ -1,5 +1,6 @@
 package minum.web;
 
+import minum.TestContext;
 import minum.testing.TestLogger;
 import minum.utils.InvariantException;
 import minum.utils.StringUtils;
@@ -22,8 +23,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 
 import static minum.testing.TestFramework.*;
-import static minum.web.InputStreamUtils.readChunkedEncoding;
-import static minum.web.InputStreamUtils.readLine;
 import static minum.web.StartLine.startLineRegex;
 import static minum.web.StatusLine.StatusCode._200_OK;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
@@ -31,9 +30,17 @@ import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 public class WebTests {
     private final TestLogger logger;
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
+    private final ExecutorService es;
+    private final InputStreamUtils inputStreamUtils;
+    private final StringUtils stringUtils;
+    private final TestContext context;
 
-    public WebTests(TestLogger logger) {
-        this.logger = logger;
+    public WebTests(TestContext context) {
+        this.context = context;
+        this.logger = context.getLogger();
+        this.es = context.getExecutorService();
+        this.inputStreamUtils = context.getInputStreamUtils();
+        this.stringUtils = new StringUtils(context);
         logger.testSuite("Web Tests", "WebTests");
     }
 
@@ -45,9 +52,9 @@ public class WebTests {
     | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
     | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
     |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
-    public void tests(ExecutorService es) throws IOException {
+    public void tests() throws IOException {
 
-        WebEngine webEngine = new WebEngine(logger, null);
+        WebEngine webEngine = new WebEngine(context);
 
         logger.test("client / server");{
             try (Server primaryServer = webEngine.startServer(es)) {
@@ -56,7 +63,7 @@ public class WebTests {
                         InputStream is = server.getInputStream();
 
                         client.send("hello foo!\n");
-                        String result = readLine(is);
+                        String result = inputStreamUtils.readLine(is);
                         assertEquals("hello foo!", result);
                     }
                 }
@@ -76,15 +83,15 @@ public class WebTests {
 
                         // client sends, server receives
                         client.sendHttpLine(msg1);
-                        assertEquals(msg1, readLine(sis));
+                        assertEquals(msg1, inputStreamUtils.readLine(sis));
 
                         // server sends, client receives
                         server.sendHttpLine(msg2);
-                        assertEquals(msg2, readLine(cis));
+                        assertEquals(msg2, inputStreamUtils.readLine(cis));
 
                         // client sends, server receives
                         client.sendHttpLine(msg3);
-                        assertEquals(msg3, readLine(sis));
+                        assertEquals(msg3, inputStreamUtils.readLine(sis));
                     }
                 }
             }
@@ -130,7 +137,7 @@ public class WebTests {
        */
             ThrowingConsumer<ISocketWrapper, IOException> handler = (sw) -> {
                 InputStream is = sw.getInputStream();
-                logger.logDebug(() -> InputStreamUtils.readLine(is));
+                logger.logDebug(() -> inputStreamUtils.readLine(is));
             };
 
             try (Server primaryServer = webEngine.startServer(es, handler)) {
@@ -153,7 +160,7 @@ public class WebTests {
         class Summation {
             static Response addTwoNumbers(Request r) {
                 int aValue = Integer.parseInt(r.startLine().queryString().get("a"));
-                int bValue = Integer.parseInt(r.startLine().pathDetails().queryString().get("b"));
+                int bValue = Integer.parseInt(r.startLine().getPathDetails().queryString().get("b"));
                 int sum = aValue + bValue;
                 String sumString = String.valueOf(sum);
                 return Response.htmlOk(sumString);
@@ -161,7 +168,7 @@ public class WebTests {
         }
 
         logger.test("starting server with a handler part 2");{
-            try (WebFramework wf = new WebFramework(logger, default_zdt)) {
+            try (WebFramework wf = new WebFramework(context, default_zdt)) {
                 wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
                 try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                     try (SocketWrapper client = webEngine.startClient(primaryServer)) {
@@ -172,11 +179,11 @@ public class WebTests {
                         client.sendHttpLine("Host: localhost:8080");
                         client.sendHttpLine("");
 
-                        StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
+                        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
 
                         assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                        Headers hi = Headers.extractHeaderInformation(is);
+                        Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
 
                         assertEquals(hi.headersAsMap().get("server"), List.of("minum"));
                         assertTrue(hi.headersAsMap().get("date") != null);
@@ -214,14 +221,14 @@ public class WebTests {
         }
 
         logger.test("alternate case for extractStartLine - POST");{
-            StartLine sl = StartLine.extractStartLine("POST /something HTTP/1.0");
-            assertEquals(sl.verb(), StartLine.Verb.POST);
+            StartLine sl = StartLine.make(context).extractStartLine("POST /something HTTP/1.0");
+            assertEquals(sl.getVerb(), StartLine.Verb.POST);
         }
 
         logger.test("alernate case - empty path");{
-            StartLine sl = StartLine.extractStartLine("GET / HTTP/1.1");
-            assertEquals(sl.verb(), StartLine.Verb.GET);
-            assertEquals(sl.pathDetails().isolatedPath(), "");
+            StartLine sl = StartLine.make(context).extractStartLine("GET / HTTP/1.1");
+            assertEquals(sl.getVerb(), StartLine.Verb.GET);
+            assertEquals(sl.getPathDetails().isolatedPath(), "");
         }
 
         logger.test("negative cases for extractStartLine");{
@@ -235,9 +242,9 @@ public class WebTests {
                     ""
             );
             for (String s : badStartLines) {
-                assertEquals(StartLine.extractStartLine(s), StartLine.empty);
+                assertEquals(StartLine.make(context).extractStartLine(s), StartLine.empty);
             }
-            assertThrows(InvariantException.class, () -> StartLine.extractStartLine(null));
+            assertThrows(InvariantException.class, () -> StartLine.make(context).extractStartLine(null));
         }
 
         logger.test("positive test for extractStatusLine");{
@@ -266,31 +273,31 @@ public class WebTests {
      */
         logger.test("parseUrlEncodedForm should properly parse data");{
             final var expected = Map.of("value_a", "123", "value_b", "456");
-            final var result = BodyProcessor.parseUrlEncodedForm("value_a=123&value_b=456");
+            final var result = new BodyProcessor(context).parseUrlEncodedForm("value_a=123&value_b=456");
             assertEquals(expected.get("value_a"), result.asString("value_a"));
             assertEquals(expected.get("value_b"), result.asString("value_b"));
         }
 
         logger.test("parseUrlEncodedForm edge cases"); {
             // blank key
-            final var ex2 = assertThrows(InvariantException.class, () -> BodyProcessor.parseUrlEncodedForm("=123"));
+            final var ex2 = assertThrows(InvariantException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("=123"));
             assertEquals(ex2.getMessage(), "The key must not be blank");
 
             // duplicate keys
-            final var ex3 = assertThrows(InvariantException.class, () -> BodyProcessor.parseUrlEncodedForm("a=123&a=123"));
+            final var ex3 = assertThrows(InvariantException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("a=123&a=123"));
             assertEquals(ex3.getMessage(), "a was duplicated in the post body - had values of 123 and 123");
 
             // empty value
-            final var result = BodyProcessor.parseUrlEncodedForm("mykey=");
+            final var result = new BodyProcessor(context).parseUrlEncodedForm("mykey=");
             assertEquals(result.asString("mykey"), "");
 
             // null value - value of %NULL%
-            final var result2 = BodyProcessor.parseUrlEncodedForm("mykey=%NULL%");
+            final var result2 = new BodyProcessor(context).parseUrlEncodedForm("mykey=%NULL%");
             assertEquals(result2.asString("mykey"), "");
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
-            try (WebFramework wf = new WebFramework(logger, default_zdt)) {
+            try (WebFramework wf = new WebFramework(context, default_zdt)) {
                 try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                     try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                         wf.registerPath(
@@ -313,8 +320,8 @@ public class WebTests {
                         client.sendHttpLine(postedData);
 
                         // the server will respond to us.  Check everything is legit.
-                        StatusLine.extractStatusLine(readLine(is));
-                        Headers hi = Headers.extractHeaderInformation(client.getInputStream());
+                        StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                        Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(client.getInputStream());
                         String body = readBody(is, hi.contentLength());
 
                         assertEquals(body, "123");
@@ -324,7 +331,7 @@ public class WebTests {
         }
 
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
-            try (WebFramework wf = new WebFramework(logger, default_zdt)) {
+            try (WebFramework wf = new WebFramework(context, default_zdt)) {
                 try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                     try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                         InputStream is = client.getInputStream();
@@ -334,7 +341,7 @@ public class WebTests {
                         client.sendHttpLine("Host: localhost:8080");
                         client.sendHttpLine("");
 
-                        StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
+                        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                         assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
                     }
                 }
@@ -368,12 +375,12 @@ public class WebTests {
 
             // read through the headers to get to the sweet juicy body below
             InputStream inputStream = new ByteArrayInputStream(receivedData.getBytes(StandardCharsets.UTF_8));
-            while(!readLine(inputStream).isEmpty()){
+            while(!inputStreamUtils.readLine(inputStream).isEmpty()){
                 // do nothing, just going through the bytes of this stream
             }
 
             // and now, the magic of encoded chunks
-            final var result = StringUtils.byteArrayToString(readChunkedEncoding(inputStream));
+            final var result = stringUtils.byteArrayToString(inputStreamUtils.readChunkedEncoding(inputStream));
 
             assertEquals(result, """
                 Wikipedia in \r
@@ -384,7 +391,7 @@ public class WebTests {
 
         logger.test("Looking into how to split a byte array using a string delimiter"); {
             byte[] multiPartData = makeTestMultiPartData();
-            var bp = new BodyProcessor(logger);
+            var bp = new BodyProcessor(context);
 
             List<byte[]> result = bp.split(multiPartData, "--i_am_a_boundary");
             assertEquals(result.size(), 2);
@@ -394,7 +401,7 @@ public class WebTests {
 
         logger.test("Examining the algorithm for parsing multipart data"); {
             byte[] multiPartData = makeTestMultiPartData();
-            var bp = new BodyProcessor(logger);
+            var bp = new BodyProcessor(context);
 
             final var result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
             assertEquals(result.asString("text1"), "I am a value that is text");
@@ -438,7 +445,7 @@ public class WebTests {
                 }
             });
 
-            try (WebFramework wf = new WebFramework(logger, default_zdt)) {
+            try (WebFramework wf = new WebFramework(context, default_zdt)) {
                 try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
                     try (SocketWrapper client = webEngine.startClient(primaryServer)) {
                         InputStream is = client.getInputStream();
@@ -451,7 +458,7 @@ public class WebTests {
                         client.sendHttpLine("");
                         client.send(multiPartData);
 
-                        StatusLine statusLine = StatusLine.extractStatusLine(readLine(is));
+                        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                         assertEquals(statusLine.status(), _200_OK);
                     }
                 }
@@ -492,8 +499,8 @@ public class WebTests {
         }
     }
 
-    private static String readBody(InputStream is, int length) throws IOException {
-        return StringUtils.byteArrayToString(InputStreamUtils.read(length, is));
+    private String readBody(InputStream is, int length) throws IOException {
+        return stringUtils.byteArrayToString(inputStreamUtils.read(length, is));
     }
 
 }

@@ -1,6 +1,7 @@
 package minum.utils;
 
 import minum.Constants;
+import minum.Context;
 import minum.logging.LoggingLevel;
 
 import java.util.ArrayList;
@@ -20,18 +21,19 @@ import java.util.concurrent.LinkedBlockingQueue;
  * function of what we want to run later.
  */
 public class ActionQueue {
-    private static final List<ActionQueue> allQueues = new ArrayList<>();
     private final String name;
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<CallableWithDescription> queue;
     private boolean stop = false;
     private Thread queueThread;
+    private Constants constants;
 
-    public ActionQueue(String name, ExecutorService queueExecutor) {
+    public ActionQueue(String name, Context context) {
         this.name = name;
-        this.queueExecutor = queueExecutor;
+        this.queueExecutor = context.getExecutorService();
         this.queue = new LinkedBlockingQueue<>();
-        allQueues.add(this);
+        context.getActionQueueList().add(this);
+        this.constants = context.getConstants();
     }
 
     // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
@@ -53,7 +55,7 @@ public class ActionQueue {
             this only gets called when we are trying to shut everything
             down cleanly
              */
-                if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " ActionQueue for %s is stopped.%n", name);
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " ActionQueue for %s is stopped.%n", name);
             } catch (Exception ex) {
                 System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
                 throw ex;
@@ -82,35 +84,27 @@ public class ActionQueue {
      * block until the queue is empty.
      */
     public void stop() {
-        if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
+        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
         stop = true;
         for (int i = 0; i < 5; i++) {
             int size = queue.size();
             if (!(size > 0)) return;
-            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
+            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
             MyThread.sleep(20);
         }
         System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
     }
 
-    public static void killAllQueues() {
-        if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all queue threads");
-        for (var aq : allQueues) {
-            aq.stop();
-            if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " killing " + aq.queueThread);
-            if (aq.queueThread != null) {
-                aq.queueThread.interrupt();
-            }
-            // at this point, clear out the queue if anything is left in it.
-            // this feels imprecise. TODO: look into this deeply.
-            aq.queue.clear();
-
-        }
-        allQueues.clear();
-    }
-
     @Override
     public String toString() {
         return this.name;
+    }
+
+    public Thread getQueueThread() {
+        return queueThread;
+    }
+
+    public LinkedBlockingQueue<CallableWithDescription> getQueue() {
+        return queue;
     }
 }

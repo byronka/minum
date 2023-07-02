@@ -1,6 +1,7 @@
 package minum.auth;
 
 import minum.Constants;
+import minum.Context;
 import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
 import minum.utils.MyThread;
@@ -26,11 +27,13 @@ public class LoopingSessionReviewing {
     private final ILogger logger;
     private final int sleepTime;
     private final AuthUtils au;
+    private final Constants constants;
     private Thread myThread;
 
-    public LoopingSessionReviewing(ExecutorService es, ILogger logger, AuthUtils au) {
-        this.es = es;
-        this.logger = logger;
+    public LoopingSessionReviewing(Context context, AuthUtils au) {
+        this.es = context.getExecutorService();
+        this.logger = context.getLogger();
+        this.constants = context.getConstants();
         this.au = au;
         this.sleepTime = 60 * 60 * 1000;
     }
@@ -64,7 +67,7 @@ public class LoopingSessionReviewing {
                     down cleanly
                      */
 
-                    if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoopingSessionReviewing is stopped.%n");
+                    if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoopingSessionReviewing is stopped.%n");
                     return null;
                 } catch (Exception ex) {
                     System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: LoopingSessionReviewing has stopped unexpectedly. error: %s%n", ex);
@@ -86,7 +89,7 @@ public class LoopingSessionReviewing {
         // and a bunch of sessions to examine, then for each session we need to review the
         // list of live sessions against it.
         List<SessionId> sessionsToKill = new ArrayList<>();
-        var liveSessions = users.stream().map(User::currentSession).filter(Objects::nonNull).toList();
+        var liveSessions = users.stream().map(User::getCurrentSession).filter(Objects::nonNull).toList();
         for (SessionId s : sessions) {
             if (! isLive(s, liveSessions)) {
                 sessionsToKill.add(s);
@@ -96,7 +99,7 @@ public class LoopingSessionReviewing {
     }
 
     private static boolean isLive(SessionId s, List<String> liveSessions) {
-        return liveSessions.stream().anyMatch(x -> x.equals(s.sessionCode()));
+        return liveSessions.stream().anyMatch(x -> x.equals(s.getSessionCode()));
     }
 
 

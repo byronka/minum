@@ -1,6 +1,9 @@
 package minum.web;
 
+import minum.Constants;
+import minum.Context;
 import minum.exceptions.ForbiddenUseException;
+import minum.utils.StringUtils;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -9,25 +12,45 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static minum.Constants.MAX_QUERY_STRING_KEYS_COUNT;
 import static minum.utils.Invariants.mustBeTrue;
 import static minum.utils.Invariants.mustNotBeNull;
-import static minum.utils.StringUtils.decode;
 
 /**
  * This class holds data and methods for dealing with the
  * "start line" in an HTTP request.  For example,
  * GET /foo HTTP/1.1
  */
-public record StartLine(
-        Verb verb,
-        PathDetails pathDetails,
-        WebEngine.HttpVersion version,
-        /*
-         * The entire line of the start line
-         */
-        String rawValue) {
+public class StartLine{
 
+    private final Verb verb;
+    private final PathDetails pathDetails;
+    private final WebEngine.HttpVersion version;
+    private final String rawValue;
+    private final Context context;
+    private final Constants constants;
+    private final StringUtils stringUtils;
+
+    /**
+     * @param verb GET, POST, etc.
+     * @param pathDetails See {@link PathDetails}
+     * @param version the version of HTTP we're receiving
+     * @param rawValue he entire line of the start line
+     */
+    public StartLine(
+            Verb verb,
+            PathDetails pathDetails,
+            WebEngine.HttpVersion version,
+            String rawValue,
+            Context context
+    ) {
+        this.verb = verb;
+        this.pathDetails = pathDetails;
+        this.version = version;
+        this.rawValue = rawValue;
+        this.context = context;
+        this.constants = context.getConstants();
+        this.stringUtils = new StringUtils(context);
+    }
     /**
      * This is our regex for looking at a client's request
      * and determining what to send them.  For example,
@@ -38,7 +61,11 @@ public record StartLine(
      */
     static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
-    static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "");
+    static final StartLine empty = new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", null);
+
+    public static StartLine make(Context context) {
+        return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
+    }
 
     /**
      * Returns a map of the key-value pairs in the URL,
@@ -65,7 +92,7 @@ public record StartLine(
      * Given the string value of a startline (like GET /hello HTTP/1.1)
      * validate and extract the values for our use.
      */
-    public static StartLine extractStartLine(String value) {
+    public StartLine extractStartLine(String value) {
         mustNotBeNull(value);
         Matcher m = StartLine.startLineRegex.matcher(value);
         // run the regex
@@ -78,14 +105,14 @@ public record StartLine(
         PathDetails pd = extractPathDetails(m.group(2));
         WebEngine.HttpVersion httpVersion = getHttpVersion(m.group(3));
 
-        return new StartLine(verb, pd, httpVersion, value);
+        return new StartLine(verb, pd, httpVersion, value, context);
     }
 
-    private static Verb extractVerb(String verbString) {
+    private Verb extractVerb(String verbString) {
         return Verb.valueOf(verbString.toUpperCase(Locale.ROOT));
     }
 
-    private static PathDetails extractPathDetails(String path) {
+    private PathDetails extractPathDetails(String path) {
         PathDetails pd;
         int locationOfQueryBegin = path.indexOf("?");
         if (locationOfQueryBegin > 0) {
@@ -123,19 +150,19 @@ public record StartLine(
      * a query string (e.g. foo=bar&name=alice), split that
      * into a map of the key to value (e.g. foo to bar, and name to alice)
      */
-    private static Map<String, String> extractMapFromQueryString(String rawQueryString) {
+    private Map<String, String> extractMapFromQueryString(String rawQueryString) {
         Map<String, String> queryStrings = new HashMap<>();
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
         // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
-        for (int i = 0; tokenizer.hasMoreTokens() && i <= MAX_QUERY_STRING_KEYS_COUNT; i++) {
-            if (i == MAX_QUERY_STRING_KEYS_COUNT) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + MAX_QUERY_STRING_KEYS_COUNT);
+        for (int i = 0; tokenizer.hasMoreTokens() && i <= constants.MAX_QUERY_STRING_KEYS_COUNT; i++) {
+            if (i == constants.MAX_QUERY_STRING_KEYS_COUNT) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + constants.MAX_QUERY_STRING_KEYS_COUNT);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
             if (equalSignLocation <= 0) return Map.of();
             mustBeTrue(equalSignLocation > 0, "There must be an equals sign");
             String key = currentKeyValue.substring(0, equalSignLocation);
-            String value = decode(currentKeyValue.substring(equalSignLocation + 1));
+            String value = stringUtils.decode(currentKeyValue.substring(equalSignLocation + 1));
             queryStrings.put(key, value);
         }
         return queryStrings;
@@ -144,12 +171,20 @@ public record StartLine(
     /**
      * Extract the HTTP version from the start line
      */
-    private static WebEngine.HttpVersion getHttpVersion(String version) {
+    private WebEngine.HttpVersion getHttpVersion(String version) {
         if (version.equals("1.1")) {
             return WebEngine.HttpVersion.ONE_DOT_ONE;
         } else {
             return WebEngine.HttpVersion.ONE_DOT_ZERO;
         }
+    }
+
+    public Verb getVerb() {
+        return verb;
+    }
+
+    public PathDetails getPathDetails() {
+        return pathDetails;
     }
 
 }

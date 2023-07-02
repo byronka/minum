@@ -7,18 +7,20 @@ import minum.testing.TestLogger;
 import minum.utils.*;
 import minum.web.*;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
 public class Tests {
 
   public static void main(String[] args) {
+    var tests = new Tests();
+    tests.start();
+  }
+
+  private void start() {
     try {
       unitAndIntegrationTests();
-      clearTestDatabase();
       testFullSystem_Soup_To_Nuts();
-      clearTestDatabase();
       indicateTestsFinished();
     } catch (Exception ex) {
       MyThread.sleep(100);
@@ -26,7 +28,13 @@ public class Tests {
     }
   }
 
-  private static void indicateTestsFinished() {
+  private final Constants constants;
+
+  public Tests() {
+    constants = new Constants();
+  }
+
+  private void indicateTestsFinished() {
     MyThread.sleep(20);
     System.out.println();
     System.out.println("-------------------------");
@@ -41,46 +49,42 @@ public class Tests {
    * to larger combinations of methods and classes (integration tests) but
    * stop short of running {@link FullSystem}.
    */
-  private static void unitAndIntegrationTests() throws Exception {
-    TestLogger logger = TestLogger.makeTestLogger();
-    var es = logger.getExecutorService();
-    new WebTests(logger).tests(es);
-    new SimpleDatabaseTests(logger).tests(es);
-    new LruCacheTests(logger).tests(es);
-    new StringUtilsTests(logger).tests();
-    new TemplatingTests(logger).tests();
-    new Http2Tests(logger).test(es);
-    new FullSystemTests(logger).tests(es);
-    new StaticFilesCacheTests(logger).tests(es);
-    new TheBrigTests(logger).tests(es);
-    new HtmlParserTests(logger).tests(es);
+  private void unitAndIntegrationTests() throws Exception {
+    ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
+    TestContext context = new TestContext(es, constants);
+    TestLogger logger = new TestLogger(context);
+    context.setLogger(logger);
+
+    new WebTests(context).tests();
+    new SimpleDatabaseTests(context).tests();
+    new LruCacheTests(context).tests();
+    new StringUtilsTests(context).tests();
+    new TemplatingTests(context).tests();
+    new Http2Tests(context).test();
+    new FullSystemTests(context).tests();
+    new StaticFilesCacheTests(context).tests();
+    new TheBrigTests(context).tests();
+    new HtmlParserTests(context).tests();
+
     logger.writeTestReport();
-    runShutdownSequence(es);
+    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
+    context.killAllQueues();
+    context.getExecutorService().shutdown();
   }
 
   /**
    * Run a test of the entire system.  In particular, runs code
    * from {@link FullSystem}
    */
-  private static void testFullSystem_Soup_To_Nuts() throws Exception {
+  private void testFullSystem_Soup_To_Nuts() throws Exception {
     System.out.println("Starting a soup-to-nuts tests of the full system");
     var wf = FullSystem.initialize();
-    TheRegister.registerDomains(wf);
+    new TheRegister(wf).registerDomains();
     new FunctionalTests(wf).test();
+    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), wf.getLogger());
     wf.getFullSystem().removeShutdownHook();
     wf.getFullSystem().close();
     wf.getFullSystem().getExecutorService().shutdownNow();
-  }
-
-  private static void clearTestDatabase() throws IOException {
-      TestLogger logger = TestLogger.makeTestLogger();
-      FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(Constants.DB_DIRECTORY), logger);
-      runShutdownSequence(logger.getExecutorService());
-  }
-
-  private static void runShutdownSequence(ExecutorService es) {
-    ActionQueue.killAllQueues();
-    es.shutdown();
   }
 
 }

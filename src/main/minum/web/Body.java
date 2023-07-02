@@ -29,22 +29,22 @@ import java.util.Map;
  * @param bodyMap
  * @param raw
  */
-public record Body(Map<String, byte[]> bodyMap, byte[] raw) {
+public record Body(Map<String, byte[]> bodyMap, byte[] raw, StringUtils stringUtils) {
 
-    public static final Body EMPTY = new Body(Map.of(), new byte[0]);
+    public static final Body EMPTY = new Body(Map.of(), new byte[0], null);
 
     public String asString(String key) {
         byte[] byteArray = bodyMap.get(key);
         if (byteArray == null) {
             return "";
         } else {
-            return StringUtils.byteArrayToString(byteArray).trim();
+            return stringUtils.byteArrayToString(byteArray).trim();
         }
 
     }
 
     public String asString() {
-        return StringUtils.byteArrayToString(raw).trim();
+        return stringUtils.byteArrayToString(raw).trim();
     }
 
     public byte[] asBytes(String key) {

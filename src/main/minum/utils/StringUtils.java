@@ -1,5 +1,7 @@
 package minum.utils;
 
+import minum.Constants;
+import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 
 import java.net.URLDecoder;
@@ -10,7 +12,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static minum.Constants.MAX_TOKENIZER_PARTITIONS;
 import static minum.utils.Invariants.mustNotBeNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -19,8 +20,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class StringUtils {
 
-    private StringUtils() {
-        // using a private constructor to hide the implicit public one.
+    private final Constants constants;
+
+    public StringUtils(Context context) {
+        this.constants = context.getConstants();
     }
 
 
@@ -41,7 +44,7 @@ public class StringUtils {
      * If the text is going inside an attribute (e.g. {@code <div class="TEXT_GOES_HERE">} )
      * Then you need to escape slightly differently. In that case see [safeAttr]
      */
-    public static String safeHtml(String input) {
+    public String safeHtml(String input) {
         if (input == null) {
             return "";
         }
@@ -64,7 +67,7 @@ public class StringUtils {
      *      alert(&apos;XSS Attack&apos;)
      * }</pre>
      */
-    public static String safeAttr(String input) {
+    public String safeAttr(String input) {
         if (input == null) {
             return "";
         }
@@ -76,7 +79,7 @@ public class StringUtils {
     /**
      * Encodes UTF-8 text using URL-encoding
      */
-    public static String encode(String str) {
+    public String encode(String str) {
         if (str == null) {
             return "%NULL%";
         }
@@ -88,7 +91,7 @@ public class StringUtils {
      * first check if the string value is the token %NULL%,
      * which is our way to signify null.
      */
-    public static String decode(String str) {
+    public String decode(String str) {
         mustNotBeNull(str);
         if (str.equals("%NULL%")) {
             return null;
@@ -96,7 +99,7 @@ public class StringUtils {
         return URLDecoder.decode(str, UTF_8);
     }
 
-    public static String generateSecureRandomString(int length) {
+    public String generateSecureRandomString(int length) {
         final var allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         final var sr = new SecureRandom();
 
@@ -109,7 +112,7 @@ public class StringUtils {
     /**
      * Converts a list of bytes to a string. Returns null if the input is null.
      */
-    public static String byteListToString(List<Byte> byteList) {
+    public String byteListToString(List<Byte> byteList) {
         if (byteList == null) return null;
         final int size = byteList.size();
         final var buf = new byte[size];
@@ -122,7 +125,7 @@ public class StringUtils {
     /**
      * Converts an array of bytes to a string. Returns null if the input is null.
      */
-    public static String byteArrayToString(byte[] byteArray) {
+    public String byteArrayToString(byte[] byteArray) {
         if (byteArray == null) return null;
         return new String(byteArray, UTF_8);
     }
@@ -133,12 +136,12 @@ public class StringUtils {
      * @param delimiter the character acting as a boundary between sections
      * @return a list of strings.  If the delimiter is not found, we will just return the whole string
      */
-    public static List<String> tokenizer(String serializedText, char delimiter) {
+    public List<String> tokenizer(String serializedText, char delimiter) {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
         // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
-        for(int i = 0; i <= MAX_TOKENIZER_PARTITIONS; i++) {
-            if (i == MAX_TOKENIZER_PARTITIONS) throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + MAX_TOKENIZER_PARTITIONS);
+        for(int i = 0; i <= constants.MAX_TOKENIZER_PARTITIONS; i++) {
+            if (i == constants.MAX_TOKENIZER_PARTITIONS) throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + constants.MAX_TOKENIZER_PARTITIONS);
             final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
             if (nextPipeSymbolIndex == -1) {
                 // if we don't see any pipe symbols ahead, grab the rest of the text from our current place

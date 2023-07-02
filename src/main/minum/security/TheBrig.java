@@ -1,9 +1,11 @@
 package minum.security;
 
 import minum.Constants;
+import minum.Context;
 import minum.database.DatabaseDiskPersistenceSimpler;
-import minum.database.SimpleDataType;
-import minum.database.SimpleSerializable;
+import minum.database.ISimpleDataType;
+import minum.database.ISimpleSerializable;
+import minum.database.SimpleDataTypeImpl;
 import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
 import minum.utils.MyThread;
@@ -36,6 +38,8 @@ public class TheBrig {
     private final List<Inmate> inmates;
     private final ILogger logger;
     private final boolean isUsingDiskPersistence;
+    private final Constants constants;
+    private final Context context;
 
     private Thread myThread;
     private final AtomicLong newInmateIndex;
@@ -55,13 +59,27 @@ public class TheBrig {
 
     /**
      * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
-     * @param clientId a string representation of the client address plus a string representing the offense,
-     *                 for example, "1.2.3.4_vuln_seeking" - 1.2.3.4 was seeking out vulnerabilities.
-     * @param duration how long they are stuck in jail, in milliseconds
      */
-    private record Inmate(Long index, String clientId, Long duration) implements SimpleDataType<Inmate> {
+    private static class Inmate extends SimpleDataTypeImpl<Inmate> {
 
-        public static final SimpleDataType<Inmate> EMPTY = new Inmate(0L, "", 0L);
+        public static final ISimpleDataType<Inmate> EMPTY = new Inmate(0L, "", 0L, null);
+        private final Long index;
+        private final String clientId;
+        private final Long duration;
+
+        /**
+         * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
+         * @param clientId a string representation of the client address plus a string representing the offense,
+         *                 for example, "1.2.3.4_vuln_seeking" - 1.2.3.4 was seeking out vulnerabilities.
+         * @param duration how long they are stuck in jail, in milliseconds
+         */
+        public Inmate(Long index, String clientId, Long duration, Context context) {
+            super(context);
+
+            this.index = index;
+            this.clientId = clientId;
+            this.duration = duration;
+        }
 
         @Override
         public Long getIndex() {
@@ -70,28 +88,40 @@ public class TheBrig {
 
         @Override
         public String serialize() {
-            return SimpleSerializable.serializeHelper(index, clientId(), duration());
+            return serializeHelper(index, clientId, duration);
         }
 
         @Override
         public Inmate deserialize(String serializedText) {
-            final var tokens = SimpleSerializable.deserializeHelper(serializedText);
+            final var tokens = deserializeHelper(serializedText);
 
             return new Inmate(
                     Long.parseLong(tokens.get(0)),
                     tokens.get(1),
-                    Long.parseLong(tokens.get(2)));
+                    Long.parseLong(tokens.get(2)),
+                    context);
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public Long getDuration() {
+            return duration;
         }
     }
 
-    public TheBrig(int sleepTime, ExecutorService es, ILogger logger, boolean isUsingDiskPersistence) {
-        this.es = es;
+    public TheBrig(int sleepTime, Context context, boolean isUsingDiskPersistence) {
+        this.context = context;
+        this.es = context.getExecutorService();
+        this.constants = context.getConstants();
+        this.logger = context.getLogger();
         this.isUsingDiskPersistence = isUsingDiskPersistence;
         if (isUsingDiskPersistence) {
-            Path dbDir = Path.of(Constants.DB_DIRECTORY);
-            this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("TheBrig"), es, logger);
+            Path dbDir = Path.of(constants.DB_DIRECTORY);
+            this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("TheBrig"), context);
             this.inmates = ddps.readAndDeserialize(Inmate.EMPTY);
-            this.clientKeys = this.inmates.stream().collect(Collectors.toMap(Inmate::clientId, Inmate::duration));
+            this.clientKeys = this.inmates.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
             newInmateIndex = new AtomicLong(calculateNextIndex(inmates));
         } else {
             this.ddps = null;
@@ -100,7 +130,7 @@ public class TheBrig {
             newInmateIndex = new AtomicLong(1);
         }
         this.sleepTime = sleepTime;
-        this.logger = logger;
+
     }
 
 
@@ -109,12 +139,12 @@ public class TheBrig {
      * of the application, in an infinite loop removing keys from the list
      * under consideration.
      */
-    public TheBrig(ExecutorService es, ILogger logger) {
-        this(10 * 1000, es, logger, true);
+    public TheBrig(Context context) {
+        this(10 * 1000, context, true);
     }
 
-    public TheBrig(ExecutorService es, ILogger logger, boolean isUsingDiskPersistence) {
-        this(10 * 1000, es, logger, isUsingDiskPersistence);
+    public TheBrig(Context context, boolean isUsingDiskPersistence) {
+        this(10 * 1000, context, isUsingDiskPersistence);
     }
 
 
@@ -164,7 +194,7 @@ public class TheBrig {
                     down cleanly
                      */
 
-                    if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " TheBrig is stopped.%n");
+                    if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " TheBrig is stopped.%n");
                     return null;
                 } catch (Exception ex) {
                     System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: TheBrig has stopped unexpectedly. error: %s%n", ex);
@@ -203,10 +233,10 @@ public class TheBrig {
     public synchronized void sendToJail(String clientIdentifier, long sentenceDuration) {
         logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " +sentenceDuration + " milliseconds");
         clientKeys.put(clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-        var existingInmates = inmates.stream().filter(x -> x.clientId().equals(clientIdentifier)).count();
+        var existingInmates = inmates.stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
         mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug" );
         if (existingInmates == 0) {
-            Inmate newInmate = new Inmate(newInmateIndex.getAndIncrement(), clientIdentifier, System.currentTimeMillis() + sentenceDuration);
+            Inmate newInmate = new Inmate(newInmateIndex.getAndIncrement(), clientIdentifier, System.currentTimeMillis() + sentenceDuration, context);
             inmates.add(newInmate);
             if (isUsingDiskPersistence) ddps.persistToDisk(newInmate);
         }

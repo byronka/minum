@@ -1,6 +1,8 @@
 package minum.testing;
 
+import minum.Context;
 import minum.logging.Logger;
+import minum.logging.LoggingLevel;
 import minum.utils.ExtendedExecutor;
 import minum.utils.FileUtils;
 import minum.utils.TimeUtils;
@@ -24,7 +26,7 @@ public class TestLogger extends Logger {
 
     private final ExecutorService es;
     private StopWatch stopWatch;
-    private List<TestSuite> testSuites;
+    private final List<TestSuite> testSuites;
     private String innerXmlReport = "";
 
     /**
@@ -69,15 +71,10 @@ public class TestLogger extends Logger {
     record TestCase(String name, long duration) {}
     record TestSuite(String suiteName, String className, List<TestCase> testCases) {}
 
-    public TestLogger(ExecutorService es) {
-        super(es);
-        this.es = es;
+    public TestLogger(Context context) {
+        super(context);
+        this.es = context.getExecutorService();
         this.testSuites = new ArrayList<>();
-    }
-
-    public static TestLogger makeTestLogger() {
-        var es = ExtendedExecutor.makeExecutorService();
-        return new TestLogger(es);
     }
 
     private int testCount = 1;
@@ -130,7 +127,4 @@ public class TestLogger extends Logger {
         });
     }
 
-    public ExecutorService getExecutorService() {
-        return es;
-    }
 }

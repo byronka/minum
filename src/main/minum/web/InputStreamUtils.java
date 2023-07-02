@@ -1,5 +1,7 @@
 package minum.web;
 
+import minum.Constants;
+import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 import minum.utils.StringUtils;
 
@@ -8,8 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-import static minum.Constants.MAX_READ_LINE_SIZE_BYTES;
-import static minum.Constants.MAX_READ_SIZE_BYTES;
 import static minum.utils.Invariants.*;
 import static minum.utils.ByteUtils.byteListToArray;
 
@@ -18,14 +18,22 @@ import static minum.utils.ByteUtils.byteListToArray;
  */
 public class InputStreamUtils {
 
+    private final Constants constants;
+    private final StringUtils stringUtils;
+
+    public InputStreamUtils(Context context, StringUtils stringUtils) {
+        this.constants = context.getConstants();
+        this.stringUtils = stringUtils;
+    }
+
     /**
      * Read from the socket until it returns an EOF indicator (that is, -1)
      * Note: this *will block* until it gets to that EOF.
      */
-    public static byte[] readUntilEOF(InputStream inputStream) throws IOException {
+    public byte[] readUntilEOF(InputStream inputStream) throws IOException {
         final var result = new ArrayList<Byte>();
-        for (int i = 0; i <= (MAX_READ_SIZE_BYTES + 1); i++) {
-            if (i == MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES);
+        for (int i = 0; i <= (constants.MAX_READ_SIZE_BYTES + 1); i++) {
+            if (i == constants.MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES);
             int a = inputStream.read();
             if (a == -1) {
                 return byteListToArray(result);
@@ -40,10 +48,10 @@ public class InputStreamUtils {
      * reads following the algorithm for transfer-encoding: chunked.
      * See <a href="https://en.wikipedia.org/wiki/Chunked_transfer_encoding">chunked transfer encoding</a>
      */
-    public static byte[] readChunkedEncoding(InputStream inputStream) throws IOException {
+    public byte[] readChunkedEncoding(InputStream inputStream) throws IOException {
         final var result = new ByteArrayOutputStream( );
-        for (int countRead = 0; countRead <= (MAX_READ_SIZE_BYTES + 1); )  {
-            if (countRead == MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES);
+        for (int countRead = 0; countRead <= (constants.MAX_READ_SIZE_BYTES + 1); )  {
+            if (countRead == constants.MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES);
             String countToReadString = readLine(inputStream);
             if (countToReadString == null) {
                 return new byte[0];
@@ -70,13 +78,13 @@ public class InputStreamUtils {
      * <br>
      * If the stream ends, return null
      */
-    public static String readLine(InputStream inputStream) throws IOException  {
+    public String readLine(InputStream inputStream) throws IOException  {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
         final var result = new ArrayList<Byte>();
-        for (int i = 0; i <= (MAX_READ_LINE_SIZE_BYTES + 1); i++) {
-            if (i == MAX_READ_LINE_SIZE_BYTES) throw new ForbiddenUseException("in readLine, client sent more bytes than allowed.  Current max: " + MAX_READ_LINE_SIZE_BYTES);
+        for (int i = 0; i <= (constants.MAX_READ_LINE_SIZE_BYTES + 1); i++) {
+            if (i == constants.MAX_READ_LINE_SIZE_BYTES) throw new ForbiddenUseException("in readLine, client sent more bytes than allowed.  Current max: " + constants.MAX_READ_LINE_SIZE_BYTES);
             int a = inputStream.read();
 
             if (a == -1) return null;
@@ -90,16 +98,16 @@ public class InputStreamUtils {
             result.add((byte) a);
 
         }
-        return StringUtils.byteListToString(result);
+        return stringUtils.byteListToString(result);
     }
 
 
     /**
      * Reads "lengthToRead" bytes from the input stream
      */
-    public static byte[] read(int lengthToRead, InputStream inputStream) throws IOException {
-        if (lengthToRead > MAX_READ_SIZE_BYTES) {
-            throw new ForbiddenUseException("client requested to send more bytes than allowed.  Current max: " + MAX_READ_SIZE_BYTES + " asked to receive: " + lengthToRead);
+    public byte[] read(int lengthToRead, InputStream inputStream) throws IOException {
+        if (lengthToRead > constants.MAX_READ_SIZE_BYTES) {
+            throw new ForbiddenUseException("client requested to send more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES + " asked to receive: " + lengthToRead);
         }
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.

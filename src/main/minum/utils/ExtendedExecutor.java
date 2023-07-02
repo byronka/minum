@@ -35,9 +35,9 @@ public class ExtendedExecutor extends ThreadPoolExecutor {
             t.printStackTrace();
     }
 
-    public static ExecutorService makeExecutorService() {
-        boolean useVirtualThreads = Constants.USE_VIRTUAL;
-        if (Constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
+    public static ExecutorService makeExecutorService(Constants constants) {
+        boolean useVirtualThreads = constants.USE_VIRTUAL;
+        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
         if (useVirtualThreads) {
             // the following line is only usable with the virtual threads API, which
             // is available on OpenJDK 19/20 in preview mode.

@@ -9,8 +9,6 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-import static minum.Constants.SOCKET_TIMEOUT_MILLIS;
-
 /**
  * This wraps Sockets to make them more particular to our use case
  */
@@ -22,13 +20,19 @@ public class SocketWrapper implements ISocketWrapper, AutoCloseable {
     private final ILogger logger;
     private final Server server;
 
-    public SocketWrapper(Socket socket, ILogger logger) throws IOException {
-        this(socket, null, logger);
+    /**
+     * Constructor
+     * @param socket a socket we intend to wrap with methods applicable to our use cases
+     * @param logger not much more to say on this param
+     * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
+     */
+    public SocketWrapper(Socket socket, ILogger logger, int timeoutMillis) throws IOException {
+        this(socket, null, logger, timeoutMillis);
     }
 
-    public SocketWrapper(Socket socket, Server server, ILogger logger) throws IOException {
+    public SocketWrapper(Socket socket, Server server, ILogger logger, int timeoutMillis) throws IOException {
         this.socket = socket;
-        this.socket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
+        this.socket.setSoTimeout(timeoutMillis);
         this.inputStream = socket.getInputStream();
         writer = socket.getOutputStream();
         this.logger = logger;

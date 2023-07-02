@@ -1,5 +1,7 @@
 package minum.web;
 
+import minum.Constants;
+import minum.Context;
 import minum.logging.ILogger;
 import minum.utils.InvariantException;
 import minum.utils.StringUtils;
@@ -14,9 +16,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static minum.utils.Invariants.mustBeTrue;
-import static minum.utils.StringUtils.decode;
-import static minum.web.InputStreamUtils.readChunkedEncoding;
-import static minum.web.InputStreamUtils.readUntilEOF;
 
 /**
  * This code is responsible for extracting the {@link Body} from
@@ -25,9 +24,17 @@ import static minum.web.InputStreamUtils.readUntilEOF;
 public class BodyProcessor {
 
     private final ILogger logger;
+    private final InputStreamUtils inputStreamUtils;
+    private final Constants constants;
+    private final Context context;
+    private final StringUtils stringUtils;
 
-    public BodyProcessor(ILogger logger) {
-        this.logger = logger;
+    public BodyProcessor(Context context) {
+        this.context = context;
+        this.logger = context.getLogger();
+        this.constants = context.getConstants();
+        this.stringUtils = new StringUtils(context);
+        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
     }
 
     /**
@@ -46,11 +53,11 @@ public class BodyProcessor {
         final var contentType = h.contentType();
 
         byte[] bodyBytes = h.contentLength() > 0 ?
-                InputStreamUtils.read(h.contentLength(), is) :
-                readChunkedEncoding(is);
+                inputStreamUtils.read(h.contentLength(), is) :
+                inputStreamUtils.readChunkedEncoding(is);
 
         if (h.contentLength() > 0 && contentType.contains("application/x-www-form-urlencoded")) {
-            return parseUrlEncodedForm(StringUtils.byteArrayToString(bodyBytes));
+            return parseUrlEncodedForm(stringUtils.byteArrayToString(bodyBytes));
         } else if (contentType.contains("multipart/form-data")) {
             String boundaryKey = "boundary=";
             int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
@@ -63,7 +70,7 @@ public class BodyProcessor {
             return Body.EMPTY;
         } else {
             logger.logDebug(() -> "Did not find a recognized content-type, returning an empty map and the raw bytes for the body");
-            return new Body(Map.of(), bodyBytes);
+            return new Body(Map.of(), bodyBytes, stringUtils);
         }
     }
 
@@ -76,24 +83,24 @@ public class BodyProcessor {
      * <p>
      * for example, {@code valuea=3&valueb=this+is+something}
      */
-    public static Body parseUrlEncodedForm(String input) {
+    public Body parseUrlEncodedForm(String input) {
         if (input.isEmpty()) return Body.EMPTY;
 
         final var postedPairs = new HashMap<String, byte[]>();
-        final var splitByAmpersand = StringUtils.tokenizer(input, '&');
+        final var splitByAmpersand = stringUtils.tokenizer(input, '&');
 
         for(final var s : splitByAmpersand) {
             final var pair = splitKeyAndValue(s);
             mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
             mustBeTrue(! pair[0].isBlank(), "The key must not be blank");
-            final var value = decode(pair[1]);
+            final var value = stringUtils.decode(pair[1]);
             final var convertedValue = value == null ? "".getBytes(StandardCharsets.UTF_8) : value.getBytes(StandardCharsets.UTF_8);
             final var result = postedPairs.put(pair[0], convertedValue);
             if (result != null) {
-                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+StringUtils.byteArrayToString(result)+" and " + pair[1]);
+                throw new InvariantException(pair[0] + " was duplicated in the post body - had values of "+stringUtils.byteArrayToString(result)+" and " + pair[1]);
             }
         }
-        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8));
+        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), stringUtils);
     }
 
     /**
@@ -103,7 +110,7 @@ public class BodyProcessor {
      * and value are URL-encoded])
      * @param formInputValue a string like "key=value"
      */
-    private static String[] splitKeyAndValue(String formInputValue) {
+    private String[] splitKeyAndValue(String formInputValue) {
         final var locationOfEqual = formInputValue.indexOf("=");
         return new String[] {
                 formInputValue.substring(0, locationOfEqual),
@@ -113,7 +120,7 @@ public class BodyProcessor {
     /**
      * A regex used to extract the name value from the headers in multipart/form
      */
-    private static final Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
+    private final Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
 
     /**
      * Extract multipart/form data from a body.  See docs/http_protocol/returning_values_from_multipart_rfc_7578.txt
@@ -127,8 +134,8 @@ public class BodyProcessor {
         final var result = new HashMap<String, byte[]>();
         for (var df : partitions) {
             final var is = new ByteArrayInputStream(df);
-            Headers headers = Headers.extractHeaderInformation(is);
-            String contentDisposition = headers.headerStrings().stream()
+            Headers headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
+            String contentDisposition = headers.getHeaderStrings().stream()
                     .filter(x -> x.toLowerCase().contains("form-data") && x.contains(nameEquals)).collect(Collectors.joining());
 
             Matcher matcher = multiformNameRegex.matcher(contentDisposition);
@@ -137,7 +144,7 @@ public class BodyProcessor {
                 String name = matcher.group("namevalue");
                 // at this point our inputstream pointer is at the beginning of the
                 // body data.  From here until the end it's pure data.
-                byte[] data = readUntilEOF(is);
+                byte[] data = inputStreamUtils.readUntilEOF(is);
                 result.put(name, data);
             }
             else {
@@ -146,7 +153,7 @@ public class BodyProcessor {
             }
 
         }
-        return new Body(result, body);
+        return new Body(result, body, stringUtils);
     }
 
     /**

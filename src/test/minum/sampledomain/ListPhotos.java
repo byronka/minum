@@ -1,6 +1,7 @@
 package minum.sampledomain;
 
 import minum.Constants;
+import minum.Context;
 import minum.auth.AuthUtils;
 import minum.logging.ILogger;
 import minum.utils.FileUtils;
@@ -33,10 +34,12 @@ public class ListPhotos {
     private final UploadPhoto up;
     private final AuthUtils auth;
     private final Map<String, byte[]> lruCache;
+    private final Constants constants;
 
-    public ListPhotos(WebFramework wf, UploadPhoto up, AuthUtils auth) {
-        this.logger = wf.getLogger();
-        this.dbDir = Path.of(Constants.DB_DIRECTORY);
+    public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
+        this.logger = context.getLogger();
+        this.constants = context.getConstants();
+        this.dbDir = Path.of(constants.DB_DIRECTORY);
         listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("listphotos/list_photos_template.html"));
         this.up = up;
         this.auth = auth;
@@ -52,7 +55,7 @@ public class ListPhotos {
             <p>%s</p>
             <p>%s</p>
         </li>
-        """.formatted(x.photoUrl(), x.shortDescription(), x.description())).collect(Collectors.joining ("\n"));
+        """.formatted(x.getPhotoUrl(), x.getShortDescription(), x.getDescription())).collect(Collectors.joining ("\n"));
 
         String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload</a></p>" : "";
 

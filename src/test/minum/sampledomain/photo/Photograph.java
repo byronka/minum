@@ -1,12 +1,29 @@
 package minum.sampledomain.photo;
 
 
-import minum.database.SimpleDataType;
-import minum.database.SimpleSerializable;
+import minum.Context;
+import minum.database.ISimpleDataType;
+import minum.database.ISimpleSerializable;
+import minum.database.SimpleDataTypeImpl;
 
-public record Photograph(Long index, String photoUrl, String shortDescription, String description) implements SimpleDataType<Photograph> {
+public class Photograph extends SimpleDataTypeImpl<Photograph> {
 
-    public static final SimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "");
+    private final Long index;
+    private final String photoUrl;
+    private final String shortDescription;
+    private final String description;
+    private final Context context;
+
+    public Photograph(Long index, String photoUrl, String shortDescription, String description, Context context) {
+        super(context);
+        this.context = context;
+        this.index = index;
+        this.photoUrl = photoUrl;
+        this.shortDescription = shortDescription;
+        this.description = description;
+    }
+
+    public static final ISimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "", null);
 
     @Override
     public Long getIndex() {
@@ -15,17 +32,30 @@ public record Photograph(Long index, String photoUrl, String shortDescription, S
 
     @Override
     public String serialize() {
-        return SimpleSerializable.serializeHelper(index, photoUrl(), shortDescription(), description());
+        return serializeHelper(index, photoUrl, shortDescription, description);
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public String getShortDescription() {
+        return shortDescription;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     @Override
     public Photograph deserialize(String serializedText) {
-        final var tokens = SimpleSerializable.deserializeHelper(serializedText);
+        final var tokens = deserializeHelper(serializedText);
 
         return new Photograph(
                 Long.parseLong(tokens.get(0)),
                 tokens.get(1),
                 tokens.get(2),
-                tokens.get(3));
+                tokens.get(3),
+                context);
     }
 }

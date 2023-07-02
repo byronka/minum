@@ -1,41 +1,79 @@
 package minum.auth;
 
-import minum.database.SimpleDataType;
-import minum.database.SimpleSerializable;
+import minum.Context;
+import minum.database.SimpleDataTypeImpl;
 
 /**
  * A data structure representing authentication information for a user.
- * @param id the unique identifier for this record
- * @param username a user-chosen unique identifier for this record (system must not allow two of the same username)
- * @param hashedPassword the hash of a user's password
- * @param salt some randomly-generated letters appended to the user's password.  This is
- *             to prevent dictionary attacks if someone gets access to the database contents.
- *             See "Salting" in docs/http_protocol/password_storage_cheat_sheet.txt
- * @param currentSession If this use is currently authenticated, there will be a {@link SessionId} for them
  */
-public record User(Long id, String username, String hashedPassword, String salt, String currentSession) implements SimpleDataType<User> {
+public class User extends SimpleDataTypeImpl<User> {
 
-    public static final User EMPTY = new User(0L, "", "", "", null);
+    private final Long id;
+    private final String username;
+    private final String hashedPassword;
+    private final String salt;
+    private final String currentSession;
+
+    /**
+     * @param id the unique identifier for this record
+     * @param username a user-chosen unique identifier for this record (system must not allow two of the same username)
+     * @param hashedPassword the hash of a user's password
+     * @param salt some randomly-generated letters appended to the user's password.  This is
+     *             to prevent dictionary attacks if someone gets access to the database contents.
+     *             See "Salting" in docs/http_protocol/password_storage_cheat_sheet.txt
+     * @param currentSession If this use is currently authenticated, there will be a {@link SessionId} for them
+     */
+    public User(Long id, String username, String hashedPassword, String salt, String currentSession, Context context) {
+        super(context);
+        this.id = id;
+        this.username = username;
+        this.hashedPassword = hashedPassword;
+        this.salt = salt;
+        this.currentSession = currentSession;
+    }
+
+    public static final User EMPTY = new User(0L, "", "", "", null, null);
 
     @Override
     public Long getIndex() {
         return id;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getHashedPassword() {
+        return hashedPassword;
+    }
+
+    public String getSalt() {
+        return salt;
+    }
+
+    public String getCurrentSession() {
+        return currentSession;
+    }
+
     @Override
     public String serialize() {
-        return SimpleSerializable.serializeHelper(id(), username(), hashedPassword(), salt(), currentSession());
+        return serializeHelper(id, username, hashedPassword, salt, currentSession, context);
     }
 
     @Override
     public User deserialize(String serializedText) {
-        final var tokens = SimpleSerializable.deserializeHelper(serializedText);
+        final var tokens = deserializeHelper(serializedText);
         return new User(
                 Long.parseLong(tokens.get(0)),
                 tokens.get(1),
                 tokens.get(2),
                 tokens.get(3),
-                tokens.get(4)
+                tokens.get(4),
+                context
                 );
     }
 }

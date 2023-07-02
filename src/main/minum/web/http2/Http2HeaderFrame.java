@@ -152,8 +152,8 @@ public class Http2HeaderFrame extends Http2Frame {
     private static byte[] encodeDataForHeadersPayload(StartLine startLine, Headers headers, String scheme, String host) {
         final var encodedFieldLines = new ByteArrayOutputStream();
 
-        encodeVerb(startLine.verb(), encodedFieldLines);
-        encodePath(startLine.pathDetails().isolatedPath(), encodedFieldLines);
+        encodeVerb(startLine.getVerb(), encodedFieldLines);
+        encodePath(startLine.getPathDetails().isolatedPath(), encodedFieldLines);
         encodeScheme(scheme, encodedFieldLines);
         encodeAuthority(host, encodedFieldLines);
         encodeRestOfHeaders(headers, encodedFieldLines);

@@ -1,5 +1,6 @@
 package minum.database;
 
+import minum.Context;
 import minum.logging.ILogger;
 import minum.utils.ActionQueue;
 import minum.utils.FileUtils;
@@ -11,14 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import static minum.utils.FileUtils.writeString;
 import static minum.utils.Invariants.mustBeTrue;
 
 /**
  * This allows us to run some disk-persistence operations more consistently
- * on any data that extends from {@link SimpleDataType}
+ * on any data that extends from {@link ISimpleDataType}
  * @param <T> the type of data we'll be persisting
  */
 public class DatabaseDiskPersistenceSimpler<T> {
@@ -34,33 +34,18 @@ public class DatabaseDiskPersistenceSimpler<T> {
 
     /**
      * Constructs a disk-persistence class well-suited for your data.
-     * <p>
-     * There is a bit of subtlety to its use, see documentation on the params.
-     * @param dbDirectory the directory where we will store this data, relative to
-     *                    the location from which we run the application.  Recommend that
-     *                    you use some consistency, and consider hierarchy.  For example,
-     *                    you might want to store all your data at db/foo - foo being the
-     *                    name of the type of data we're storing, and db being a place to
-     *                    collect together all your directories.
-     *<p>
-     *                    If you're consistent enough, you will have a top-level directory
-     *                    like "db", with a bunch of sub-directories corresponding to the
-     *                    types of data.  But really there is a lot of flexibility, you
-     *                    can do it another way if you want.
-     * @param executorService The executorService is our interface to the system which we
-     *                        use for parallel processing.  We hand this sucker off to
-     *                        an internal {@link ActionQueue} which handles all these
-     *                        operations asynchronously, so that data is *eventually*
-     *                        written to disk.
+     * @param dbDirectory the directory for a particular domain (*not* the top-level
+     *                     directory).  For example, if the top-level directory is
+     *                     "db", and we're building this for a domain "foo", we
+     *                     might expect to receive "db/foo" here.
      */
-    public DatabaseDiskPersistenceSimpler(Path dbDirectory, ExecutorService executorService, ILogger logger) {
+    public DatabaseDiskPersistenceSimpler(Path dbDirectory, Context context) {
+        actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
+        this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
-        actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, executorService).initialize();
-        this.logger = logger;
-
-        actionQueue.enqueue("create directory" + this.dbDirectory, () -> {
+        actionQueue.enqueue("create directory" + dbDirectory, () -> {
             try {
-                FileUtils.makeDirectory(logger, this.dbDirectory);
+                FileUtils.makeDirectory(logger, dbDirectory);
             } catch (IOException ex) {
                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
             }
@@ -77,6 +62,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      * have offloaded our file writes to [actionQueue], which
      * has an internal thread for serializing all actions
      * on our minum.database
+     * </p>
      */
     public void stop() {
         actionQueue.stop();
@@ -87,7 +73,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      *
      * @param data the data we are writing
      */
-    public void persistToDisk(SimpleDataType<T> data) {
+    public void persistToDisk(ISimpleDataType<T> data) {
         final String fullPath = makeFullPathFromData(data);
         actionQueue.enqueue("persist data to disk", () -> {
             writeString(fullPath, data.serialize());
@@ -103,7 +89,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      *
      * @param data the data we are serializing and writing
      */
-    public void deleteOnDisk(SimpleDataType<T> data) {
+    public void deleteOnDisk(ISimpleDataType<T> data) {
         final String fullPath = makeFullPathFromData(data);
         actionQueue.enqueue("delete data from disk", () -> {
             try {
@@ -119,7 +105,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
         }
 
 
-    public void updateOnDisk(SimpleDataType<T> data) {
+    public void updateOnDisk(ISimpleDataType<T> data) {
         final String fullPath = makeFullPathFromData(data);
         final var file = new File(fullPath);
 
@@ -134,7 +120,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
         });
     }
 
-    private String makeFullPathFromData(SimpleDataType<T> data) {
+    private String makeFullPathFromData(ISimpleDataType<T> data) {
         return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
     }
 
@@ -142,7 +128,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    public List<T> readAndDeserialize(SimpleDataType<T> instance) {
+    public List<T> readAndDeserialize(ISimpleDataType<T> instance) {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return new ArrayList<>();

@@ -1,5 +1,6 @@
 package minum.web;
 
+import minum.TestContext;
 import minum.testing.TestLogger;
 import minum.web.http2.Http2Frame;
 
@@ -12,13 +13,15 @@ import static minum.testing.TestFramework.assertEqualByteArray;
 public class Http2Tests {
 
     private final TestLogger logger;
+    private final TestContext context;
 
-    public Http2Tests(TestLogger logger) {
-        this.logger = logger;
+    public Http2Tests(TestContext context) {
+        this.context = context;
+        this.logger = context.getLogger();
         logger.testSuite("Http2 Tests", "Http2Tests");
     }
 
-    public void test(ExecutorService es) {
+    public void test() {
 
         /*
         We will use this sample request in a few tests to follow
@@ -27,11 +30,13 @@ public class Http2Tests {
                 new Headers(
                         List.of(
                                 "Host: example.org",
-                                "Accept: image/jpeg")),
+                                "Accept: image/jpeg"),
+                        context
+                ),
                 new StartLine(
                         StartLine.Verb.GET,
                         new StartLine.PathDetails("resource", "", Map.of()),
-                        WebEngine.HttpVersion.ONE_DOT_ONE, "GET /resource HTTP/1.1"),
+                        WebEngine.HttpVersion.ONE_DOT_ONE, "GET /resource HTTP/1.1", context),
                 Body.EMPTY,
                 "REMOTE_REQUESTER");
 

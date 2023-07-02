@@ -2,6 +2,7 @@ package minum;
 
 import minum.logging.ILogger;
 import minum.utils.MyThread;
+import minum.utils.StringUtils;
 import minum.web.*;
 
 import java.io.IOException;
@@ -11,7 +12,6 @@ import java.util.List;
 import static minum.testing.RegexUtils.find;
 import static minum.testing.TestFramework.assertEquals;
 import static minum.testing.TestFramework.assertTrue;
-import static minum.web.InputStreamUtils.readLine;
 import static minum.web.StatusLine.StatusCode.*;
 
 /**
@@ -23,11 +23,20 @@ public class FunctionalTests {
     private final ILogger logger;
     final Server primaryServer;
     final WebEngine webEngine;
+    private final Context context;
+    private final StringUtils stringUtils;
+    private final InputStreamUtils inputStreamUtils;
+    private final WebFramework webFramework;
 
     public FunctionalTests(WebFramework wf) {
+        this.webFramework = wf;
         this.logger = wf.getLogger();
+        this.context = wf.getFullSystem().getContext();
         this.primaryServer = wf.getFullSystem().getServer();
-        this.webEngine = new WebEngine(logger, null);
+        this.webEngine = new WebEngine(context);
+        this.stringUtils = new StringUtils(context);
+        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
+
     }
 
     public void test() throws Exception {
@@ -116,15 +125,15 @@ public class FunctionalTests {
             }
             client.sendHttpLine("");
 
-            statusLine = StatusLine.extractStatusLine(readLine(is));
+            statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
 
-            headers = Headers.extractHeaderInformation(is);
+            headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
 
-            BodyProcessor bodyProcessor = new BodyProcessor(logger);
+            BodyProcessor bodyProcessor = new BodyProcessor(context);
 
 
             // Determine whether there is a body (a block of data) in this request
-            if (WebFramework.isThereIsABody(headers)) {
+            if (webFramework.isThereIsABody(headers)) {
                 logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
                 body = bodyProcessor.extractData(is, headers);
             }
@@ -156,14 +165,14 @@ public class FunctionalTests {
             client.sendHttpLine("");
             client.sendHttpLine(payload);
 
-            statusLine = StatusLine.extractStatusLine(readLine(is));
+            statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
 
-            headers = Headers.extractHeaderInformation(is);
+            headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
 
-            BodyProcessor bodyProcessor = new BodyProcessor(logger);
+            BodyProcessor bodyProcessor = new BodyProcessor(context);
 
 
-            if (WebFramework.isThereIsABody(headers)) {
+            if (webFramework.isThereIsABody(headers)) {
                 logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
                 body = bodyProcessor.extractData(is, headers);
             }

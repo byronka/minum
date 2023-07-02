@@ -1,30 +1,44 @@
 package minum.auth;
 
 
-import minum.database.SimpleDataType;
-import minum.database.SimpleSerializable;
+import minum.Context;
+import minum.database.SimpleDataTypeImpl;
+import minum.utils.StringUtils;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
-import static minum.utils.StringUtils.generateSecureRandomString;
-
 /**
  * A record for holding information related to a session. Typically, creation of
  * this should be handled by {@link #createNewSession(long)}
  *
  * For more about this concept, see <a href="https://en.wikipedia.org/wiki/Session_(computer_science)#Web_server_session_management">Web server sessions</a>
- *
- * @param index            a simple numeric identifier that lets us distinguish one record from another
- * @param sessionCode      the sessionCode is a randomly-generated string that will be used
- *                         in a cookie value so requests can authenticate.
- * @param creationDateTime the zoned date and time at which this session was created
  */
-public record SessionId(long index, String sessionCode, ZonedDateTime creationDateTime) implements SimpleDataType<SessionId> {
+public class SessionId extends SimpleDataTypeImpl<SessionId> {
 
-    public static final SessionId EMPTY = new SessionId(0, "", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()));
+    private final long index;
+    private final String sessionCode;
+    private final ZonedDateTime creationDateTime;
+    private final StringUtils stringUtils;
+
+    /**
+     * @param index            a simple numeric identifier that lets us distinguish one record from another
+     * @param sessionCode      the sessionCode is a randomly-generated string that will be used
+     *                         in a cookie value so requests can authenticate.
+     * @param creationDateTime the zoned date and time at which this session was created
+     */
+    public SessionId(long index, String sessionCode, ZonedDateTime creationDateTime, Context context) {
+        super(context);
+
+        this.index = index;
+        this.sessionCode = sessionCode;
+        this.creationDateTime = creationDateTime;
+        this.stringUtils = new StringUtils(context);
+    }
+
+    public static final SessionId EMPTY = new SessionId(0, "", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault()), null);
 
     /**
      * Builds a proper session, with a randomly-generated sessionCode and a creation time.  Just provide the index.
@@ -35,8 +49,9 @@ public record SessionId(long index, String sessionCode, ZonedDateTime creationDa
      * siblings.  For that reason, providing a proper index is the responsibility of the
      * class which manages the whole collection.
      */
-    public static SessionId createNewSession(long index) {
-        return new SessionId(index, generateSecureRandomString(20), ZonedDateTime.now(ZoneId.of("UTC")));
+    public static SessionId createNewSession(long index, Context context) {
+        StringUtils stringUtils1 = new StringUtils(context);
+        return new SessionId(index, stringUtils1.generateSecureRandomString(20), ZonedDateTime.now(ZoneId.of("UTC")), context);
     }
 
     @Override
@@ -44,18 +59,27 @@ public record SessionId(long index, String sessionCode, ZonedDateTime creationDa
         return index;
     }
 
+    public String getSessionCode() {
+        return sessionCode;
+    }
+
+    public ZonedDateTime getCreationDateTime() {
+        return creationDateTime;
+    }
+
     @Override
     public String serialize() {
-        return SimpleSerializable.serializeHelper(index, sessionCode, creationDateTime.toString());
+        return serializeHelper(index, sessionCode, creationDateTime.toString());
     }
 
     @Override
     public SessionId deserialize(String serializedText) {
-        final var tokens = SimpleSerializable.deserializeHelper(serializedText);
+        final var tokens = deserializeHelper(serializedText);
 
         return new SessionId(
                 Long.parseLong(tokens.get(0)),
                 tokens.get(1),
-                ZonedDateTime.parse(Objects.requireNonNull(tokens.get(2))));
+                ZonedDateTime.parse(Objects.requireNonNull(tokens.get(2))),
+                context);
     }
 }
