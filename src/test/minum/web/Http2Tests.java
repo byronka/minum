@@ -1,23 +1,22 @@
 package minum.web;
 
-import minum.TestContext;
+import minum.Context;
 import minum.testing.TestLogger;
 import minum.web.http2.Http2Frame;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import static minum.testing.TestFramework.assertEqualByteArray;
 
 public class Http2Tests {
 
     private final TestLogger logger;
-    private final TestContext context;
+    private final Context context;
 
-    public Http2Tests(TestContext context) {
+    public Http2Tests(Context context) {
         this.context = context;
-        this.logger = context.getLogger();
+        this.logger = (TestLogger) context.getLogger();
         logger.testSuite("Http2 Tests", "Http2Tests");
     }
 

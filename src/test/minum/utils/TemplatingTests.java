@@ -1,6 +1,6 @@
 package minum.utils;
 
-import minum.TestContext;
+import minum.Context;
 import minum.templating.TemplateProcessor;
 import minum.templating.TemplateRenderException;
 import minum.testing.TestLogger;
@@ -14,8 +14,8 @@ import static minum.templating.TemplateProcessor.buildProcessor;
 public class TemplatingTests {
     private final TestLogger logger;
 
-    public TemplatingTests(TestContext context) {
-        this.logger = context.getLogger();
+    public TemplatingTests(Context context) {
+        this.logger = (TestLogger) context.getLogger();
         logger.testSuite("Templating Tests", "TemplatingTests");
     }
 

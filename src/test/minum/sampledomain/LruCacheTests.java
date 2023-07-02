@@ -1,11 +1,10 @@
 package minum.sampledomain;
 
-import minum.TestContext;
+import minum.Context;
 import minum.testing.TestLogger;
 import minum.utils.LRUCache;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import static minum.testing.TestFramework.*;
 
@@ -13,8 +12,8 @@ public class LruCacheTests {
 
     private final TestLogger logger;
 
-    public LruCacheTests(TestContext context) {
-        this.logger = context.getLogger();
+    public LruCacheTests(Context context) {
+        this.logger = (TestLogger) context.getLogger();
         logger.testSuite("LruCache Tests", "LruCacheTests");
     }
 

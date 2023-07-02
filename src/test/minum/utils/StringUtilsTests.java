@@ -1,17 +1,17 @@
 package minum.utils;
 
-import minum.TestContext;
+import minum.Context;
 import minum.testing.TestLogger;
 import static minum.testing.TestFramework.assertEquals;
 
 public class StringUtilsTests {
 
     private final TestLogger logger;
-    private final TestContext context;
+    private final Context context;
 
-    public StringUtilsTests(TestContext context) {
+    public StringUtilsTests(Context context) {
         this.context = context;
-        this.logger = context.getLogger();
+        this.logger = (TestLogger) context.getLogger();
         logger.testSuite("String Utils Tests", "StringUtilsTests");
     }
 

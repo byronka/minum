@@ -20,7 +20,7 @@ public class Tests {
   private void start() {
     try {
       unitAndIntegrationTests();
-//      testFullSystem_Soup_To_Nuts();
+      testFullSystem_Soup_To_Nuts();
       indicateTestsFinished();
     } catch (Exception ex) {
       MyThread.sleep(100);
@@ -51,7 +51,7 @@ public class Tests {
    */
   private void unitAndIntegrationTests() throws Exception {
     ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
-    TestContext context = new TestContext(es, constants);
+    Context context = new Context(es, constants, null);
     TestLogger logger = new TestLogger(context);
     context.setLogger(logger);
 
@@ -60,7 +60,7 @@ public class Tests {
       new LruCacheTests(context).tests();
       new StringUtilsTests(context).tests();
       new TemplatingTests(context).tests();
-//    new Http2Tests(context).test();
+      new Http2Tests(context).test();
       new FullSystemTests(context).tests();
       new StaticFilesCacheTests(context).tests();
       new TheBrigTests(context).tests();

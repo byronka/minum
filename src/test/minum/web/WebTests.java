@@ -1,6 +1,6 @@
 package minum.web;
 
-import minum.TestContext;
+import minum.Context;
 import minum.testing.TestLogger;
 import minum.utils.InvariantException;
 import minum.utils.StringUtils;
@@ -28,19 +28,18 @@ import static minum.web.StatusLine.StatusCode._200_OK;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 
 public class WebTests {
-    private final TestLogger logger;
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
     private final ExecutorService es;
     private final InputStreamUtils inputStreamUtils;
-    private final StringUtils stringUtils;
-    private final TestContext context;
+    private final Context context;
+    private final TestLogger logger;
 
-    public WebTests(TestContext context) {
+    public WebTests(Context context) {
         this.context = context;
-        this.logger = context.getLogger();
+        this.logger = (TestLogger) context.getLogger();
         this.es = context.getExecutorService();
-        this.inputStreamUtils = context.getInputStreamUtils();
-        this.stringUtils = context.getStringUtils();
+        StringUtils stringUtils = new StringUtils(context);
+        this.inputStreamUtils = new InputStreamUtils(context, stringUtils);
         logger.testSuite("Web Tests", "WebTests");
     }
 

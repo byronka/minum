@@ -1,21 +1,20 @@
 package minum.utils;
 
-import minum.TestContext;
+import minum.Context;
 import minum.htmlparsing.*;
 import minum.testing.TestLogger;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import static minum.testing.TestFramework.assertEquals;
 
 public class HtmlParserTests {
     private final TestLogger logger;
 
-    public HtmlParserTests(TestContext context) {
-        this.logger = context.getLogger();
+    public HtmlParserTests(Context context) {
+        this.logger = (TestLogger) context.getLogger();
         logger.testSuite("HtmlParser Tests", "TheBrigTests");
     }
 

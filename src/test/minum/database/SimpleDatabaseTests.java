@@ -1,10 +1,13 @@
 package minum.database;
 
-import minum.TestContext;
+import minum.Context;
+import minum.logging.ILogger;
 import minum.testing.TestLogger;
 import minum.testing.TestRecordingLogger;
+import minum.utils.FileUtils;
 import minum.utils.MyThread;
 import minum.utils.StringUtils;
+import minum.utils.ThrowingRunnable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,11 +24,11 @@ import static minum.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
 public class SimpleDatabaseTests {
     private final TestLogger logger;
     private final ExecutorService es;
-    private final TestContext context;
+    private final Context context;
 
-    public SimpleDatabaseTests(TestContext context) {
+    public SimpleDatabaseTests(Context context) {
         this.context = context;
-        this.logger = context.getLogger();
+        this.logger = (TestLogger) context.getLogger();
         this.es = context.getExecutorService();
         logger.testSuite("SimpleDatabase Tests", "SimpleDatabaseTests");
     }
@@ -124,6 +127,9 @@ public class SimpleDatabaseTests {
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
             final var myLogger = new TestRecordingLogger();
+            // save the old logger and switch in the recording logger
+            ILogger oldLogger = context.getLogger();
+            context.setLogger(myLogger);
             final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
 
             // if we try deleting something that doesn't exist, we get an error shown in the log
@@ -133,40 +139,48 @@ public class SimpleDatabaseTests {
             assertEquals(failureMessage, "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
 
             ddps_throwaway.stop();
+            // replace the regular logger
+            context.setLogger(oldLogger);
         }
 
-//        logger.test("edge cases for deserialization"); {
-//            // what if the directory is missing when try to deserialize?
-//            // note: this would only happen if, after instantiating our ddps,
-//            // the directory gets deleted/corrupted.
-//            final var myLogger = new TestRecordingLogger();
-//            final var emptyFooInstance = new Foo(0, 0, "", context);
-//
-//            // clear out the directory to start
-//            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-//            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
-//            MyThread.sleep(10);
-//
-//            // create an empty file, to create that edge condition
-//            final var pathToSampleFile = foosDirectory.resolve("1.ddps");
-//            Files.createFile(pathToSampleFile);
-//            ddps.readAndDeserialize(emptyFooInstance);
-//            MyThread.sleep(10);
-//            String existsButEmptyMessage = myLogger.findFirstMessageThatContains("file exists but");
-//            assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
-//
-//            // create a corrupted file, to create that edge condition
-//            Files.write(pathToSampleFile, "invalid data".getBytes());
-//            final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance), logger));
-//            assertEquals(ex.getMessage().replace('\\','/'), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
-//
-//            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-//            ddps.readAndDeserialize(emptyFooInstance);
-//            MyThread.sleep(10);
-//            String directoryMissingMessage = myLogger.findFirstMessageThatContains("directory missing").replace('\\', '/');
-//            assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
-//            ddps.stop();
-//        }
+        logger.test("edge cases for deserialization"); {
+            // what if the directory is missing when try to deserialize?
+            // note: this would only happen if, after instantiating our ddps,
+            // the directory gets deleted/corrupted.
+            final var myLogger = new TestRecordingLogger();
+            // save the old logger and switch in the recording logger
+            ILogger oldLogger = context.getLogger();
+            context.setLogger(myLogger);
+
+            final var emptyFooInstance = new Foo(0, 0, "");
+
+            // clear out the directory to start
+            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+            MyThread.sleep(10);
+
+            // create an empty file, to create that edge condition
+            final var pathToSampleFile = foosDirectory.resolve("1.ddps");
+            Files.createFile(pathToSampleFile);
+            ddps.readAndDeserialize(emptyFooInstance);
+            MyThread.sleep(10);
+            String existsButEmptyMessage = myLogger.findFirstMessageThatContains("file exists but");
+            assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
+
+            // create a corrupted file, to create that edge condition
+            Files.write(pathToSampleFile, "invalid data".getBytes());
+            final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance), logger));
+            assertEquals(ex.getMessage().replace('\\','/'), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
+
+            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            ddps.readAndDeserialize(emptyFooInstance);
+            MyThread.sleep(10);
+            String directoryMissingMessage = myLogger.findFirstMessageThatContains("directory missing").replace('\\', '/');
+            assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
+            ddps.stop();
+            // replace the regular logger
+            context.setLogger(oldLogger);
+        }
 
     }
 
