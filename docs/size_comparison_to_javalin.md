@@ -18,9 +18,9 @@ Why did I pick on Javalin?
 Lines of code table
 -------------------
 
-| Minum  | Javalin |
-|--------|---------|
-| 4,799  | 255,384 |
+| Minum | Javalin |
+|-------|---------|
+| 3,315 | 255,384 |
 
 Basis for Javalin's size:
 -------------------------
