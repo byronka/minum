@@ -20,7 +20,6 @@ public class TestContext extends Context {
     /**
      * In order to avoid statics or singletons allow certain objects to be widely
      * available, we'll store them in this class.
-     * @param logger the logger we'll use throughout the system, targeting tests
      * @param executorService the code which controls threads
      * @param constants constants that apply throughout the code, configurable by the
      *                  user in the app.config file.

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 import static minum.testing.TestFramework.*;
@@ -29,11 +30,14 @@ public class SimpleDatabaseTests {
         this.context = context;
         this.logger = context.getLogger();
         this.es = context.getExecutorService();
-        this.stringUtils = new StringUtils(context);
+        this.stringUtils = context.getStringUtils();
         logger.testSuite("SimpleDatabase Tests", "SimpleDatabaseTests");
     }
 
     public void tests() throws IOException {
+
+        final Foo INSTANCE = new Foo(0,0,"", context);
+
         /*
         For any given collection of data, we will need to serialize that to disk.
         We can use some of the techniques we built up using r3z (https://github.com/byronka/r3z) - like
@@ -55,7 +59,7 @@ public class SimpleDatabaseTests {
         logger.test("what about serializing a collection of stuff");{
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x, context)).toList();
             final var serializedFoos = foos.stream().map(Foo::serialize).toList();
-            final var deserializedFoos = serializedFoos.stream().map(Foo.INSTANCE::deserialize).toList();
+            final var deserializedFoos = serializedFoos.stream().map(INSTANCE::deserialize).toList();
             assertEquals(foos, deserializedFoos);
         }
 
@@ -83,7 +87,7 @@ public class SimpleDatabaseTests {
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(20);
-            final var deserializedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
+            final var deserializedFoos = ddps.readAndDeserialize(INSTANCE);
             assertEqualsDisregardOrder(
                     deserializedFoos.stream().map(Foo::toString).toList(),
                     foos.stream().map(Foo::toString).toList());
@@ -100,7 +104,7 @@ public class SimpleDatabaseTests {
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(40);
-            final var deserializedUpdatedFoos = ddps.readAndDeserialize(Foo.INSTANCE);
+            final var deserializedUpdatedFoos = ddps.readAndDeserialize(INSTANCE);
             assertEqualsDisregardOrder(
                     deserializedUpdatedFoos.stream().map(Foo::toString).toList(),
                     updatedFoos.stream().map(Foo::toString).toList());
@@ -189,8 +193,6 @@ public class SimpleDatabaseTests {
             this.stringUtils = new StringUtils(context);
         }
 
-        static final Foo INSTANCE = new Foo(0,0,"", null);
-
         @Override
         public String serialize() {
             return stringUtils.encode(String.valueOf(index)) + " " + stringUtils.encode(String.valueOf(a)) + " " + stringUtils.encode(b);
@@ -208,6 +210,19 @@ public class SimpleDatabaseTests {
             final var rawStringB = stringUtils.decode(serializedText.substring(indexStartOfB));
 
             return new Foo(Integer.parseInt(rawStringIndex), Integer.parseInt(rawStringA), rawStringB, context);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Foo foo = (Foo) o;
+            return index == foo.index && a == foo.a && Objects.equals(b, foo.b);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(index, a, b);
         }
 
         @Override

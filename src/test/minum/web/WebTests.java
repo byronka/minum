@@ -40,7 +40,7 @@ public class WebTests {
         this.logger = context.getLogger();
         this.es = context.getExecutorService();
         this.inputStreamUtils = context.getInputStreamUtils();
-        this.stringUtils = new StringUtils(context);
+        this.stringUtils = context.getStringUtils();
         logger.testSuite("Web Tests", "WebTests");
     }
 

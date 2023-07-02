@@ -13,7 +13,7 @@ public class StringUtilsTests {
     public StringUtilsTests(TestContext context) {
         this.context = context;
         this.logger = context.getLogger();
-        this.stringUtils = new StringUtils(context);
+        this.stringUtils = context.getStringUtils();
         logger.testSuite("String Utils Tests", "StringUtilsTests");
     }
 

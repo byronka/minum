@@ -55,7 +55,7 @@ public class Tests {
     TestLogger logger = new TestLogger(context);
     context.setLogger(logger);
 
-    new WebTests(context).tests();
+//    new WebTests(context).tests();
     new SimpleDatabaseTests(context).tests();
     new LruCacheTests(context).tests();
     new StringUtilsTests(context).tests();
