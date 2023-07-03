@@ -62,6 +62,19 @@ public class Server implements AutoCloseable {
      * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
      */
     public void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
+        ThrowingRunnable<Exception> serverCode = buildMainServerLoop(es, handler);
+        Runnable t = ThrowingRunnable.throwingRunnableWrapper(serverCode, logger);
+        this.centralLoopFuture = es.submit(t);
+    }
+
+    /**
+     * This code is the innermost loop of the server, waiting for incoming
+     * connections and then delegating their handling off to a handler.
+     * @param es The ExecutorService helping us with the threads
+     * @param handler the handler that will take charge immediately after
+     *                a client makes a connection.
+     */
+    private ThrowingRunnable<Exception> buildMainServerLoop(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
         ThrowingRunnable<Exception> serverCode = () -> {
             Thread.currentThread().setName("Main Server");
             try {
@@ -77,36 +90,7 @@ public class Server implements AutoCloseable {
                     logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
                     setOfSWs.add(sw);
                     if (handler != null) {
-                        ThrowingRunnable<Exception> innerServerCode = () -> {
-                            Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
-                            try {
-                                handler.accept(sw);
-                            } catch (SocketException | SocketTimeoutException ex) {
-                                 /*
-                                 if we close the application on the server side, there's a good
-                                 likelihood a SocketException will come bubbling through here.
-                                 NOTE:
-                                   it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
-                                   if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
-                                 */
-                                logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
-                            } catch (ForbiddenUseException ex) {
-                                logger.logDebug(ex::getMessage);
-                            } catch (SSLException ex) {
-                                logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
-                                boolean isLookingForVulnerabilities = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
-                                logger.logDebug(() -> "is " + sw.getRemoteAddr() + " looking for vulnerabilities? " + isLookingForVulnerabilities);
-                                if (isLookingForVulnerabilities) {
-                                    if (theBrig != null && constants.IS_THE_BRIG_ENABLED)
-                                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                                }
-                            } catch (Exception ex) {
-                                // if we hit here, someone has carried out an action down in the gears that we consider hacking-like.
-                                // ban hammer.
-                                if (theBrig != null && constants.IS_THE_BRIG_ENABLED)
-                                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                            }
-                        };
+                        ThrowingRunnable<Exception> innerServerCode = buildExceptionHandlingInnerCore(handler, sw);
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(innerServerCode, logger));
                     }
                 }
@@ -116,8 +100,45 @@ public class Server implements AutoCloseable {
                 }
             }
         };
-        Runnable t = ThrowingRunnable.throwingRunnableWrapper(serverCode, logger);
-        this.centralLoopFuture = es.submit(t);
+        return serverCode;
+    }
+
+    /**
+     * By volume of code, this method is primarily focused on handling the kinds
+     * of exceptional situations that can arise from handling the HTTP communication
+     * with a client.
+     * <p>
+     *     Note that this method *builds* a function but does not run it.
+     * </p>
+     *
+     */
+    ThrowingRunnable<Exception> buildExceptionHandlingInnerCore(ThrowingConsumer<ISocketWrapper, IOException> handler, ISocketWrapper sw) {
+        ThrowingRunnable<Exception> innerServerCode = () -> {
+            Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
+            try {
+                handler.accept(sw);
+            } catch (SocketException | SocketTimeoutException ex) {
+                 /*
+                 if we close the application on the server side, there's a good
+                 likelihood a SocketException will come bubbling through here.
+                 NOTE:
+                   it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
+                   if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
+                 */
+                logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
+            } catch (ForbiddenUseException ex) {
+                logger.logDebug(ex::getMessage);
+            } catch (SSLException ex) {
+                logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
+                boolean isLookingForVulnerabilities = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
+                logger.logDebug(() -> "is " + sw.getRemoteAddr() + " looking for vulnerabilities? " + isLookingForVulnerabilities);
+                if (isLookingForVulnerabilities) {
+                    if (theBrig != null && constants.IS_THE_BRIG_ENABLED)
+                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                }
+            }
+        };
+        return innerServerCode;
     }
 
     public void close() throws IOException {

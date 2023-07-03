@@ -37,7 +37,7 @@ public class TestLogger extends Logger {
             long sumOfTestCaseDurations = ts.testCases.stream().mapToLong(x -> x.duration).sum();
             totalTime += sumOfTestCaseDurations;
             totalCountTests += testCaseStrings.size();
-            String testSuiteString = String.format("\t<testsuite name=\"%s\" time=\"%.2f\" tests=\"%d\">", ts.suiteName, sumOfTestCaseDurations / 1000.0, testCaseStrings.size());
+            String testSuiteString = String.format("\t<testsuite name=\"%s\" time=\"%.2f\" tests=\"%d\">", ts.className(), sumOfTestCaseDurations / 1000.0, testCaseStrings.size());
             sb.append(String.format("%n" + testSuiteString + "%n" + String.join("\n", testCaseStrings) + "%n" + "\t</testsuite>" + "%n"));
         }
         String innerXmlReport = """
@@ -50,13 +50,13 @@ public class TestLogger extends Logger {
         FileUtils.writeString("out/reports/tests/tests.xml", innerXmlReport);
     }
 
-    public void testSuite(String suiteName, String className) {
-        currentTestSuite = new TestSuite(suiteName, className, new ArrayList<>());
+    public void testSuite(String className) {
+        currentTestSuite = new TestSuite(className, new ArrayList<>());
         testSuites.add(currentTestSuite);
     }
 
     record TestCase(String name, long duration) {}
-    record TestSuite(String suiteName, String className, List<TestCase> testCases) {}
+    record TestSuite(String className, List<TestCase> testCases) {}
 
     public TestLogger(Context context) {
         super(context);

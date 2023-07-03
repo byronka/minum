@@ -27,7 +27,7 @@ public class SimpleDatabaseTests {
     public SimpleDatabaseTests(Context context) {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("SimpleDatabase Tests", "SimpleDatabaseTests");
+        logger.testSuite("SimpleDatabaseTests");
     }
 
     public void tests() throws IOException {
@@ -155,8 +155,8 @@ public class SimpleDatabaseTests {
 
             // create a corrupted file, to create that edge condition
             Files.write(pathToSampleFile, "invalid data".getBytes());
-            final var ex = assertThrows(RuntimeException.class, ThrowingRunnable.throwingRunnableWrapper(() -> ddps.readAndDeserialize(emptyFooInstance), logger));
-            assertEquals(ex.getMessage().replace('\\','/'), "java.lang.RuntimeException: Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
+            final var ex = assertThrows(RuntimeException.class, () -> ddps.readAndDeserialize(emptyFooInstance));
+            assertEquals(ex.getMessage().replace('\\','/'), "Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             ddps.readAndDeserialize(emptyFooInstance);

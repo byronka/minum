@@ -190,7 +190,7 @@ public class FullSystem implements AutoCloseable {
             if (sslServer != null) sslServer.close();
 
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all the action queues: " + this.context.getActionQueueList());
-            context.killAllQueues();
+            new ActionQueueKiller(context).killAllQueues();
 
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
         } catch (Exception ex) {

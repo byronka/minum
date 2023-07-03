@@ -3,6 +3,7 @@ package minum;
 import minum.database.SimpleDatabaseTests;
 import minum.sampledomain.LruCacheTests;
 import minum.security.TheBrigTests;
+import minum.testing.TestFrameworkTests;
 import minum.testing.TestLogger;
 import minum.utils.*;
 import minum.web.*;
@@ -66,10 +67,13 @@ public class Tests {
       new StaticFilesCacheTests(context).tests();
       new TheBrigTests(context).tests();
       new HtmlParserTests(context).tests();
+      new TestFrameworkTests(context).tests();
+      new ServerTests(context).tests();
+      new StackTraceUtilsTests(context).tests();
 
     logger.writeTestReport();
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
-    context.killAllQueues();
+    new ActionQueueKiller(context).killAllQueues();
     context.getExecutorService().shutdownNow();
   }
 

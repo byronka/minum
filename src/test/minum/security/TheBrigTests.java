@@ -12,14 +12,12 @@ import static minum.testing.TestFramework.assertTrue;
 public class TheBrigTests {
 
     private final TestLogger logger;
-    private final ExecutorService es;
     private final Context context;
 
     public TheBrigTests(Context context) {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
-        this.es = context.getExecutorService();
-        logger.testSuite("TheBrig Tests", "TheBrigTests");
+        logger.testSuite("TheBrigTests");
     }
 
     public void tests() {

@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
 
+import static minum.utils.Invariants.mustBeTrue;
+
 /**
  * This class converts HTML strings to HTML
  * object trees.
@@ -49,7 +51,7 @@ public class HtmlParser {
      * or when a user chooses to create an empty tag
      * </p>
      */
-    public static List<HtmlParseNode> parse(String input) throws IOException {
+    public List<HtmlParseNode> parse(String input) {
         if (input.length() > MAX_HTML_SIZE)
             throw new ForbiddenUseException("Input exceeds max allowed HTML text size, " + MAX_HTML_SIZE + " chars");
         StringReader stringReader = new StringReader(input);
@@ -58,7 +60,12 @@ public class HtmlParser {
         State state = State.buildNewState();
 
         while (true) {
-            int value = stringReader.read();
+            int value = 0;
+            try {
+                value = stringReader.read();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             // if the value is -1, there's nothing left to read
             if (value < 0) return nodes;
 
@@ -79,7 +86,7 @@ public class HtmlParser {
      * easy to test due to having been built using TDD.  Cold comfort, I know.
      * </p>
      */
-    private static void processState(char currentChar, State state, List<HtmlParseNode> nodes) {
+    private void processState(char currentChar, State state, List<HtmlParseNode> nodes) {
 
         state.charsRead += 1;
 
@@ -141,7 +148,7 @@ public class HtmlParser {
     /**
      * When we've read a less-than sign and are entering an HTML tag.
      */
-    private static void enteringTag(State state) {
+    private void enteringTag(State state) {
         if (state.stringBuilder.length() > 0) {
 
             String textContent = state.stringBuilder.toString();
@@ -166,7 +173,7 @@ public class HtmlParser {
      * Called when we've just hit a greater-than sign and thus
      * exited an HTML tag.
      */
-    private static void exitingTag(State state, List<HtmlParseNode> nodes) {
+    private void exitingTag(State state, List<HtmlParseNode> nodes) {
         processTag(state, nodes);
 
         state.isHalfClosedTag = false;
@@ -182,7 +189,7 @@ public class HtmlParser {
     /**
      * The commonest case when reading characters.  Buckle up.
      */
-    private static void addingToken(State state, char currentChar) {
+    private void addingToken(State state, char currentChar) {
         var hasNotBegunReadingTagName = state.isInsideTag && !state.hasEncounteredTagName;
 
         if (hasNotBegunReadingTagName) {
@@ -330,7 +337,7 @@ public class HtmlParser {
      * comparison to the end tag.  The stack is a key
      * component of how we are able to nest the tags properly.
      */
-    private static void processTag(State state, List<HtmlParseNode> nodes) {
+    private void processTag(State state, List<HtmlParseNode> nodes) {
         String tagNameString = state.tagName;
         TagName tagName;
         String upperCaseToken = tagNameString.toUpperCase(Locale.ROOT);
@@ -370,7 +377,7 @@ public class HtmlParser {
         }
     }
 
-    enum QuoteType {
+    private enum QuoteType {
         SINGLE_QUOTED('\''), DOUBLE_QUOTED('"'), NONE(Character.MIN_VALUE);
 
         public final char literal;
@@ -380,17 +387,16 @@ public class HtmlParser {
         }
 
         public static QuoteType byLiteral(char currentChar) {
+            mustBeTrue(currentChar == '\'' || currentChar == '"', "There are only two valid characters here.");
             if (currentChar == '\'') {
                 return QuoteType.SINGLE_QUOTED;
-            } else if (currentChar == '"') {
+            } else  {
                 return QuoteType.DOUBLE_QUOTED;
-            } else {
-                throw new ParsingException("Error: code was searching for a quote literal with this character: " + currentChar);
             }
         }
     }
 
-    static class State {
+    private static class State {
         static State buildNewState() {
             return new State(0, false, new StringBuilder(), new Stack<>(), false, false, true, false, "", "", new HashMap<>(), QuoteType.NONE, false, false);
         }

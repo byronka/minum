@@ -10,7 +10,7 @@ public class StringUtilsTests {
 
     public StringUtilsTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("String Utils Tests", "StringUtilsTests");
+        logger.testSuite("StringUtilsTests");
     }
 
     public void tests() {

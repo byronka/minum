@@ -10,7 +10,7 @@ public class StaticFilesCacheTests {
 
     public StaticFilesCacheTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("StaticFilesCache Tests", "StaticFilesCacheTests");
+        logger.testSuite("StaticFilesCacheTests");
     }
 
     public void tests() throws IOException {

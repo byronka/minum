@@ -12,7 +12,7 @@ import minum.logging.ILogger;
  * alleviate that situation.
  */
 @FunctionalInterface
-public interface ThrowingRunnable<E extends Exception>{
+public interface ThrowingRunnable<E extends Throwable>{
 
     void run() throws E;
 

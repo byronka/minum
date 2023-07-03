@@ -39,7 +39,7 @@ public class WebTests {
         this.logger = (TestLogger) context.getLogger();
         this.es = context.getExecutorService();
         this.inputStreamUtils = new InputStreamUtils(context);
-        logger.testSuite("Web Tests", "WebTests");
+        logger.testSuite("WebTests");
     }
 
     /*$      /$$           /$$               /$$                           /$$
@@ -119,20 +119,20 @@ public class WebTests {
             }
         }
 
-    /*
-      If we provide some code to handle things on the server
-      side when it accepts a connection, then it will more
-      truly act like the minum.web server we want it to be.
-     */
+        /*
+          If we provide some code to handle things on the server
+          side when it accepts a connection, then it will more
+          truly act like the minum.web server we want it to be.
+         */
         logger.test("starting server with a handler");{
-      /*
-        Simplistic proof-of-concept of the minum.primary server
-        handler.  The socket has been created and as new
-        clients call it, this method handles each request.
+          /*
+            Simplistic proof-of-concept of the minum.primary server
+            handler.  The socket has been created and as new
+            clients call it, this method handles each request.
 
-        There's nothing to prevent us using this as the entire
-        basis of a minum.web minum.testing.
-       */
+            There's nothing to prevent us using this as the entire
+            basis of a minum.web minum.testing.
+           */
             ThrowingConsumer<ISocketWrapper, IOException> handler = (sw) -> {
                 InputStream is = sw.getInputStream();
                 logger.logDebug(() -> inputStreamUtils.readLine(is));
@@ -263,12 +263,12 @@ public class WebTests {
             assertThrows(NoSuchElementException.class, "No value present", () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
         }
 
-    /*
-    as part of sending data to the server, we'll encode data like the following.  if we
-    set value_a to 123 and value_b to 456, it looks like: value_a=123&value_b=456
+        /*
+        as part of sending data to the server, we'll encode data like the following.  if we
+        set value_a to 123 and value_b to 456, it looks like: value_a=123&value_b=456
 
-    we want to convert that string to a map, like this: value_a -> 123, value_b -> 456
-     */
+        we want to convert that string to a map, like this: value_a -> 123, value_b -> 456
+         */
         logger.test("parseUrlEncodedForm should properly parse data");{
             final var expected = Map.of("value_a", "123", "value_b", "456");
             final var result = new BodyProcessor(context).parseUrlEncodedForm("value_a=123&value_b=456");
@@ -461,6 +461,12 @@ public class WebTests {
                     }
                 }
             }
+        }
+
+        logger.test("Headers test - multiple headers"); {
+            Headers headers = new Headers(List.of("foo: a", "foo: b"), context);
+            Map<String, List<String>> myMap = headers.headersAsMap();
+            assertEqualsDisregardOrder(myMap.get("foo"), List.of("a","b"));
         }
 
 

@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
@@ -17,7 +18,6 @@ public class FakeSocketWrapper implements ISocketWrapper {
     public Consumer<String> sendHttpLineAction;
     public Supplier<String> getLocalAddrAction;
     public Supplier<Integer> getLocalPortAction;
-    public Supplier<SocketAddress> getRemoteAddrAction;
     public ByteArrayOutputStream baos;
     public ByteArrayInputStream bais;
 
@@ -53,7 +53,7 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public SocketAddress getRemoteAddrWithPort() {
-        return getRemoteAddrAction.get();
+        return new InetSocketAddress(12345);
     }
 
     @Override

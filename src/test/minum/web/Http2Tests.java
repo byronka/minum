@@ -17,7 +17,7 @@ public class Http2Tests {
     public Http2Tests(Context context) {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("Http2 Tests", "Http2Tests");
+        logger.testSuite("Http2Tests");
     }
 
     public void test() {

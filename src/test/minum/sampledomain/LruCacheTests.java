@@ -14,7 +14,7 @@ public class LruCacheTests {
 
     public LruCacheTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("LruCache Tests", "LruCacheTests");
+        logger.testSuite("LruCacheTests");
     }
 
     public void tests() {

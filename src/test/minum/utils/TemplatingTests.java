@@ -16,7 +16,7 @@ public class TemplatingTests {
 
     public TemplatingTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("Templating Tests", "TemplatingTests");
+        logger.testSuite("TemplatingTests");
     }
 
     public void tests() {

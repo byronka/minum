@@ -51,10 +51,6 @@ public class Headers{
         this.headerStrings = headerStrings;
     }
 
-    public static Headers EMPTY(Context context) {
-        return new Headers(List.of(), context);
-    }
-
     public List<String> getHeaderStrings() {
         return headerStrings;
     }
@@ -95,11 +91,12 @@ public class Headers{
             String key = h.substring(0, indexOfFirstColon).toLowerCase(Locale.ROOT);
             String value = h.substring(indexOfFirstColon+1).trim();
 
-
             if (result.containsKey(key)) {
                 var currentValue = result.get(key);
-                currentValue.add(value);
-                result.put(key, currentValue);
+                List<String> newList = new ArrayList<>();
+                newList.add(value);
+                newList.addAll(currentValue);
+                result.put(key, newList);
             } else {
                 result.put(key, List.of(value));
             }

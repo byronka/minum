@@ -1,8 +1,12 @@
 Minum Framework
 ===============
 
-This code provides all the functionality for a Java web application.
+A web framework demonstrating _"less is more"_.
 
+> It is better to do a simple thing today and pay a little more tomorrow to change it
+> if it needs it, than to do a more complicated thing today that may never be used anyway.
+> 
+> -- Kent Beck, _Extreme Programming Explained_
 
 Features:
 --------
@@ -68,7 +72,7 @@ I benefit from several aspects:
   not just be "configurers" - let's be programmers.  There's a lot we can reasonably 
   undertake - just look at this project for a sense of how little is actually needed
   for functionality when you work with a general-purpose programming language.
-- My typical cycle time of coding plus testing is a few seconds. When your
+- My typical wait time for automated testing is several seconds. When your
   test pipeline is finished in seconds, your development team's productivity keeps humming.
   What enables this is a focus on keeping the tests fast and minimal in number but high
   in value.  If you haven't seen this approach in practice, definitely take a moment

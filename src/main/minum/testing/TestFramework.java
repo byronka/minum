@@ -1,5 +1,7 @@
 package minum.testing;
 
+import minum.utils.ThrowingRunnable;
+
 import java.util.List;
 
 /**
@@ -22,25 +24,25 @@ public class TestFramework {
      *     </code>
      * </pre>
      */
-    public static <T extends Exception> T assertThrows(Class<T> myEx, Runnable r) {
+    public static <T,TESTING extends Exception> T assertThrows(Class<T> myEx, ThrowingRunnable<TESTING> r) {
         return assertThrows(myEx, null, r);
     }
 
     // quick note about the warning suppression - we already checked that the
     // case will be valid, when we checked if (!myEx.isInstance(ex)).
     @SuppressWarnings("unchecked")
-    public static <T extends Exception> T assertThrows(Class<T> myEx, String expectedMsg, Runnable r) {
+    public static <T,TESTING extends Exception> T assertThrows(Class<T> myEx, String expectedMsg, ThrowingRunnable<TESTING> r) {
         try {
             r.run();
-            throw new RuntimeException("Failed to throw exception");
+            throw new TestFailureException("Failed to throw exception");
         } catch (Exception ex) {
             if (!myEx.isInstance(ex)) {
                 String msg = String.format("This did not throw the expected exception type (%s).  Instead, (%s) was thrown", myEx, ex);
-                throw new RuntimeException(msg);
+                throw new TestFailureException(msg);
             }
             if (expectedMsg != null && !ex.getMessage().equals(expectedMsg)) {
                 String msg = String.format("Did not get expected message (%s). Instead, got: %s", expectedMsg, ex.getMessage());
-                throw new RuntimeException(msg);
+                throw new TestFailureException(msg);
             }
             return (T) ex;
         }
@@ -53,7 +55,7 @@ public class TestFramework {
      */
     public static <T> void assertEquals(T left, T right) {
         if (! left.equals(right)) {
-            throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
+            throw new TestFailureException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
         }
     }
 
@@ -61,10 +63,10 @@ public class TestFramework {
      * Compares two byte arrays for equality
      */
     public static void assertEqualByteArray(byte[] left, byte[] right) {
-        if (left == null || right == null) throw new RuntimeException("one of the inputs was null: left:  %s right: %s".formatted(left, right));
-        if (left.length != right.length) throw new RuntimeException("Not equal! left length: %d right length: %d".formatted(left.length, right.length));
+        if (left == null || right == null) throw new TestFailureException("one of the inputs was null: left:  %s right: %s".formatted(left, right));
+        if (left.length != right.length) throw new TestFailureException("Not equal! left length: %d right length: %d".formatted(left.length, right.length));
         for (int i = 0; i < left.length; i++) {
-            if (left[i] != right[i]) throw new RuntimeException("Not equal! at index %d left was: %d right was: %d".formatted(i, left[i], right[i]));
+            if (left[i] != right[i]) throw new TestFailureException("Not equal! at index %d left was: %d right was: %d".formatted(i, left[i], right[i]));
         }
     }
 
@@ -77,14 +79,14 @@ public class TestFramework {
      */
     public static void assertEqualsDisregardOrder(List<? extends CharSequence> left, List<? extends CharSequence> right) {
         if (left.size() != right.size()) {
-            throw new RuntimeException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
+            throw new TestFailureException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
         }
         List<? extends CharSequence> orderedLeft = left.stream().sorted().toList();
         List<? extends CharSequence> orderedRight = right.stream().sorted().toList();
 
         for (int i = 0; i < left.size(); i++) {
             if (!orderedLeft.get(i).equals(orderedRight.get(i))) {
-                throw new RuntimeException(
+                throw new TestFailureException(
                         String.format(
                                 "%n%ndifferent values:%n%nleft:  %s%nright: %s%n%nfull left:%n-----------%n%s%n%nfull right:%n-----------%n%s%n",
                                 orderedLeft.get(i),
@@ -117,12 +119,12 @@ public class TestFramework {
      */
     public static <T> void assertEquals(List<T> left, List<T> right, String failureMessage) {
         if (left.size() != right.size()) {
-            throw new RuntimeException(
+            throw new TestFailureException(
                     String.format("different sizes: left was %d, right was %d. %s", left.size(), right.size(), failureMessage));
         }
         for (int i = 0; i < left.size(); i++) {
             if (!left.get(i).equals(right.get(i))) {
-                throw new RuntimeException(
+                throw new TestFailureException(
                         String.format("different values - left: \"%s\" right: \"%s\". %s", showWhiteSpace(left.get(i).toString()), showWhiteSpace(right.get(i).toString()), failureMessage));
             }
         }
@@ -159,13 +161,13 @@ public class TestFramework {
      */
     public static void assertTrue(boolean value, String failureMessage) {
         if (!value) {
-            throw new RuntimeException("value was unexpectedly false. " + failureMessage);
+            throw new TestFailureException("value was unexpectedly false. " + failureMessage);
         }
     }
 
     public static void assertFalse(boolean value) {
         if (value) {
-            throw new RuntimeException("value was unexpectedly true");
+            throw new TestFailureException("value was unexpectedly true");
         }
     }
 

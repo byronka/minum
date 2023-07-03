@@ -20,7 +20,7 @@ public class FullSystemTests {
         this.logger = (TestLogger) context.getLogger();
         this.es = context.getExecutorService();
         this.context = context;
-        logger.testSuite("FullSystem Tests", "FullSystemTests");
+        logger.testSuite("FullSystemTests");
     }
 
     /*

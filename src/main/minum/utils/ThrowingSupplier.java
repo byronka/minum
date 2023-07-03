@@ -14,7 +14,7 @@ import java.util.function.Supplier;
  * alleviate that situation.
  */
 @FunctionalInterface
-public interface ThrowingSupplier<T, E extends Exception>{
+public interface ThrowingSupplier<T, E extends Throwable>{
 
     T get() throws E;
 

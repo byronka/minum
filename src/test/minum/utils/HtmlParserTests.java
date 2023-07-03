@@ -9,13 +9,15 @@ import java.util.List;
 import java.util.Map;
 
 import static minum.testing.TestFramework.assertEquals;
+import static minum.testing.TestFramework.assertThrows;
+import static minum.utils.ThrowingRunnable.throwingRunnableWrapper;
 
 public class HtmlParserTests {
     private final TestLogger logger;
 
     public HtmlParserTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("HtmlParser Tests", "TheBrigTests");
+        logger.testSuite("TheBrigTests");
     }
 
     public void tests() throws IOException {
@@ -28,7 +30,7 @@ public class HtmlParserTests {
                             new TagInfo(TagName.BR, Map.of("foo", "bar")),
                             List.of(),
                             ""));
-            List<HtmlParseNode> result = HtmlParser.parse(input);
+            List<HtmlParseNode> result = new HtmlParser().parse(input);
             assertEquals(expected, result);
         }
 
@@ -40,7 +42,7 @@ public class HtmlParserTests {
                             new TagInfo(TagName.DOCTYPE, Map.of("html", "")),
                             List.of(),
                             ""));
-            List<HtmlParseNode> result = HtmlParser.parse(input);
+            List<HtmlParseNode> result = new HtmlParser().parse(input);
             assertEquals(expected, result);
         }
 
@@ -57,13 +59,10 @@ public class HtmlParserTests {
                                     "Stock Prices"
                             )),
                             ""));
-            List<HtmlParseNode> result = HtmlParser.parse(input);
+            List<HtmlParseNode> result = new HtmlParser().parse(input);
             assertEquals(expected, result);
         }
 
-        /*
-        Initial stab at html parsing, round 2
-         */
         logger.test("initial happy path MVP html parsing");
         {
             String input = "<!DOCTYPE html><p class=\"baz biz\" id=\"wut\" fee=fi>foo<h1></h1></p><p></p><br foo=bar />";
@@ -100,10 +99,25 @@ public class HtmlParserTests {
                             List.of(),
                             ""));
 
-            var nodes = HtmlParser.parse(input);
-            var nodesWithSingleTicks = HtmlParser.parse(inputWithSingleTicks);
+            var nodes = new HtmlParser().parse(input);
+            var nodesWithSingleTicks = new HtmlParser().parse(inputWithSingleTicks);
             assertEquals(expected, nodes);
             assertEquals(expected, nodesWithSingleTicks);
+        }
+
+        /*
+            ********************
+                 EDGE CASES
+            ********************
+
+         */
+
+        logger.test("Invalid HTML tag"); {
+            assertThrows(ParsingException.class, () -> new HtmlParser().parse("<foo></foo>"));
+        }
+
+        logger.test("Invalid closing tag"); {
+            assertThrows(ParsingException.class, () -> new HtmlParser().parse("<foo></bar>"));
         }
 
     }
