@@ -3,7 +3,6 @@ package minum.database;
 import minum.Context;
 import minum.logging.ILogger;
 import minum.testing.TestLogger;
-import minum.testing.TestRecordingLogger;
 import minum.utils.FileUtils;
 import minum.utils.MyThread;
 import minum.utils.StringUtils;
@@ -124,32 +123,21 @@ public class SimpleDatabaseTests {
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
-            final var myLogger = new TestRecordingLogger();
-            // save the old logger and switch in the recording logger
-            ILogger oldLogger = context.getLogger();
-            context.setLogger(myLogger);
             final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
 
             // if we try deleting something that doesn't exist, we get an error shown in the log
             ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
             MyThread.sleep(10);
-            String failureMessage = myLogger.findFirstMessageThatContains("failed to").replace('\\', '/');
+            String failureMessage = logger.findFirstMessageThatContains("failed to").replace('\\', '/');
             assertEquals(failureMessage, "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
 
             ddps_throwaway.stop();
-            // replace the regular logger
-            context.setLogger(oldLogger);
         }
 
         logger.test("edge cases for deserialization"); {
             // what if the directory is missing when try to deserialize?
             // note: this would only happen if, after instantiating our ddps,
             // the directory gets deleted/corrupted.
-            final var myLogger = new TestRecordingLogger();
-            // save the old logger and switch in the recording logger
-            ILogger oldLogger = context.getLogger();
-            context.setLogger(myLogger);
-
             final var emptyFooInstance = new Foo(0, 0, "");
 
             // clear out the directory to start
@@ -162,7 +150,7 @@ public class SimpleDatabaseTests {
             Files.createFile(pathToSampleFile);
             ddps.readAndDeserialize(emptyFooInstance);
             MyThread.sleep(10);
-            String existsButEmptyMessage = myLogger.findFirstMessageThatContains("file exists but");
+            String existsButEmptyMessage = logger.findFirstMessageThatContains("file exists but");
             assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
 
             // create a corrupted file, to create that edge condition
@@ -173,11 +161,9 @@ public class SimpleDatabaseTests {
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             ddps.readAndDeserialize(emptyFooInstance);
             MyThread.sleep(10);
-            String directoryMissingMessage = myLogger.findFirstMessageThatContains("directory missing").replace('\\', '/');
+            String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing").replace('\\', '/');
             assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
             ddps.stop();
-            // replace the regular logger
-            context.setLogger(oldLogger);
         }
 
     }

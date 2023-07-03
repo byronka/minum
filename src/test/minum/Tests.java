@@ -7,6 +7,7 @@ import minum.testing.TestLogger;
 import minum.utils.*;
 import minum.web.*;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
@@ -78,7 +79,12 @@ public class Tests {
    */
   private void testFullSystem_Soup_To_Nuts() throws Exception {
     System.out.println("Starting a soup-to-nuts tests of the full system");
-    var wf = FullSystem.initialize();
+    var constants = new Constants();
+    final var es = ExtendedExecutor.makeExecutorService(constants);
+    var fs = new FullSystem(es, constants);
+    TestLogger testLogger = new TestLogger(fs.getContext());
+    fs.getContext().setLogger(testLogger);
+    var wf = fs.start().getWebFramework();
     new TheRegister(wf).registerDomains();
     new FunctionalTests(wf).test();
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), wf.getLogger());

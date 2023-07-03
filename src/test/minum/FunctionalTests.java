@@ -1,6 +1,7 @@
 package minum;
 
 import minum.logging.ILogger;
+import minum.testing.TestLogger;
 import minum.utils.MyThread;
 import minum.utils.StringUtils;
 import minum.web.*;
@@ -98,6 +99,24 @@ public class FunctionalTests {
             // if we try to upload a name on the sampledomain auth, we're prevented
             assertEquals(post("testform", "foo=bar").statusLine().status(), _401_UNAUTHORIZED);
 
+            // *********** ERROR HANDLING SECTION *****************
+            // if we try sending too many characters on a line, it should block us
+            try (var client = webEngine.startClient(primaryServer)) {
+                // send a GET request
+                client.sendHttpLine("a".repeat(context.getConstants().MAX_READ_LINE_SIZE_BYTES + 1));
+            }
+
+            // remember, we're the client, we don't have immediate access to the server here.  So,
+            // we have to wait for it to get through some processing before we check.
+            MyThread.sleep(50);
+            String failureMsg = ((TestLogger)logger).findFirstMessageThatContains("in readLine");
+            assertEquals(failureMsg, "in readLine, client sent more bytes than allowed.  Current max: 200");
+
+            // if we try sending a request that looks like an attack, block the client
+            assertEquals(get("version").statusLine().status(), _404_NOT_FOUND);
+            MyThread.sleep(50);
+            String vulnMsg = ((TestLogger)logger).findFirstMessageThatContains("looking for a vulnerability? true");
+            assertTrue(vulnMsg.contains("looking for a vulnerability? true"), "expect to find correct error in this: " + vulnMsg);
         }
 
     }

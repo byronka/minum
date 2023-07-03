@@ -2,13 +2,15 @@ package minum.testing;
 
 import minum.Context;
 import minum.logging.Logger;
+import minum.logging.LoggingLevel;
 import minum.utils.FileUtils;
+import minum.utils.ThrowingSupplier;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * This implementation of {@link Logger} has a few
@@ -23,6 +25,8 @@ public class TestLogger extends Logger {
     private final List<TestSuite> testSuites;
     private String previousTestName;
     private TestSuite currentTestSuite;
+    private Queue<String> last20Lines;
+    private final int MAX_CACHE_SIZE = 30;
 
     /**
      * Writes a Junit-style xml file to out/reports/tests/tests.xml
@@ -61,9 +65,72 @@ public class TestLogger extends Logger {
         super(context);
         this.testSuites = new ArrayList<>();
         this.stopWatch = new StopwatchUtils();
+        this.last20Lines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
     }
 
     private int testCount = 1;
+
+    private String extractMessage(ThrowingSupplier<String, Exception> msg) {
+        String receivedMessage;
+        try {
+            receivedMessage = msg.get();
+        } catch (Exception ex) {
+            receivedMessage = "EXCEPTION DURING GET: " + ex;
+        }
+        return receivedMessage;
+    }
+
+    /**
+     * Keeps a record of the recently-added log messages, which is
+     * useful for some tests.
+     */
+    private void addToCache(ThrowingSupplier<String, Exception> msg) {
+        String message = extractMessage(msg);
+        while (last20Lines.size() >= (MAX_CACHE_SIZE-5)) last20Lines.remove();
+        last20Lines.add(message);
+    }
+
+    @Override
+    public synchronized void logDebug(ThrowingSupplier<String, Exception> msg) {
+        addToCache(msg);
+        super.logDebug(msg);
+    }
+
+    @Override
+    public synchronized void logTrace(ThrowingSupplier<String, Exception> msg) {
+        addToCache(msg);
+        super.logTrace(msg);
+    }
+
+    @Override
+    public synchronized void logAudit(ThrowingSupplier<String, Exception> msg) {
+        addToCache(msg);
+        super.logAudit(msg);
+    }
+
+    @Override
+    public synchronized void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        addToCache(msg);
+        super.logAsyncError(msg);
+    }
+
+    /**
+     * Provides an ability to search over the recent past log messages,
+     * case-insensitively.
+     */
+    public String findFirstMessageThatContains(String value) {
+        var lineList = last20Lines.stream().toList();
+        var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
+        int size = values.size();
+        if (size == 0) {
+            throw new RuntimeException(value + " was not found in " + lineList);
+        } else if (size == 1) {
+            return values.get(0);
+        } else if (size >= 2) {
+            throw new RuntimeException("multiple values found: " + values);
+        }
+        throw new RuntimeException("Shouldn't be possible to get here.");
+    }
 
     /**
      * A little helper function to log a test title prefixed with "TEST:"
