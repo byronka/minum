@@ -5,7 +5,7 @@ _(all lines of code are production - non-test-code)_
 
 used [cloc](https://github.com/AlDanial/cloc/) for lines-of-code calculations. 
 
-Javalin is 53 times the size of Minum when you take its dependencies into account.
+[Javalin](https://javalin.io/) is 77 times the size of Minum when you take its dependencies into account.
 
 Why did I pick on Javalin?
 
