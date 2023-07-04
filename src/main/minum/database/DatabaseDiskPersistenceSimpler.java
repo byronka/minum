@@ -71,6 +71,14 @@ public class DatabaseDiskPersistenceSimpler<T> {
     }
 
     /**
+     * Similar to {@link #stop()} but gives more control over how long
+     * we'll wait before crashing it closed.  See {@link ActionQueue#stop(int, int)}
+     */
+    public void stop(int count, int sleepTime) {
+        actionQueue.stop(count, sleepTime);
+    }
+
+    /**
      * takes any serializable data and writes it to disk
      *
      * @param data the data we are writing

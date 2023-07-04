@@ -2,6 +2,7 @@ package minum.database;
 
 import minum.Context;
 import minum.logging.ILogger;
+import minum.testing.StopwatchUtils;
 import minum.testing.TestLogger;
 import minum.utils.FileUtils;
 import minum.utils.MyThread;
@@ -165,6 +166,61 @@ public class SimpleDatabaseTests {
             assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
             ddps.stop();
         }
+
+
+        /**
+         * When this is looped a million times, it takes 500 milliseconds to finish
+         * making the updates in memory.  It takes a couple minutes later for it to
+         * finish getting those changes persisted to disk.
+         *
+         * a million writes in 500 milliseconds means 2 million writes in one sec.
+         *
+         * I wonder ... what if we don't write to disk for every update, but instead
+         * delay a second?  All we really care about is that the disk represents
+         * the data at a point in time, there's no value in being eager... be lazy.
+         *
+         * If I write to disk, do it a second later, but in the meantime, if anything
+         * else comes along with the same identifier, let it overwrite and reset
+         * the save timer to a second.
+         */
+        logger.test("Just how fast is our minum.database?");{
+            // clear out the directory to start
+            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+            MyThread.sleep(10);
+
+            final var foos = new ArrayList<Foo>();
+
+            // write the foos
+            for (int i = 0; i < 10; i++) {
+                final var newFoo = new Foo(i, i + 1, "original");
+                foos.add(newFoo);
+                ddps.persistToDisk(newFoo);
+            }
+
+            // change the foos
+            final var outerTimer = new StopwatchUtils().startTimer();
+            final var innerTimer = new StopwatchUtils().startTimer();
+            for (var i = 1; i < 10; i++) {
+                final var newFoos = new ArrayList<Foo>();
+                /*
+                loop through the old foos and update them to new values,
+                creating a new list in the process.  There should only
+                ever be 10 foos.
+                 */
+                for (var foo : foos) {
+                    final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+                    newFoos.add(newFoo);
+                    ddps.persistToDisk(newFoo);
+                }
+            }
+            logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
+            ddps.stop(100, 1000);
+            logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
+        }
+
+
+
 
     }
 

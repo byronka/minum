@@ -27,6 +27,7 @@ Quick start:
 * To create a library jar: `make jar`
 * For help: `make help`
 
+See [Dependencies](#system-requirements-)
 
 Example projects demonstrating usage:
 -------------------------------------
@@ -47,8 +48,8 @@ I would be proud to use for future work.
 I benefit from several aspects:
 
 - The binary is tiny - 150 kilobytes.  That includes the database code, the web server,
-  the templating library, the logging utilities, the HTML parsing library.  The example
-  projects show how to continue that pattern with the business logic so that the total
+  the templating library, the logging utilities, the HTML parsing library.  The [example projects](#example-projects-demonstrating-usage-)
+  show how to continue that pattern with the business logic so that the total
   remains small.  With such a small size, everything becomes faster - moving
   the project onto your production server takes just a couple seconds.  That's part of
   how I am able to type a command and have new code running on the production server just
@@ -79,7 +80,7 @@ I benefit from several aspects:
   to read through it here.
 - It is decently performant, because performance has been a target from inception. For example, 
   it can handle 9000 web requests per second. The database can perform 1 _million_ writes per 
-  second.  The templating engine did 27,000 renderings per second.
+  second.  The [templating engine](docs/perf_data/templateRenderTest.txt) crunched 27,000 renderings per second.
 - It can run on a low-performance machine.  This saves me a lot of money, since I can 
   run on the free tier for cloud providers, and only need one computer.
 - Embraces the bleeding edge of Java technology, like virtual threads.

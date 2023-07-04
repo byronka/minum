@@ -1,0 +1,231 @@
+img {
+  height: 200px;
+}
+
+img#pic {
+ float: right; 
+ margin: 25px; 
+ height: 276px
+}
+
+.tools-and-languages {
+  column-count: 4;
+}
+
+.date {
+    text-align: right;
+}
+
+.entry {
+  padding-left: 6px;
+  padding-right: 3px;
+}
+
+hr {
+    margin-top: 50px;
+    margin-bottom: 50px;
+    margin-left: 10%;
+    margin-right: 10%;
+}
+
+body {
+    font-family: "serif";
+    font-size: larger;
+    background-color: #f7f7f8;
+}
+
+.content-interior {
+    text-align: center;
+}
+
+.content-header {
+    font-family: sans-serif;
+    font-weight: 700;
+}
+
+.content-subheader {
+    font-style: italic;
+    padding-left: 20px;
+}
+
+pre {
+  border: 4px dashed gray;
+  padding: 10px 5px 10px 10px;
+	font-size: 10pt;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.content-body {
+    line-height: 1.2em;
+}
+
+.quote {
+    padding-left: 5%;
+    padding-right: 5%;
+    margin-bottom: 0.5em;
+    font-size: 12px;
+}
+
+.prime {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    border:  double gray;
+    max-width: 690px;
+    min-width: 300px;
+    background-color: white;
+}
+
+li.menu_item {
+    list-style-type:none;
+    margin:0;
+    padding-left:10px;
+    padding-right:10px;
+    display: inline;
+    font: 16px monospace;
+    text-align: center;
+}
+
+ul.navmenu {
+    display: block;
+    text-align: center;
+    padding: 0px;
+}
+
+li.menu_item a{
+    text-decoration: none;
+}
+
+li.menu_item a:hover{
+    text-decoration: underline;
+}
+
+.secondary {
+    margin: 10px;
+}
+
+.content_interior {
+    margin-left: 3%;
+    margin-right: 3%;
+}
+
+.content {
+    margin: 0.5%;
+    border: 1px solid grey;
+}
+
+a {
+    color: inherit;
+}
+
+h2 {
+  margin-bottom: 0;
+}
+
+a:visited {
+    color: grey;
+}
+
+div.banner h2.titleheader a {
+    color: inherit;
+    text-decoration: none;
+}
+
+div.banner h2.titleheader a:visited {
+    color: inherit;
+    text-decoration: none;
+}
+
+.hideable {
+  display: initial;
+}
+
+.hideable.hide {
+  display: none;
+}
+
+.nesting_1 {
+  position: relative;
+  left: 20px;
+}
+
+@media screen and (max-width: 500px) {
+
+   body {
+     margin: 0;
+   }
+
+  .prime {
+      margin-top: 0;
+      border:  none;
+  }
+
+  .secondary {
+      margin: 0;
+  }
+
+  img#pic {
+    height: 100px;
+  }
+
+
+  .tools-and-languages {
+    column-count: 2;
+  }
+}
+
+ @media print {
+
+   input, label {
+    display: none;
+   }
+
+   p, .company {
+     break-inside: avoid-page; 
+   }
+
+   body {
+     margin: 0;
+     font-family: "serif";
+     font-size: smaller;
+     background-color: initial;
+   }
+
+   pre {
+     border: none;
+     padding: 0;
+     font-size: inherit;
+     overflow-x: inherit;
+     overflow-y: inherit;
+     max-height: initial;
+   }
+
+    .prime {
+      margin-left: 0;
+      margin-right:0;
+      margin-top: 0;
+      border:  none;
+      max-width: initial;
+      min-width: initial;
+      background-color: initial;
+    }
+
+    .secondary {
+        margin: 0;
+    }
+
+    .content.banner, .content.nav {
+       display: none;
+    }
+
+    .content-body {
+        line-height: initial;
+    }
+
+    .content {
+        margin: 0;
+        border: none;
+    }
+ }

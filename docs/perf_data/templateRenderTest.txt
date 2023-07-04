@@ -1,37 +1,58 @@
 
 /*
-Just how fast is it to use string templating the way we are?
+This test is based on a benchmark comparison project I found at https://github.com/mbosecke/template-benchmark
 
-rendering the template took 1593 milliseconds
-     ''            ''       1413 milliseconds
-     ''            ''       1409 milliseconds
-     ''            ''       1425 milliseconds
-     ''            ''       1404 milliseconds
-     ''            ''       1424 milliseconds
-     ''            ''       1412 milliseconds
-     ''            ''       1410 milliseconds
-     ''            ''       1409 milliseconds
-     ''            ''       1419 milliseconds
-     ''            ''       1419 milliseconds
-     ''            ''       1419 milliseconds
-     ''            ''       1470 milliseconds
-     ''            ''       1471 milliseconds
-     ''            ''       1484 milliseconds
+It's all about stocks.  It uses ordinary-sized text.
 
-the average was 1438 for 1 million renders, which
-equals 0.0014 milliseconds per render - which is fine.
-That's 695,410 renderings per second.
+The results: pretty stable at 27,000 templates rendered per second.
 
-That's
+For comparison, the referenced project shows this for other well-known Java template systems:
+
+Benchmark   Score(renderings / sec)
+Freemarker  15370
+Handlebars  17779
+Mustache    22164
+Pebble      32530
+Rocker      39739
+Thymeleaf   1084
+Trimou      22787
+Velocity    20835
+
+Notes:
+Mustache: mentioned as really simple. 124 classes and 11,346 lines of
+          code.  " I always liked Mustache because of its simplicity -
+          it’s "just enough" templating - and you really couldn’t wish
+          for a cleaner, leaner, more lightweight library than this one,
+          if you have to render templates in the JVM"
+          - https://spring.io/blog/2016/11/21/the-joy-of-mustache-server-side-templates-for-the-jvm
+
+Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
+Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
+
+
+My templating code is 69 lines of code.
  */
-logger.test("Performance for string templating"); {
-    var personTemplateHtml = FileUtils.readTemplate("person/person_add.html");
-    for (int j = 0; j < 15; j++) {
-        StopWatch stopWatch = new StopWatch().startTimer();
-        for (int i = 0; i < 1_000_000; i++) {
-            var a = String.format(personTemplateHtml, "", "", "", "", "", "", "", "");
-        }
-        var time = stopWatch.stopTimer();
-        logger.testPrint("rendering the template took " + time + " milliseconds");
+logger.test("template for a more realistic input");
+{
+    var individualStockProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("templatebenchmarks/individual_stock.html"));
+    var stockPrices = TemplateProcessor.buildProcessor(FileUtils.readTemplate("templatebenchmarks/stock_prices.html"));
+    var expectedOutput = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
+
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < Stock.dummyItems().size(); i++) {
+        Stock stock = Stock.dummyItems().get(i);
+        String renderedIndividualStock = individualStockProcessor.renderTemplate(Map.of(
+                "class", i % 2 == 0 ? "even" : "odd",
+                "index", String.valueOf(i + 1),
+                "symbol", stock.getSymbol(),
+                "url", stock.getUrl(),
+                "name", stock.getName(),
+                "price", String.valueOf(stock.getPrice()),
+                "is_minus", stock.getPrice() < 0 ? " class=\"minus\"" : "",
+                "change", String.valueOf(stock.getChange()),
+                "ratio", String.valueOf(stock.getRatio())
+        ));
+        sb.append(renderedIndividualStock);
     }
+    String result = stockPrices.renderTemplate(Map.of("individual_stocks", sb.toString()));
 }

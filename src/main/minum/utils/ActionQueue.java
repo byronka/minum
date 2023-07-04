@@ -75,6 +75,23 @@ public class ActionQueue {
     }
 
     /**
+     * Stops the action queue
+     * @param count how many loops to wait before we crash it closed
+     * @param sleepTime how long to wait in milliseconds between loops
+     */
+    public void stop(int count, int sleepTime) {
+        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
+        stop = true;
+        for (int i = 0; i < count; i++) {
+            int size = queue.size();
+            if (!(size > 0)) return;
+            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
+            MyThread.sleep(sleepTime);
+        }
+        System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
+    }
+
+    /**
      * This will prevent any new actions being
      * queued (by setting the stop flag to true and thus
      * causing an exception to be thrown
@@ -82,15 +99,7 @@ public class ActionQueue {
      * block until the queue is empty.
      */
     public void stop() {
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
-        stop = true;
-        for (int i = 0; i < 5; i++) {
-            int size = queue.size();
-            if (!(size > 0)) return;
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
-            MyThread.sleep(20);
-        }
-        System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
+        stop(5, 20);
     }
 
     @Override

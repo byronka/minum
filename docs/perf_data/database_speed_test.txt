@@ -1,3 +1,14 @@
+The distinction of our database is that the data values are of a particular type,
+SimpleDataTypeImpl, which provide support for disk persistence.  Otherwise, they
+are treated just like any ordinary data and can be arranged in any collection
+shape you could wish - trees, lists, whatever.
+
+Thus, the performance test is just a matter of determining how quickly we
+are able to build these objects.
+
+There is a second piece to the process, where the data is sent off to an
+ActionQueue to be written to disk,
+
 /*
  * In this test, we'll turn off disk-syncing.
  *

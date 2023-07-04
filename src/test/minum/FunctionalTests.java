@@ -99,6 +99,11 @@ public class FunctionalTests {
             // if we try to upload a name on the sampledomain auth, we're prevented
             assertEquals(post("testform", "foo=bar").statusLine().status(), _401_UNAUTHORIZED);
 
+            // request a static asset
+            TestResponse staticResponse = get("main.css");
+            assertEquals(staticResponse.headers.contentType(), "Content-Type: text/css");
+            assertTrue(staticResponse.body().asString().contains("margin-left: 0;"));
+
             // *********** ERROR HANDLING SECTION *****************
             // if we try sending too many characters on a line, it should block us
             try (var client = webEngine.startClient(primaryServer)) {
@@ -111,11 +116,6 @@ public class FunctionalTests {
             MyThread.sleep(50);
             String failureMsg = ((TestLogger)logger).findFirstMessageThatContains("in readLine");
             assertEquals(failureMsg, "in readLine, client sent more bytes than allowed.  Current max: 200");
-
-            // request a static asset
-            TestResponse staticResponse = get("main.css");
-            assertEquals(staticResponse.headers.contentType(), "Content-Type: text/css");
-            assertTrue(staticResponse.body().asString().contains("margin-left: 0;"));
 
             // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
             // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
