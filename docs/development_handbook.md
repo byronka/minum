@@ -124,35 +124,40 @@ tree of tests in a procedural fashion.  See main() in the Tests class.
 There's really not much magic here - the trick is to follow the conventions.  The TestLogger
 class has a method that we use to document each test.  For example, here's a test:
 
-        logger.test("client / server");{
-            try (Server primaryServer = webEngine.startServer(es)) {
-                try (SocketWrapper client = webEngine.startClient(primaryServer)) {
-                    try (SocketWrapper server = primaryServer.getServer(client)) {
-                        InputStream is = server.getInputStream();
+```java
+logger.test("client / server");{
+    try (Server primaryServer = webEngine.startServer(es)) {
+        try (SocketWrapper client = webEngine.startClient(primaryServer)) {
+            try (SocketWrapper server = primaryServer.getServer(client)) {
+                InputStream is = server.getInputStream();
 
-                        client.send("hello foo!\n");
-                        String result = readLine(is);
-                        assertEquals("hello foo!", result);
-                    }
-                }
+                client.send("hello foo!\n");
+                String result = readLine(is);
+                assertEquals("hello foo!", result);
             }
         }
+    }
+}
+```
 
 Notice that the first line has a semicolon and a curly brace at the end.  The reason for
 this is that IDE's will allow us to fold the code between braces, and so this just comes out
 looking great:
 
+```java
     + ---   logger.test("client / server");{...}
-
+```
 No magic, just tidy.
 
 The assertions are similarly minimalistic.  Here's assertEquals:
 
-    public static <T> void assertEquals(T left, T right) {
-        if (! left.equals(right)) {
-            throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
-        }
+```java
+public static <T> void assertEquals(T left, T right) {
+    if (! left.equals(right)) {
+        throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
     }
+}
+```
 
 The rest of the testing framework is about the same.  It's never simple,
 but we can choose to work with fewer tools.
@@ -181,7 +186,7 @@ But what if you started with much less?
 In the paradigm here, you are given a scarce minimum of abilities.  Here's an example where we
 create a new user in a registration process:
 
-```
+```java
     private final List<User> users;
     
     ...
@@ -229,10 +234,11 @@ called `registerPath()`.
 The commonly used verbs GET and POST are available.  The function you provide must be
 similar to this:
 
-    Response getFoo(Request r) {
-        ...
-    }
-
+```java
+Response getFoo(Request r) {
+    ...
+}
+```
 
 Security
 --------
@@ -271,20 +277,25 @@ a template, wherever you intend to substitute values, use a syntax like this:
 Once your template is written, you'll need to load the file, like this (note that
 the filetype of html is random - it could be any text file):
 
-    String template = FileUtils.readTemplate("foo/bar.html");
+```java
+String template = FileUtils.readTemplate("foo/bar.html");
+```
 
 Now that you have the string, you run a command one time to convert it to a form
 that is suitable for fast processing:
 
-    fooProcessor = TemplateProcessor.buildProcessor(template);
+```java
+fooProcessor = TemplateProcessor.buildProcessor(template);
+```
 
 And now you can render a template like this:
 
-    String renderedFoo = fooProcessor.renderTemplate(Map.of(
-        "beep", getBeepValue(),
-        "boop", 2 + 2
-    ));
-
+```java
+String renderedFoo = fooProcessor.renderTemplate(Map.of(
+    "beep", getBeepValue(),
+    "boop", 2 + 2
+));
+```
 
 Writing to files
 ----------------
@@ -298,34 +309,37 @@ The steps to this are:
 2. Create the path for a sub-directory: `photoDirectory = dbDir.resolve("photo_files");
 3. Make a directory:
 
-
-    try {
-        FileUtils.makeDirectory(logger, photoDirectory);
-    } catch (IOException e) {
-        logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-    }
+```java
+try {
+    FileUtils.makeDirectory(logger, photoDirectory);
+} catch (IOException e) {
+    logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
+}
+```
 
 4. Then you can use that to write files, maybe like this:
 
-
-        Path photoPath = photoDirectory.resolve(newFilename);
-        try {
-            Files.write(photoPath, photoBytes);
-        } catch (IOException e) {
-            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-            return new Response(_500_INTERNAL_SERVER_ERROR, e.toString());
-        }
-
+```java
+Path photoPath = photoDirectory.resolve(newFilename);
+try {
+    Files.write(photoPath, photoBytes);
+} catch (IOException e) {
+    logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
+    return new Response(_500_INTERNAL_SERVER_ERROR, e.toString());
+}
+```
 
 Authentication
 --------------
 
 Authentication is handled like follows:
 
-        AuthResult authResult = auth.processAuth(request);
-        if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED);
-        }
+```java
+AuthResult authResult = auth.processAuth(request);
+if (! authResult.isAuthenticated()) {
+    return new Response(_401_UNAUTHORIZED);
+}
+```
 
 Avoidance of null
 -----------------
