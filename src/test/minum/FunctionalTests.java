@@ -112,11 +112,19 @@ public class FunctionalTests {
             String failureMsg = ((TestLogger)logger).findFirstMessageThatContains("in readLine");
             assertEquals(failureMsg, "in readLine, client sent more bytes than allowed.  Current max: 200");
 
+            // request a static asset
+            TestResponse staticResponse = get("main.css");
+            assertEquals(staticResponse.headers.contentType(), "Content-Type: text/css");
+            assertTrue(staticResponse.body().asString().contains("margin-left: 0;"));
+
+            // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
+            // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
             // if we try sending a request that looks like an attack, block the client
             assertEquals(get("version").statusLine().status(), _404_NOT_FOUND);
             MyThread.sleep(50);
             String vulnMsg = ((TestLogger)logger).findFirstMessageThatContains("looking for a vulnerability? true");
             assertTrue(vulnMsg.contains("looking for a vulnerability? true"), "expect to find correct error in this: " + vulnMsg);
+
         }
 
     }
