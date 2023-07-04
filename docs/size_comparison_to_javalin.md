@@ -15,7 +15,7 @@ Size statistics:
 > performance is equivalent to raw Jetty code. Due to its size, it's very easy to 
 > reason about the source code.
 
-We'll see that, and raise you ***a web application with no dependencies*** 
+We'll see that, and raise you ***a web framework with zero dependencies*** 
 
 _(all measurements of lines of code are for production code - that is, non-test-code)_
 
