@@ -27,7 +27,7 @@ Quick start:
 * To create a library jar: `make jar`
 * For help: `make help`
 
-See [Dependencies](#system-requirements-)
+See [dependencies](#system-requirements-)
 
 Example projects demonstrating usage:
 -------------------------------------
@@ -103,7 +103,9 @@ the development handbook.
 System requirements: 
 --------------------
 
-[JDK version 20](https://jdk.java.net/20/) is _required_.
+[JDK version 20](https://jdk.java.net/20/) is _required_, since it 
+provides us the [virtual threads](https://openjdk.org/jeps/436) we need (and even so, virtual 
+threading is a preview until JDK version 21).
 
 Developed in two environments:
 * MacBook Pro with OS 12.0.1, with OpenJDK 20, GNU Make 3.81 and Rsync 2.6.9
