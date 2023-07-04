@@ -1,29 +1,34 @@
 Size statistics: 
 ===============
 
-Our project is 77 times smaller than [Javalin](https://javalin.io/), which bills itself
-as
-
->"A simple web framework for Java and Kotlin"
->"Lightweight - Javalin is just a few thousand lines of code on top of Jetty, and its 
-> performance is equivalent to raw Jetty code. Due to its size, it's very easy to 
-> reason about the source code.
-
-
-_(all lines of code are production - non-test-code)_
-
-used [cloc](https://github.com/AlDanial/cloc/) for lines-of-code calculations.
-
-
-Lines of code table
--------------------
 
 | Minum | Javalin |
 |-------|---------|
 | 3,315 | 255,384 |
 
+
+#### Our project is 77 times smaller than [Javalin](https://javalin.io/), which bills itself as
+
+>"A simple web framework for Java and Kotlin"
+> 
+>"Lightweight - Javalin is just a few thousand lines of code on top of Jetty, and its 
+> performance is equivalent to raw Jetty code. Due to its size, it's very easy to 
+> reason about the source code.
+
+We'll see that, and raise you ***a web application with no dependencies*** 
+
+_(all measurements of lines of code are for production code - that is, non-test-code)_
+
+used [cloc](https://github.com/AlDanial/cloc/) for lines-of-code calculations.
+
+
 Basis for Javalin's size:
 -------------------------
+
+_Note that this is a conservative measure - I'm not even counting the subdependencies, but
+instead only one layer deep.  Also note that Minum contains code for automated testing and 
+makes concientious decisions to provide the user-oriented functionality without requiring this
+much technology - therefore, it is a valid apples-to-apples comparison_
 
 | Component               | LOC     |
 |-------------------------|---------|

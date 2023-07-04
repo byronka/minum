@@ -79,7 +79,7 @@ I benefit from several aspects:
   in value.  If you haven't seen this approach in practice, definitely take a moment
   to read through it here.
 - It is decently performant, because performance has been a target from inception. For example, 
-  it can handle 9000 web requests per second. The database can perform 1 _million_ writes per 
+  it can handle 9000 web requests per second. The [database](docs/perf_data/database_speed_test.txt) can perform 2 _million_ writes per 
   second.  The [templating engine](docs/perf_data/templateRenderTest.txt) crunched 27,000 renderings per second.
 - It can run on a low-performance machine.  This saves me a lot of money, since I can 
   run on the free tier for cloud providers, and only need one computer.
