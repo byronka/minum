@@ -41,9 +41,8 @@ See the following links for sample projects that use this framework.
 Why?
 ----
 
-To build software like if I was allowed enough time and autonomy. It 
-must be quality - built using TDD - [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en). Something 
-I would be proud to use for future work. 
+To demonstrate the results of following the programming technique I offer to colleagues and clients. 
+Built using [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en).
 
 I benefit from several aspects:
 
