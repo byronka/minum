@@ -1,7 +1,7 @@
 Minum Framework
 ===============
 
-A web framework demonstrating _"less is more"_.
+A web framework demonstrating [_"less is more"_](https://byronka.github.io/katz_lightning_keynote.mp4)
 
 > It is better to do a simple thing today and pay a little more tomorrow to change it
 > if it needs it, than to do a more complicated thing today that may never be used anyway.
