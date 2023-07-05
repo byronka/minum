@@ -1,6 +1,8 @@
 Size statistics: 
 ===============
 
+Web frameworks
+--------------
 
 | Minum | Javalin |
 |-------|---------|
@@ -16,6 +18,62 @@ Size statistics:
 > reason about the source code.
 
 We'll see that, and raise you ***a web framework with zero dependencies*** 
+
+
+---
+
+Templating
+----------
+
+| Minum | Mustache | Pebble | Rocker |
+|-------|----------|--------|--------|
+| 73    | 11,346   | 16,876 | 11,996 |
+
+
+---
+
+Database
+--------
+
+| Minum | Postgresql | MySQL     | SQLite  |
+|-------|------------|-----------|---------|
+| 152   | 1,300,000  | 1,500,000 | 116,000 |
+
+---
+
+Logging
+-------
+
+| Minum | log4j  | slf4j |
+|-------|--------|-------|
+| 94    | 70,000 | 3,400 |
+
+---
+
+Testing
+-------
+
+| Minum | JUnit5 | TestNG  |
+|-------|--------|---------|
+| 240   | 40,000 | 100,000 |
+
+---
+
+Web server
+----------
+
+| Minum | Nginx   | Tomcat  |
+|-------|---------|---------|
+| 1456  | 163,000 | 242,000 |
+
+
+---
+
+
+Appendix
+--------
+
+
 
 _(all measurements of lines of code are for production code - that is, non-test-code)_
 
