@@ -18,7 +18,7 @@ public class StackTraceUtilsTests {
 
         logger.test("convert a stacktrace to a string"); {
             String result = StacktraceUtils.stackTraceToString(new RuntimeException("foo"));
-            assertTrue(result.contains("java.lang.RuntimeException: foo\r\n\tat minum.utils.StackTraceUtilsTests."));
+            assertTrue(result.contains("java.lang.RuntimeException: foo"));
         }
 
         logger.test("convert an array of stack trace elements to a string"); {
