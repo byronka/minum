@@ -20,8 +20,6 @@ Web frameworks
 We'll see that, and raise you ***a web framework with zero dependencies*** 
 
 
----
-
 Templating
 ----------
 
@@ -30,7 +28,6 @@ Templating
 | 73    | 11,346   | 16,876 | 11,996 |
 
 
----
 
 Database
 --------
@@ -39,7 +36,6 @@ Database
 |-------|------------|-----------|---------|
 | 152   | 1,300,000  | 1,500,000 | 116,000 |
 
----
 
 Logging
 -------
@@ -48,7 +44,6 @@ Logging
 |-------|--------|-------|
 | 94    | 70,000 | 3,400 |
 
----
 
 Testing
 -------
@@ -57,7 +52,6 @@ Testing
 |-------|--------|---------|
 | 240   | 40,000 | 100,000 |
 
----
 
 Web server
 ----------
@@ -67,8 +61,20 @@ Web server
 | 1456  | 163,000 | 242,000 |
 
 
----
+HTML Parser
+-----------
 
+| Minum | JSoup  |
+|-------|--------|
+| 304   | 14,337 |
+
+
+Authentication and Security
+---------------------------
+
+| Minum | Spring Security |
+|-------|-----------------|
+| 600   | 12,531          |
 
 Appendix
 --------
