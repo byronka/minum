@@ -6,6 +6,7 @@ Table of contents
 
 - [Description](#description)
 - [New Developer Setup](#new-developer-setup)
+- [HOWTO](#howto)
 - [To test the web server with Telnet](#to-test-the-web-server-with-telnet)
 - [To test with Chrome on localhost with invalid certificates](#to-test-with-chrome-on-localhost-with-invalid-certificates)
 - [TDD](#TDD)
