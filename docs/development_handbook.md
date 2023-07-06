@@ -68,6 +68,13 @@ Optional:
     * Use the new "Code With Me" icon in top bar to enable "Full Access" (turn off "start voice call")
     * Share the link with your friends
     
+HOWTO
+-----
+
+A series of HOWTO's for essential capabilities:
+
+* [How to add a new endpoint](howto/add_a_new_endpoint.md)
+* [How to create a new test class](howto/create_a_new_test_class.md)
 
 To test the web server with Telnet
 ----------------------------------

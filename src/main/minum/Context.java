@@ -10,6 +10,20 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 
+/**
+ * Holds important system-wide data and methods.
+ * <p>
+ *     Creating an instance of this and passing it
+ *     around lets us reduce some boilerplate code,
+ *     but more importantly, it lets us lower the scope.
+ * </p>
+ * <p>
+ *     Previously, some of this was made available as
+ *     static values and methods, which added a bit of
+ *     complication when reviewing stack traces, and also
+ *     prevented including logging in some areas.
+ * </p>
+ */
 public class Context {
 
     private ILogger logger;

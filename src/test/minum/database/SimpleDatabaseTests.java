@@ -1,7 +1,6 @@
 package minum.database;
 
 import minum.Context;
-import minum.logging.ILogger;
 import minum.testing.StopwatchUtils;
 import minum.testing.TestLogger;
 import minum.utils.FileUtils;

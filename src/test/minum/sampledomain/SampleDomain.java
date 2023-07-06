@@ -1,14 +1,17 @@
 package minum.sampledomain;
 
-import minum.Context;
 import minum.auth.AuthUtils;
 import minum.database.DatabaseDiskPersistenceSimpler;
+import minum.sampledomain.PersonName;
+import minum.templating.TemplateProcessor;
+import minum.utils.FileUtils;
 import minum.utils.StringUtils;
 import minum.web.Request;
 import minum.web.Response;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -21,12 +24,18 @@ public class SampleDomain {
     private final List<PersonName> personNames;
     private final AuthUtils auth;
     private final AtomicLong newPersonIndex;
+    private final TemplateProcessor nameEntryTemplate;
+    private final String authHomepage;
+    private final String unauthHomepage;
 
     public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
         personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
         newPersonIndex = new AtomicLong(ddps.calculateNextIndex(personNames));
+        nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
+        authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
+        unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
     }
 
     public Response formEntry(Request r) {
@@ -39,30 +48,7 @@ public class SampleDomain {
                 .map(x -> "<li>" + StringUtils.safeHtml(x.getFullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
-        return Response.htmlOk("""
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Name entry | The sample domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <p>
-                            <a href="index.html" >Index</a>
-                        </p>
-                        <form method="post" action="testform">
-                            <label for="name_entry">Name Entry
-                                <input name="name_entry" id="name_entry" type="text" value="" autofocus="autofocus" />
-                            </label>
-                            <button>Enter</button>
-                        </form>
-                        <ol>
-                        %s
-                        </ol>
-                    </body>
-                </html>
-                """.formatted(names));
+        return Response.htmlOk(nameEntryTemplate.renderTemplate(Map.of("names", names)));
     }
 
     public Response testform(Request r) {
@@ -87,33 +73,9 @@ public class SampleDomain {
     public Response sampleDomainIndex(Request request) {
         final var authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
-            return Response.htmlOk("""
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Unauthenticated | The sample domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <p>There's nothing here to see.  Try logging in.</p>
-                    </body>
-                </html>
-                """);
+            return Response.htmlOk(unauthHomepage);
         } else {
-            return Response.htmlOk("""
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Authenticated homepage | The sample domain</title>
-                        <meta charset="utf-8"/>
-                        <link rel="stylesheet" href="main.css" />
-                    </head>
-                    <body>
-                        <p><a href="formEntry">Enter a name</a></p>
-                    </body>
-                </html>
-                """);
+            return Response.htmlOk(authHomepage);
         }
 
     }
