@@ -1,10 +1,11 @@
 Minum Framework
 ===============
 
-A web framework demonstrating [_"less is more"_](https://byronka.github.io/katz_lightning_keynote.mp4)
+A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-boring-technology)
 
 > It is better to do a simple thing today and pay a little more tomorrow to change it
-> if it needs it, than to do a more complicated thing today that may never be used anyway.
+> if it needs it, than to do a more [complicated](https://youtu.be/5NPBIwQyPWE) thing today 
+> that may never be used anyway.
 > 
 > -- Kent Beck, _Extreme Programming Explained_
 
@@ -53,16 +54,18 @@ I benefit from several aspects:
   the project onto your production server takes just a couple seconds.  That's part of
   how I am able to type a command and have new code running on the production server just
   seconds later.
-- The code is minimal (See [size comparison](docs/size_comparisons.md)).  It doesn't handle every imaginable case, but there's so little
-  there, I can easily add or modify the code.  There's no technical reason why I couldn't
+- The code is minimal (see [size comparison](docs/size_comparisons.md)).  It doesn't 
+  handle [every imaginable case](https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt), but 
+  there's so little there, I can easily add or [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to) .  There's no technical reason why I couldn't
   include extra libraries if I needed, but I pretty much have all the basics handled. 
 - It's a much less difficult project to read and understand than any other web framework.
-- No magic.  There's no special machinery running in the shadows, like you will often
+- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There's no special machinery running in the shadows, like you will often
   find with web frameworks using annotations/decorators or naming conventions.  Everywhere 
   is plain navigable code.  All the functionality is supported 
   through direct method calls. It is a higher signal-to-noise ratio when 
   examining stacktraces, making the maintenance cheaper and less stressful.
-- Well-documented throughout, more supportive of long-term maintenance. I love being reminded
+- [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/), more 
+  supportive of long-term maintenance. I love being reminded
   of the context I am within by concise documentation, without having to read code.
 - The only dependency is the Java standard library.  Using large frameworks 
   combined with many incidental dependencies leads to dependency hell.  The commonplace
@@ -77,7 +80,7 @@ I benefit from several aspects:
   What enables this is a focus on keeping the tests fast and minimal in number but high
   in value.  If you haven't seen this approach in practice, definitely take a moment
   to read through it here.
-- It is decently performant, because performance has been a target from inception. For example, 
+- It is [decently performant](https://blog.nelhage.com/post/reflections-on-performance/), because performance has been a target from inception. For example, 
   it can handle 9000 web requests per second. The [database](docs/perf_data/database_speed_test.txt) can perform 2 _million_ writes per 
   second.  The [templating engine](docs/perf_data/templateRenderTest.txt) crunched 27,000 renderings per second.
 - It can run on a low-performance machine.  This saves me a lot of money, since I can 
@@ -85,7 +88,7 @@ I benefit from several aspects:
 - Embraces the bleeding edge of Java technology, like virtual threads.
   This allows it to manage, for example, ten thousand concurrent requests using hundreds of
   megabytes rather than many gigabytes.
-- Other projects strive to support universal cases.  This doesn't, so there is less code here
+- Other projects strive to support universal cases.  [This doesn't](http://josdejong.com/blog/2015/01/06/code-reuse/), so there is less code here
   to hide bugs.  
 
   >I conclude that there are two ways of constructing a software design: One way is to
