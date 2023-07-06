@@ -20,7 +20,7 @@ with no modifier (that is, no `public` or `private`, e.g. `int add(int a, int b)
 is scoped _package private_, meaning that it can only be accessed within that same package.
 So, if you have code in `src/main/minum/database`, and it is package-private, then a test
 file at `src/test/minum/database` will still be able to access it. 
----
+
 That's probably all you need as far as scoping.  Keep it simple, ok? On the one hand it
 is nice that Java enables things like this, but you don't want things to get out of hand.
 
@@ -31,7 +31,7 @@ access during a test, probably because it needs deeper testing (and bear in mind
 easier something is to test, the more and better we can test it, and the easier to
 build high-quality systems).  _Private_ indicates it is won't have direct access
 from outside its class and is generally used for better code organization.
----
+
 ### Step 2 - Add the class
 
 If we were to add a new test class for the database class at `src/main/minum/database/Foo.java`, then
