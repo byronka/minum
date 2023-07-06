@@ -12,9 +12,9 @@ they say, there are only two hard problems in computer science, and naming thing
 
 Enough joking.
 
-One important thing to consider is the location of your test class.  All the tests should
-be placed under the src/test directory, but be aware that the subdirectories underneath
-that are packages that align with the production packages in src/main. Java has some rules
+Consider the location of your test class.  All tests should
+be placed under the `src/test` directory, but be aware that the subdirectories underneath
+that are packages that align with the production packages in `src/main`. Java has some rules
 about package scoping that can work in your favor.  If your production code is a method
 with no modifier (that is, no `public` or `private`, e.g. `int add(int a, int b)`), then it
 is scoped _package private_, meaning that it can only be accessed within that same package.
@@ -24,12 +24,12 @@ file at `src/test/minum/database` will still be able to access it.
 That's probably all you need as far as scoping.  Keep it simple, ok? On the one hand it
 is nice that Java enables things like this, but you don't want things to get out of hand.
 
-Personally, I mainly use _public_, _package-private_, and _private_.  _Public_ means it is part 
+Personally, I mainly use `public`, `package-private`, and `private`.  `public` means it is part 
 of the intended outside-world-facing API and meant to be used by users.  I use 
-_package-private_ mainly when there's a method that isn't _public_ but needs direct 
+`package-private` mainly when there's a method that isn't public but needs direct 
 access during a test, probably because it needs deeper testing (and bear in mind, the
 easier something is to test, the more and better we can test it, and the easier to
-build high-quality systems).  _Private_ indicates it is won't have direct access
+build high-quality systems).  `private` indicates it is won't have direct access
 from outside its class and is generally used for better code organization.
 
 ### Step 2 - Add the class
