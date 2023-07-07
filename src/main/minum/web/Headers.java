@@ -42,6 +42,10 @@ public class Headers{
     private final Map<String, List<String>> headersMap;
 
 
+    /**
+     * It is rare you will use this constructor.  Instead, see {@link Headers#make(Context, InputStreamUtils)}
+     * when you have to extract the headers from a live {@link InputStream}
+     */
     public Headers(
             List<String> headerStrings,
             Context context
@@ -62,6 +66,9 @@ public class Headers{
      */
     private final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
 
+    /**
+     * Run this command to build a Headers object.
+     */
     public static Headers make(Context context, InputStreamUtils inputStreamUtils) {
         Headers.inputStreamUtils = inputStreamUtils;
         return new Headers(List.of(), context);
@@ -160,6 +167,9 @@ public class Headers{
         return connectionHeader.stream().anyMatch(x -> x.toLowerCase().contains("close"));
     }
 
+    /**
+     * Loop through the lines of header in the HTTP message
+     */
     private List<String> getAllHeaders(InputStream is) throws IOException {
         List<String> headers = new ArrayList<>();
         // we'll only grab the first MAX_HEADERS_COUNT headers.
@@ -182,6 +192,10 @@ public class Headers{
         return headersMap.get(key.toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * Just a getter for the headers map, but note that all
+     * the key values are lower-cased during processing.
+     */
     public Map<String, List<String>> getHeadersMap() {
         return headersMap;
     }
