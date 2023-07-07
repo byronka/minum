@@ -74,7 +74,7 @@ I benefit from several aspects:
   here. The pendulum for avoiding programming has swung too far out for many teams. Let's
   not just be "configurers" - let's be programmers.  There's a lot we can reasonably 
   undertake - just look at this project for a sense of how little is actually needed
-  for functionality when you work with a general-purpose programming language.
+  for functionality when you work with a [general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
 - My typical wait time for automated testing is several seconds. When your
   test pipeline is finished in seconds, your development team's productivity keeps humming.
   What enables this is a focus on keeping the tests fast and minimal in number but high
