@@ -4,7 +4,7 @@ Minum Framework
 A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-boring-technology)
 
 > It is better to do a simple thing today and pay a little more tomorrow to change it
-> if it needs it, than to do a more [complicated]((https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt)) thing today 
+> if it needs it, than to do a more [complicated](https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt) thing today 
 > that may never be used anyway.
 > 
 > -- Kent Beck, _Extreme Programming Explained_
