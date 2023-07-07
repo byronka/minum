@@ -4,7 +4,7 @@ Minum Framework
 A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-boring-technology)
 
 > It is better to do a simple thing today and pay a little more tomorrow to change it
-> if it needs it, than to do a more [complicated](https://youtu.be/5NPBIwQyPWE) thing today 
+> if it needs it, than to do a more [complicated]((https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt)) thing today 
 > that may never be used anyway.
 > 
 > -- Kent Beck, _Extreme Programming Explained_
@@ -55,7 +55,7 @@ I benefit from several aspects:
   how I am able to type a command and have new code running on the production server just
   seconds later.
 - The code is minimal (see [size comparison](docs/size_comparisons.md)).  It doesn't 
-  handle [every imaginable case](https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt), but 
+  handle every imaginable case, but 
   there's so little there, I can easily add or [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to) .  There's no technical reason why I couldn't
   include extra libraries if I needed, but I pretty much have all the basics handled. 
 - It's a much less difficult project to read and understand than any other web framework.
