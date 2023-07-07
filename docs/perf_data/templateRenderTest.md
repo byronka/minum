@@ -1,5 +1,6 @@
+Templating Speed Test
+=====================
 
-/*
 This test is based on a benchmark comparison project I found at https://github.com/mbosecke/template-benchmark
 
 It's all about stocks.  It uses ordinary-sized text.
@@ -8,29 +9,34 @@ The results: pretty stable at 27,000 templates rendered per second.
 
 For comparison, the referenced project shows this for other well-known Java template systems:
 
-Benchmark   Score(renderings / sec)
-Freemarker  15370
-Handlebars  17779
-Mustache    22164
-Pebble      32530
-Rocker      39739
-Thymeleaf   1084
-Trimou      22787
-Velocity    20835
+| Benchmark  | Score(renderings / sec) |
+|------------|-------------------------|
+| Minum      | 27,000                  |
+| Freemarker | 15,370                  |
+| Handlebars | 17,779                  |
+| Mustache   | 22,164                  |
+| Pebble     | 32,530                  |
+| Rocker     | 39,739                  |
+| Thymeleaf  | 1,084                   |
+| Trimou     | 22,787                  |
+| Velocity   | 20,835                  |
 
 Notes:
-Mustache: mentioned as really simple. 124 classes and 11,346 lines of
+------
+
+* Mustache: mentioned as really simple. 124 classes and 11,346 lines of
           code.  " I always liked Mustache because of its simplicity -
           it’s "just enough" templating - and you really couldn’t wish
           for a cleaner, leaner, more lightweight library than this one,
           if you have to render templates in the JVM"
           - https://spring.io/blog/2016/11/21/the-joy-of-mustache-server-side-templates-for-the-jvm
 
-Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
-Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
+* Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
+* Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
 
 
-My templating code is 69 lines of code.
+```java
+
  */
 logger.test("template for a more realistic input");
 {
@@ -56,3 +62,4 @@ logger.test("template for a more realistic input");
     }
     String result = stockPrices.renderTemplate(Map.of("individual_stocks", sb.toString()));
 }
+```

@@ -183,10 +183,10 @@ public class WebTests {
 
                         Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
 
-                        assertEquals(hi.headersAsMap().get("server"), List.of("minum"));
-                        assertTrue(hi.headersAsMap().get("date") != null);
-                        assertEquals(hi.headersAsMap().get("content-type"), List.of("text/html; charset=UTF-8"));
-                        assertEquals(hi.headersAsMap().get("content-length"), List.of("2"));
+                        assertEquals(hi.valueByKey("server"), List.of("minum"));
+                        assertTrue(hi.valueByKey("date") != null);
+                        assertEquals(hi.valueByKey("content-type"), List.of("text/html; charset=UTF-8"));
+                        assertEquals(hi.valueByKey("content-length"), List.of("2"));
 
                         String body = readBody(is, hi.contentLength());
 
@@ -465,7 +465,7 @@ public class WebTests {
 
         logger.test("Headers test - multiple headers"); {
             Headers headers = new Headers(List.of("foo: a", "foo: b"), context);
-            Map<String, List<String>> myMap = headers.headersAsMap();
+            Map<String, List<String>> myMap = headers.getHeadersMap();
             assertEqualsDisregardOrder(myMap.get("foo"), List.of("a","b"));
         }
 

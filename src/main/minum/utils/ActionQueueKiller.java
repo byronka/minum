@@ -22,7 +22,7 @@ public class ActionQueueKiller {
      * instantiated in this call tree.
      */
     public void killAllQueues() {
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all queue threads");
+        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all queue threads. ");
         for (ActionQueue aq : context.getActionQueueList()) {
             aq.stop();
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " killing " + aq.getQueueThread());

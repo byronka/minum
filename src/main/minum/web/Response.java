@@ -1,5 +1,6 @@
 package minum.web;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +89,8 @@ public record Response(StatusLine.StatusCode statusCode, List<String> extraHeade
      * that are needed to specify this is HTML.
      */
     public static Response htmlOk(String body, List<String> extraHeaders) {
-        var headers = Arrays.asList("Content-Type: text/html; charset=UTF-8");
+        var headers = new ArrayList<String>();
+        headers.add("Content-Type: text/html; charset=UTF-8");
         headers.addAll(extraHeaders);
         return new Response(StatusLine.StatusCode._200_OK, body, headers);
     }

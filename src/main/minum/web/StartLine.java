@@ -181,6 +181,10 @@ public class StartLine{
         return pathDetails;
     }
 
+    public WebEngine.HttpVersion getVersion() {
+        return this.version;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -192,5 +196,15 @@ public class StartLine{
     @Override
     public int hashCode() {
         return Objects.hash(verb, pathDetails, version, rawValue);
+    }
+
+    @Override
+    public String toString() {
+        return "StartLine{" +
+                "verb=" + verb +
+                ", pathDetails=" + pathDetails +
+                ", version=" + version +
+                ", rawValue='" + rawValue + '\'' +
+                '}';
     }
 }

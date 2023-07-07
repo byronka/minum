@@ -3,7 +3,6 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.exceptions.ForbiddenUseException;
-import minum.utils.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +39,7 @@ public class Headers{
     private final List<String> headerStrings;
     private final Constants constants;
     private final Context context;
+    private final Map<String, List<String>> headersMap;
 
 
     public Headers(
@@ -49,6 +49,7 @@ public class Headers{
         this.context = context;
         this.constants = context.getConstants();
         this.headerStrings = headerStrings;
+        this.headersMap = Collections.unmodifiableMap(extractHeadersToMap());
     }
 
     public List<String> getHeaderStrings() {
@@ -80,7 +81,7 @@ public class Headers{
      * Obtain any desired header by looking it up in this map.  All keys
      * are made lowercase.
      */
-    public Map<String, List<String>> headersAsMap() {
+    private Map<String, List<String>> extractHeadersToMap() {
         var result = new HashMap<String, List<String>>();
         for (var h : headerStrings) {
             var indexOfFirstColon = h.indexOf(":");
@@ -139,6 +140,26 @@ public class Headers{
         return contentLength;
     }
 
+    /**
+     * Indicates whether the headers in this request
+     * have a Connection: Keep-Alive
+     */
+    public boolean hasKeepAlive() {
+        List<String> connectionHeader = headersMap.get("connection");
+        if (connectionHeader == null) return false;
+        return connectionHeader.stream().anyMatch(x -> x.toLowerCase().contains("keep-alive"));
+    }
+
+    /**
+     * Indicates whether the headers in this request
+     * have a Connection: close
+     */
+    public boolean hasConnectionClose() {
+        List<String> connectionHeader = headersMap.get("connection");
+        if (connectionHeader == null) return false;
+        return connectionHeader.stream().anyMatch(x -> x.toLowerCase().contains("close"));
+    }
+
     private List<String> getAllHeaders(InputStream is) throws IOException {
         List<String> headers = new ArrayList<>();
         // we'll only grab the first MAX_HEADERS_COUNT headers.
@@ -152,5 +173,16 @@ public class Headers{
             }
         }
         return headers;
+    }
+
+    /**
+     * Allows a user to obtain any header value by its key.
+     */
+    public List<String> valueByKey(String key) {
+        return headersMap.get(key.toLowerCase(Locale.ROOT));
+    }
+
+    public Map<String, List<String>> getHeadersMap() {
+        return headersMap;
     }
 }

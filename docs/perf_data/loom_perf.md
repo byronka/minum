@@ -11,6 +11,7 @@ each thread will take up an OS thread and about 2 megs of memory - about 8 gigs 
 In the next chunk, it's using virtual threads, and you will see it use maybe 30 threads and maybe
 50 megabytes.  Quite a difference!
 
+```java
      System.out.println("Starting lots of threads"); {
 
      var threadFactory = Thread.ofPlatform().factory();
@@ -35,6 +36,7 @@ In the next chunk, it's using virtual threads, and you will see it use maybe 30 
          });
      }
     }
+```
 
 Still, the issue remains: When I try using this virtual thread executor, my tests fail
 in seemingly capricious ways.  Not good.  Still waiting on this to stabilize.

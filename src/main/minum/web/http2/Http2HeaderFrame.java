@@ -163,7 +163,7 @@ public class Http2HeaderFrame extends Http2Frame {
 
     private static void encodeRestOfHeaders(Headers headers, ByteArrayOutputStream encodedFieldLines) {
         // loop through the rest of the headers
-        for (var h : headers.headersAsMap().entrySet()) {
+        for (var h : headers.getHeadersMap().entrySet()) {
             int i = HeaderFields.headersStaticTable.indexOf(
                     new HeaderFields.HeaderField(h.getKey(), ""));
             // if we found that header in our static table, use it

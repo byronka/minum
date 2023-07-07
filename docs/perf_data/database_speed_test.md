@@ -1,7 +1,12 @@
+Database Speed Test
+===================
+
 The distinction of our database is that the data values are of a particular type,
 SimpleDataTypeImpl, which provide support for disk persistence.  Otherwise, they
 are treated just like any ordinary data and can be arranged in any collection
 shape you could wish - trees, lists, whatever.
+
+```java
 
  /**
  * When this is looped a hundred thousand times, it takes 500 milliseconds to finish
@@ -45,3 +50,4 @@ logger.test("Just how fast is our minum.database?");{
     ddps.stop(10, 20);
     logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
 }
+```

@@ -9,7 +9,6 @@ import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
 import minum.testing.StopwatchUtils;
-import minum.utils.StringUtils;
 import minum.utils.ThrowingConsumer;
 
 import java.io.IOException;
@@ -96,72 +95,94 @@ public class WebFramework implements AutoCloseable {
 
                 var fullStopwatch = stopWatchUtils.startTimer();
                 final var is = sw.getInputStream();
-                // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
-                // e.g. GET /foo HTTP/1.1
-                final var rawStartLine = inputStreamUtils.readLine(is);
-                 /*
-                  if the rawStartLine is null, that means the client stopped talking.
-                  See ISocketWrapper.readLine()
-                  */
-                if (rawStartLine == null) {
-                    // no need to do any further work, just bail
-                    return;
-                }
-
-                logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
-                var sl = StartLine.make(context).extractStartLine(rawStartLine);
-                logger.logTrace(() -> sw + ": StartLine received: " + sl);
 
                 /*
-                At this point we have a start line.  That's enough to see whether a 404
-                would be an appropriate response.
+                By default, browsers expect the server to run in keep-alive mode.
                  */
-                Function<Request, Response> endpoint = handlerFinder.apply(sl);
+                while(true) {
 
-                // The response we will send to the client
-                Response resultingResponse;
-
-                if (endpoint == null) {
-                    logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
-                    boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
-                    logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
-                    if (isVulnSeeking && theBrig != null && constants.IS_THE_BRIG_ENABLED) {
-                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                    // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
+                    // e.g. GET /foo HTTP/1.1
+                    final var rawStartLine = inputStreamUtils.readLine(is);
+                     /*
+                      if the rawStartLine is null, that means the client stopped talking.
+                      See ISocketWrapper.readLine()
+                      */
+                    if (rawStartLine == null) {
+                        // no need to do any further work, just bail
+                        return;
                     }
-                    resultingResponse = new Response(_404_NOT_FOUND);
-                } else {
+
+                    logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
+                    var sl = StartLine.make(context).extractStartLine(rawStartLine);
+                    logger.logTrace(() -> sw + ": StartLine received: " + sl.toString());
+
                     /*
-                       next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
+                    At this point we have a start line.  That's enough to see whether a 404
+                    would be an appropriate response.
+                     */
+                    Function<Request, Response> endpoint = handlerFinder.apply(sl);
 
-                       by the way, the headers will tell us vital information about the
-                       body.  If, for example, we're getting a POST and receiving a
-                       www form url encoded, there will be a header of "content-length"
-                       that will mention how many bytes to read.  On the other hand, if
-                       we're receiving a multipart, there will be no content-length, but
-                       the content-type will include the boundary string.
-                    */
-                    var headers = Headers.make(context, inputStreamUtils);
-                    Headers hi = headers.extractHeaderInformation(sw.getInputStream());
+                    // The response we will send to the client
+                    Response resultingResponse;
+                    boolean isKeepAlive = false;
 
-                    Body body = Body.EMPTY(context);
-                    // Determine whether there is a body (a block of data) in this request
-                    if (isThereIsABody(hi)) {
-                        logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
-                        body = bodyProcessor.extractData(sw.getInputStream(), hi);
+                    if (endpoint == null) {
+                        logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
+                        boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
+                        logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
+                        if (isVulnSeeking && theBrig != null && constants.IS_THE_BRIG_ENABLED) {
+                            theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                        }
+                        resultingResponse = new Response(_404_NOT_FOUND);
+                    } else {
+                        /*
+                           next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
+
+                           by the way, the headers will tell us vital information about the
+                           body.  If, for example, we're getting a POST and receiving a
+                           www form url encoded, there will be a header of "content-length"
+                           that will mention how many bytes to read.  On the other hand, if
+                           we're receiving a multipart, there will be no content-length, but
+                           the content-type will include the boundary string.
+                        */
+                        var headers = Headers.make(context, inputStreamUtils);
+                        Headers hi = headers.extractHeaderInformation(sw.getInputStream());
+                        logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
+
+                        // determine if we are in a keep-alive connection
+                        if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ZERO) {
+                            isKeepAlive = hi.hasKeepAlive();
+                        } else if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ONE) {
+                            isKeepAlive = ! hi.hasConnectionClose();
+                        }
+                        boolean finalIsKeepAlive = isKeepAlive;
+                        logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
+
+                        Body body = Body.EMPTY(context);
+                        // Determine whether there is a body (a block of data) in this request
+                        if (isThereIsABody(hi)) {
+                            logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
+                            body = bodyProcessor.extractData(sw.getInputStream(), hi);
+                            Body finalBody = body;
+                            logger.logTrace(() -> "The body is: " + finalBody.asString());
+                        }
+
+                        var handlerStopwatch = new StopwatchUtils().startTimer();
+                        resultingResponse = endpoint.apply(new Request(hi, sl, body, sw.getRemoteAddr()));
+                        logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
                     }
 
-                    var handlerStopwatch = new StopwatchUtils().startTimer();
-                    resultingResponse = endpoint.apply(new Request(hi, sl, body, sw.getRemoteAddr()));
-                    logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
+                    String statusLineAndHeaders = convertResponseToString(resultingResponse, isKeepAlive);
+
+                    // Here is where the bytes actually go out on the socket
+                    sw.send(statusLineAndHeaders);
+                    sw.send(HTTP_CRLF);
+                    sw.send(resultingResponse.body());
+                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
+
+                    if (! isKeepAlive) break;
                 }
-
-                String responseString = convertResponseToString(resultingResponse);
-
-                // Here is where the bytes actually go out on the socket
-                sw.send(responseString);
-                sw.send(resultingResponse.body());
-                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
-
             }
         };
     }
@@ -172,22 +193,38 @@ public class WebFramework implements AutoCloseable {
      */
     public boolean isThereIsABody(Headers hi) {
         return !hi.contentType().isBlank() &&
-                (hi.contentLength() > 0 || hi.headersAsMap().get("transfer-encoding").stream().anyMatch(x -> x.equalsIgnoreCase("chunked")));
+                (hi.contentLength() > 0 || hi.valueByKey("transfer-encoding").stream().anyMatch(x -> x.equalsIgnoreCase("chunked")));
     }
 
     /**
      * This is where our strongly-typed {@link Response} gets converted
      * to a string and sent on the socket.
      */
-    private String convertResponseToString(Response r) {
+    private String convertResponseToString(Response r, boolean isKeepAlive) {
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
-        return "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF +
-            "Date: " + date + HTTP_CRLF +
-            "Server: minum" + HTTP_CRLF +
-            r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()) +
-            "Content-Length: " + r.body().length + HTTP_CRLF +
-            HTTP_CRLF;
+        StringBuilder stringBuilder = new StringBuilder();
+
+        // add the status line
+        stringBuilder.append( "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF );
+
+        // add the headers
+        stringBuilder
+                .append( "Date: " + date + HTTP_CRLF )
+                .append( "Server: minum" + HTTP_CRLF )
+                .append(  r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()))
+                .append("Content-Length: " + r.body().length + HTTP_CRLF );
+
+        // if we're a keep-alive connection, reply with a keep-alive header
+
+        if (isKeepAlive) {
+            stringBuilder
+                    .append("Keep-Alive: timeout=" + constants.SOCKET_TIMEOUT_MILLIS / 1000 + HTTP_CRLF);
+        }
+
+        var stringValue = stringBuilder.toString();
+        logger.logTrace(() -> "Sending back: " + stringValue);
+        return stringValue;
     }
 
     /**
@@ -296,7 +333,6 @@ public class WebFramework implements AutoCloseable {
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
-            fs.close();
         }
     }
 }
