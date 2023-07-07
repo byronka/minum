@@ -6,7 +6,7 @@ This will allow us to have millions of threads, which is perfect for our use cas
 
 Here is some code to sample this.  While running this code, have Java Mission Control running
 and keep an eye on the live threads.  In the first chunk of code (which uses ordinary threads),
-each thread will take up an OS thread and about 2 megs of memory - about 8 gigs gets used.
+each thread will take up an OS thread and about 2 megabytes of memory - about 8 gigabytes gets used.
 
 In the next chunk, it's using virtual threads, and you will see it use maybe 30 threads and maybe
 50 megabytes.  Quite a difference!

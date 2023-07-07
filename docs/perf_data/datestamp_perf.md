@@ -5,7 +5,8 @@ Experiment 1 - date and time stamp during HTTP response
 ---------------------------------------------------------------------
 
 It was my impression that getting the current date and time might slow down the HTTP response
-a bit, so I ran an experiment.  The following code took 686 milliseconds to run. I am therefore
+a bit, so I ran an experiment.  The following code took 686 milliseconds to run in a million loops,
+so it is crunching about 1.5 million times per second. I am therefore
 not concerned with its performance.
 
 ```java

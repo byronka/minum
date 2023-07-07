@@ -86,7 +86,7 @@ I benefit from several aspects:
 - It can run on a low-performance machine.  This saves me a lot of money, since I can 
   run on the free tier for cloud providers, and only need one computer.  One.  Single.  Computer.
 - Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
-  This allows it to manage, for example, ten thousand concurrent requests using hundreds of
+  This allows it to manage, for example, ten thousand [concurrent requests using hundreds](docs/perf_data/loom_perf.md) of
   megabytes rather than many gigabytes.
 - Other projects strive to support universal cases.  [This doesn't](http://josdejong.com/blog/2015/01/06/code-reuse/), so there is less code here
   to hide bugs.  
@@ -138,7 +138,8 @@ Step-by-step guide for installing Java on Windows:
 Developer documentation:
 ------------------------
 
-See [The development handbook](docs/development_handbook.md)
+See [The development handbook](docs/development_handbook.md), in particular
+the [HOWTO guide section](docs/development_handbook.md#howto).
 
 
 Directories:

@@ -6,6 +6,11 @@ SimpleDataTypeImpl, which provide support for disk persistence.  Otherwise, they
 are treated just like any ordinary data and can be arranged in any collection
 shape you could wish - trees, lists, whatever.
 
+Summary of the code below: we can make two million adjustments to our database in
+one second.  The persistence to disk will happen over the ensuing minutes - this
+is not an ACID-compliant database.  That risk, however, is allowable for many
+use cases.
+
 ```java
 
  /**
