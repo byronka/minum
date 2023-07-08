@@ -3,6 +3,9 @@ Minum Framework
 
 A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-boring-technology)
 
+> Your code is much easier to understand [...] and it solves the same 
+> problem without currying or anything complex. You've got 2 thumbs up and he has almost 100. Go figure.
+
 > It is better to do a simple thing today and pay a little more tomorrow to change it
 > if it needs it, than to do a more [complicated](https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt) thing today 
 > that may never be used anyway.
@@ -42,7 +45,7 @@ See the following links for sample projects that use this framework.
 Why?
 ----
 
-To demonstrate the results of following the programming technique I offer to colleagues and clients. 
+To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of [following](docs/parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) [technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients. 
 Built using [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en).
 
 I benefit from several aspects:
