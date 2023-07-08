@@ -80,9 +80,9 @@ I benefit from several aspects:
   What enables this is a focus on keeping the tests fast and minimal in number but high
   in value.  If you haven't seen this approach in practice, definitely take a moment
   to read through it here.
-- It is [decently performant](https://blog.nelhage.com/post/reflections-on-performance/), because performance has been a target from inception. For example, 
-  it can handle [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database](docs/perf_data/database_speed_test.md) can perform 2 _million_ writes per 
-  second.  The [templating engine](docs/perf_data/templateRenderTest.md) crunched 27,000 renderings per second.
+- It is decently performant, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). For example, 
+  it can handle [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](docs/perf_data/database_speed_test.md) per 
+  second.  The [templating engine crunched 27,000 renderings per second](docs/perf_data/templateRenderTest.md).
 - It can run on a low-performance machine.  This saves me a lot of money, since I can 
   run on the free tier for cloud providers, and only need one computer.  One.  Single.  Computer.
 - Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
