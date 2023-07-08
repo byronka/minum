@@ -48,15 +48,15 @@ Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment)
 Developers benefit from several aspects:
 
 - The code is [minimalistic](docs/size_comparisons.md) on purpose.  It does not 
-  handle every imaginable case, but it empowers developers to [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There 
-  is nothing preventing a developer from including extra libraries as needed, but the basics are handled. 
+  handle every imaginable case, but it fosters [modifying the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There 
+  is nothing to prevent inclusion of extra libraries, but basics are handled. 
 
 - The compiled binary is small - around 150 kilobytes, which includes the database, web server,
   templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
   show how to continue that pattern with the business logic.  This makes everything faster - sending to
   production takes seconds.
 
-- It's a less difficult project to read and understand than major web frameworks.
+- It is less difficult to understand than major web frameworks, purely because there is _a hundred times_ less code.
 
 - [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There is no surprising 
   behavior.  Plain method calls help make the maintenance cheaper and less stressful.
