@@ -3,9 +3,6 @@ Minum Framework
 
 A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-boring-technology)
 
-> Your code is much easier to understand [...] and it solves the same 
-> problem without currying or anything complex. You've got 2 thumbs up and he has almost 100. Go figure.
-
 > It is better to do a simple thing today and pay a little more tomorrow to change it
 > if it needs it, than to do a more [complicated](https://byronka.github.io/external_author_docs/simplify_then_add_lightness.txt) thing today 
 > that may never be used anyway.
@@ -50,39 +47,42 @@ Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment)
 
 I benefit from several aspects:
 
-- The binary is tiny - 150 kilobytes.  That includes the database, web server,
+- The code is [minimalistic](docs/size_comparisons.md) on purpose.  It does not 
+  handle every imaginable case, but it empowers developers to [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There 
+  is nothing preventing a developer from including extra libraries as needed, but the basics are handled. 
+
+- The compiled binary is small - around 150 kilobytes, which includes the database, web server,
   templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
-  show how to continue that pattern with the business logic so that the total
-  remains small.  With such a small size, everything becomes faster - moving
-  the project onto your production server takes just a couple seconds.
-- The code is minimal (see [size comparison](docs/size_comparisons.md)).  It doesn't 
-  handle every imaginable case, but 
-  there's so little there, I can easily add or [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to) .  There's no technical reason why I couldn't
-  include extra libraries if I needed, but I pretty much have all the basics handled. 
+  show how to continue that pattern with the business logic.  This makes everything faster - sending to
+  production takes seconds.
+
 - It's a less difficult project to read and understand than major web frameworks.
-- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There's no special 
-  machinery running in the shadows, like is typical with web frameworks using annotations
-  or naming conventions.  Everywhere is plain method calls, making the maintenance cheaper and less stressful.
-- [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/), more 
-  supportive of long-term maintenance. I love being reminded
-  of the context I am within by concise documentation, without having to read code.
-- Zero dependencies (unless you include the Java standard library).  Most projects
-  end up incorporating many dependencies, which you must then keep updated.  Nope to that.
-  Benefit from the power of an [industrial strengh general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
-- My ordinary wait time for automated testing is seconds. When your
-  test pipeline is finished that fast, your team's productivity hums.
-  Keep the tests fast and few but high value.  If you haven't seen this before, take a moment
-  to read through it here.
-- It is performant, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). For example, 
+
+- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There is no surprising 
+  behavior.  Plain method calls help make the maintenance cheaper and less stressful.
+
+- [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/). 
+  More supportive of long-term maintenance.
+
+- Zero dependencies (unless you include the Java standard library).  Projects often
+  incorporate many dependencies, which must be kept updated. With fewer dependencies,
+  the churn is minimized. Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
+
+- Wait time for automated testing is seconds. When the
+  test pipeline finishes that quickly, the team's productivity hums.
+
+- Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). As an example, 
   it can respond to [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](docs/perf_data/database_speed_test.md) per 
   second.  The [templating engine renders 27,000 times per second](docs/perf_data/templateRenderTest.md).
-- It can run on a low-performance machine.  This saves me a lot of money, since that lets me use 
-  the free tier on cloud providers, requiring only one computer.
-- Benefits from the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
-  This allows it to manage, for example, [ten thousand concurrent requests](docs/perf_data/loom_perf.md) using hundreds of
-  megabytes rather than many gigabytes.
-- Other projects strive to support universal cases.  [This doesn't](http://josdejong.com/blog/2015/01/06/code-reuse/), so there is less code here
-  to hide bugs.  
+
+- It is capable of running on minimal resources.  The free-tier on cloud providers should suit it well.
+
+- Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
+  This allows it to manage [thousands of concurrent requests](docs/perf_data/loom_perf.md) on resource-constrained
+  hardware.
+
+- Other projects strive to support universal cases.  [Because this does not](http://josdejong.com/blog/2015/01/06/code-reuse/), there 
+  is less code to hide bugs.  
 
   >I conclude that there are two ways of constructing a software design: One way is to
   >make it so simple that there are obviously no deficiencies and the other way is to
