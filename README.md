@@ -59,34 +59,26 @@ I benefit from several aspects:
   there's so little there, I can easily add or [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to) .  There's no technical reason why I couldn't
   include extra libraries if I needed, but I pretty much have all the basics handled. 
 - It's a less difficult project to read and understand than major web frameworks.
-- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There's no special machinery running in the shadows, like you will often
-  find with web frameworks using annotations/decorators or naming conventions.  Everywhere 
-  is plain navigable code.  All the functionality is supported 
-  through direct method calls. It is a higher signal-to-noise ratio when 
-  examining stacktraces, making the maintenance cheaper and less stressful.
+- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There's no special 
+  machinery running in the shadows, like is often with web frameworks using annotations
+  or naming conventions.  Everywhere is plain method calls, making the maintenance cheaper and less stressful.
 - [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/), more 
   supportive of long-term maintenance. I love being reminded
   of the context I am within by concise documentation, without having to read code.
-- The only dependency is the Java standard library.  Using large frameworks 
-  combined with many incidental dependencies leads to dependency hell.  The commonplace
-  conundrum is how to stay on top of the ensuing treadmill of updates. While it may be 
-  that way on most projects, it doesn't need to be that way
-  here. The pendulum for avoiding programming has swung too far out for many teams. Let's
-  not just be "configurers" - let's be programmers.  There's a lot we can reasonably 
-  undertake - just look at this project for a sense of how little is actually needed
-  for functionality when you work with a [general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
-- My typical wait time for automated testing is several seconds. When your
-  test pipeline is finished in seconds, your development team's productivity keeps humming.
-  What enables this is a focus on keeping the tests fast and minimal in number but high
-  in value.  If you haven't seen this approach in practice, definitely take a moment
+- Zero dependencies (unless you include the Java standard library).  Most projects
+  end up incorporating many dependencies, which you must then keep updated.  Nope to that.
+  Benefit from the power of an [industrial strengh general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
+- My typical wait time for automated testing is seconds. When your
+  test pipeline is finished that fast, your team's productivity hums.
+  Keep the tests fast and few but high value.  If you haven't seen this before, take a moment
   to read through it here.
-- It is decently performant, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). For example, 
-  it can handle [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](docs/perf_data/database_speed_test.md) per 
-  second.  The [templating engine crunched 27,000 renderings per second](docs/perf_data/templateRenderTest.md).
-- It can run on a low-performance machine.  This saves me a lot of money, since I can 
-  run on the free tier for cloud providers, and only need one computer.  One.  Single.  Computer.
-- Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
-  This allows it to manage, for example, ten thousand [concurrent requests using hundreds](docs/perf_data/loom_perf.md) of
+- It is performant, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). For example, 
+  it can respond to [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](docs/perf_data/database_speed_test.md) per 
+  second.  The [templating engine renders 27,000 times per second](docs/perf_data/templateRenderTest.md).
+- It can run on a low-performance machine.  This saves me a lot of money, since that lets me use 
+  the free tier on cloud providers, requiring only one computer.
+- Benefits from the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
+  This allows it to manage, for example, [ten thousand concurrent requests](docs/perf_data/loom_perf.md) using hundreds of
   megabytes rather than many gigabytes.
 - Other projects strive to support universal cases.  [This doesn't](http://josdejong.com/blog/2015/01/06/code-reuse/), so there is less code here
   to hide bugs.  
@@ -99,7 +91,7 @@ I benefit from several aspects:
 
 
 See the [theme](docs/development_handbook.md#theme) section in
-the development handbook.
+the development handbook for more philosophical underpinnings.
 
 
 System requirements: 
@@ -128,11 +120,11 @@ Step-by-step guide for installing Java on Windows:
    following these instructions:
 
   * Click the Windows start icon
-  * Type env to get the system properties window
-  * Click on Environment Variables
-  * Under user variables, click the New button
-  * For the variable name, enter JAVA_HOME, and for the value, enter C:\java\jdk-20.0.1
-  * Edit your Path variable, click New, and add %JAVA_HOME%\bin
+  * Type `env` to get the system properties window
+  * Click on _Environment Variables_
+  * Under user variables, click the _New_ button
+  * For the variable name, enter `JAVA_HOME`, and for the value, enter `C:\java\jdk-20.0.1`
+  * Edit your _Path_ variable, click _New_, and add `%JAVA_HOME%\bin`
 
 
 Developer documentation:
