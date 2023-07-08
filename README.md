@@ -58,7 +58,7 @@ I benefit from several aspects:
   handle every imaginable case, but 
   there's so little there, I can easily add or [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to) .  There's no technical reason why I couldn't
   include extra libraries if I needed, but I pretty much have all the basics handled. 
-- It's a much less difficult project to read and understand than any other web framework.
+- It's a less difficult project to read and understand than major web frameworks.
 - [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There's no special machinery running in the shadows, like you will often
   find with web frameworks using annotations/decorators or naming conventions.  Everywhere 
   is plain navigable code.  All the functionality is supported 
