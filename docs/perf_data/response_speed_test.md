@@ -1,7 +1,7 @@
 Response time test
 ==================
 
-#### In short: 17,700 responses per second
+#### In short: 18,304 responses per second
 
 ```shell
 $ ab -k -c20 -n 1000000 "http://localhost:8080/hello?name=byron"

@@ -118,7 +118,7 @@ public class BodyProcessor {
     /**
      * A regex used to extract the name value from the headers in multipart/form
      */
-    private final Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
+    private final static Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
 
     /**
      * Extract multipart/form data from a body.  See docs/http_protocol/returning_values_from_multipart_rfc_7578.txt

@@ -64,7 +64,7 @@ public class Headers{
      * Used for extracting the length of the body, in POSTs and
      * responses from servers
      */
-    private final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
+    private final static Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
 
     /**
      * Run this command to build a Headers object.

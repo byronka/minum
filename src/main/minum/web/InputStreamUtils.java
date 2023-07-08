@@ -8,6 +8,7 @@ import minum.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import static minum.utils.Invariants.*;
@@ -80,7 +81,7 @@ public class InputStreamUtils {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
-        final var result = new ArrayList<Byte>();
+        final var result = new ByteArrayOutputStream(constants.MAX_READ_LINE_SIZE_BYTES / 3);
         for (int i = 0; i <= (constants.MAX_READ_LINE_SIZE_BYTES + 1); i++) {
             if (i == constants.MAX_READ_LINE_SIZE_BYTES) throw new ForbiddenUseException("in readLine, client sent more bytes than allowed.  Current max: " + constants.MAX_READ_LINE_SIZE_BYTES);
             int a = inputStream.read();
@@ -93,10 +94,10 @@ public class InputStreamUtils {
 
             if (a == NEWLINE_DECIMAL) break;
 
-            result.add((byte) a);
+            result.write(a);
 
         }
-        return StringUtils.byteListToString(result);
+        return result.toString(StandardCharsets.UTF_8);
     }
 
 
