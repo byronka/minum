@@ -58,7 +58,7 @@ I benefit from several aspects:
   include extra libraries if I needed, but I pretty much have all the basics handled. 
 - It's a less difficult project to read and understand than major web frameworks.
 - [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There's no special 
-  machinery running in the shadows, like is often with web frameworks using annotations
+  machinery running in the shadows, like is typical with web frameworks using annotations
   or naming conventions.  Everywhere is plain method calls, making the maintenance cheaper and less stressful.
 - [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/), more 
   supportive of long-term maintenance. I love being reminded
@@ -66,7 +66,7 @@ I benefit from several aspects:
 - Zero dependencies (unless you include the Java standard library).  Most projects
   end up incorporating many dependencies, which you must then keep updated.  Nope to that.
   Benefit from the power of an [industrial strengh general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
-- My typical wait time for automated testing is seconds. When your
+- My ordinary wait time for automated testing is seconds. When your
   test pipeline is finished that fast, your team's productivity hums.
   Keep the tests fast and few but high value.  If you haven't seen this before, take a moment
   to read through it here.
