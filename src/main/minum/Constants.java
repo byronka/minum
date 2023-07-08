@@ -40,6 +40,7 @@ public class Constants {
         IS_THE_BRIG_ENABLED = getProp("IS_THE_BRIG_ENABLED", false);
         SUSPICIOUS_ERRORS = getProp("SUSPICIOUS_ERRORS", "");
         SUSPICIOUS_PATHS = getProp("SUSPICIOUS_PATHS", "");
+        START_TIME = System.currentTimeMillis();
     }
 
     /**
@@ -149,6 +150,12 @@ public class Constants {
      * These are a list of paths that often indicate unusual behavior, maybe an attacker
      */
     public final List<String> SUSPICIOUS_PATHS;
+
+    /**
+     * This value is the result of running System.currentTimeMillis() when this
+     * class gets instantiated, and that is done at the very beginning.
+     */
+    public final long START_TIME;
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing

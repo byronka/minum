@@ -88,6 +88,13 @@ public class FullSystem implements AutoCloseable {
         var handler = shouldRedirect ? makeRedirectHandler() : webHandler;
         server = webEngine.startServer(es, handler);
         sslServer = webEngine.startSslServer(es, webHandler);
+
+        var now = ZonedDateTime.now(ZoneId.of("UTC"));
+        var formattedNow = now.format(DateTimeFormatter.ISO_INSTANT);
+        var nowMillis = now.toInstant().toEpochMilli();
+        var startupTime = nowMillis - constants.START_TIME;
+        System.out.println(formattedNow + " *** Minum has finished primary startup after " + startupTime + " milliseconds ***");
+
         return this;
     }
 
