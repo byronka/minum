@@ -85,13 +85,13 @@ public class Logger implements ILogger {
      * A helper method to reduce duplication
      */
     public void logHelper(ThrowingSupplier<String, Exception> msg, LoggingLevel loggingLevel) {
-        String receivedMessage;
-        try {
-            receivedMessage = msg.get();
-        } catch (Exception ex) {
-            receivedMessage = "EXCEPTION DURING GET: " + ex;
-        }
         if (activeLogLevels.get(loggingLevel)) {
+        String receivedMessage;
+            try {
+                receivedMessage = msg.get();
+            } catch (Exception ex) {
+                receivedMessage = "EXCEPTION DURING GET: " + ex;
+            }
             String finalReceivedMessage = receivedMessage;
             loggerPrinter.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
                 printf(loggingLevel.name() + ": %s %s%n", getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage));

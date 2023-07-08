@@ -1,7 +1,7 @@
 Response time test
 ==================
 
-#### In short: 18,304 responses per second
+#### In short: 19,500 responses per second
 
 ```shell
 $ ab -k -c20 -n 1000000 "http://localhost:8080/hello?name=byron"
@@ -31,23 +31,23 @@ Document Path:          /hello?name=byron
 Document Length:        11 bytes
 
 Concurrency Level:      20
-Time taken for tests:   56.354 seconds
+Time taken for tests:   51.167 seconds
 Complete requests:      1000000
 Failed requests:        0
 Keep-Alive requests:    1000000
 Total transferred:      150000000 bytes
 HTML transferred:       11000000 bytes
-Requests per second:    17744.98 [#/sec] (mean)
-Time per request:       1.127 [ms] (mean)
-Time per request:       0.056 [ms] (mean, across all concurrent requests)
-Transfer rate:          2599.36 [Kbytes/sec] received
+Requests per second:    19543.92 [#/sec] (mean)
+Time per request:       1.023 [ms] (mean)
+Time per request:       0.051 [ms] (mean, across all concurrent requests)
+Transfer rate:          2862.88 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
 Connect:        0    0   0.0      0       4
-Processing:     0    1   0.3      1      18
-Waiting:        0    1   0.3      1      18
-Total:          0    1   0.3      1      18
+Processing:     0    1   0.4      1      33
+Waiting:        0    1   0.4      1      29
+Total:          0    1   0.4      1      33
 
 Percentage of the requests served within a certain time (ms)
   50%      1
@@ -58,6 +58,6 @@ Percentage of the requests served within a certain time (ms)
   95%      2
   98%      2
   99%      2
- 100%     18 (longest request)
+ 100%     33 (longest request)
 
 ```
