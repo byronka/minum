@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.web.StatusLine.StatusCode.*;
 
 
@@ -40,7 +41,7 @@ public class UploadPhoto {
         uploadPhotoTemplateHtml = FileUtils.readTemplate("uploadphoto/upload_photo_template.html");
         this.ddps = ddps;
         photographs = ddps.readAndDeserialize(Photograph.EMPTY);
-        newPhotographIndex = new AtomicLong(ddps.calculateNextIndex(photographs));
+        newPhotographIndex = new AtomicLong(calculateNextIndex(photographs));
     }
 
     public Response uploadPage(Request r) {

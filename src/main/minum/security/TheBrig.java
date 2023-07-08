@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
 
 /**
@@ -119,7 +120,7 @@ public class TheBrig {
             this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("TheBrig"), context);
             this.inmates = ddps.readAndDeserialize(Inmate.EMPTY);
             this.clientKeys = this.inmates.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
-            newInmateIndex = new AtomicLong(ddps.calculateNextIndex(inmates));
+            newInmateIndex = new AtomicLong(calculateNextIndex(inmates));
         } else {
             this.ddps = null;
             this.inmates = new ArrayList<>();

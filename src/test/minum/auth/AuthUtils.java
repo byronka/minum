@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static minum.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
+import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
 import static minum.web.StatusLine.StatusCode.*;
 
@@ -59,8 +60,8 @@ public class AuthUtils {
         this.logger = context.getLogger();
 
 
-        newSessionIdentifierIndex = new AtomicLong(sessionDiskData.calculateNextIndex(sessionIds));
-        newUserIndex = new AtomicLong(userDiskData.calculateNextIndex(users));
+        newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
+        newUserIndex = new AtomicLong(calculateNextIndex(users));
         loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
         registerPageTemplate = FileUtils.readTemplate("auth/register_page_template.html");
     }

@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.web.StatusLine.StatusCode.*;
 
 
@@ -32,7 +33,7 @@ public class SampleDomain {
         this.ddps = diskData;
         personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
-        newPersonIndex = new AtomicLong(ddps.calculateNextIndex(personNames));
+        newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
         nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
         authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
         unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");

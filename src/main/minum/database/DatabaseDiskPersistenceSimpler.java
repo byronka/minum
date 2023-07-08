@@ -181,7 +181,7 @@ public class DatabaseDiskPersistenceSimpler<T> {
      * If there is no data in the collection, just return the number 1.
      * </p>
      */
-    public long calculateNextIndex(Collection<? extends SimpleIndexed> data) {
+    public static long calculateNextIndex(Collection<? extends SimpleIndexed> data) {
         return data
                 .stream()
                 .max(Comparator.comparingLong(SimpleIndexed::getIndex))
