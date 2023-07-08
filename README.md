@@ -47,8 +47,8 @@ Built using [test-driven development](https://www.google.com/books/edition/Test_
 
 I benefit from several aspects:
 
-- The binary is tiny - 150 kilobytes.  That includes the database code, the web server,
-  the templating library, the logging utilities, the HTML parsing library.  The [example projects](#example-projects-demonstrating-usage)
+- The binary is tiny - 150 kilobytes.  That includes the database, web server,
+  templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
   show how to continue that pattern with the business logic so that the total
   remains small.  With such a small size, everything becomes faster - moving
   the project onto your production server takes just a couple seconds.  That's part of
