@@ -26,7 +26,7 @@ Quick start:
 
 * To test: `make test`
 * To create a library jar: `make jar`
-* For help: `make help`
+* For help: `make`
 
 See [dependencies](#system-requirements)
 
