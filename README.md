@@ -45,7 +45,7 @@ Why?
 To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of [following](docs/parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) [technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients. 
 Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment).
 
-I benefit from several aspects:
+Developers benefit from several aspects:
 
 - The code is [minimalistic](docs/size_comparisons.md) on purpose.  It does not 
   handle every imaginable case, but it empowers developers to [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There 
