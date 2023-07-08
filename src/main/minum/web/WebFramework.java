@@ -116,6 +116,14 @@ public class WebFramework implements AutoCloseable {
                     logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
                     var sl = StartLine.make(context).extractStartLine(rawStartLine);
                     logger.logTrace(() -> sw + ": StartLine received: " + sl.toString());
+                    if (sl.getRawValue().isBlank()) {
+                        /*
+                        if we get in here, it means the client sent nothing in the spot
+                        where the Start Line should have been - therefore, we're not
+                        dealing with a kosher request at all. Bail.
+                         */
+                        return;
+                    }
 
                     /*
                     At this point we have a start line.  That's enough to see whether a 404
@@ -127,47 +135,57 @@ public class WebFramework implements AutoCloseable {
                     Response resultingResponse;
                     boolean isKeepAlive = false;
 
+                    /*
+                       next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
+
+                       by the way, the headers will tell us vital information about the
+                       body.  If, for example, we're getting a POST and receiving a
+                       www form url encoded, there will be a header of "content-length"
+                       that will mention how many bytes to read.  On the other hand, if
+                       we're receiving a multipart, there will be no content-length, but
+                       the content-type will include the boundary string.
+                    */
+                    var headers = Headers.make(context, inputStreamUtils);
+                    Headers hi = headers.extractHeaderInformation(sw.getInputStream());
+                    logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
+
+                    // determine if we are in a keep-alive connection
+                    if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ZERO) {
+                        isKeepAlive = hi.hasKeepAlive();
+                    } else if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ONE) {
+                        isKeepAlive = ! hi.hasConnectionClose();
+                    }
+                    boolean finalIsKeepAlive = isKeepAlive;
+                    logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
+
+                    Body body = Body.EMPTY(context);
+                    // Determine whether there is a body (a block of data) in this request
+                    if (isThereIsABody(hi)) {
+                        logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
+                        body = bodyProcessor.extractData(sw.getInputStream(), hi);
+                        Body finalBody = body;
+                        logger.logTrace(() -> "The body is: " + finalBody.asString());
+                    }
+
+                    /*
+                    Need to postpone processing until here, even though the request may be a 404 not found,
+                    because this way we can review the headers and other aspects of the body and maybe
+                    keep the keep-alive socket open.  For example, if the user is having an entire
+                    conversation with us and asks for a favicon and we're missing it, we shouldn't
+                    abruptly close the socket for merely that.
+
+                    Now, on the other hand, if they are looking for vulnerabilities, it's ok to dump them.
+                     */
                     if (endpoint == null) {
                         logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
                         boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
                         logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
                         if (isVulnSeeking && theBrig != null && constants.IS_THE_BRIG_ENABLED) {
                             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                            return;
                         }
                         resultingResponse = new Response(_404_NOT_FOUND);
                     } else {
-                        /*
-                           next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
-
-                           by the way, the headers will tell us vital information about the
-                           body.  If, for example, we're getting a POST and receiving a
-                           www form url encoded, there will be a header of "content-length"
-                           that will mention how many bytes to read.  On the other hand, if
-                           we're receiving a multipart, there will be no content-length, but
-                           the content-type will include the boundary string.
-                        */
-                        var headers = Headers.make(context, inputStreamUtils);
-                        Headers hi = headers.extractHeaderInformation(sw.getInputStream());
-                        logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
-
-                        // determine if we are in a keep-alive connection
-                        if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ZERO) {
-                            isKeepAlive = hi.hasKeepAlive();
-                        } else if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ONE) {
-                            isKeepAlive = ! hi.hasConnectionClose();
-                        }
-                        boolean finalIsKeepAlive = isKeepAlive;
-                        logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
-
-                        Body body = Body.EMPTY(context);
-                        // Determine whether there is a body (a block of data) in this request
-                        if (isThereIsABody(hi)) {
-                            logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
-                            body = bodyProcessor.extractData(sw.getInputStream(), hi);
-                            Body finalBody = body;
-                            logger.logTrace(() -> "The body is: " + finalBody.asString());
-                        }
-
                         var handlerStopwatch = new StopwatchUtils().startTimer();
                         resultingResponse = endpoint.apply(new Request(hi, sl, body, sw.getRemoteAddr()));
                         logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));

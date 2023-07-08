@@ -185,6 +185,10 @@ public class StartLine{
         return this.version;
     }
 
+    public String getRawValue() {
+        return rawValue;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

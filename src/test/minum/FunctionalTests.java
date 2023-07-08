@@ -8,6 +8,7 @@ import minum.web.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.util.List;
 
 import static minum.testing.RegexUtils.find;
@@ -118,8 +119,9 @@ public class FunctionalTests {
 
             // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
             // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
-            // if we try sending a request that looks like an attack, block the client
-            assertEquals(get("version").statusLine().status(), _404_NOT_FOUND);
+            // if we try sending a request that looks like an attack, immediately
+            // block the client, don't even return a normal response
+            assertEquals(get("version").statusLine().status(), NULL);
             MyThread.sleep(50);
             String vulnMsg = ((TestLogger)logger).findFirstMessageThatContains("looking for a vulnerability? true");
             assertTrue(vulnMsg.contains("looking for a vulnerability? true"), "expect to find correct error in this: " + vulnMsg);
@@ -136,8 +138,8 @@ public class FunctionalTests {
 
     public TestResponse get(String path, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY(context);
-        Headers headers;
-        StatusLine statusLine;
+        Headers headers = null;
+        StatusLine statusLine = null;
         try (var client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
@@ -158,10 +160,22 @@ public class FunctionalTests {
 
             // Determine whether there is a body (a block of data) in this request
             if (webFramework.isThereIsABody(headers)) {
-                logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
+                Headers finalHeaders = headers;
+                logger.logTrace(() -> "There is a body. Content-type is " + finalHeaders.contentType());
                 body = bodyProcessor.extractData(is, headers);
             }
 
+        } catch (SocketException ex) {
+            if (ex.getMessage().equals("An established connection was aborted by the software in your host machine")) {
+                /*
+                When the server is done communicating with us, it will close
+                the socket on its side, which will cause a SocketException on our side.
+                If the message matches what we have here, it's just that happening, no
+                need to pass it up further, it's expected and ok.
+                 */
+            } else {
+                throw ex;
+            }
         }
         MyThread.sleep(100);
         return new TestResponse(statusLine, headers, body);
@@ -173,8 +187,8 @@ public class FunctionalTests {
 
     public TestResponse post(String path, String payload, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY(context);
-        Headers headers;
-        StatusLine statusLine;
+        Headers headers = null;
+        StatusLine statusLine = null;
         try (var client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
@@ -197,10 +211,22 @@ public class FunctionalTests {
 
 
             if (webFramework.isThereIsABody(headers)) {
-                logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
+                Headers finalHeaders = headers;
+                logger.logTrace(() -> "There is a body. Content-type is " + finalHeaders.contentType());
                 body = bodyProcessor.extractData(is, headers);
             }
 
+        } catch (SocketException ex) {
+            if (ex.getMessage().equals("An established connection was aborted by the software in your host machine")) {
+                /*
+                When the server is done communicating with us, it will close
+                the socket on its side, which will cause a SocketException on our side.
+                If the message matches what we have here, it's just that happening, no
+                need to pass it up further, it's expected and ok.
+                 */
+            } else {
+                throw ex;
+            }
         }
         MyThread.sleep(100);
         return new TestResponse(statusLine, headers, body);

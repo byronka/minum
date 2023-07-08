@@ -42,7 +42,12 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
         _401_UNAUTHORIZED(401, "UNAUTHORIZED"),
         _429_TOO_MANY_REQUESTS(429, "TOO MANY REQUESTS"),
         _404_NOT_FOUND(404, "NOT FOUND"),
-        _500_INTERNAL_SERVER_ERROR(500, "INTERNAL SERVER ERROR")
+        _500_INTERNAL_SERVER_ERROR(500, "INTERNAL SERVER ERROR"),
+
+        /**
+         * The null object, meant to represent "no status code"
+         */
+        NULL(0, "NULL OBJECT")
         ;
 
         public final int code;
@@ -61,7 +66,15 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
         }
     }
 
+    /**
+     * Parses a string value of a status line from an HTTP
+     * server.  If the input value is null or empty, we'll
+     * return a {@link StatusLine} with null-object values
+     */
     public static StatusLine extractStatusLine(String value) {
+        if (value == null || value.isBlank()) {
+            return new StatusLine(StatusCode.NULL, WebEngine.HttpVersion.NONE, "");
+        }
         Matcher mr = StatusLine.statusLineRegex.matcher(value);
         mustBeTrue(mr.matches(), String.format("%s must match the statusLinePattern: %s", value, statusLinePattern));
         String version = mr.group(1);

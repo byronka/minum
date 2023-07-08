@@ -178,6 +178,8 @@ public class Headers{
             String value = inputStreamUtils.readLine(is);
             if (value != null && value.isBlank()) {
                 break;
+            } else if (value == null) {
+                return headers;
             } else {
                 headers.add(value);
             }
