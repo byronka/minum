@@ -46,7 +46,7 @@ Why?
 ----
 
 To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of [following](docs/parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) [technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients. 
-Built using [test-driven development](https://www.google.com/books/edition/Test_driven_Development/CUlsAQAAQBAJ?hl=en).
+Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment).
 
 I benefit from several aspects:
 
