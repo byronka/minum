@@ -52,29 +52,23 @@ public class Tests {
    * stop short of running {@link FullSystem}.
    */
   private void unitAndIntegrationTests() throws Exception {
-    ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
-    Context context = new Context(es, constants, null);
-    TestLogger logger = new TestLogger(context);
-    context.setLogger(logger);
+    Context context = buildContext();
 
-      new WebTests(context).tests();
-      new SimpleDatabaseTests(context).tests();
-      new LruCacheTests(context).tests();
-      new StringUtilsTests(context).tests();
-      new TemplatingTests(context).tests();
-      new Http2Tests(context).test();
-      new FullSystemTests(context).tests();
-      new StaticFilesCacheTests(context).tests();
-      new TheBrigTests(context).tests();
-      new HtmlParserTests(context).tests();
-      new TestFrameworkTests(context).tests();
-      new ServerTests(context).tests();
-      new StackTraceUtilsTests(context).tests();
+    new WebTests(context).tests();
+    new SimpleDatabaseTests(context).tests();
+    new LruCacheTests(context).tests();
+    new StringUtilsTests(context).tests();
+    new TemplatingTests(context).tests();
+    new Http2Tests(context).test();
+    new FullSystemTests(context).tests();
+    new StaticFilesCacheTests(context).tests();
+    new TheBrigTests(context).tests();
+    new HtmlParserTests(context).tests();
+    new TestFrameworkTests(context).tests();
+    new ServerTests(context).tests();
+    new StackTraceUtilsTests(context).tests();
 
-    logger.writeTestReport();
-    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
-    new ActionQueueKiller(context).killAllQueues();
-    context.getExecutorService().shutdownNow();
+    handleShutdown(context);
   }
 
   /**
@@ -82,19 +76,48 @@ public class Tests {
    * from {@link FullSystem}
    */
   private void testFullSystem_Soup_To_Nuts() throws Exception {
+    Context context = buildContextFunctionalTests();
+
+    new FunctionalTests(context).test();
+
+    shutdownFunctionalTests(context);
+  }
+
+  private void handleShutdown(Context context) throws IOException {
+    var logger2 = (TestLogger) context.getLogger();
+    logger2.writeTestReport();
+    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger2);
+    new ActionQueueKiller(context).killAllQueues();
+    context.getExecutorService().shutdownNow();
+  }
+
+  private Context buildContext() {
+    ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
+    Context context = new Context(es, constants, null);
+    TestLogger logger = new TestLogger(context);
+    context.setLogger(logger);
+    return context;
+  }
+
+  private static void shutdownFunctionalTests(Context context) throws IOException {
+    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
+    var fs2 = context.getFullSystem();
+    fs2.removeShutdownHook();
+    fs2.close();
+    context.getExecutorService().shutdownNow();
+  }
+
+  private static Context buildContextFunctionalTests() throws IOException {
     System.out.println("Starting a soup-to-nuts tests of the full system");
     var constants = new Constants();
     final var es = ExtendedExecutor.makeExecutorService(constants);
     var fs = new FullSystem(es, constants);
+    Context context = fs.getContext();
     TestLogger testLogger = new TestLogger(fs.getContext());
-    fs.getContext().setLogger(testLogger);
+    context.setLogger(testLogger);
     var wf = fs.start().getWebFramework();
     new TheRegister(wf).registerDomains();
-    new FunctionalTests(wf).test();
-    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), wf.getLogger());
-    wf.getFullSystem().removeShutdownHook();
-    wf.getFullSystem().close();
-    wf.getFullSystem().getExecutorService().shutdownNow();
+    return context;
   }
 
 }

@@ -28,11 +28,11 @@ public class FunctionalTests {
     private final InputStreamUtils inputStreamUtils;
     private final WebFramework webFramework;
 
-    public FunctionalTests(WebFramework wf) {
-        this.webFramework = wf;
-        this.logger = wf.getLogger();
-        this.context = wf.getFullSystem().getContext();
-        this.primaryServer = wf.getFullSystem().getServer();
+    public FunctionalTests(Context context) {
+        this.webFramework = context.getFullSystem().getWebFramework();
+        this.logger = context.getLogger();
+        this.context = context;
+        this.primaryServer = context.getFullSystem().getServer();
         this.webEngine = new WebEngine(context);
         this.inputStreamUtils = new InputStreamUtils(context);
     }
