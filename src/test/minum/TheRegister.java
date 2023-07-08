@@ -82,7 +82,6 @@ public class TheRegister {
         DatabaseDiskPersistenceSimpler<User> userDdps = webFramework.getDdps("users");
         var au = new AuthUtils(sessionDdps, userDdps, context);
         new LoopingSessionReviewing(context, au).initialize();
-        au.setSessionLooper();
         return au;
     }
 }

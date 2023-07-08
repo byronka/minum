@@ -35,7 +35,6 @@ public class FunctionalTests {
         this.primaryServer = wf.getFullSystem().getServer();
         this.webEngine = new WebEngine(context);
         this.inputStreamUtils = new InputStreamUtils(context);
-
     }
 
     public void test() throws Exception {

@@ -138,9 +138,6 @@ public class AuthUtils {
         return new AuthResult(true, sessionFoundInDatabase.getCreationDateTime(), authenticatedUser.get(0));
     }
 
-    public void setSessionLooper() {
-    }
-
     public List<User> getUsers() {
         return this.users.stream().toList();
     }
