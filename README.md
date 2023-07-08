@@ -51,9 +51,7 @@ I benefit from several aspects:
   templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
   show how to continue that pattern with the business logic so that the total
   remains small.  With such a small size, everything becomes faster - moving
-  the project onto your production server takes just a couple seconds.  That's part of
-  how I am able to type a command and have new code running on the production server just
-  seconds later.
+  the project onto your production server takes just a couple seconds.
 - The code is minimal (see [size comparison](docs/size_comparisons.md)).  It doesn't 
   handle every imaginable case, but 
   there's so little there, I can easily add or [modify the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to) .  There's no technical reason why I couldn't
