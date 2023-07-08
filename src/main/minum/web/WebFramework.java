@@ -9,6 +9,7 @@ import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
 import minum.testing.StopwatchUtils;
+import minum.utils.StringUtils;
 import minum.utils.ThrowingConsumer;
 
 import java.io.IOException;
@@ -194,8 +195,9 @@ public class WebFramework implements AutoCloseable {
                     String statusLineAndHeaders = convertResponseToString(resultingResponse, isKeepAlive);
 
                     // Here is where the bytes actually go out on the socket
-                    sw.send(statusLineAndHeaders);
-                    sw.send(HTTP_CRLF);
+                    String response = statusLineAndHeaders + HTTP_CRLF;
+                    logger.logTrace(() -> "Sending back: " + response + StringUtils.byteArrayToString(resultingResponse.body()));
+                    sw.send(response);
                     sw.send(resultingResponse.body());
                     logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
 
@@ -240,9 +242,7 @@ public class WebFramework implements AutoCloseable {
                     .append("Keep-Alive: timeout=" + constants.SOCKET_TIMEOUT_MILLIS / 1000 + HTTP_CRLF);
         }
 
-        var stringValue = stringBuilder.toString();
-        logger.logTrace(() -> "Sending back: " + stringValue);
-        return stringValue;
+        return stringBuilder.toString();
     }
 
     /**
