@@ -64,18 +64,15 @@ Developers benefit from several aspects:
 - [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/). 
   More supportive of long-term maintenance.
 
-- Zero dependencies (unless you include the Java standard library).  Projects often
-  incorporate many dependencies, which must be kept updated. With fewer dependencies,
-  the churn is minimized. Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
-
-- Wait time for automated testing is seconds. When the
-  test pipeline finishes that quickly, the team's productivity hums.
+- Zero dependencies.  Projects often
+  incorporate many dependencies, which must be kept updated, leading to churn. It turns out
+  the standard library is sufficient for most needs.  Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
 
 - Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). As an example, 
   it can respond to [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](docs/perf_data/database_speed_test.md) per 
   second.  The [templating engine renders 27,000 times per second](docs/perf_data/templateRenderTest.md).
 
-- It is capable of running on minimal resources.  The free-tier on cloud providers should suit it well.
+- Minimal resource requirements.  The free-tier on cloud providers should suit it well.
 
 - Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
   This allows it to manage [thousands of concurrent requests](docs/perf_data/loom_perf.md) on resource-constrained
