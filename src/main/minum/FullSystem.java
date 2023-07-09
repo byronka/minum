@@ -38,28 +38,37 @@ public class FullSystem implements AutoCloseable {
     private final Context context;
 
     /**
-     * This constructor is used when you want to provide the
-     * {@link ILogger} and {@link ExecutorService}. It's easier
-     * if you use {@link #initialize()} since it handles that for you.
+     * This constructor will also build a logger for you, or you
+     * can provide a logger.
+     * <p>
+     *     There may be some redundancy here, but the logger is special.
+     *     It's meant to be adjustable and lives before and after most
+     *     of the classes, including the FullSystem class.
+     * </p>
+     * <p>
+     *     For that reason, it's good to think of the logger as needing
+     *     its own set of special objects, separate from the rest of the system.
+     *     Its own executor service, its own constants. What have you.
+     * </p>
      */
-    public FullSystem(ExecutorService es, Constants constants) {
+    public FullSystem(ExecutorService es, Constants constants, ILogger logger) {
         this.es = es;
         this.constants = constants;
         this.context = new Context(es, constants, this);
-        this.logger = new Logger(context);
         this.context.setLogger(logger);
+        this.logger = logger;
         this.inputStreamUtils = new InputStreamUtils(context);
     }
 
+
     /**
-     * Instantiate a FullSystem with freshly-constructed
-     * values for {@link ILogger} and {@link ExecutorService}.
+     * This is the expected entry-point for most users.
      */
-    public static WebFramework initialize() {
+    public static FullSystem initialize(ILogger logger) {
         var constants = new Constants();
         final var es = ExtendedExecutor.makeExecutorService(constants);
         try {
-            return new FullSystem(es, constants).start().getWebFramework();
+            return new FullSystem(es, constants, logger).start();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

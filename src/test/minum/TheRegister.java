@@ -28,9 +28,9 @@ public class TheRegister {
     private final Context context;
     private final WebFramework webFramework;
 
-    public TheRegister(WebFramework webFramework) {
-        this.context = webFramework.getFullSystem().getContext();
-        this.webFramework = webFramework;
+    public TheRegister(Context context) {
+        this.context = context;
+        this.webFramework = context.getFullSystem().getWebFramework();
     }
 
     public void registerDomains() {

@@ -35,4 +35,12 @@ public interface ILogger {
      * This is for logging business-related topics
      */
     void logAudit(ThrowingSupplier<String, Exception> msg);
+
+    /**
+     * The logger has to stand apart from the rest of the system,
+     * or else we'll have circular dependencies.  For that reason,
+     * when we are shutting down the system it is necessary to
+     * explicitly stop the logger.
+     */
+    void stop();
 }

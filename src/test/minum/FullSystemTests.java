@@ -35,7 +35,7 @@ public class FullSystemTests {
          * and we'll return early from the handler, returning nothing.
          */
         logger.test("Typical happy path - a user makes an HTTP request to the insecure endpoint"); {
-            FullSystem fullSystem = new FullSystem(es, context.getConstants());
+            FullSystem fullSystem = new FullSystem(es, context.getConstants(), context.getLogger());
             var redirectHandler = fullSystem.makeRedirectHandler();
             FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
             fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
@@ -50,7 +50,7 @@ public class FullSystemTests {
          * and we'll return early from the handler, returning nothing.
          */
         logger.test("If the redirect handler receives no start line, return nothing"); {
-            FullSystem fullSystem = new FullSystem(es, context.getConstants());
+            FullSystem fullSystem = new FullSystem(es, context.getConstants(), context.getLogger());
             var redirectHandler = fullSystem.makeRedirectHandler();
             FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
             redirectHandler.accept(fakeSocketWrapper);

@@ -2,6 +2,7 @@ package minum.logging;
 
 import minum.Constants;
 import minum.Context;
+import minum.LoggingContext;
 import minum.utils.ActionQueue;
 import minum.utils.ThrowingSupplier;
 
@@ -21,16 +22,22 @@ public class Logger implements ILogger {
      * our messages thread-safely by taking
      * them off the top of a queue.
      */
-    protected final ActionQueue loggerPrinter;
+    protected final LoggingActionQueue loggerPrinter;
+    private final LoggingContext context;
     private Map<LoggingLevel, Boolean> activeLogLevels;
 
     /**
      * This constructor initializes an {@link ActionQueue}
      * to handle log messages.
      */
-    public Logger(Context context) {
+    public Logger(LoggingContext context) {
+        this(context, "");
+    }
+
+    public Logger(LoggingContext context, String name) {
+        this.context = context;
         Constants constants = context.getConstants();
-        loggerPrinter = new ActionQueue("loggerPrinter", context).initialize();
+        loggerPrinter = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
         toggleDefaultLogging(constants.LOG_LEVELS);
     }
 
@@ -74,6 +81,12 @@ public class Logger implements ILogger {
     @Override
     public void logAudit(ThrowingSupplier<String, Exception> msg) {
         logHelper(msg, LoggingLevel.AUDIT);
+    }
+
+    @Override
+    public void stop() {
+        this.loggerPrinter.stop();
+        this.context.getExecutorService().shutdownNow();
     }
 
     @Override

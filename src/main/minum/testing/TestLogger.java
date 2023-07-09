@@ -1,8 +1,8 @@
 package minum.testing;
 
 import minum.Context;
+import minum.LoggingContext;
 import minum.logging.Logger;
-import minum.logging.LoggingLevel;
 import minum.utils.FileUtils;
 import minum.utils.ThrowingSupplier;
 
@@ -22,8 +22,8 @@ public class TestLogger extends Logger {
     private final List<TestSuite> testSuites;
     private String previousTestName;
     private TestSuite currentTestSuite;
-    private Queue<String> last20Lines;
-    private final int MAX_CACHE_SIZE = 30;
+    private Queue<String> recentLogLines;
+    private final int MAX_CACHE_SIZE = 10;
 
     /**
      * Writes a Junit-style xml file to out/reports/tests/tests.xml
@@ -58,11 +58,11 @@ public class TestLogger extends Logger {
     record TestCase(String name, long duration) {}
     record TestSuite(String className, List<TestCase> testCases) {}
 
-    public TestLogger(Context context) {
-        super(context);
+    public TestLogger(LoggingContext context, String name) {
+        super(context, name);
         this.testSuites = new ArrayList<>();
         this.stopWatch = new StopwatchUtils();
-        this.last20Lines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
+        this.recentLogLines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
     }
 
     private int testCount = 1;
@@ -83,8 +83,10 @@ public class TestLogger extends Logger {
      */
     private void addToCache(ThrowingSupplier<String, Exception> msg) {
         String message = extractMessage(msg);
-        while (last20Lines.size() >= (MAX_CACHE_SIZE-5)) last20Lines.remove();
-        last20Lines.add(message);
+        while (recentLogLines.size() >= (MAX_CACHE_SIZE)) {
+            recentLogLines.remove();
+        }
+        recentLogLines.offer(message);
     }
 
     @Override
@@ -116,7 +118,7 @@ public class TestLogger extends Logger {
      * case-insensitively.
      */
     public String findFirstMessageThatContains(String value) {
-        var lineList = last20Lines.stream().toList();
+        var lineList = recentLogLines.stream().toList();
         var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
         int size = values.size();
         if (size == 0) {
