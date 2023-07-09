@@ -51,7 +51,7 @@ Developers benefit from several aspects:
   handle every imaginable case, but it fosters [modifying the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There 
   is nothing to prevent inclusion of extra libraries, but basics are handled. 
 
-- The compiled binary is small - around 150 kilobytes, which includes the database, web server,
+- The [compiled binary is small](docs/perf_data/framework_perf_comparison.md) - around 150 kilobytes, which includes the database, web server,
   templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
   show how to continue that pattern with the business logic.  This makes everything faster - sending to
   production takes seconds.
