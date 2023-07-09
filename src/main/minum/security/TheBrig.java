@@ -117,7 +117,7 @@ public class TheBrig {
         this.isUsingDiskPersistence = isUsingDiskPersistence;
         if (isUsingDiskPersistence) {
             Path dbDir = Path.of(constants.DB_DIRECTORY);
-            this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("TheBrig"), context);
+            this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("the_brig"), context);
             this.inmates = ddps.readAndDeserialize(Inmate.EMPTY);
             this.clientKeys = this.inmates.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
             newInmateIndex = new AtomicLong(calculateNextIndex(inmates));
