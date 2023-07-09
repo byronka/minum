@@ -64,8 +64,7 @@ public class FullSystem implements AutoCloseable {
     /**
      * This is the expected entry-point for most users.
      */
-    public static FullSystem initialize(ILogger logger) {
-        var constants = new Constants();
+    public static FullSystem initialize(ILogger logger, Constants constants) {
         final var es = ExtendedExecutor.makeExecutorService(constants);
         try {
             return new FullSystem(es, constants, logger).start();

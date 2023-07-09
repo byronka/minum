@@ -109,7 +109,7 @@ public class Tests {
     LoggingContext loggingContext = new LoggingContext(es, constants);
     TestLogger logger = new TestLogger(loggingContext, "integration_test_logger");
 
-    var fs = FullSystem.initialize(logger);
+    var fs = FullSystem.initialize(logger, constants);
     Context context = fs.getContext();
 
     new TheRegister(context).registerDomains();

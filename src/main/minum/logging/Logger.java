@@ -3,13 +3,16 @@ package minum.logging;
 import minum.Constants;
 import minum.Context;
 import minum.LoggingContext;
+import minum.testing.TestLogger;
 import minum.utils.ActionQueue;
+import minum.utils.ExtendedExecutor;
 import minum.utils.ThrowingSupplier;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import static minum.utils.TimeUtils.getTimestampIsoInstant;
 
@@ -39,6 +42,12 @@ public class Logger implements ILogger {
         Constants constants = context.getConstants();
         loggerPrinter = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
         toggleDefaultLogging(constants.LOG_LEVELS);
+    }
+
+    public static ILogger make(Constants constants) {
+        ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
+        var loggingContext = new LoggingContext(es, constants);
+        return new Logger(loggingContext, "_primary_system_logger");
     }
 
     /**
