@@ -44,6 +44,22 @@ public class Logger implements ILogger {
         toggleDefaultLogging(constants.LOG_LEVELS);
     }
 
+    /**
+     * Build a logger.
+     *
+     * <p>
+     *     Some interesting aspects of this builder:
+     * </p>
+     * <ul>
+     *     <li>
+     *         It uses its own {@link ExecutorService}, separate from
+     *         the one for the rest of the system.
+     *     </li>
+     *     <li>
+     *         It uses its own Context object, separate from the regular {@link Context}
+     *     </li>
+     * </ul>
+     */
     public static ILogger make(Constants constants) {
         ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
         var loggingContext = new LoggingContext(es, constants);
