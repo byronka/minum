@@ -5,12 +5,25 @@ import minum.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Extend from this class to create a data value that is
+ * intended to be stored in the database.
+ */
 public abstract class SimpleDataTypeImpl<T> implements ISimpleDataType<T> {
 
 
-    public SimpleDataTypeImpl() {
+    protected SimpleDataTypeImpl() {
     }
 
+    /**
+     * This is a helper that will encode the values you give it
+     * in preparation for storage in a dataase file.
+     * <p>
+     *     <em>Please note</em>: There is minimal help here.  You
+     *     need to keep track of which values will be encoded here.
+     *     If you are missing any, this method won't complain.
+     * </p>
+     */
     protected String serializeHelper(Object... values) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < values.length-1; i++) {
