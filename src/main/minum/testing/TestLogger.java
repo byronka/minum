@@ -1,7 +1,6 @@
 package minum.testing;
 
-import minum.Context;
-import minum.LoggingContext;
+import minum.logging.LoggingContext;
 import minum.logging.Logger;
 import minum.utils.FileUtils;
 import minum.utils.ThrowingSupplier;

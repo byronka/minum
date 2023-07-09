@@ -52,9 +52,9 @@ public class LoggingActionQueue {
             this only gets called when we are trying to shut everything
             down cleanly
              */
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " ActionQueue for %s is stopped.%n", name);
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoggingActionQueue for %s is stopped.%n", name);
             } catch (Exception ex) {
-                System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
+                System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: LoggingActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
                 throw ex;
             }
             return null;
@@ -106,11 +106,4 @@ public class LoggingActionQueue {
         return this.name;
     }
 
-    public Thread getQueueThread() {
-        return queueThread;
-    }
-
-    public LinkedBlockingQueue<CallableWithDescription> getQueue() {
-        return queue;
-    }
 }

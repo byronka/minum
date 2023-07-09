@@ -29,8 +29,6 @@ import java.util.Objects;
  * <p>
  *     The message body (or content) in this example is the text <pre>Hello world!</pre>.
  * </p>
- * @param bodyMap
- * @param raw
  */
 public class Body {
 
@@ -43,13 +41,21 @@ public class Body {
         return new Body(Map.of(), EMPTY_BYTES, context);
     }
 
+    /**
+     * Make a hot bod
+     * @param bodyMap a map of key-value pairs, presumably extracted from form data.  Empty
+     *                if our body isn't one of the form data protocols we understand.
+     * @param raw the raw bytes of this body
+     */
     public Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
-
         this.bodyMap = bodyMap;
         this.raw = raw;
         this.context = context;
     }
 
+    /**
+     * Return the body as a string.
+     */
     public String asString(String key) {
         byte[] byteArray = bodyMap.get(key);
         if (byteArray == null) {
@@ -58,21 +64,6 @@ public class Body {
             return StringUtils.byteArrayToString(byteArray).trim();
         }
 
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Body body = (Body) o;
-        return Objects.equals(bodyMap, body.bodyMap) && Arrays.equals(raw, body.raw);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(bodyMap);
-        result = 31 * result + Arrays.hashCode(raw);
-        return result;
     }
 
     public String asString() {

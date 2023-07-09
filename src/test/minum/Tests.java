@@ -1,6 +1,7 @@
 package minum;
 
 import minum.database.SimpleDatabaseTests;
+import minum.logging.LoggingContext;
 import minum.sampledomain.LruCacheTests;
 import minum.security.TheBrigTests;
 import minum.testing.TestFrameworkTests;

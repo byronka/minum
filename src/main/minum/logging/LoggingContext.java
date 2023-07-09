@@ -1,5 +1,7 @@
-package minum;
+package minum.logging;
 
+import minum.Constants;
+import minum.FullSystem;
 import minum.logging.ILogger;
 import minum.utils.ActionQueue;
 
@@ -30,8 +32,6 @@ public class LoggingContext {
      * @param executorService the code which controls threads
      * @param constants constants that apply throughout the code, configurable by the
      *                  user in the app.config file.
-     * @param fullSystem the code which kicks off many of the core functions of
-     *                   the application and maintains oversight on those objects.
      */
     public LoggingContext(ExecutorService executorService, Constants constants) {
         this.executorService = executorService;

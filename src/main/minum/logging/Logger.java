@@ -2,8 +2,6 @@ package minum.logging;
 
 import minum.Constants;
 import minum.Context;
-import minum.LoggingContext;
-import minum.testing.TestLogger;
 import minum.utils.ActionQueue;
 import minum.utils.ExtendedExecutor;
 import minum.utils.ThrowingSupplier;

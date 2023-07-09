@@ -1,7 +1,6 @@
 package minum.web;
 
 import minum.Context;
-import minum.LoggingContext;
 import minum.htmlparsing.ParsingException;
 import minum.testing.TestLogger;
 import minum.utils.InvariantException;

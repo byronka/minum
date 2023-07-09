@@ -74,11 +74,7 @@ public class FullSystem implements AutoCloseable {
     }
 
     /**
-     * This starts the system running,
-     * <em>but you should not call this directly!!</em>.
-     * Use {@link #initialize()} instead.  This is
-     * a method only needed if you need a bit greater control
-     * when starting, which is mostly just required for testing.
+     * Kicks off the various bits and pieces.
      */
     public FullSystem start() throws IOException  {
         createSystemRunningMarker();
