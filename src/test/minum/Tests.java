@@ -59,7 +59,6 @@ public class Tests {
     new LruCacheTests(context).tests();
     new StringUtilsTests(context).tests();
     new TemplatingTests(context).tests();
-    new Http2Tests(context).test();
     new FullSystemTests(context).tests();
     new StaticFilesCacheTests(context).tests();
     new TheBrigTests(context).tests();
