@@ -99,6 +99,7 @@ public class WebFramework implements AutoCloseable {
 
                 /*
                 By default, browsers expect the server to run in keep-alive mode.
+                We'll break out later if we find that the browser doesn't do keep-alive
                  */
                 while(true) {
 
@@ -126,10 +127,6 @@ public class WebFramework implements AutoCloseable {
                         return;
                     }
 
-                    /*
-                    At this point we have a start line.  That's enough to see whether a 404
-                    would be an appropriate response.
-                     */
                     Function<Request, Response> endpoint = handlerFinder.apply(sl);
 
                     // The response we will send to the client
@@ -264,14 +261,16 @@ public class WebFramework implements AutoCloseable {
     private Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
         final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT)));
         if (functionFound == null) {
-
+            logger.logTrace(() -> "Did not find a function to handle a verb of " + sl.getVerb() + " and a path of " + sl.getPathDetails().isolatedPath());
             // if nothing was found in the registered dynamic endpoints, look
             // through the static endpoints
             final var staticResponseFound = staticFilesCache.getStaticResponse(sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT));
 
             if (staticResponseFound != null) {
+                logger.logTrace(() -> "found a static value to handle "+sl+", returning it");
                 return request -> staticResponseFound;
             } else {
+                logger.logTrace(() -> "Found neither a function nor a static value, returning null");
                 return null;
             }
         }
