@@ -125,7 +125,12 @@ public class Server implements AutoCloseable {
                    it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
                    if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
                  */
-                logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
+                if (ex.getMessage().equals("Read timed out")) {
+                    logger.logTrace(() -> "Read timed out - remote address: " + sw.getRemoteAddrWithPort());
+                } else {
+                    logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
+                }
+
             } catch (ForbiddenUseException ex) {
                 logger.logDebug(ex::getMessage);
             } catch (SSLException ex) {
