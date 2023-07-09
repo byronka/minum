@@ -3,7 +3,9 @@ package minum.web;
 import minum.Context;
 import minum.utils.StringUtils;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * This class represents the body of an HTML message.
@@ -30,10 +32,22 @@ import java.util.Map;
  * @param bodyMap
  * @param raw
  */
-public record Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
+public class Body {
+
+    public static byte[] EMPTY_BYTES = new byte[0];
+    private final Map<String, byte[]> bodyMap;
+    private final byte[] raw;
+    private final Context context;
 
     public static Body EMPTY(Context context) {
-        return new Body(Map.of(), new byte[0], context);
+        return new Body(Map.of(), EMPTY_BYTES, context);
+    }
+
+    public Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
+
+        this.bodyMap = bodyMap;
+        this.raw = raw;
+        this.context = context;
     }
 
     public String asString(String key) {
@@ -46,6 +60,21 @@ public record Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
 
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Body body = (Body) o;
+        return Objects.equals(bodyMap, body.bodyMap) && Arrays.equals(raw, body.raw);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(bodyMap);
+        result = 31 * result + Arrays.hashCode(raw);
+        return result;
+    }
+
     public String asString() {
         return StringUtils.byteArrayToString(raw).trim();
     }
@@ -53,4 +82,5 @@ public record Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
     public byte[] asBytes(String key) {
         return bodyMap.get(key);
     }
+
 }

@@ -104,11 +104,12 @@ public class Logger implements ILogger {
      * Given a string that may have whitespace chars, render it in a way we can see
      */
     public static String showWhiteSpace(String msg) {
+        if (msg == null) return "(NULL)";
         // if we have tabs, returns, newlines in the text, show them
         String text = msg
-                .replace("\t", "(TAB)")
-                .replace("\r", "(RETURN)")
-                .replace("\n", "(NEWLINE)");
+                .replace("\t", "\\t")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n");
         // if the text is an empty string, render that
         text = text.isEmpty() ? "(EMPTY)" : text;
         // if the text is nothing but whitespace, show that

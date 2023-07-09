@@ -115,7 +115,7 @@ public class WebFramework {
                     }
 
                     logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
-                    var sl = StartLine.make(context).extractStartLine(rawStartLine);
+                    var sl = StartLine.EMPTY(context).extractStartLine(rawStartLine);
                     logger.logTrace(() -> sw + ": StartLine received: " + sl.toString());
                     if (sl.getRawValue().isBlank()) {
                         /*
@@ -331,10 +331,6 @@ public class WebFramework {
      */
     public <T extends ISimpleDataType<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name) {
         return new DatabaseDiskPersistenceSimpler<>(Path.of(constants.DB_DIRECTORY, name), context);
-    }
-
-    public ILogger getLogger() {
-        return logger;
     }
 
     public FullSystem getFullSystem() {

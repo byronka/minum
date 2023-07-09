@@ -1,6 +1,7 @@
 package minum.web;
 
 import minum.Context;
+import minum.htmlparsing.ParsingException;
 import minum.testing.TestLogger;
 import minum.utils.InvariantException;
 import minum.utils.StringUtils;
@@ -218,12 +219,12 @@ public class WebTests {
         }
 
         logger.test("alternate case for extractStartLine - POST");{
-            StartLine sl = StartLine.make(context).extractStartLine("POST /something HTTP/1.0");
+            StartLine sl = StartLine.EMPTY(context).extractStartLine("POST /something HTTP/1.0");
             assertEquals(sl.getVerb(), StartLine.Verb.POST);
         }
 
         logger.test("alernate case - empty path");{
-            StartLine sl = StartLine.make(context).extractStartLine("GET / HTTP/1.1");
+            StartLine sl = StartLine.EMPTY(context).extractStartLine("GET / HTTP/1.1");
             assertEquals(sl.getVerb(), StartLine.Verb.GET);
             assertEquals(sl.getPathDetails().isolatedPath(), "");
         }
@@ -239,9 +240,9 @@ public class WebTests {
                     ""
             );
             for (String s : badStartLines) {
-                assertEquals(StartLine.make(context).extractStartLine(s), StartLine.make(context));
+                assertEquals(StartLine.EMPTY(context).extractStartLine(s), StartLine.EMPTY(context));
             }
-            assertThrows(InvariantException.class, () -> StartLine.make(context).extractStartLine(null));
+            assertThrows(InvariantException.class, () -> StartLine.EMPTY(context).extractStartLine(null));
         }
 
         logger.test("positive test for extractStatusLine");{
@@ -277,12 +278,12 @@ public class WebTests {
 
         logger.test("parseUrlEncodedForm edge cases"); {
             // blank key
-            final var ex2 = assertThrows(InvariantException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("=123"));
-            assertEquals(ex2.getMessage(), "The key must not be blank");
+            final var ex2 = assertThrows(ParsingException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("=123"));
+            assertEquals(ex2.getCause().getMessage(), "The key must not be blank");
 
             // duplicate keys
-            final var ex3 = assertThrows(InvariantException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("a=123&a=123"));
-            assertEquals(ex3.getMessage(), "a was duplicated in the post body - had values of 123 and 123");
+            final var ex3 = assertThrows(ParsingException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("a=123&a=123"));
+            assertEquals(ex3.getCause().getMessage(), "a was duplicated in the post body - had values of 123 and 123");
 
             // empty value
             final var result = new BodyProcessor(context).parseUrlEncodedForm("mykey=");

@@ -119,7 +119,7 @@ public class FullSystem implements AutoCloseable {
                         return;
                     }
 
-                    var sl = StartLine.make(context).extractStartLine(rawStartLine);
+                    var sl = StartLine.EMPTY(context).extractStartLine(rawStartLine);
 
                     // just ignore all the rest of the incoming lines.  TCP is duplex -
                     // we'll just start talking back the moment we understand the first line.

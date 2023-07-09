@@ -57,7 +57,7 @@ public class StartLine{
     static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
-    public static StartLine make(Context context) {
+    public static StartLine EMPTY(Context context) {
         return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
     }
 
@@ -92,7 +92,7 @@ public class StartLine{
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return StartLine.make(context);
+            return StartLine.EMPTY(context);
         }
         mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, startLinePattern));
         Verb verb = extractVerb(m.group(1));
