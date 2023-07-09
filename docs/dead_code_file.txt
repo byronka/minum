@@ -5,3 +5,4 @@ Some of this dead code may come in handy in the future, but was not used at the 
 SHA             Description
 fb685570        simple ORM for external db, r3z-style minum.database
 84c24363        Crypto utilities - hashing
+27d1f189        HTTP/2
