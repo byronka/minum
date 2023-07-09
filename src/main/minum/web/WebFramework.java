@@ -337,6 +337,30 @@ public class WebFramework implements AutoCloseable {
         return this.fs;
     }
 
+    /**
+     * This code is necessary! When a user runs the framework
+     * code in their main() method, they will need to use code
+     * like this:
+     * <pre>
+     * {@code
+     *     public static void main(String[] args) {
+     *         try (WebFramework wf = FullSystem.initialize()) {
+     *           new TheRegister(wf).registerDomains();
+     *         }
+     *     }
+     * }
+     * </pre>
+     * <p>
+     *     This formatting is called "try-with-resources".
+     * </p>
+     * <p>
+     *     The reason this is necessary is because this is a
+     *     threaded application from the ground up.  Almost from
+     *     the first moment we are kicking off threads.  The thing
+     *     about threads is, after you submit, it's on you to track to make
+     *     sure they are finished.  This code does that.
+     * </p>
+     */
     @Override
     public void close() {
         logger.logTrace(() -> "close called on " + this);
