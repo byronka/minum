@@ -36,7 +36,7 @@ import static minum.web.WebEngine.HTTP_CRLF;
  * slot in WebEngine and handles HTTP protocol.  Also handles
  * routing and static files.
  */
-public class WebFramework {
+public class WebFramework implements AutoCloseable {
 
     private final Constants constants;
     private final UnderInvestigation underInvestigation;
@@ -337,4 +337,16 @@ public class WebFramework {
         return this.fs;
     }
 
+    @Override
+    public void close() {
+        logger.logTrace(() -> "close called on " + this);
+        if (fs != null) {
+            try {
+                fs.getServer().centralLoopFuture.get();
+                fs.getSslServer().centralLoopFuture.get();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
 }

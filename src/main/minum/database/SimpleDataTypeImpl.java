@@ -11,6 +11,10 @@ import java.util.List;
  */
 public abstract class SimpleDataTypeImpl<T> implements ISimpleDataType<T> {
 
+
+    protected SimpleDataTypeImpl() {
+    }
+
     /**
      * This is a helper that will encode the values you give it
      * in preparation for storage in a dataase file.

@@ -167,31 +167,32 @@ public class WebTests {
         }
 
         logger.test("starting server with a handler part 2");{
-            var wf = new WebFramework(context, default_zdt);
-            wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
-            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
-                try (var client = webEngine.startClient(primaryServer)) {
-                    InputStream is = client.getInputStream();
+            try (var wf = new WebFramework(context, default_zdt)) {
+                wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
+                try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+                    try (var client = webEngine.startClient(primaryServer)) {
+                        InputStream is = client.getInputStream();
 
-                    // send a GET request
-                    client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
-                    client.sendHttpLine("Host: localhost:8080");
-                    client.sendHttpLine("");
+                        // send a GET request
+                        client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
+                        client.sendHttpLine("Host: localhost:8080");
+                        client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
 
-                    assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
+                        assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                    Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
+                        Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
 
-                    assertEquals(hi.valueByKey("server"), List.of("minum"));
-                    assertTrue(hi.valueByKey("date") != null);
-                    assertEquals(hi.valueByKey("content-type"), List.of("text/html; charset=UTF-8"));
-                    assertEquals(hi.valueByKey("content-length"), List.of("2"));
+                        assertEquals(hi.valueByKey("server"), List.of("minum"));
+                        assertTrue(hi.valueByKey("date") != null);
+                        assertEquals(hi.valueByKey("content-type"), List.of("text/html; charset=UTF-8"));
+                        assertEquals(hi.valueByKey("content-length"), List.of("2"));
 
-                    String body = readBody(is, hi.contentLength());
+                        String body = readBody(is, hi.contentLength());
 
-                    assertEquals(body, "86");
+                        assertEquals(body, "86");
+                    }
                 }
             }
         }
@@ -295,51 +296,53 @@ public class WebTests {
         }
 
         logger.test("when we post data to an endpoint, it can extract the data"); {
-            var wf = new WebFramework(context, default_zdt);
-            try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
-                try (var client = webEngine.startClient(primaryServer)) {
-                    wf.registerPath(
-                            StartLine.Verb.POST,
-                            "some_post_endpoint",
-                            request -> Response.htmlOk(request.body().asString("value_a"))
-                    );
+            try (var wf = new WebFramework(context, default_zdt)) {
+                try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+                    try (var client = webEngine.startClient(primaryServer)) {
+                        wf.registerPath(
+                                StartLine.Verb.POST,
+                                "some_post_endpoint",
+                                request -> Response.htmlOk(request.body().asString("value_a"))
+                        );
 
-                    InputStream is = client.getInputStream();
+                        InputStream is = client.getInputStream();
 
-                    final var postedData = "value_a=123&value_b=456";
+                        final var postedData = "value_a=123&value_b=456";
 
-                    // send a POST request
-                    client.sendHttpLine("POST /some_post_endpoint HTTP/1.1");
-                    client.sendHttpLine("Host: localhost:8080");
-                    final var contentLengthLine = "Content-Length: " + postedData.length();
-                    client.sendHttpLine(contentLengthLine);
-                    client.sendHttpLine("Content-Type: application/x-www-form-urlencoded");
-                    client.sendHttpLine("");
-                    client.sendHttpLine(postedData);
+                        // send a POST request
+                        client.sendHttpLine("POST /some_post_endpoint HTTP/1.1");
+                        client.sendHttpLine("Host: localhost:8080");
+                        final var contentLengthLine = "Content-Length: " + postedData.length();
+                        client.sendHttpLine(contentLengthLine);
+                        client.sendHttpLine("Content-Type: application/x-www-form-urlencoded");
+                        client.sendHttpLine("");
+                        client.sendHttpLine(postedData);
 
-                    // the server will respond to us.  Check everything is legit.
-                    StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(client.getInputStream());
-                    String body = readBody(is, hi.contentLength());
+                        // the server will respond to us.  Check everything is legit.
+                        StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                        Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(client.getInputStream());
+                        String body = readBody(is, hi.contentLength());
 
-                    assertEquals(body, "123");
+                        assertEquals(body, "123");
+                    }
                 }
             }
         }
 
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
-            var wf = new WebFramework(context, default_zdt);
-            try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
-                try (var client = webEngine.startClient(primaryServer)) {
-                    InputStream is = client.getInputStream();
+            try (var wf = new WebFramework(context, default_zdt)) {
+                try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+                    try (var client = webEngine.startClient(primaryServer)) {
+                        InputStream is = client.getInputStream();
 
-                    // send a GET request
-                    client.sendHttpLine("GET /some_endpoint HTTP/1.1");
-                    client.sendHttpLine("Host: localhost:8080");
-                    client.sendHttpLine("");
+                        // send a GET request
+                        client.sendHttpLine("GET /some_endpoint HTTP/1.1");
+                        client.sendHttpLine("Host: localhost:8080");
+                        client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
+                        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                        assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
+                    }
                 }
             }
         }
@@ -441,21 +444,22 @@ public class WebTests {
                 }
             });
 
-            WebFramework wf = new WebFramework(context, default_zdt);
-            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
-                try (var client = webEngine.startClient(primaryServer)) {
-                    InputStream is = client.getInputStream();
+            try (WebFramework wf = new WebFramework(context, default_zdt)) {
+                try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+                    try (var client = webEngine.startClient(primaryServer)) {
+                        InputStream is = client.getInputStream();
 
-                    // send a GET request
-                    client.sendHttpLine("POST /some_endpoint HTTP/1.1");
-                    client.sendHttpLine("Host: localhost:8080");
-                    client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
-                    client.sendHttpLine("Content-length: " + multiPartData.length);
-                    client.sendHttpLine("");
-                    client.send(multiPartData);
+                        // send a GET request
+                        client.sendHttpLine("POST /some_endpoint HTTP/1.1");
+                        client.sendHttpLine("Host: localhost:8080");
+                        client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+                        client.sendHttpLine("Content-length: " + multiPartData.length);
+                        client.sendHttpLine("");
+                        client.send(multiPartData);
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    assertEquals(statusLine.status(), _200_OK);
+                        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                        assertEquals(statusLine.status(), _200_OK);
+                    }
                 }
             }
         }
