@@ -4,8 +4,13 @@ Developer handbook
 Table of contents
 -----------------
 
+- [Features](#features)
+- [Quick start](#quick-start)
 - [Description](#description)
+- [Why?](#why)
+- [System Requirements](#system-requirements)
 - [New Developer Setup](#new-developer-setup)
+- [Step-by-step guide to installing Java on Windows](#step-by-step-guide-for-installing-java-on-windows)
 - [HOWTO](#howto)
 - [To test the web server with Telnet](#to-test-the-web-server-with-telnet)
 - [To test with Chrome on localhost with invalid certificates](#to-test-with-chrome-on-localhost-with-invalid-certificates)
@@ -25,7 +30,27 @@ Table of contents
 - [Feature tracking](#feature-tracking)
 - [History](#history)
 - [Theme](#theme)
+- [Appendix](#appendix)
 
+
+Features:
+--------
+
+- secure HTTP/1.1 web server
+- in-memory database with disk persistence
+- efficient server-side templating
+- defensive security capabilities
+- logging framework
+- testing framework
+- authentication
+- HTML parsing
+
+Quick start:
+------------
+
+* To test: `make test`
+* To create a library jar: `make jar`
+* For help: `make`
 
 Description
 ------------
@@ -46,6 +71,75 @@ generally found that the only outside code worth its salt happened to
 already exist in the JDK standard library.  As of this writing, we have no
 dependencies outside the standard library (which is just incredible -
 thanks Java library developers!)
+
+
+Why?
+----
+
+To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of [following](docs/parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) [technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients.
+Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment).
+
+Developers benefit from several aspects:
+
+- The code is [minimalistic](docs/size_comparisons.md) on purpose.  It does not
+  handle every imaginable case, but it fosters [modifying the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There
+  is nothing to prevent inclusion of extra libraries, but basics are handled.
+
+- The [compiled binary is small](docs/perf_data/framework_perf_comparison.md) - around 150 kilobytes, which includes the database, web server,
+  templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
+  show how to continue that pattern with the business logic.  This makes everything faster - sending to
+  production takes seconds.
+
+- It is less difficult to understand than major web frameworks, purely because there is _a hundred times_ less code.
+
+- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There is no surprising
+  behavior.  Plain method calls help make the maintenance cheaper and less stressful.
+
+- [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/).
+  More supportive of long-term maintenance.
+
+- Zero dependencies.  Projects often
+  incorporate many dependencies, which must be kept updated, leading to churn. It turns out
+  the standard library is sufficient for most needs.  Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
+
+- Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). As an example,
+  it can respond to [19,500 web requests per second](docs/perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](docs/perf_data/database_speed_test.md) per
+  second.  The [templating engine renders 27,000 times per second](docs/perf_data/templateRenderTest.md).
+
+- Minimal resource requirements.  The free-tier on cloud providers should suit it well.
+
+- Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
+  This allows it to manage [thousands of concurrent requests](docs/perf_data/loom_perf.md) on resource-constrained
+  hardware.
+
+- Other projects strive to support universal cases.  [Because this does not](http://josdejong.com/blog/2015/01/06/code-reuse/), there
+  is less code to hide bugs.
+
+  >I conclude that there are two ways of constructing a software design: One way is to
+  >make it so simple that there are obviously no deficiencies and the other way is to
+  >make it so complicated that there are no obvious deficiencies.
+  >
+  > Tony Hoare,  _1980 ACM Turing award lecture_
+
+
+See the [theme](docs/development_handbook.md#theme) section in
+the development handbook for more philosophical underpinnings.
+
+
+System requirements:
+--------------------
+
+[JDK version 20](https://jdk.java.net/20/) is _required_, since it
+provides us the [virtual threads](https://openjdk.org/jeps/436) we need (and even so, virtual
+threading is a preview until JDK version 21).
+
+Developed in two environments:
+* MacBook Pro with OS 12.0.1, with OpenJDK 20, GNU Make 3.81 and Rsync 2.6.9
+* Windows 10 64-bit professional, on [Cygwin](https://www.cygwin.com/), OpenJDK 20, Gnu Make 4.4 and Rsync 3.2.7
+
+Note that the build tool, _Gnu Make_, is already installed on Mac.  On Windows you can install
+it through the Cygwin installer.  See [here](https://www.cygwin.com/packages/summary/make.html)
+
 
 New Developer Setup
 -------------------
@@ -68,7 +162,26 @@ Optional:
 * Install "Code With Me" plugin for IntelliJ - Preferences > Plugins > Code WIth me
     * Use the new "Code With Me" icon in top bar to enable "Full Access" (turn off "start voice call")
     * Share the link with your friends
-    
+
+
+Step-by-step guide for installing Java on Windows:
+--------------------------------------------------
+
+1. Download the binary by clicking [here](https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_windows-x64_bin.zip).
+2. Uncompress the zip file
+3. Add the home directory to your path.  The home directory of Java is the one with "bin"
+   and "conf" directories, among others. if you, for example, uncompressed the
+   directory to C:\java\jdk-20.0.1, then in Windows you should add it to your path,
+   following these instructions:
+
+* Click the Windows start icon
+* Type `env` to get the system properties window
+* Click on _Environment Variables_
+* Under user variables, click the _New_ button
+* For the variable name, enter `JAVA_HOME`, and for the value, enter `C:\java\jdk-20.0.1`
+* Edit your _Path_ variable, click _New_, and add `%JAVA_HOME%\bin`
+
+
 HOWTO
 -----
 
@@ -482,3 +595,11 @@ If we understand that our software is a reflection of our culture, should we not
 >Keep it simple, stupid
 >
 > -- _Kelly Johnson, Lockheed Skunk Works_
+
+
+Appendix
+--------
+
+* [The Javadoc](https://byronka.github.io/javadoc/)
+* [Test coverage](https://byronka.github.io/coveragereport/)
+* [Tests](https://byronka.github.io/minum_tests.html)
