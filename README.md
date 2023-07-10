@@ -16,9 +16,10 @@ Features:
 - in-memory database with disk persistence
 - efficient server-side templating
 - defensive security capabilities
-- logging
-- testing
+- logging framework
+- testing framework
 - authentication
+- HTML parsing
 
 
 Quick start:
