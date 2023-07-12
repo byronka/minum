@@ -31,15 +31,8 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
          */
         _303_SEE_OTHER(303, "SEE OTHER"),
 
-        /**
-         * If the user has not authenticated, we send this back as the response.  Note the
-         * confusing terminology - authorized and authenticated are different, this really
-         * refers to not being authenticated. (unauthenticated meaning we don't recognize their
-         * credentials, while non-authorized meaning even though we know
-         * who they are, they aren't allowed to see this data, in which case we should send
-         * back a 403)
-         */
         _401_UNAUTHORIZED(401, "UNAUTHORIZED"),
+        _403_FORBIDDEN(403, "FORBIDDEN"),
         _429_TOO_MANY_REQUESTS(429, "TOO MANY REQUESTS"),
         _404_NOT_FOUND(404, "NOT FOUND"),
         _500_INTERNAL_SERVER_ERROR(500, "INTERNAL SERVER ERROR"),
