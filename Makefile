@@ -132,10 +132,10 @@ all:: help
 # in the classpath
 ##
 copyresources::
-	 @rsync --recursive --update --perms src/resources/* out/main/resources
+	 @rsync --recursive --update --perms src/resources/ out/main/
 
 copytestresources::
-	 @rsync --recursive --update --perms src/testresources/* out/main/resources
+	 @rsync --recursive --update --perms src/testresources/ out/main/
 
 ##
 # copy the source code to the output directory.  This is used before we
@@ -172,7 +172,7 @@ clean::
 
 #: Build a jar of the project for use as a library
 jar:: clean classes copyresources copysources
-	 rm -fr $(OUT_DIR_MAIN)/resources/static/* $(OUT_DIR_MAIN)/resources/templates/*
+	 rm -fr $(OUT_DIR_MAIN)/static/* $(OUT_DIR_MAIN)/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))
 	 version=$(VERSION)_$(GIT_BRANCH) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF

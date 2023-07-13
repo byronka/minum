@@ -35,7 +35,7 @@ public class StaticFilesCache {
      * in the resources, where we store our static files, like jpegs,
      * css files, scripts
      */
-    public static final String STATIC_FILES_DIRECTORY = "resources/static/";
+    public static final String STATIC_FILES_DIRECTORY = "static/";
 
     private final Map<String, Response> staticResponses;
     private final ILogger logger;

@@ -80,8 +80,7 @@ public class FileUtils {
      * Reads files that are stored in the resources directory,
      * whether that is in a regular directory or in a jar file.
      */
-    private static String readFile(String filename, String subdirectory) {
-        String templatesDirectory = "resources/" + subdirectory;
+    private static String readFile(String filename, String templatesDirectory) {
         try {
             final var url = mustNotBeNull(FileUtils.class.getClassLoader().getResource(templatesDirectory));
             URI uri = url.toURI();

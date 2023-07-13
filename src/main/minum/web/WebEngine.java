@@ -75,7 +75,7 @@ public class WebEngine {
 
     final URL keystoreUrl = useExternalKeystore ?
             Path.of(constants.KEYSTORE_PATH).toUri().toURL() :
-            WebEngine.class.getClassLoader().getResource("resources/certs/keystore");
+            WebEngine.class.getClassLoader().getResource("certs/keystore");
     final String keystorePassword = useExternalKeystore ?
             constants.KEYSTORE_PASSWORD :
             "passphrase";
