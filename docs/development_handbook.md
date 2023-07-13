@@ -30,6 +30,7 @@ Table of contents
 - [Feature tracking](#feature-tracking)
 - [History](#history)
 - [Theme](#theme)
+- [Generate a Maven package](#generate-a-maven-package)
 - [Appendix](#appendix)
 
 
@@ -596,6 +597,15 @@ If we understand that our software is a reflection of our culture, should we not
 >
 > -- _Kelly Johnson, Lockheed Skunk Works_
 
+
+Generate a Maven package
+------------------------
+
+Run this command:
+
+```shell
+mvn install:install-file -Dfile=out/minum.jar -DgroupId=com.renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+```
 
 Appendix
 --------
