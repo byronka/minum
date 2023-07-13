@@ -22,7 +22,8 @@ public enum TagName {
     STRONG(false), SMALL(false), CITE(false), Q(false),
     DFN(false), ABBR(false), TIME(false), CODE(false), VAR(false),
     SAMP(false), KBD(false), SUB(false), SUP(false), I(false),
-    B(false),
+    B(false),FORM(false),LABEL(false),TEXTAREA(false),BUTTON(false),
+    TABLE(false),THEAD(false),TR(false),TH(false),TBODY(false),TD(false),
 
     /**
      * This is a special one, maybe I need to handle this better,

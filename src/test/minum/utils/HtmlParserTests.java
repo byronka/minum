@@ -4,6 +4,7 @@ import minum.Context;
 import minum.htmlparsing.*;
 import minum.testing.TestLogger;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +119,11 @@ public class HtmlParserTests {
 
         logger.test("Invalid closing tag"); {
             assertThrows(ParsingException.class, () -> new HtmlParser().parse("<foo></bar>"));
+        }
+
+        logger.test("Larger file"); {
+            String htmlText = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
+            new HtmlParser().parse(htmlText);
         }
 
     }
