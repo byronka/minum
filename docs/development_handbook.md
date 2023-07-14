@@ -573,7 +573,8 @@ If we understand that our software is a reflection of our culture, should we not
 
 >One of the most irritating things programmers do regularly is feel so good about learning a 
 >hard thing that they don’t look for ways to make it easy, or even oppose things that would do so.
->  -- Peter Bhat Harkins
+> 
+>  -- _Peter Bhat Harkins_
 
 >If you’re going to repair a motorcycle, an adequate supply of gumption is the first
 >and most important tool. If you haven’t got that you might as well gather up all
