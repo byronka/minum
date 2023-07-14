@@ -1,0 +1,1 @@
+write essay on paradigm of our database - when to use it, when not, fat data vs thin, etc

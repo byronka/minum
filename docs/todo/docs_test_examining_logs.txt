@@ -1,0 +1,1 @@
+If you want to write a test that inspects the logs
