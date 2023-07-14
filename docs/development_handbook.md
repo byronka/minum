@@ -571,6 +571,10 @@ If we understand that our software is a reflection of our culture, should we not
 >
 > -- _Norton Juster, The Phantom Tollbooth_
 
+>One of the most irritating things programmers do regularly is feel so good about learning a 
+>hard thing that they don’t look for ways to make it easy, or even oppose things that would do so.
+>  -- Peter Bhat Harkins
+
 >If you’re going to repair a motorcycle, an adequate supply of gumption is the first
 >and most important tool. If you haven’t got that you might as well gather up all
 >the other tools and put them away, because they won’t do you any good.
