@@ -66,8 +66,8 @@ public class HtmlParserTests {
 
         logger.test("initial happy path MVP html parsing");
         {
-            String input = "<!DOCTYPE html><p class=\"baz biz\" id=\"wut\" fee=fi>foo<h1></h1></p><p></p><br foo=bar />";
-            String inputWithSingleTicks = "<!DOCTYPE html><p class='baz biz' id='wut' fee=fi>foo<h1></h1></p><p></p><br foo=bar />";
+            String input = "<!DOCTYPE html><p class=\"baz < > biz\" id=\"wut\" fee=fi>foo ><h1 ></h1></p><p id=></p><br foo=bar />";
+            String inputWithSingleTicks = "<!DOCTYPE html><p class='baz < > biz' id='wut' fee=fi>foo ><h1 ></h1></p><p id=></p><br foo=bar />";
             var expected = List.of(
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
@@ -76,12 +76,16 @@ public class HtmlParserTests {
                             ""),
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
-                            new TagInfo(TagName.P, Map.of("class", "baz biz", "id", "wut", "fee", "fi")),
+                            new TagInfo(TagName.P,
+                                    Map.of(
+                                            "class", "baz < > biz",
+                                            "id", "wut",
+                                            "fee", "fi")),
                             List.of(new HtmlParseNode(
                                             ParseNodeType.CHARACTERS,
                                             new TagInfo(TagName.NULL, Map.of()),
                                             List.of(),
-                                            "foo"),
+                                            "foo >"),
                                     new HtmlParseNode(
                                             ParseNodeType.ELEMENT,
                                             new TagInfo(TagName.H1, Map.of()),
@@ -91,7 +95,7 @@ public class HtmlParserTests {
                             ""),
                     new HtmlParseNode(
                             ParseNodeType.ELEMENT,
-                            new TagInfo(TagName.P, Map.of()),
+                            new TagInfo(TagName.P, Map.of("id", "")),
                             List.of(),
                             ""),
                     new HtmlParseNode(
@@ -117,13 +121,29 @@ public class HtmlParserTests {
             assertThrows(ParsingException.class, () -> new HtmlParser().parse("<foo></foo>"));
         }
 
+        logger.test("Space before tag name"); {
+            var result = new HtmlParser().parse("<  p></p>");
+            assertEquals(result, List.of(new HtmlParseNode(ParseNodeType.ELEMENT, new TagInfo(TagName.P, Map.of()), List.of(), "")));
+        }
+
         logger.test("Invalid closing tag"); {
-            assertThrows(ParsingException.class, () -> new HtmlParser().parse("<foo></bar>"));
+            assertThrows(ParsingException.class, () -> new HtmlParser().parse("<p></br>"));
+        }
+
+        logger.test("invalid character after forward slash in start tag"); {
+            assertThrows(ParsingException.class, () -> new HtmlParser().parse("<br//>"));
+        }
+
+        logger.test("invalid character after forward slash in start tag"); {
+            assertThrows(ParsingException.class, () -> new HtmlParser().parse("<br id=foo //>"));
         }
 
         logger.test("Larger file"); {
             String htmlText = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
-            new HtmlParser().parse(htmlText);
+            List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
+            List<List<String>> myList = htmlRoots.stream().map(x -> x.print()).filter(x -> ! x.isEmpty()).toList();
+            var expected = FileUtils.readTemplate("templatebenchmarks/expected_stock_output_parsed.txt");
+            assertEquals(myList.toString(), expected);
         }
 
     }

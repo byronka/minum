@@ -3,27 +3,31 @@ package minum.htmlparsing;
 
 /**
  * Possible tag names per the W3C HTML spec.
+ * Pulled mostly from https://www.w3.org/TR/2012/WD-html-markup-20121025/elements.html
  */
 public enum TagName {
-    // first we'll list the void elements
-    AREA(true), BASE(true), BR(true), COL(true), COMMAND(true),
-    EMBED(true), HR(true), IMG(true), INPUT(true), KEYGEN(true),
-    LINK(true), META(true), PARAM(true), SOURCE(true),
-    TRACK(true), WBR(true),
-
-    HTML(false), HEAD(false), TITLE(false), STYLE(false),
-    SCRIPT(false), NOSCRIPT(false), BODY(false), SECTION(false),
-    NAV(false), ARTICLE(false), ASIDE(false), H1(false),
-    H2(false), H3(false), H4(false), H5(false), H6(false),
-    HGROUP(false), HEADER(false), FOOTER(false), ADDRESS(false),
-    P(false), PRE(false), BLOCKQUOTE(false), OL(false), UL(false),
-    LI(false), DL(false), DT(false), DD(false), FIGURE(false),
-    FIG(false), CAPTION(false), DIV(false), A(false), EM(false),
-    STRONG(false), SMALL(false), CITE(false), Q(false),
-    DFN(false), ABBR(false), TIME(false), CODE(false), VAR(false),
-    SAMP(false), KBD(false), SUB(false), SUP(false), I(false),
-    B(false),FORM(false),LABEL(false),TEXTAREA(false),BUTTON(false),
-    TABLE(false),THEAD(false),TR(false),TH(false),TBODY(false),TD(false),
+    A(false), ABBR(false), ADDRESS(false), AREA(true), ARTICLE(false),
+    ASIDE(false), AUDIO(false), B(false), BASE(true), BDI(false),
+    BDO(false), BLOCKQUOTE(false), BODY(false), BR(true), BUTTON(false), CANVAS(false),
+    CAPTION(false), CITE(false), CODE(false), COL(true), COLGROUP(false),
+    COMMAND(true), DATALIST(false), DD(false), DEL(false), DETAILS(false),
+    DFN(false), DIV(false), DL(false), DT(false), EM(false), EMBED(true),
+    FIELDSET(false), FIGCAPTION(false), FIGURE(false), FOOTER(false),
+    FORM(false), H1(false), H2(false), H3(false), H4(false), H5(false),
+    H6(false), HEAD(false), HEADER(false), HGROUP(false), HR(true),
+    HTML(false), I(false), IFRAME(false), IMG(true), INPUT(true),
+    INS(false), KBD(false), KEYGEN(true), LABEL(false), LEGEND(false),
+    LI(false), LINK(true), MAP(false), MARK(false), MENU(false),
+    META(true), METER(false), NAV(false), NOSCRIPT(false), OBJECT(false),
+    OL(false), OPTGROUP(false), OPTION(false), OUTPUT(false), P(false),
+    PARAM(true), PRE(false), PROGRESS(false), Q(false), RP(false),
+    RT(false), RUBY(false), S(false), SAMP(false), SCRIPT(false),
+    SECTION(false), SELECT(false), SMALL(false), SOURCE(true),
+    SPAN(false), STRONG(false), STYLE(false), SUB(false), SUMMARY(false),
+    SUP(false), TABLE(false), TBODY(false), TD(false), TEXTAREA(false),
+    TFOOT(false), TH(false), THEAD(false), TIME(false), TITLE(false),
+    TR(false), TRACK(true), U(false), UL(false), VAR(false), VIDEO(false),
+    WBR(true),
 
     /**
      * This is a special one, maybe I need to handle this better,

@@ -1,5 +1,6 @@
 package minum.htmlparsing;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,4 +13,35 @@ import java.util.List;
 public record HtmlParseNode(ParseNodeType type,
                             TagInfo tagInfo,
                             List<HtmlParseNode> innerContent,
-                            String textContent) { }
+                            String textContent) {
+
+    /**
+     * This method traverses the tree from this node downwards,
+     * adding the text content as it goes. We follow an in-order
+     * algorithm for walking the tree, like this pseudocode,
+     * found at Wikipedia:
+     * <h3>
+     *     In-order, LNR
+     * </h3>
+     * <ol>
+     * <li>Recursively traverse the current node's left subtree.</li>
+     * <li>Visit the current node.</li>
+     * <li>Recursively traverse the current node's right subtree.</li>
+     * </ol>
+     */
+    public List<String> print() {
+        var myList = new ArrayList<String>();
+        recursiveTreeWalk(myList);
+        return myList;
+    }
+
+    private void recursiveTreeWalk(ArrayList<String> myList) {
+        for (var hpn : innerContent) {
+            hpn.recursiveTreeWalk(myList);
+        }
+        if (textContent != null && ! textContent.isBlank()) {
+            myList.add(textContent);
+        }
+
+    }
+}

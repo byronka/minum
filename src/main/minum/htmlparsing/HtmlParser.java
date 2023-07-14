@@ -112,7 +112,7 @@ public class HtmlParser {
                     state.stringBuilder.append(currentChar);
                 } else {
                     if (state.hasEncounteredTagName && state.tagName.isEmpty() && state.stringBuilder.length() > 0) {
-                        // We've built the tagname
+                        // We've just finished building the tagname
                         state.tagName = state.stringBuilder.toString();
                     } else if ( state.stringBuilder.length() > 0 && state.currentAttributeKey.isBlank() && state.isReadingAttributeKey) {
                         state.attributes.put(state.stringBuilder.toString(), "");
@@ -261,7 +261,14 @@ public class HtmlParser {
                     because when we finish reading the key, we'll add it to currentAttributeKey
                     and be in the mode of reading the value.
                      */
-                    if (currentChar == ' ' || currentChar == '=') {
+                    if (state.isHalfClosedTag) {
+                        /*
+                        if we got here, it means the previous char was
+                        a forward slash, so the current character *should*
+                        be a closing angle, but it's not! So.. panic.
+                         */
+                        throw new ParsingException("char after forward slash must be angle bracket.  Char: " + currentChar);
+                    } else if (currentChar == ' ' || currentChar == '=') {
                         // if we hit whitespace or an equals sign, we're done reading the key
                         state.currentAttributeKey = state.stringBuilder.toString();
                         state.isReadingAttributeKey = false;
@@ -270,13 +277,6 @@ public class HtmlParser {
                         // a forward-slash cannot be in the attribute key
                         state.isReadingAttributeKey = false;
                         state.isHalfClosedTag = true;
-                    } else if (state.isHalfClosedTag) {
-                        /*
-                        if we got here, it means the previous char was
-                        a forward slash, so the current character *should*
-                        be a closing angle, but it's not! So.. panic.
-                         */
-                        throw new ParsingException("char after forward slash must be angle bracket.  Char: " + currentChar);
                     } else {
                         // otherwise keep on reading
                         state.stringBuilder.append(currentChar);
