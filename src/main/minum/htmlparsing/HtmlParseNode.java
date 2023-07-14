@@ -17,17 +17,7 @@ public record HtmlParseNode(ParseNodeType type,
 
     /**
      * This method traverses the tree from this node downwards,
-     * adding the text content as it goes. We follow an in-order
-     * algorithm for walking the tree, like this pseudocode,
-     * found at Wikipedia:
-     * <h3>
-     *     In-order, LNR
-     * </h3>
-     * <ol>
-     * <li>Recursively traverse the current node's left subtree.</li>
-     * <li>Visit the current node.</li>
-     * <li>Recursively traverse the current node's right subtree.</li>
-     * </ol>
+     * adding the text content as it goes.
      */
     public List<String> print() {
         var myList = new ArrayList<String>();
