@@ -202,6 +202,10 @@ testcov:: classes testclasses copyresources copytestresources
 javadoc::
 	 javadoc -Xdoclint:none --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
+#: add to the local Maven repository
+mvnrepo:: jar
+	 mvn install:install-file -Dfile=out/minum.jar -DgroupId=com.renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
 # command line:
