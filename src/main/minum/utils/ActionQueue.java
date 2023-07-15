@@ -26,6 +26,12 @@ public class ActionQueue {
     private Thread queueThread;
     private final Constants constants;
 
+    /**
+     * See the {@link ActionQueue} description for more detail. This
+     * constructor will build your new action queue and handle registering
+     * it with a list of other action queues in the {@link Context} object.
+     * @param name give this object a unique, explanatory name.
+     */
     public ActionQueue(String name, Context context) {
         this.name = name;
         this.queueExecutor = context.getExecutorService();
@@ -66,7 +72,22 @@ public class ActionQueue {
 
     /**
      * Adds something to the queue to be processed.
-     * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
+     * <p>
+     *     Here is an example use of .enqueue:
+     * </p>
+     * <p>
+     * <pre>
+     * {@code   actionQueue.enqueue("Write person file to disk at " + filePath, () -> {
+     *             Files.writeString(filePath, pf.serialize());
+     *             return null;
+     *         });}
+     * </pre>
+     * </p>
+     * @param action an action to take with no return value.  (this
+     *               uses {@link Callable} so we can collect exceptions). Note
+     *               that because we are using Callable, it is necessary
+     *               to "return null" at the end of the action.
+
      */
     public void enqueue(String description, Callable<Void> action) {
         if (! stop) {
