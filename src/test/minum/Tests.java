@@ -105,7 +105,7 @@ public class Tests {
     context.getLogger().stop();
   }
 
-  private Context buildContextFunctionalTests() throws IOException {
+  private Context buildContextFunctionalTests() {
     System.out.println("Starting a soup-to-nuts tests of the full system");
 
     ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
