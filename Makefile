@@ -14,7 +14,7 @@ VERSION=1.0.0
 # the delimiter between directories in the classpath to the Java application
 # on a Windows box is a semicolon, and on a posix box it's a colon.
 ifeq ($(OS),Windows_NT)
-	JAVA_HOME := $(cygpath $(JAVA_HOME))
+	JAVA_HOME := $(shell cygpath ${JAVA_HOME})
     DIR_DELIM := ;
 else
     DIR_DELIM := :
@@ -96,17 +96,17 @@ TST_CLS := $(TST_SRCS:$(TST_SRC_DIR)/%.java=$(OUT_DIR_TEST)/%.class)
 #
 # otherwise, it will just remain an empty string
 ifneq ($(JAVA_HOME),)
-  JAVA_HOME := $(JAVA_HOME)/bin/
+  JAVA_HOME_BIN := $(JAVA_HOME)/bin
 endif
 
 # the name of our Java compiler
 # -g means generate all debugging info
 # The following line, about enabling preview, is for using virtual threads with java 19
-JC = $(JAVA_HOME)javac --release 20 --enable-preview -Xlint:all -g
+JC = "$(JAVA_HOME_BIN)/javac" --release 20 --enable-preview -Xlint:all -g
 
 # the name of the java runner
 # The following line, about enabling preview, is for using virtual threads with java 19
-JAVA = $(JAVA_HOME)java  --enable-preview
+JAVA = "$(JAVA_HOME_BIN)/java"  --enable-preview
 
 # the directory where we store the code coverage report
 COV_DIR = out/coveragereport
@@ -171,7 +171,7 @@ clean::
 	 rm -fr $(OUT_DIR)
 
 #: Build a jar of the project for use as a library
-jar:: clean classes copyresources copysources
+jar:: test
 	 rm -fr $(OUT_DIR_MAIN)/static/* $(OUT_DIR_MAIN)/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))
