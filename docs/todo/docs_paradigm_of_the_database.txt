@@ -1,1 +1,10 @@
 write essay on paradigm of our database - when to use it, when not, fat data vs thin, etc
+
+The database design for Minum is intended to prioritize simplicity and minimalism
+over all else.  It does not provide the kind of safety you would expect with an
+ACID-compliant database.  It does not have the cornucopia of features you would
+expect from a database handling enterprise-style risks.
+
+What it does have, however, is a nearly-absurd sparseness, good performance, and
+ease of use.  This means for low-risk uses, of which there are quite a number,
+this small program might be just the ticket.
