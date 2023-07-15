@@ -13,6 +13,7 @@ public class ActionQueueTests {
     public ActionQueueTests(Context context) {
         this.context = context;
         this.logger = (TestLogger)context.getLogger();
+        logger.testSuite("ActionQueueTests");
     }
 
     public void tests() {

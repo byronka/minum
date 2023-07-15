@@ -37,6 +37,10 @@ public class StaticFilesCache {
      */
     public static final String STATIC_FILES_DIRECTORY = "static/";
 
+    /**
+     * Let's put a nice cap on this - no reason to go crazy with it
+     */
+    public static final int MAXIMUM_FILE_SEARCH_DEPTH = 5;
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
 
@@ -53,38 +57,42 @@ public class StaticFilesCache {
      * This provides all the static files (e.g. .html, .css) in the resources/static directory
      */
     public StaticFilesCache loadStaticFiles() throws IOException {
-            final List<URL> urls = mustNotBeNull(
-                    Collections.list(
-                            StaticFilesCache.class.getClassLoader().getResources(STATIC_FILES_DIRECTORY)));
-            for (var url : urls) {
-                URI uri = URI.create("");
-                try {
-                    uri = url.toURI();
-                } catch (URISyntaxException ex) {
-                    logger.logDebug(() -> "Exception thrown when converting URI to URL for "+url+": "+ex);
-                }
+        final List<URL> urls = mustNotBeNull(
+                Collections.list(
+                        StaticFilesCache.class.getClassLoader().getResources(STATIC_FILES_DIRECTORY)));
+        for (var url : urls) {
+            URI uri = URI.create("");
+            try {
+                uri = url.toURI();
+            } catch (URISyntaxException ex) {
+                logger.logDebug(() -> "Exception thrown when converting URI to URL for "+url+": "+ex);
+            }
 
-                if (uri.getScheme().equals("jar")) {
-                    /*
-                    This part is necessary because it's the only way we can set up to loop
-                    through paths (files) later.  That is to say, when we getResource(path), it works fine,
-                    but if we want to get a list of all the files in a directory inside our jar file,
-                    we have to do it this way.
-                     */
-                    try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-                        final var myPath = fileSystem.getPath(STATIC_FILES_DIRECTORY);
-                        processPath(myPath);
-                    }
-                } else {
-                    final var myPath = Paths.get(uri);
+            if (uri.getScheme().equals("jar")) {
+                /*
+                This part is necessary because it's the only way we can set up to loop
+                through paths (files) later.  That is to say, when we getResource(path), it works fine,
+                but if we want to get a list of all the files in a directory inside our jar file,
+                we have to do it this way.
+                 */
+                try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                    final var myPath = fileSystem.getPath(STATIC_FILES_DIRECTORY);
                     processPath(myPath);
                 }
+            } else {
+                final var myPath = Paths.get(uri);
+                processPath(myPath);
             }
-            return this;
         }
+        return this;
+    }
 
-    private void processPath(Path myPath) throws IOException {
-        try (final var pathsStream = Files.walk(myPath, Integer.MAX_VALUE)) {
+    /**
+     * Given a path to scan, walk through the files (up to MAXIMUM_FILE_SEARCH_DEPTH deep)
+     * and add them to our cache.
+     */
+    void processPath(Path myPath) throws IOException {
+        try (final var pathsStream = Files.walk(myPath, MAXIMUM_FILE_SEARCH_DEPTH)) {
             for (var path : pathsStream.toList()) {
                 byte[] fileContents = null;
                 if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> path.getFileName().toString().contains(x) )) {
@@ -92,18 +100,7 @@ public class StaticFilesCache {
                 }
                 if (fileContents == null) continue;
 
-                Response result;
-                if (path.toString().endsWith(".css")) {
-                    result = createOkResponseForStaticFiles(fileContents,"Content-Type: text/css");
-                } else if (path.toString().endsWith(".js")) {
-                    result = createOkResponseForStaticFiles(fileContents, "Content-Type: application/javascript");
-                } else if (path.toString().endsWith(".webp")) {
-                    result = createOkResponseForStaticFiles(fileContents, "Content-Type: image/webp");
-                } else if (path.toString().endsWith(".html") || path.toString().endsWith(".htm")) {
-                    result = createOkResponseForStaticFiles(fileContents, "Content-Type: text/html; charset=UTF-8");
-                } else {
-                    result = createNotFoundResponse();
-                }
+                Response result = createStaticFileResponse(path, fileContents);
 
                 String route = getRoute(path);
 
@@ -111,6 +108,26 @@ public class StaticFilesCache {
                 staticResponses.put(route, result);
             }
         }
+    }
+
+    /**
+     * Given a file type (really, just a file suffix) and its contents, create
+     * an appropritate {@link Response} object to be stored in the cache.
+     */
+    Response createStaticFileResponse(Path path, byte[] fileContents) {
+        Response result;
+        if (path.toString().endsWith(".css")) {
+            result = createOkResponseForStaticFiles(fileContents,"Content-Type: text/css");
+        } else if (path.toString().endsWith(".js")) {
+            result = createOkResponseForStaticFiles(fileContents, "Content-Type: application/javascript");
+        } else if (path.toString().endsWith(".webp")) {
+            result = createOkResponseForStaticFiles(fileContents, "Content-Type: image/webp");
+        } else if (path.toString().endsWith(".html") || path.toString().endsWith(".htm")) {
+            result = createOkResponseForStaticFiles(fileContents, "Content-Type: text/html; charset=UTF-8");
+        } else {
+            throw new RuntimeException("StaticFilesCache cannot handle this file: " + path.toString());
+        }
+        return result;
     }
 
     /**
@@ -124,13 +141,6 @@ public class StaticFilesCache {
         String path1 = path2 == null ? path.toString() : path2;
         int indexToStartSubstring = path1.indexOf("static/") + "static/".length();
         return path1.substring(indexToStartSubstring);
-    }
-
-    private Response createNotFoundResponse() {
-        return new Response(
-                StatusLine.StatusCode._404_NOT_FOUND,
-                List.of("Content-Type: text/html; charset=UTF-8"),
-                "<p>404 not found</p>");
     }
 
     /**

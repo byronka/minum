@@ -69,6 +69,7 @@ public class Tests {
     new StackTraceUtilsTests(context).tests();
     new BodyProcessorTests(context).tests();
     new ActionQueueTests(context).tests();
+    new ThrowingRunnableTests(context).tests();
 
     handleShutdown(context);
   }

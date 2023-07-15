@@ -39,7 +39,7 @@ public class LoggingActionQueue {
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings("InfiniteLoopStatement")
     public LoggingActionQueue initialize() {
-        Callable<Object> queueThread = () -> {
+        Runnable queueThread = () -> {
             Thread.currentThread().setName(name);
             this.queueThread = Thread.currentThread();
             try {
@@ -63,7 +63,6 @@ public class LoggingActionQueue {
                 System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: LoggingActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
                 throw ex;
             }
-            return null;
         };
         executorService.submit(queueThread);
         return this;

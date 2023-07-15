@@ -11,14 +11,13 @@ import java.util.Map;
 
 import static minum.testing.TestFramework.assertEquals;
 import static minum.testing.TestFramework.assertThrows;
-import static minum.utils.ThrowingRunnable.throwingRunnableWrapper;
 
 public class HtmlParserTests {
     private final TestLogger logger;
 
     public HtmlParserTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
-        logger.testSuite("TheBrigTests");
+        logger.testSuite("HtmlParserTests");
     }
 
     public void tests() {

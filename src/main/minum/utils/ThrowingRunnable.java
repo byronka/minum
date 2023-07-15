@@ -22,7 +22,6 @@ public interface ThrowingRunnable<E extends Throwable>{
                 throwingRunnable.run();
             } catch (Exception ex) {
                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
-                throw new RuntimeException(ex);
             }
         };
     }
