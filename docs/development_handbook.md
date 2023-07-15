@@ -31,6 +31,7 @@ Table of contents
 - [History](#history)
 - [Theme](#theme)
 - [Generate a Maven package](#generate-a-maven-package)
+- [ActionQueue](#actionqueue)
 - [Appendix](#appendix)
 
 
