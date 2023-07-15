@@ -2,6 +2,7 @@ package minum.utils;
 
 import minum.Constants;
 import minum.Context;
+import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
 
 import java.util.concurrent.Callable;
@@ -21,7 +22,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ActionQueue {
     private final String name;
     private final ExecutorService queueExecutor;
-    private final LinkedBlockingQueue<CallableWithDescription> queue;
+    private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;
+    private final ILogger logger;
     private boolean stop = false;
     private Thread queueThread;
     private final Constants constants;
@@ -38,19 +40,24 @@ public class ActionQueue {
         this.queue = new LinkedBlockingQueue<>();
         context.getActionQueueList().add(this);
         this.constants = context.getConstants();
+        this.logger = context.getLogger();
     }
 
     // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings("InfiniteLoopStatement")
     public ActionQueue initialize() {
-        Callable<Object> queueThread = () -> {
+        Runnable queueThread = () -> {
             Thread.currentThread().setName(name);
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    Callable<Void> action = queue.take();
-                    action.call();
+                    ThrowingRunnable<?> action = queue.take();
+                    try {
+                        action.run();
+                    } catch (Throwable e) {
+                        logger.logAsyncError(() -> e.getMessage());
+                    }
                 }
             } catch (InterruptedException ex) {
             /*
@@ -64,7 +71,6 @@ public class ActionQueue {
                 System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
                 throw ex;
             }
-            return null;
         };
         queueExecutor.submit(queueThread);
         return this;
@@ -89,9 +95,9 @@ public class ActionQueue {
      *               to "return null" at the end of the action.
 
      */
-    public void enqueue(String description, Callable<Void> action) {
+    public void enqueue(String description, ThrowingRunnable<?> action) {
         if (! stop) {
-            queue.add(new CallableWithDescription(action, description));
+            queue.add(new RunnableWithDescription<>(action, description));
         }
     }
 
@@ -101,15 +107,18 @@ public class ActionQueue {
      * @param sleepTime how long to wait in milliseconds between loops
      */
     public void stop(int count, int sleepTime) {
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
+        String timestamp = TimeUtils.getTimestampIsoInstant();
+        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(timestamp + " Stopping queue " + this);
         stop = true;
         for (int i = 0; i < count; i++) {
             int size = queue.size();
             if (!(size > 0)) return;
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
+            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
+                System.out.printf(timestamp + " Queue not yet empty, has %d elements. waiting...%n", size);
+            }
             MyThread.sleep(sleepTime);
         }
-        System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
+        System.out.printf(timestamp + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
     }
 
     /**
@@ -132,7 +141,7 @@ public class ActionQueue {
         return queueThread;
     }
 
-    public LinkedBlockingQueue<CallableWithDescription> getQueue() {
+    public LinkedBlockingQueue<RunnableWithDescription<?>> getQueue() {
         return queue;
     }
 }

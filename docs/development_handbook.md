@@ -37,14 +37,15 @@ Table of contents
 Features:
 --------
 
-- secure HTTP/1.1 web server
-- in-memory database with disk persistence
-- efficient server-side templating
-- defensive security capabilities
-- logging framework
-- testing framework
-- authentication
+- Secure TLS 1.3 HTTP/1.1 web server
+- In-memory database with disk persistence
+- Efficient server-side templating
+- Defensive security capabilities
+- Togging framework
+- Testing framework
+- Authentication
 - HTML parsing
+- Action queueing
 
 Quick start:
 ------------

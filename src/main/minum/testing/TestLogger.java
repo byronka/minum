@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import static minum.utils.Invariants.mustNotBeNull;
+
 /**
  * This implementation of {@link Logger} has a few
  * extra functions that only apply to tests, like {@link #test(String)}
@@ -81,11 +83,14 @@ public class TestLogger extends Logger {
      * useful for some tests.
      */
     private void addToCache(ThrowingSupplier<String, Exception> msg) {
-        String message = extractMessage(msg);
         while (recentLogLines.size() >= (MAX_CACHE_SIZE)) {
+            // pull log messages off the head of the queue
             recentLogLines.remove();
         }
-        recentLogLines.offer(message);
+        // put log messages into the tail of the queue
+        String message = extractMessage(msg);
+        String safeMessage = message == null ? "" : message;
+        recentLogLines.offer(safeMessage);
     }
 
     @Override
@@ -153,7 +158,6 @@ public class TestLogger extends Logger {
 
         loggerPrinter.enqueue("Testlogger#test("+msg+")", () -> {
             printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", testCount++, msg);
-            return null;
         });
     }
 

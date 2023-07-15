@@ -21,7 +21,7 @@ public class HtmlParserTests {
         logger.testSuite("TheBrigTests");
     }
 
-    public void tests() throws IOException {
+    public void tests() {
 
         logger.test("detail work"); {
             String input = "<br foo=bar />";

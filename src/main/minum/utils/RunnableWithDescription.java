@@ -7,19 +7,14 @@ import java.util.concurrent.Callable;
  * possible reviewing the queue of actions and more easily understanding
  * the purpose of each Callable.
  */
-public class CallableWithDescription implements Callable<Void> {
+public class RunnableWithDescription<E extends Throwable> implements ThrowingRunnable<E> {
 
     private final String description;
-    private final Callable<Void> c;
+    private final ThrowingRunnable<E> r;
 
-    public CallableWithDescription(Callable<Void> c, String description) {
+    public RunnableWithDescription(ThrowingRunnable<E> r, String description) {
         this.description = description;
-        this.c = c;
-    }
-
-    @Override
-    public Void call() throws Exception {
-        return c.call();
+        this.r = r;
     }
 
     public String getDescription() {
@@ -29,5 +24,10 @@ public class CallableWithDescription implements Callable<Void> {
     @Override
     public String toString() {
         return getDescription();
+    }
+
+    @Override
+    public void run() throws E {
+        r.run();
     }
 }

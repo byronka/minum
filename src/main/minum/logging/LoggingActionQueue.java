@@ -1,8 +1,10 @@
 package minum.logging;
 
 import minum.Constants;
-import minum.utils.CallableWithDescription;
+import minum.Context;
 import minum.utils.MyThread;
+import minum.utils.RunnableWithDescription;
+import minum.utils.ThrowingRunnable;
 import minum.utils.TimeUtils;
 
 import java.util.concurrent.Callable;
@@ -21,7 +23,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class LoggingActionQueue {
     private final String name;
     private final ExecutorService executorService;
-    private final LinkedBlockingQueue<CallableWithDescription> queue;
+    private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;
     private boolean stop = false;
     private Thread queueThread;
     private final Constants constants;
@@ -42,8 +44,12 @@ public class LoggingActionQueue {
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    Callable<Void> action = queue.take();
-                    action.call();
+                    RunnableWithDescription<?> action = queue.take();
+                    try {
+                        action.run();
+                    } catch (Throwable ex) {
+                        System.out.println(ex);
+                    }
                 }
             } catch (InterruptedException ex) {
             /*
@@ -67,9 +73,9 @@ public class LoggingActionQueue {
      * Adds something to the queue to be processed.
      * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
      */
-    public void enqueue(String description, Callable<Void> action) {
+    public void enqueue(String description, ThrowingRunnable<?> action) {
         if (! stop) {
-            queue.add(new CallableWithDescription(action, description));
+            queue.add(new RunnableWithDescription<>(action, description));
         }
     }
 

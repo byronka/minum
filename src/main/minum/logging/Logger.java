@@ -131,7 +131,6 @@ public class Logger implements ILogger {
             String finalReceivedMessage = receivedMessage;
             loggerPrinter.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
                 printf(loggingLevel.name() + ": %s %s%n", getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage));
-                return null;
             });
         }
     }

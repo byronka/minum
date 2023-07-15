@@ -42,6 +42,8 @@ public class SimpleDatabaseTests {
             final var foo = new Foo(1, 123, "abc");
             final var deserializedFoo = foo.deserialize(foo.serialize());
             assertEquals(deserializedFoo, foo);
+
+
         }
 
         logger.test("When we serialize something null");{
@@ -232,21 +234,17 @@ public class SimpleDatabaseTests {
 
         @Override
         public String serialize() {
-            return StringUtils.encode(String.valueOf(index)) + " " + StringUtils.encode(String.valueOf(a)) + " " + StringUtils.encode(b);
+            return serializeHelper(index, a, b);
         }
 
         @Override
         public Foo deserialize(String serializedText) {
-            final var indexEndOfIndex = serializedText.indexOf(' ');
-            final var indexStartOfA = indexEndOfIndex + 1;
-            final var indexEndOfA = serializedText.indexOf(' ', indexStartOfA);
-            final var indexStartOfB = indexEndOfA + 1;
-
-            final var rawStringIndex = serializedText.substring(0, indexEndOfIndex);
-            final var rawStringA = serializedText.substring(indexStartOfA, indexEndOfA);
-            final var rawStringB = StringUtils.decode(serializedText.substring(indexStartOfB));
-
-            return new Foo(Integer.parseInt(rawStringIndex), Integer.parseInt(rawStringA), rawStringB);
+            final var tokens =  deserializeHelper(serializedText);
+            return new Foo(
+                    Integer.parseInt(tokens.get(0)),
+                    Integer.parseInt(tokens.get(1)),
+                    tokens.get(2)
+                    );
         }
 
         @Override

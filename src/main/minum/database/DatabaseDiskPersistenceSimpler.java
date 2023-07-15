@@ -51,7 +51,6 @@ public class DatabaseDiskPersistenceSimpler<T> {
             } catch (IOException ex) {
                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
             }
-            return null;
         });
 
     }
@@ -87,10 +86,6 @@ public class DatabaseDiskPersistenceSimpler<T> {
         final String fullPath = makeFullPathFromData(data);
         actionQueue.enqueue("persist data to disk", () -> {
             writeString(fullPath, data.serialize());
-
-            // needs to return null because this is a Callable, which allows us to
-            // bubble exceptions back.
-            return null;
         });
     }
 
@@ -107,10 +102,6 @@ public class DatabaseDiskPersistenceSimpler<T> {
             } catch (Exception ex) {
                 logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk");
             }
-
-            // needs to return null because this is a Callable, which allows us to
-            // bubble exceptions back.
-            return null;
         });
         }
 
@@ -123,10 +114,6 @@ public class DatabaseDiskPersistenceSimpler<T> {
             // if the file isn't already there, throw an exception
             mustBeTrue(file.exists(), "we were asked to update "+file+" but it doesn't exist");
             writeString(fullPath, data.serialize());
-
-            // needs to return null because this is a Callable, which allows us to
-            // bubble exceptions back.
-            return null;
         });
     }
 

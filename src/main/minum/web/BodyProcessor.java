@@ -183,7 +183,7 @@ public class BodyProcessor {
         for (var df : partitions) {
             final var is = new ByteArrayInputStream(df);
 
-            Headers headers = null;
+            Headers headers;
             try {
                 headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
             } catch (IOException e) {
@@ -201,7 +201,7 @@ public class BodyProcessor {
                 String name = matcher.group("namevalue");
                 // at this point our inputstream pointer is at the beginning of the
                 // body data.  From here until the end it's pure data.
-                byte[] data = new byte[0];
+                byte[] data;
                 try {
                     data = inputStreamUtils.readUntilEOF(is);
                 } catch (IOException e) {
@@ -212,7 +212,7 @@ public class BodyProcessor {
                 result.put(name, data);
             }
             else {
-                String returnedData = "";
+                String returnedData;
                 if (body.length > MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) {
                     returnedData = StringUtils.byteArrayToString(Arrays.copyOf(body, MAX_SIZE_DATA_RETURNED_IN_EXCEPTION)) + " ... (remainder of data trimmed)";
                 } else {

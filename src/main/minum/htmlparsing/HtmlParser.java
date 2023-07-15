@@ -60,7 +60,7 @@ public class HtmlParser {
         State state = State.buildNewState();
 
         while (true) {
-            int value = 0;
+            int value;
             try {
                 value = stringReader.read();
             } catch (IOException e) {
