@@ -613,6 +613,59 @@ Run this command:
 mvn install:install-file -Dfile=out/minum.jar -DgroupId=com.renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
 ```
 
+ActionQueue
+-----------
+
+[ActionQueue](../src/main/minum/utils/ActionQueue.java) lets you run thread-contended actions safely.  Let's unpack 
+that sentence a bit with an example: Because this program is multithreaded, there will be times when multiple threads
+want to write to the same file at the same time.
+
+This could lead to exceptions being thrown or data being corrupted.  Bad stuff, yeah.  To avoid that outcome, we
+have some options - we could mark the function as `synchronized`, which means only one thread can be running it
+at a time.  This might be a good approach a lot of the time, and if you can separate out the code properly, would
+probably we your wisest course of action.  For example:
+
+```Java
+    if (needToWrite) {
+        writeData(myData);
+    }
+    
+    ...
+    
+    public synchronized void writeData(Data data) {
+        // do cool stuff
+    }
+```
+
+Here, you can see that multiple threads will contend only if they really need to write data.  What will happen is
+one thread will go in and write the data, the others will wait outside for their turn.
+
+There is a performance issue with this - if there are lots of writes happening, you will block lots of threads,
+even if they wouldn't have necessarily written to the same file.
+
+There's also [Lock](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html), and you can
+read up on that.  Also, a good option for many cases.
+
+With this context in mind, let's talk about ActionQueue.
+
+With ActionQueue, if there is some file you wish to write, you can enqueue that work to be done later.  The 
+enqueue call immediately returns.  For example, looking at this code, here's an example usage from DatabaseDiskPersistenceSimpler:
+
+```Java
+        actionQueue.enqueue("update data on disk", () -> {
+            // if the file isn't already there, throw an exception
+            mustBeTrue(file.exists(), "we were asked to update "+file+" but it doesn't exist");
+            writeString(fullPath, data.serialize());
+        });
+```
+
+Any time it is important to put something to be done later, ActionQueue is ready to help.  But note it has some
+drawbacks.  For one, you won't get exceptions bubbling up from your call.  If you need to immediately return
+a 400 error to a user based on some calculation, it wouldn't make sense to use ActionQueue there.  And like I 
+mentioned, the other options - synchrnonized, Locks - are also good in many cases.
+
+
+
 Appendix
 --------
 
