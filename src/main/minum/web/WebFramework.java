@@ -259,19 +259,27 @@ public class WebFramework {
      * do not find anything, return null)
      */
     private Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
-        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT)));
+        String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
+        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), requestedPath));
         if (functionFound == null) {
-            logger.logTrace(() -> "Did not find a function to handle a verb of " + sl.getVerb() + " and a path of " + sl.getPathDetails().isolatedPath());
+            logger.logTrace(() -> "Did not find a function to handle a verb of " + sl.getVerb() + " and a path of " + requestedPath);
             // if nothing was found in the registered dynamic endpoints, look
             // through the static endpoints
-            final var staticResponseFound = staticFilesCache.getStaticResponse(sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT));
+            final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
 
             if (staticResponseFound != null) {
-                logger.logTrace(() -> "found a static value to handle "+sl+", returning it");
+                logger.logTrace(() -> "found a static value to handle "+requestedPath+", returning it");
                 return request -> staticResponseFound;
             } else {
-                logger.logTrace(() -> "Found neither a function nor a static value, returning null");
-                return null;
+                logger.logTrace(() -> "Found neither a function nor a static value in the cache, checking files on disk");
+                // last ditch effort - look on disk.  This response will either
+                // be the file to return, or null if we didn't find anything.
+                Response response = staticFilesCache.loadStaticFile(requestedPath);
+                if (response != null) {
+                    return request -> response;
+                } else {
+                    return null;
+                }
             }
         }
         return functionFound;

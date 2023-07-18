@@ -3,16 +3,13 @@ package minum.web;
 import minum.logging.ILogger;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-
-import static minum.utils.Invariants.mustNotBeNull;
+import java.util.regex.Pattern;
 
 /**
  * This is a store of data for any static data we
@@ -36,11 +33,8 @@ public class StaticFilesCache {
      * css files, scripts
      */
     public static final String STATIC_FILES_DIRECTORY = "static/";
+    public static final Pattern badFilePathPatterns = Pattern.compile("//|\\.\\.|:");
 
-    /**
-     * Let's put a nice cap on this - no reason to go crazy with it
-     */
-    public static final int MAXIMUM_FILE_SEARCH_DEPTH = 5;
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
 
@@ -54,59 +48,38 @@ public class StaticFilesCache {
     }
 
     /**
-     * This provides all the static files (e.g. .html, .css) in the resources/static directory
+     * Given a file path inside the "static" directory,
+     * if we find it we read it from disk, add it to the cache,
+     * and return it.  If we don't fine it, we return null.
+     * <p>
+     *     If an IOException is thrown, return null, since the
+     *     callers above us know to return 404 or whatever
+     *     with that.
+     * </p>
      */
-    public StaticFilesCache loadStaticFiles() throws IOException {
-        final List<URL> urls = mustNotBeNull(
-                Collections.list(
-                        StaticFilesCache.class.getClassLoader().getResources(STATIC_FILES_DIRECTORY)));
-        for (var url : urls) {
-            URI uri = URI.create("");
-            try {
-                uri = url.toURI();
-            } catch (URISyntaxException ex) {
-                logger.logDebug(() -> "Exception thrown when converting URI to URL for "+url+": "+ex);
+    Response loadStaticFile(String file) {
+        // if someone tries unusual patterns or path traversal, return null
+        if (badFilePathPatterns.matcher(file).find()) return null;
+
+        try {
+            Path path = Path.of(STATIC_FILES_DIRECTORY).resolve(file);
+            byte[] fileContents = null;
+            if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> path.getFileName().toString().contains(x) )) {
+                URL resource = StaticFilesCache.class.getClassLoader().getResource(path.toString());
+                fileContents = Files.readAllBytes(Paths.get(resource.toURI()));
             }
+            if (fileContents == null) return null;
 
-            if (uri.getScheme().equals("jar")) {
-                /*
-                This part is necessary because it's the only way we can set up to loop
-                through paths (files) later.  That is to say, when we getResource(path), it works fine,
-                but if we want to get a list of all the files in a directory inside our jar file,
-                we have to do it this way.
-                 */
-                try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-                    final var myPath = fileSystem.getPath(STATIC_FILES_DIRECTORY);
-                    processPath(myPath);
-                }
-            } else {
-                final var myPath = Paths.get(uri);
-                processPath(myPath);
-            }
-        }
-        return this;
-    }
+            Response result = createStaticFileResponse(path, fileContents);
 
-    /**
-     * Given a path to scan, walk through the files (up to MAXIMUM_FILE_SEARCH_DEPTH deep)
-     * and add them to our cache.
-     */
-    void processPath(Path myPath) throws IOException {
-        try (final var pathsStream = Files.walk(myPath, MAXIMUM_FILE_SEARCH_DEPTH)) {
-            for (var path : pathsStream.toList()) {
-                byte[] fileContents = null;
-                if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> path.getFileName().toString().contains(x) )) {
-                    fileContents = Files.readAllBytes(path);
-                }
-                if (fileContents == null) continue;
+            String route = getRoute(path);
 
-                Response result = createStaticFileResponse(path, fileContents);
-
-                String route = getRoute(path);
-
-                logger.logTrace(() -> "Storing in cache - filename: " + route);
-                staticResponses.put(route, result);
-            }
+            logger.logTrace(() -> "Storing in cache - filename: " + route);
+            staticResponses.put(route, result);
+            return result;
+        } catch (IOException | URISyntaxException ex) {
+            logger.logAsyncError(() -> "at getStaticResponse.  Returning null.  Error: " + ex.getMessage());
+            return null;
         }
     }
 

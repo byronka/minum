@@ -82,7 +82,7 @@ public class FullSystem implements AutoCloseable {
         System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting "+serverComment+" ***");
         theBrig = new TheBrig(context).initialize();
         WebEngine webEngine = new WebEngine(context);
-        StaticFilesCache sfc = new StaticFilesCache(logger).loadStaticFiles();
+        StaticFilesCache sfc = new StaticFilesCache(logger);
         webFramework = new WebFramework(context);
         addShutdownHook();
         webFramework.registerStaticFiles(sfc);

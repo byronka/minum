@@ -41,6 +41,12 @@ public class FunctionalTests {
     public void test() throws Exception {
         System.out.println("First functional test"); {
 
+            /* Request a static file.  First time it gets loaded from disk... */
+            assertEquals(get("index.html").statusLine().status(), _200_OK);
+
+            /* Second time, it gets loaded from cache */
+            assertEquals(get("index.html").statusLine().status(), _200_OK);
+
             /*
             grab the photos page unauthenticated. We should be able
             to view the photos.
