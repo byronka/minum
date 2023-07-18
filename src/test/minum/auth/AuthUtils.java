@@ -2,6 +2,7 @@ package minum.auth;
 
 import minum.Constants;
 import minum.Context;
+import minum.database.AlternateDatabaseDiskPersistenceSimpler;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.logging.ILogger;
 import minum.utils.CryptoUtils;
@@ -35,9 +36,8 @@ import static minum.web.StatusLine.StatusCode.*;
 public class AuthUtils {
 
     private final List<SessionId> sessionIds;
-    private final List<User> users;
     private final ILogger logger;
-    private final DatabaseDiskPersistenceSimpler<User> userDiskData;
+    private final AlternateDatabaseDiskPersistenceSimpler<User> userDiskData;
     private final DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
     final AtomicLong newSessionIdentifierIndex;
     final AtomicLong newUserIndex;
@@ -48,7 +48,7 @@ public class AuthUtils {
     private final SessionId emptySessionId;
 
     public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
-                     DatabaseDiskPersistenceSimpler<User> userDiskData,
+                     AlternateDatabaseDiskPersistenceSimpler<User> userDiskData,
                      Context context) {
         this.constants = context.getConstants();
         this.userDiskData = userDiskData;
@@ -56,12 +56,11 @@ public class AuthUtils {
         emptyUser = User.EMPTY;
         emptySessionId = SessionId.EMPTY;
         sessionIds = sessionDiskData.readAndDeserialize(emptySessionId);
-        users = userDiskData.readAndDeserialize(emptyUser);
         this.logger = context.getLogger();
 
 
         newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
-        newUserIndex = new AtomicLong(calculateNextIndex(users));
+        newUserIndex = new AtomicLong(userDiskData.getLatestIndex());
         loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
         registerPageTemplate = FileUtils.readTemplate("auth/register_page_template.html");
     }
@@ -201,7 +200,7 @@ public class AuthUtils {
      * This is the real findUser
      */
     private LoginResult findUser(String username, String password) {
-        final var foundUsers = users.stream().filter(x -> x.getUsername().equals(username)).toList();
+        final var foundUsers = userDiskData.stream().filter(x -> x.getUsername().equals(username)).toList();
         return switch (foundUsers.size()) {
             case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, emptyUser);
             case 1 -> passwordCheck(foundUsers.get(0), password);
