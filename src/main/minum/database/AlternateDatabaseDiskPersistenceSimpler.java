@@ -130,7 +130,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      * @return true if this list contained the specified element (or
      * equivalently, if this list changed as a result of the call).
      */
-    public boolean deleteOnDisk(T dataToDelete) {
+    public void deleteOnDisk(T dataToDelete) {
         // load data if needed
         if (!hasLoadedData) loadData();
 
@@ -149,7 +149,6 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
                 logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk");
             }
         });
-        return result;
     }
 
 
@@ -215,19 +214,18 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
         return data;
     }
 
-    T readAndDeserialize(Path p) throws IOException {
+    void readAndDeserialize(Path p) throws IOException {
         String fileContents;
         fileContents = Files.readString(p);
         if (fileContents.isBlank()) {
             logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
         } else {
             try {
-                return deserialize(fileContents);
+                deserialize(fileContents);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
             }
         }
-        return null;
     }
 
     @SuppressWarnings("unchecked")
