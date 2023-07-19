@@ -1,7 +1,7 @@
 package minum.sampledomain;
 
 import minum.auth.AuthUtils;
-import minum.database.DatabaseDiskPersistenceSimpler;
+import minum.database.AlternateDatabaseDiskPersistenceSimpler;
 import minum.sampledomain.PersonName;
 import minum.templating.TemplateProcessor;
 import minum.utils.FileUtils;
@@ -21,19 +21,15 @@ import static minum.web.StatusLine.StatusCode.*;
 
 public class SampleDomain {
 
-    private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
-    private final List<PersonName> personNames;
+    private final AlternateDatabaseDiskPersistenceSimpler<PersonName> ddps;
     private final AuthUtils auth;
-    private final AtomicLong newPersonIndex;
     private final TemplateProcessor nameEntryTemplate;
     private final String authHomepage;
     private final String unauthHomepage;
 
-    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
+    public SampleDomain(AlternateDatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
-        personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
-        newPersonIndex = new AtomicLong(calculateNextIndex(personNames));
         nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
         authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
         unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
@@ -44,7 +40,7 @@ public class SampleDomain {
         if (! authResult.isAuthenticated()) {
             return new Response(_401_UNAUTHORIZED);
         }
-        final String names = personNames
+        final String names = ddps
                 .stream().sorted(Comparator.comparingLong(PersonName::getIndex))
                 .map(x -> "<li>" + StringUtils.safeHtml(x.getFullname()) + "</li>\n")
                 .collect(Collectors.joining());
@@ -60,8 +56,7 @@ public class SampleDomain {
 
         final var nameEntry = r.body().asString("name_entry");
 
-        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
-        personNames.add(newPersonName);
+        final var newPersonName = new PersonName(0L, nameEntry);
         ddps.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
     }

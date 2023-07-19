@@ -2,7 +2,6 @@ package minum.auth;
 
 
 import minum.database.AlternateSimpleDataTypeImpl;
-import minum.database.SimpleDataTypeImpl;
 import minum.utils.StringUtils;
 
 import java.time.Instant;

@@ -1,12 +1,13 @@
 package minum.sampledomain;
 
 import minum.Context;
+import minum.database.AlternateSimpleDataTypeImpl;
 import minum.database.ISimpleDataType;
 import minum.database.SimpleDataTypeImpl;
 
-public class PersonName extends SimpleDataTypeImpl<PersonName> {
+public class PersonName extends AlternateSimpleDataTypeImpl<PersonName> {
 
-    private final long index;
+    private long index;
     private final String fullname;
 
     public PersonName(Long index, String fullname) {
@@ -15,11 +16,16 @@ public class PersonName extends SimpleDataTypeImpl<PersonName> {
         this.fullname = fullname;
     }
 
-    public static final ISimpleDataType<PersonName> EMPTY = new PersonName(0L, "");
+    public static final PersonName EMPTY = new PersonName(0L, "");
 
     @Override
     public long getIndex() {
         return index;
+    }
+
+    @Override
+    public void setIndex(long index) {
+        this.index = index;
     }
 
     public String getFullname() {

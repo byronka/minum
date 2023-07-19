@@ -1,11 +1,10 @@
 package minum.sampledomain.photo;
 
-import minum.database.ISimpleDataType;
-import minum.database.SimpleDataTypeImpl;
+import minum.database.AlternateSimpleDataTypeImpl;
 
-public class Photograph extends SimpleDataTypeImpl<Photograph> {
+public class Photograph extends AlternateSimpleDataTypeImpl<Photograph> {
 
-    private final long index;
+    private long index;
     private final String photoUrl;
     private final String shortDescription;
     private final String description;
@@ -17,11 +16,16 @@ public class Photograph extends SimpleDataTypeImpl<Photograph> {
         this.description = description;
     }
 
-    public static final ISimpleDataType<Photograph> EMPTY = new Photograph(0L, "", "", "");
+    public static final Photograph EMPTY = new Photograph(0L, "", "", "");
 
     @Override
     public long getIndex() {
         return index;
+    }
+
+    @Override
+    public void setIndex(long index) {
+        this.index = index;
     }
 
     @Override

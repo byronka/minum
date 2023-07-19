@@ -5,7 +5,6 @@ import minum.auth.LoopingSessionReviewing;
 import minum.auth.SessionId;
 import minum.auth.User;
 import minum.database.AlternateDatabaseDiskPersistenceSimpler;
-import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.sampledomain.ListPhotos;
 import minum.sampledomain.PersonName;
 import minum.sampledomain.SampleDomain;
@@ -67,7 +66,7 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDdps = webFramework.getDdps("names");
+        var sampleDomainDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "names"), context, PersonName.EMPTY);
         return new SampleDomain(sampleDomainDdps, auth);
     }
 
@@ -76,13 +75,13 @@ public class TheRegister {
     }
 
     private UploadPhoto setupUploadPhotos(AuthUtils auth) {
-        DatabaseDiskPersistenceSimpler<Photograph> photoDdps = webFramework.getDdps("photos");
+        var photoDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "photos"), context, Photograph.EMPTY);
         return new UploadPhoto(photoDdps, auth, context);
     }
 
     private AuthUtils buildAuthDomain() {
-        AlternateDatabaseDiskPersistenceSimpler<SessionId> sessionDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "sessions"), context, SessionId.EMPTY);
-        AlternateDatabaseDiskPersistenceSimpler<User> userDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "users"), context, User.EMPTY);
+        var sessionDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "sessions"), context, SessionId.EMPTY);
+        var userDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "users"), context, User.EMPTY);
         var au = new AuthUtils(sessionDdps, userDdps, context);
         new LoopingSessionReviewing(context, au).initialize();
         return au;
