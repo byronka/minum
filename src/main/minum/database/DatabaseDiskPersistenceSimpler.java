@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -24,7 +23,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * on any data that extends from {@link ISimpleDataType}
  * @param <T> the type of data we'll be persisting
  */
-public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDataTypeImpl<?>> {
+public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
 
     /**
      * The suffix we will apply to each database file
@@ -55,7 +54,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      *                     "db", and we're building this for a domain "foo", we
      *                     might expect to receive "db/foo" here.
      */
-    public AlternateDatabaseDiskPersistenceSimpler(Path dbDirectory, Context context, T instance) {
+    public DatabaseDiskPersistenceSimpler(Path dbDirectory, Context context, T instance) {
         this.hasLoadedData = false;
         this.data = new ArrayList<>();
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();

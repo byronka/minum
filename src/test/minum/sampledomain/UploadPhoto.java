@@ -4,7 +4,7 @@ import minum.Constants;
 import minum.Context;
 import minum.auth.AuthResult;
 import minum.auth.AuthUtils;
-import minum.database.AlternateDatabaseDiskPersistenceSimpler;
+import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.logging.ILogger;
 import minum.sampledomain.photo.Photograph;
 import minum.utils.FileUtils;
@@ -23,13 +23,13 @@ import static minum.web.StatusLine.StatusCode.*;
 public class UploadPhoto {
 
     private final String uploadPhotoTemplateHtml;
-    private final AlternateDatabaseDiskPersistenceSimpler<Photograph> ddps;
+    private final DatabaseDiskPersistenceSimpler<Photograph> ddps;
     private final ILogger logger;
     private final Path dbDir;
     private final AuthUtils auth;
     private final Constants constants;
 
-    public UploadPhoto(AlternateDatabaseDiskPersistenceSimpler<Photograph> ddps, AuthUtils auth, Context context) {
+    public UploadPhoto(DatabaseDiskPersistenceSimpler<Photograph> ddps, AuthUtils auth, Context context) {
         this.constants = context.getConstants();
         this.auth = auth;
         this.logger = context.getLogger();

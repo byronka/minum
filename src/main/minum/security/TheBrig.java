@@ -2,8 +2,8 @@ package minum.security;
 
 import minum.Constants;
 import minum.Context;
-import minum.database.AlternateDatabaseDiskPersistenceSimpler;
-import minum.database.AlternateSimpleDataTypeImpl;
+import minum.database.DatabaseDiskPersistenceSimpler;
+import minum.database.SimpleDataTypeImpl;
 import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
 import minum.utils.MyThread;
@@ -11,12 +11,10 @@ import minum.utils.TimeUtils;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static minum.utils.Invariants.mustBeTrue;
@@ -31,7 +29,7 @@ import static minum.utils.Invariants.mustBeTrue;
  */
 public class TheBrig {
     private final ExecutorService es;
-    private final AlternateDatabaseDiskPersistenceSimpler<Inmate> ddps;
+    private final DatabaseDiskPersistenceSimpler<Inmate> ddps;
     private final ILogger logger;
     private final Constants constants;
 
@@ -53,7 +51,7 @@ public class TheBrig {
     /**
      * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
      */
-    private static class Inmate extends AlternateSimpleDataTypeImpl<Inmate> {
+    private static class Inmate extends SimpleDataTypeImpl<Inmate> {
 
         /**
          * Builds an empty version of this class, except
@@ -115,7 +113,7 @@ public class TheBrig {
         this.constants = context.getConstants();
         this.logger = context.getLogger();
         Path dbDir = Path.of(constants.DB_DIRECTORY);
-        this.ddps = new AlternateDatabaseDiskPersistenceSimpler<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
+        this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
         this.clientKeys = this.ddps.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
         this.sleepTime = sleepTime;
     }

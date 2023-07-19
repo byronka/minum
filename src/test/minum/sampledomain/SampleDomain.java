@@ -1,8 +1,7 @@
 package minum.sampledomain;
 
 import minum.auth.AuthUtils;
-import minum.database.AlternateDatabaseDiskPersistenceSimpler;
-import minum.sampledomain.PersonName;
+import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.templating.TemplateProcessor;
 import minum.utils.FileUtils;
 import minum.utils.StringUtils;
@@ -12,7 +11,6 @@ import minum.web.Response;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static minum.web.StatusLine.StatusCode.*;
@@ -20,13 +18,13 @@ import static minum.web.StatusLine.StatusCode.*;
 
 public class SampleDomain {
 
-    private final AlternateDatabaseDiskPersistenceSimpler<PersonName> ddps;
+    private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
     private final AuthUtils auth;
     private final TemplateProcessor nameEntryTemplate;
     private final String authHomepage;
     private final String unauthHomepage;
 
-    public SampleDomain(AlternateDatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
+    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
         this.auth = auth;
         nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));

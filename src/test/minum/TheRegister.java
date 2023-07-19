@@ -4,7 +4,7 @@ import minum.auth.AuthUtils;
 import minum.auth.LoopingSessionReviewing;
 import minum.auth.SessionId;
 import minum.auth.User;
-import minum.database.AlternateDatabaseDiskPersistenceSimpler;
+import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.sampledomain.ListPhotos;
 import minum.sampledomain.PersonName;
 import minum.sampledomain.SampleDomain;
@@ -66,7 +66,7 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        var sampleDomainDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "names"), context, PersonName.EMPTY);
+        var sampleDomainDdps = new DatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "names"), context, PersonName.EMPTY);
         return new SampleDomain(sampleDomainDdps, auth);
     }
 

@@ -9,10 +9,10 @@ import java.util.List;
  * Extend from this class to create a data value that is
  * intended to be stored in the database.
  */
-public abstract class AlternateSimpleDataTypeImpl<T> implements AlternateISimpleDataType<T> {
+public abstract class SimpleDataTypeImpl<T> implements ISimpleDataType<T> {
 
 
-    protected AlternateSimpleDataTypeImpl() {
+    protected SimpleDataTypeImpl() {
     }
 
     /**

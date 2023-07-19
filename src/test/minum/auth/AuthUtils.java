@@ -2,7 +2,7 @@ package minum.auth;
 
 import minum.Constants;
 import minum.Context;
-import minum.database.AlternateDatabaseDiskPersistenceSimpler;
+import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.logging.ILogger;
 import minum.utils.CryptoUtils;
 import minum.utils.FileUtils;
@@ -15,7 +15,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -34,16 +33,16 @@ import static minum.web.StatusLine.StatusCode.*;
 public class AuthUtils {
 
     private final ILogger logger;
-    private final AlternateDatabaseDiskPersistenceSimpler<User> userDiskData;
-    private final AlternateDatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
+    private final DatabaseDiskPersistenceSimpler<User> userDiskData;
+    private final DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
 
     private final String loginPageTemplate;
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
 
-    public AuthUtils(AlternateDatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
-                     AlternateDatabaseDiskPersistenceSimpler<User> userDiskData,
+    public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
+                     DatabaseDiskPersistenceSimpler<User> userDiskData,
                      Context context) {
         this.constants = context.getConstants();
         this.userDiskData = userDiskData;

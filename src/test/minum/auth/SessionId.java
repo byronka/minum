@@ -1,7 +1,7 @@
 package minum.auth;
 
 
-import minum.database.AlternateSimpleDataTypeImpl;
+import minum.database.SimpleDataTypeImpl;
 import minum.utils.StringUtils;
 
 import java.time.Instant;
@@ -15,7 +15,7 @@ import java.util.Objects;
  *
  * For more about this concept, see <a href="https://en.wikipedia.org/wiki/Session_(computer_science)#Web_server_session_management">Web server sessions</a>
  */
-public class SessionId extends AlternateSimpleDataTypeImpl<SessionId> {
+public class SessionId extends SimpleDataTypeImpl<SessionId> {
 
     private long index;
     private final String sessionCode;

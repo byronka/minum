@@ -6,4 +6,4 @@ package minum.database;
  * {@link ISimpleSerializable} and {@link SimpleIndexed}
  * @param <T> the type of data
  */
-public interface AlternateISimpleDataType<T> extends ISimpleSerializable<T>, AlternateSimpleIndexed {}
+public interface ISimpleDataType<T> extends ISimpleSerializable<T>, SimpleIndexed {}

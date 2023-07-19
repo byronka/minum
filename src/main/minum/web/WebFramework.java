@@ -3,8 +3,8 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.FullSystem;
-import minum.database.AlternateDatabaseDiskPersistenceSimpler;
-import minum.database.AlternateSimpleDataTypeImpl;
+import minum.database.DatabaseDiskPersistenceSimpler;
+import minum.database.SimpleDataTypeImpl;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
@@ -336,7 +336,7 @@ public class WebFramework {
      * {@code DatabaseDiskPersistenceSimpler<Photograph> photoDdps = wf.getDdps("photos");}
      * </pre>
      */
-    public <T extends AlternateSimpleDataTypeImpl<?>> AlternateDatabaseDiskPersistenceSimpler<T> getDdps(String name, T instance) {
-        return new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(constants.DB_DIRECTORY, name), context, instance);
+    public <T extends SimpleDataTypeImpl<?>> DatabaseDiskPersistenceSimpler<T> getDdps(String name, T instance) {
+        return new DatabaseDiskPersistenceSimpler<>(Path.of(constants.DB_DIRECTORY, name), context, instance);
     }
 }

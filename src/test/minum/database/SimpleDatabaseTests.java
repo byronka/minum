@@ -5,16 +5,12 @@ import minum.testing.StopwatchUtils;
 import minum.testing.TestLogger;
 import minum.utils.FileUtils;
 import minum.utils.MyThread;
-import minum.utils.StringUtils;
-import minum.utils.ThrowingRunnable;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 
 import static java.util.stream.IntStream.range;
 import static minum.database.SimpleDatabaseTests.Foo.INSTANCE;
@@ -65,7 +61,7 @@ public class SimpleDatabaseTests {
         {
             deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
-            final var ddps = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
 
             // make some files on disk
             for (var foo : foos) {
@@ -77,7 +73,7 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(100);
             for (var foo : foos) {
-                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + AlternateDatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // rebuild some objects from what was written to disk
@@ -114,7 +110,7 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(50);
             for (var foo : foos) {
-                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + AlternateDatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // give the action queue time to save files to disk
@@ -124,7 +120,7 @@ public class SimpleDatabaseTests {
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
-            final var ddps_throwaway = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
 
             // if we try deleting something that doesn't exist, we get an error shown in the log
             ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
@@ -142,7 +138,7 @@ public class SimpleDatabaseTests {
 
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             // create an empty file, to create that edge condition
@@ -177,7 +173,7 @@ public class SimpleDatabaseTests {
         logger.test("Just how fast is our minum.database?");{
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             final var foos = new ArrayList<Foo>();
@@ -216,7 +212,7 @@ public class SimpleDatabaseTests {
     }
 
 
-    static class Foo extends AlternateSimpleDataTypeImpl<Foo> implements Comparable<Foo> {
+    static class Foo extends SimpleDataTypeImpl<Foo> implements Comparable<Foo> {
 
         private long index;
         private final int a;

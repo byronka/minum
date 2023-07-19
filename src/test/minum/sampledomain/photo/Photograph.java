@@ -1,8 +1,8 @@
 package minum.sampledomain.photo;
 
-import minum.database.AlternateSimpleDataTypeImpl;
+import minum.database.SimpleDataTypeImpl;
 
-public class Photograph extends AlternateSimpleDataTypeImpl<Photograph> {
+public class Photograph extends SimpleDataTypeImpl<Photograph> {
 
     private long index;
     private final String photoUrl;

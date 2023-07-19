@@ -1,9 +1,8 @@
 package minum.sampledomain;
 
-import minum.Context;
-import minum.database.AlternateSimpleDataTypeImpl;
+import minum.database.SimpleDataTypeImpl;
 
-public class PersonName extends AlternateSimpleDataTypeImpl<PersonName> {
+public class PersonName extends SimpleDataTypeImpl<PersonName> {
 
     private long index;
     private final String fullname;
