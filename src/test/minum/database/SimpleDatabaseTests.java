@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
@@ -59,12 +60,12 @@ public class SimpleDatabaseTests {
             assertEquals(foos, deserializedFoos);
         }
 
-        logger.test("let's fold in some of the capability of DatabaseDiskPersistenceSimpler");
+        logger.test("let's fold in some of the capability of AlternateDatabaseDiskPersistenceSimpler");
         Path foosDirectory = Path.of("out/simple_db/foos");
         {
             deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+            final var ddps = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
 
             // make some files on disk
             for (var foo : foos) {
@@ -76,21 +77,20 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(100);
             for (var foo : foos) {
-                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + AlternateDatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // rebuild some objects from what was written to disk
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(20);
-            final var deserializedFoos = ddps.readAndDeserialize(INSTANCE);
             assertEqualsDisregardOrder(
-                    deserializedFoos.stream().map(Foo::toString).toList(),
+                    ddps.stream().map(Foo::toString).toList(),
                     foos.stream().map(Foo::toString).toList());
 
             // change those files
             final var updatedFoos = new ArrayList<Foo>();
-            for (var foo : foos) {
+            for (var foo : ddps.stream().toList()) {
                 final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
                 updatedFoos.add(newFoo);
                 ddps.updateOnDisk(newFoo);
@@ -100,9 +100,8 @@ public class SimpleDatabaseTests {
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(40);
-            final var deserializedUpdatedFoos = ddps.readAndDeserialize(INSTANCE);
             assertEqualsDisregardOrder(
-                    deserializedUpdatedFoos.stream().map(Foo::toString).toList(),
+                    ddps.stream().map(Foo::toString).toList(),
                     updatedFoos.stream().map(Foo::toString).toList());
 
             // delete the files
@@ -115,7 +114,7 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(50);
             for (var foo : foos) {
-                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + AlternateDatabaseDiskPersistenceSimpler.databaseFileSuffix)));
             }
 
             // give the action queue time to save files to disk
@@ -125,7 +124,7 @@ public class SimpleDatabaseTests {
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
-            final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+            final var ddps_throwaway = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
 
             // if we try deleting something that doesn't exist, we get an error shown in the log
             ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
@@ -140,28 +139,27 @@ public class SimpleDatabaseTests {
             // what if the directory is missing when try to deserialize?
             // note: this would only happen if, after instantiating our ddps,
             // the directory gets deleted/corrupted.
-            final var emptyFooInstance = new Foo(0, 0, "");
 
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+            final var ddps = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             // create an empty file, to create that edge condition
             final var pathToSampleFile = foosDirectory.resolve("1.ddps");
             Files.createFile(pathToSampleFile);
-            ddps.readAndDeserialize(emptyFooInstance);
+            ddps.loadDataFromDisk();
             MyThread.sleep(10);
             String existsButEmptyMessage = logger.findFirstMessageThatContains("file exists but");
             assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
 
             // create a corrupted file, to create that edge condition
             Files.write(pathToSampleFile, "invalid data".getBytes());
-            final var ex = assertThrows(RuntimeException.class, () -> ddps.readAndDeserialize(emptyFooInstance));
+            final var ex = assertThrows(RuntimeException.class, () -> ddps.loadDataFromDisk());
             assertEquals(ex.getMessage().replace('\\','/'), "Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            ddps.readAndDeserialize(emptyFooInstance);
+            ddps.loadDataFromDisk();
             MyThread.sleep(10);
             String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing").replace('\\', '/');
             assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
@@ -179,7 +177,7 @@ public class SimpleDatabaseTests {
         logger.test("Just how fast is our minum.database?");{
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+            final var ddps = new AlternateDatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             final var foos = new ArrayList<Foo>();
@@ -202,7 +200,7 @@ public class SimpleDatabaseTests {
                 ever be 10 foos.
                  */
                 for (var foo : foos) {
-                    final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+                    final var newFoo = new Foo(0, foo.a + 1, foo.b + "_updated");
                     newFoos.add(newFoo);
                     ddps.persistToDisk(newFoo);
                 }
@@ -218,13 +216,13 @@ public class SimpleDatabaseTests {
     }
 
 
-    static class Foo extends SimpleDataTypeImpl<Foo> implements Comparable<Foo> {
+    static class Foo extends AlternateSimpleDataTypeImpl<Foo> implements Comparable<Foo> {
 
-        private final int index;
+        private long index;
         private final int a;
         private final String b;
 
-        public Foo(int index, int a, String b) {
+        public Foo(long index, int a, String b) {
             this.index = index;
             this.a = a;
             this.b = b;
@@ -262,13 +260,27 @@ public class SimpleDatabaseTests {
 
         @Override
         public long getIndex() {
-            return (long) index;
+            return index;
+        }
+
+        @Override
+        public void setIndex(long index) {
+            this.index = index;
         }
 
         // implementing comparator just so we can assertEqualsDisregardOrder on a collection of these
         @Override
         public int compareTo(Foo o) {
             return Long.compare( o.getIndex() , this.getIndex() );
+        }
+
+        @Override
+        public String toString() {
+            return "Foo{" +
+                    "index=" + index +
+                    ", a=" + a +
+                    ", b='" + b + '\'' +
+                    '}';
         }
     }
 

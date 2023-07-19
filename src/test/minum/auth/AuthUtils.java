@@ -3,7 +3,6 @@ package minum.auth;
 import minum.Constants;
 import minum.Context;
 import minum.database.AlternateDatabaseDiskPersistenceSimpler;
-import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.logging.ILogger;
 import minum.utils.CryptoUtils;
 import minum.utils.FileUtils;
@@ -21,7 +20,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static minum.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
-import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
 import static minum.web.StatusLine.StatusCode.*;
 

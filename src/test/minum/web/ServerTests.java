@@ -54,7 +54,7 @@ public class ServerTests {
           as a form of attack.
          */
         logger.test("Handling SSLException - vulnerability attack"); {
-            Server server = new Server(null, context, "", new TheBrig(context));
+            Server server = new Server(null, context, "", null);
             var builtCore = server.buildExceptionHandlingInnerCore(x -> {
                 throw new SSLException("no cipher suites in common");
             }, new FakeSocketWrapper());

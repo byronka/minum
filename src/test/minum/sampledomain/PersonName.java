@@ -2,8 +2,6 @@ package minum.sampledomain;
 
 import minum.Context;
 import minum.database.AlternateSimpleDataTypeImpl;
-import minum.database.ISimpleDataType;
-import minum.database.SimpleDataTypeImpl;
 
 public class PersonName extends AlternateSimpleDataTypeImpl<PersonName> {
 

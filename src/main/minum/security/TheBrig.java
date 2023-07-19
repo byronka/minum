@@ -2,9 +2,8 @@ package minum.security;
 
 import minum.Constants;
 import minum.Context;
-import minum.database.DatabaseDiskPersistenceSimpler;
-import minum.database.ISimpleDataType;
-import minum.database.SimpleDataTypeImpl;
+import minum.database.AlternateDatabaseDiskPersistenceSimpler;
+import minum.database.AlternateSimpleDataTypeImpl;
 import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
 import minum.utils.MyThread;
@@ -20,7 +19,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.utils.Invariants.mustBeTrue;
 
 /**
@@ -33,14 +31,11 @@ import static minum.utils.Invariants.mustBeTrue;
  */
 public class TheBrig {
     private final ExecutorService es;
-    private final DatabaseDiskPersistenceSimpler<Inmate> ddps;
-    private final List<Inmate> inmates;
+    private final AlternateDatabaseDiskPersistenceSimpler<Inmate> ddps;
     private final ILogger logger;
-    private final boolean isUsingDiskPersistence;
     private final Constants constants;
 
     private Thread myThread;
-    private final AtomicLong newInmateIndex;
 
     /**
      * How long our inner thread will sleep before waking up to scan
@@ -58,14 +53,14 @@ public class TheBrig {
     /**
      * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
      */
-    private static class Inmate extends SimpleDataTypeImpl<Inmate> {
+    private static class Inmate extends AlternateSimpleDataTypeImpl<Inmate> {
 
         /**
          * Builds an empty version of this class, except
          * that it has a current Context object
          */
-        public static final ISimpleDataType<Inmate> EMPTY = new Inmate(0L, "", 0L);
-        private final Long index;
+        public static final Inmate EMPTY = new Inmate(0L, "", 0L);
+        private Long index;
         private final String clientId;
         private final Long duration;
 
@@ -84,6 +79,11 @@ public class TheBrig {
         @Override
         public long getIndex() {
             return index;
+        }
+
+        @Override
+        public void setIndex(long index) {
+            this.index = index;
         }
 
         @Override
@@ -110,25 +110,14 @@ public class TheBrig {
         }
     }
 
-    public TheBrig(int sleepTime, Context context, boolean isUsingDiskPersistence) {
+    public TheBrig(int sleepTime, Context context) {
         this.es = context.getExecutorService();
         this.constants = context.getConstants();
         this.logger = context.getLogger();
-        this.isUsingDiskPersistence = isUsingDiskPersistence;
-        if (isUsingDiskPersistence) {
-            Path dbDir = Path.of(constants.DB_DIRECTORY);
-            this.ddps = new DatabaseDiskPersistenceSimpler<>(dbDir.resolve("the_brig"), context);
-            this.inmates = ddps.readAndDeserialize(Inmate.EMPTY);
-            this.clientKeys = this.inmates.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
-            newInmateIndex = new AtomicLong(calculateNextIndex(inmates));
-        } else {
-            this.ddps = null;
-            this.inmates = new ArrayList<>();
-            this.clientKeys = new HashMap<>();
-            newInmateIndex = new AtomicLong(1);
-        }
+        Path dbDir = Path.of(constants.DB_DIRECTORY);
+        this.ddps = new AlternateDatabaseDiskPersistenceSimpler<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
+        this.clientKeys = this.ddps.stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
         this.sleepTime = sleepTime;
-
     }
 
 
@@ -138,7 +127,7 @@ public class TheBrig {
      * under consideration.
      */
     public TheBrig(Context context) {
-        this(10 * 1000, context, true);
+        this(10 * 1000, context);
     }
 
     // Regarding the BusyWait - indeed, we expect that the while loop
@@ -166,15 +155,11 @@ public class TheBrig {
                     }
                     for (var k : keysToRemove) {
                         logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-                        List<Inmate> inmates1 = inmates.stream().filter(x -> x.clientId.equals(k)).toList();
+                        List<Inmate> inmates1 = ddps.stream().filter(x -> x.clientId.equals(k)).toList();
                         mustBeTrue(inmates1.size() == 1, "There must be exactly one inmate found or there's a bug");
                         Inmate inmateToRemove = inmates1.get(0);
-                        inmates.remove(inmateToRemove);
-                        if (inmates.size() == 0) {
-                            newInmateIndex.set(1);
-                        }
                         clientKeys.remove(k);
-                        if (isUsingDiskPersistence) ddps.deleteOnDisk(inmateToRemove);
+                        ddps.deleteOnDisk(inmateToRemove);
                     }
                     Thread.sleep(sleepTime);
                 } catch (InterruptedException ex) {
@@ -225,12 +210,11 @@ public class TheBrig {
     public synchronized void sendToJail(String clientIdentifier, long sentenceDuration) {
         logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " +sentenceDuration + " milliseconds");
         clientKeys.put(clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-        var existingInmates = inmates.stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
+        var existingInmates = ddps.stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
         mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug" );
         if (existingInmates == 0) {
-            Inmate newInmate = new Inmate(newInmateIndex.getAndIncrement(), clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-            inmates.add(newInmate);
-            if (isUsingDiskPersistence) ddps.persistToDisk(newInmate);
+            Inmate newInmate = new Inmate(0L, clientIdentifier, System.currentTimeMillis() + sentenceDuration);
+            ddps.persistToDisk(newInmate);
         }
 
     }

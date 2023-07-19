@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -45,6 +46,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
     private final ActionQueue actionQueue;
     private final ILogger logger;
     private final List<T> data;
+    private boolean hasLoadedData;
 
     /**
      * Constructs a disk-persistence class well-suited for your data.
@@ -54,6 +56,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      *                     might expect to receive "db/foo" here.
      */
     public AlternateDatabaseDiskPersistenceSimpler(Path dbDirectory, Context context, T instance) {
+        this.hasLoadedData = false;
         this.data = new ArrayList<>();
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
         this.logger = context.getLogger();
@@ -105,6 +108,9 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      * @param newData the data we are writing
      */
     public void persistToDisk(T newData) {
+        // load data if needed
+        if (!hasLoadedData) loadData();
+
         // deal with the in-memory portion
         newData.setIndex(index.getAndIncrement());
         data.add(newData);
@@ -125,9 +131,15 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      * equivalently, if this list changed as a result of the call).
      */
     public boolean deleteOnDisk(T dataToDelete) {
+        // load data if needed
+        if (!hasLoadedData) loadData();
+
         // deal with the in-memory portion
         boolean result = data.remove(dataToDelete.getIndex());
 
+        if (data.isEmpty()) {
+            index.set(1);
+        }
         // now handle the disk portion
         final String fullPath = makeFullPathFromData(dataToDelete);
         actionQueue.enqueue("delete data from disk", () -> {
@@ -142,11 +154,27 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
 
 
     /**
-     * @return the element previously at the specified position
+     * updates an element by replacing the element having the same id
+     * if the data to update is not found, throw an exception
      */
-    public T updateOnDisk(T dataUpdate) {
+    public void updateOnDisk(T dataUpdate) {
+        // load data if needed
+        if (!hasLoadedData) loadData();
+
         // deal with the in-memory portion
-        T result = data.set((int) dataUpdate.getIndex(), dataUpdate);
+        int indexFound = -1;
+        for (int i = 0; i < data.size(); i++) {
+            if (data.get(i).getIndex() == dataUpdate.getIndex()) {
+                indexFound = i;
+                break;
+            }
+        }
+
+        if (indexFound == -1) {
+            throw new RuntimeException("no data was found with id of " + dataUpdate.getIndex());
+        } else {
+            data.set(indexFound, dataUpdate);
+        }
 
         // now handle the disk portion
         final String fullPath = makeFullPathFromData(dataUpdate);
@@ -157,7 +185,6 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
             mustBeTrue(file.exists(), "we were asked to update "+file+" but it doesn't exist");
             writeString(fullPath, dataUpdate.serialize());
         });
-        return result;
     }
 
     /**
@@ -171,7 +198,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    public List<T> loadDataFromDisk() {
+    List<T> loadDataFromDisk() {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return new ArrayList<>();
@@ -188,7 +215,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
         return data;
     }
 
-    private T readAndDeserialize(Path p) throws IOException {
+    T readAndDeserialize(Path p) throws IOException {
         String fileContents;
         fileContents = Files.readString(p);
         if (fileContents.isBlank()) {
@@ -209,11 +236,15 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
     }
 
     public Stream<T> stream() {
-        if (data.isEmpty()) {
-            data.addAll(loadDataFromDisk());
-        }
+        // load data if needed
+        if (!hasLoadedData) loadData();
 
         return data.stream();
+    }
+
+    private void loadData() {
+        data.addAll(loadDataFromDisk());
+        hasLoadedData = true;
     }
 
 }

@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static minum.database.DatabaseDiskPersistenceSimpler.calculateNextIndex;
 import static minum.web.StatusLine.StatusCode.*;
 
 

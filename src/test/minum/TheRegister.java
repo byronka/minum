@@ -75,13 +75,13 @@ public class TheRegister {
     }
 
     private UploadPhoto setupUploadPhotos(AuthUtils auth) {
-        var photoDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "photos"), context, Photograph.EMPTY);
+        var photoDdps = webFramework.getDdps("photos", Photograph.EMPTY);
         return new UploadPhoto(photoDdps, auth, context);
     }
 
     private AuthUtils buildAuthDomain() {
-        var sessionDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "sessions"), context, SessionId.EMPTY);
-        var userDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "users"), context, User.EMPTY);
+        var sessionDdps = webFramework.getDdps("sessions", SessionId.EMPTY);
+        var userDdps = webFramework.getDdps("users", User.EMPTY);
         var au = new AuthUtils(sessionDdps, userDdps, context);
         new LoopingSessionReviewing(context, au).initialize();
         return au;
