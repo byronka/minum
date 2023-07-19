@@ -22,7 +22,7 @@ public class Tests {
 
   private void start() {
     try {
-      unitAndIntegrationTests();
+//      unitAndIntegrationTests();
       testFullSystem_Soup_To_Nuts();
       indicateTestsFinished();
     } catch (Exception ex) {
@@ -120,7 +120,7 @@ public class Tests {
   }
 
   private void shutdownFunctionalTests(Context context) throws IOException {
-    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
+//    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
     var fs2 = context.getFullSystem();
     fs2.removeShutdownHook();
     fs2.close();

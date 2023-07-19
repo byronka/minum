@@ -4,6 +4,7 @@ import minum.auth.AuthUtils;
 import minum.auth.LoopingSessionReviewing;
 import minum.auth.SessionId;
 import minum.auth.User;
+import minum.database.AlternateDatabaseDiskPersistenceSimpler;
 import minum.database.DatabaseDiskPersistenceSimpler;
 import minum.sampledomain.ListPhotos;
 import minum.sampledomain.PersonName;
@@ -13,6 +14,8 @@ import minum.sampledomain.photo.Photograph;
 import minum.web.Response;
 import minum.web.StartLine;
 import minum.web.WebFramework;
+
+import java.nio.file.Path;
 
 /**
  * This class is where all code gets registered to work
@@ -79,7 +82,7 @@ public class TheRegister {
 
     private AuthUtils buildAuthDomain() {
         DatabaseDiskPersistenceSimpler<SessionId> sessionDdps = webFramework.getDdps("sessions");
-        DatabaseDiskPersistenceSimpler<User> userDdps = webFramework.getDdps("users");
+        AlternateDatabaseDiskPersistenceSimpler<User> userDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "users"), context);
         var au = new AuthUtils(sessionDdps, userDdps, context);
         new LoopingSessionReviewing(context, au).initialize();
         return au;

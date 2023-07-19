@@ -1,13 +1,13 @@
 package minum.auth;
 
-import minum.database.SimpleDataTypeImpl;
+import minum.database.AlternateSimpleDataTypeImpl;
 
 /**
  * A data structure representing authentication information for a user.
  */
-public class User extends SimpleDataTypeImpl<User> {
+public class User extends AlternateSimpleDataTypeImpl<User> {
 
-    private final long id;
+    private long id;
     private final String username;
     private final String hashedPassword;
     private final String salt;
@@ -35,6 +35,11 @@ public class User extends SimpleDataTypeImpl<User> {
     @Override
     public long getIndex() {
         return id;
+    }
+
+    @Override
+    public void setIndex(long index) {
+        this.id = index;
     }
 
     public Long getId() {

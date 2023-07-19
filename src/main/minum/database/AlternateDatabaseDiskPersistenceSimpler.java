@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import static minum.utils.FileUtils.writeString;
@@ -24,7 +25,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * on any data that extends from {@link ISimpleDataType}
  * @param <T> the type of data we'll be persisting
  */
-public class AlternateDatabaseDiskPersistenceSimpler<T> {
+public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDataTypeImpl<?>> {
 
     /**
      * The suffix we will apply to each database file
@@ -40,10 +41,12 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
      */
     private final String fullPathForIndexFile;
 
+    final AtomicLong index;
+
     private final Path dbDirectory;
     private final ActionQueue actionQueue;
     private final ILogger logger;
-    private final List<ISimpleDataType<T>> data;
+    private final List<T> data;
 
     /**
      * Constructs a disk-persistence class well-suited for your data.
@@ -58,6 +61,13 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
         this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
         this.fullPathForIndexFile = dbDirectory + "/index" + databaseFileSuffix;
+
+        if (Files.exists(Path.of(fullPathForIndexFile))) {
+            this.index = new AtomicLong(Long.parseLong(FileUtils.readFile(fullPathForIndexFile)));
+        } else {
+            this.index = new AtomicLong(1);
+        }
+
         actionQueue.enqueue("create directory" + dbDirectory, () -> {
             try {
                 FileUtils.makeDirectory(logger, dbDirectory);
@@ -95,16 +105,16 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
      *
      * @param newData the data we are writing
      */
-    public void persistToDisk(ISimpleDataType<T> newData) {
+    public void persistToDisk(T newData) {
         // deal with the in-memory portion
-        data.add((int) newData.getIndex(), newData);
+        newData.setIndex(index.getAndIncrement());
+        data.add(newData);
 
         // now handle the disk portion
         final String fullPath = makeFullPathFromData(newData);
-        final String indexPath = makeFullPathForIndexFile(newData);
         actionQueue.enqueue("persist data to disk", () -> {
             writeString(fullPath, newData.serialize());
-            writeString(indexPath, String.valueOf(newData.getIndex()));
+            writeString(fullPathForIndexFile, String.valueOf(newData.getIndex()));
         });
     }
 
@@ -115,7 +125,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
      * @return true if this list contained the specified element (or
      * equivalently, if this list changed as a result of the call).
      */
-    public boolean deleteOnDisk(ISimpleDataType<T> dataToDelete) {
+    public boolean deleteOnDisk(T dataToDelete) {
         // deal with the in-memory portion
         boolean result = data.remove(dataToDelete.getIndex());
 
@@ -135,9 +145,9 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
     /**
      * @return the element previously at the specified position
      */
-    public ISimpleDataType<T> updateOnDisk(ISimpleDataType<T> dataUpdate) {
+    public T updateOnDisk(T dataUpdate) {
         // deal with the in-memory portion
-        ISimpleDataType<T> result = data.set((int) dataUpdate.getIndex(), dataUpdate);
+        T result = data.set((int) dataUpdate.getIndex(), dataUpdate);
 
         // now handle the disk portion
         final String fullPath = makeFullPathFromData(dataUpdate);
@@ -154,7 +164,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
     /**
      * The full path to the files of this data
      */
-    private String makeFullPathFromData(ISimpleDataType<T> data) {
+    private String makeFullPathFromData(T data) {
         return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
     }
 
@@ -162,7 +172,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    public List<T> readAndDeserialize(ISimpleDataType<T> instance) {
+    public List<T> readAndDeserialize(T emptyInstance) {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return new ArrayList<>();
@@ -171,7 +181,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
         try (final var pathStream = Files.walk(dbDirectory)) {
             final var listOfFiles = pathStream.filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
             for (Path p : listOfFiles) {
-                extracted(instance, p);
+                extracted(emptyInstance, p);
             }
         } catch (IOException e) { // if we fail to walk() the dbDirectory.  I don't even know how to test this.
             throw new RuntimeException(e);
@@ -179,14 +189,15 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
         return data;
     }
 
-    private T extracted(ISimpleDataType<T> instance, Path p) throws IOException {
+    @SuppressWarnings("unchecked")
+    private T extracted(T instance, Path p) throws IOException {
         String fileContents;
         fileContents = Files.readString(p);
         if (fileContents.isBlank()) {
             logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
         } else {
             try {
-                return instance.deserialize(fileContents);
+                return (T) instance.deserialize(fileContents);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
             }
@@ -194,36 +205,8 @@ public class AlternateDatabaseDiskPersistenceSimpler<T> {
         return null;
     }
 
-    /**
-     * Calculate what the next index should be for the data.
-     * <p>
-     * The data we use in our application uses indexes (that is, just
-     * a plain old number [of Long type]) to distinguish one from
-     * another.  When we start the system, we need to calculate what
-     * the next index will be (for example, on disk we might already
-     * have data with indexes of 1, 2, and 3 - and therefore the next
-     * index would be 4).
-     * </p>
-     * <p>
-     * If there is no data in the collection, just return the number 1.
-     * </p>
-     */
-    public static long calculateNextIndex(Collection<? extends SimpleIndexed> data) {
-        return data
-                .stream()
-                .max(Comparator.comparingLong(SimpleIndexed::getIndex))
-                .map(SimpleIndexed::getIndex)
-                .orElse(0L) + 1L;
-    }
-
     public Stream<T> stream() {
-        return data.stream().map(x -> (T)x);
+        return data.stream();
     }
 
-    /**
-     * @return the latest index used for this data.
-     */
-    public long getLatestIndex() {
-        return Long.parseLong(FileUtils.readFile(fullPathForIndexFile));
-    }
 }
