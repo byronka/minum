@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -31,7 +29,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      * The suffix we will apply to each database file
      */
     static final String databaseFileSuffix = ".ddps";
-
+    private final T emptyInstance;
 
     /**
      * The full path to the file that contains the most-recent index
@@ -55,12 +53,13 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      *                     "db", and we're building this for a domain "foo", we
      *                     might expect to receive "db/foo" here.
      */
-    public AlternateDatabaseDiskPersistenceSimpler(Path dbDirectory, Context context) {
+    public AlternateDatabaseDiskPersistenceSimpler(Path dbDirectory, Context context, T instance) {
         this.data = new ArrayList<>();
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
         this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
         this.fullPathForIndexFile = dbDirectory + "/index" + databaseFileSuffix;
+        this.emptyInstance = instance;
 
         if (Files.exists(Path.of(fullPathForIndexFile))) {
             this.index = new AtomicLong(Long.parseLong(FileUtils.readFile(fullPathForIndexFile)));
@@ -172,7 +171,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    public List<T> readAndDeserialize(T emptyInstance) {
+    public List<T> loadDataFromDisk() {
         if (! Files.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
             return new ArrayList<>();
@@ -181,7 +180,7 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
         try (final var pathStream = Files.walk(dbDirectory)) {
             final var listOfFiles = pathStream.filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
             for (Path p : listOfFiles) {
-                extracted(emptyInstance, p);
+                readAndDeserialize(p);
             }
         } catch (IOException e) { // if we fail to walk() the dbDirectory.  I don't even know how to test this.
             throw new RuntimeException(e);
@@ -189,15 +188,14 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
         return data;
     }
 
-    @SuppressWarnings("unchecked")
-    private T extracted(T instance, Path p) throws IOException {
+    private T readAndDeserialize(Path p) throws IOException {
         String fileContents;
         fileContents = Files.readString(p);
         if (fileContents.isBlank()) {
             logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
         } else {
             try {
-                return (T) instance.deserialize(fileContents);
+                return deserialize(fileContents);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
             }
@@ -205,7 +203,16 @@ public class AlternateDatabaseDiskPersistenceSimpler<T extends AlternateSimpleDa
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    private T deserialize(String fileContents) {
+        return (T) emptyInstance.deserialize(fileContents);
+    }
+
     public Stream<T> stream() {
+        if (data.isEmpty()) {
+            data.addAll(loadDataFromDisk());
+        }
+
         return data.stream();
     }
 
