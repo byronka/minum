@@ -63,8 +63,18 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         this.fullPathForIndexFile = dbDirectory + "/index" + databaseFileSuffix;
         this.emptyInstance = instance;
 
-        if (Files.exists(Path.of(fullPathForIndexFile))) {
-            this.index = new AtomicLong(Long.parseLong(FileUtils.readFile(fullPathForIndexFile)));
+        Path indexPath = Path.of(fullPathForIndexFile);
+        if (Files.exists(indexPath)) {
+            long indexValue;
+            try {
+                indexValue = Long.parseLong(Files.readString(indexPath));
+            } catch (IOException e) {
+                logger.logDebug(() -> "Exception while reading file in DatabaseDiskPersistenceSimpler constructor: " + e);
+                indexValue = 1;
+            }
+
+            this.index = new AtomicLong(indexValue);
+
         } else {
             this.index = new AtomicLong(1);
         }
