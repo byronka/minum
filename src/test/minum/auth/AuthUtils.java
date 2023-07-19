@@ -35,29 +35,24 @@ import static minum.web.StatusLine.StatusCode.*;
  */
 public class AuthUtils {
 
-    private final List<SessionId> sessionIds;
     private final ILogger logger;
     private final AlternateDatabaseDiskPersistenceSimpler<User> userDiskData;
-    private final DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
-    final AtomicLong newSessionIdentifierIndex;
+    private final AlternateDatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
 
     private final String loginPageTemplate;
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
 
-    public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
+    public AuthUtils(AlternateDatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
                      AlternateDatabaseDiskPersistenceSimpler<User> userDiskData,
                      Context context) {
         this.constants = context.getConstants();
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;
         emptySessionId = SessionId.EMPTY;
-        sessionIds = sessionDiskData.readAndDeserialize(emptySessionId);
         this.logger = context.getLogger();
 
-
-        newSessionIdentifierIndex = new AtomicLong(calculateNextIndex(sessionIds));
         loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
         registerPageTemplate = FileUtils.readTemplate("auth/register_page_template.html");
     }
@@ -114,7 +109,7 @@ public class AuthUtils {
         }
 
         // Did we find that session identifier in the database?
-        final SessionId sessionFoundInDatabase = sessionIds.stream()
+        final SessionId sessionFoundInDatabase = sessionDiskData.stream()
                 .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
                 .findFirst()
                 .orElse(emptySessionId);
@@ -139,11 +134,10 @@ public class AuthUtils {
     }
 
     public List<SessionId> getSessions() {
-        return sessionIds.stream().toList();
+        return sessionDiskData.stream().toList();
     }
 
     public void deleteSession(SessionId s) {
-        sessionIds.remove(s);
         sessionDiskData.deleteOnDisk(s);
     }
 
@@ -153,10 +147,9 @@ public class AuthUtils {
      * A temporary method used during construction, to add a session to the database.
      */
     public NewSessionResult registerNewSession(User user) {
-        final var newSession = SessionId.createNewSession(newSessionIdentifierIndex.getAndAdd(1));
+        final var newSession = SessionId.createNewSession(0);
 
         // add a new session to memory and the disk
-        sessionIds.add(newSession);
         sessionDiskData.persistToDisk(newSession);
 
         // remove the old user details
@@ -218,10 +211,9 @@ public class AuthUtils {
      * the user to have a null session value.
      */
     public User logoutUser(User user) {
-        final List<SessionId> userSession = sessionIds.stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
+        final List<SessionId> userSession = sessionDiskData.stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
 
-        sessionIds.remove(userSession.get(0));
         sessionDiskData.deleteOnDisk(userSession.get(0));
 
         userDiskData.deleteOnDisk(user);

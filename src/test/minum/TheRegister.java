@@ -81,7 +81,7 @@ public class TheRegister {
     }
 
     private AuthUtils buildAuthDomain() {
-        DatabaseDiskPersistenceSimpler<SessionId> sessionDdps = webFramework.getDdps("sessions");
+        AlternateDatabaseDiskPersistenceSimpler<SessionId> sessionDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "sessions"), context, SessionId.EMPTY);
         AlternateDatabaseDiskPersistenceSimpler<User> userDdps = new AlternateDatabaseDiskPersistenceSimpler<>(Path.of(context.getConstants().DB_DIRECTORY, "users"), context, User.EMPTY);
         var au = new AuthUtils(sessionDdps, userDdps, context);
         new LoopingSessionReviewing(context, au).initialize();
