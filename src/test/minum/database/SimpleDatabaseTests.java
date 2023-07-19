@@ -158,7 +158,7 @@ public class SimpleDatabaseTests {
             ddps.loadDataFromDisk();
             MyThread.sleep(10);
             String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing").replace('\\', '/');
-            assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, creating empty list of data");
+            assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, adding nothing to the data list");
             ddps.stop();
         }
 

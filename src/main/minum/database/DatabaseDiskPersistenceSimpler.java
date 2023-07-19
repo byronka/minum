@@ -134,7 +134,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         if (!hasLoadedData) loadData();
 
         // deal with the in-memory portion
-        boolean result = data.remove(dataToDelete.getIndex());
+        data.remove(dataToDelete.getIndex());
 
         if (data.isEmpty()) {
             index.set(1);
@@ -196,10 +196,10 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    List<T> loadDataFromDisk() {
+    void loadDataFromDisk() {
         if (! Files.exists(dbDirectory)) {
-            logger.logDebug(() -> dbDirectory + " directory missing, creating empty list of data");
-            return new ArrayList<>();
+            logger.logDebug(() -> dbDirectory + " directory missing, adding nothing to the data list");
+            return;
         }
 
         try (final var pathStream = Files.walk(dbDirectory)) {
@@ -210,7 +210,6 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         } catch (IOException e) { // if we fail to walk() the dbDirectory.  I don't even know how to test this.
             throw new RuntimeException(e);
         }
-        return data;
     }
 
     void readAndDeserialize(Path p) throws IOException {
@@ -220,7 +219,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
             logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
         } else {
             try {
-                deserialize(fileContents);
+                data.add(deserialize(fileContents));
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
             }
@@ -240,7 +239,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
     }
 
     private void loadData() {
-        data.addAll(loadDataFromDisk());
+        loadDataFromDisk();
         hasLoadedData = true;
     }
 
