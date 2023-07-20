@@ -47,6 +47,7 @@ Features:
 - Authentication
 - HTML parsing
 - Action queueing
+- Job scheduling
 
 Quick start:
 ------------
