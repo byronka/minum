@@ -127,19 +127,6 @@ public class StaticFilesCache {
     }
 
     /**
-     * This crappy little method exists to get a consistent route to a
-     * static file, regardless of if we are running in a Zipfile, on a
-     * Windows machine, on Unix, etc.
-     */
-    private static String getRoute(String path) {
-        // I imagine this function will be an endless source of mirth
-        String path2 = Path.of(path).toUri().getPath();
-        String path1 = path2 == null ? path.toString() : path2;
-        int indexToStartSubstring = path1.indexOf("static/") + "static/".length();
-        return path1.substring(indexToStartSubstring);
-    }
-
-    /**
      * All static responses will get a cache time of 60 seconds
      */
     private Response createOkResponseForStaticFiles(byte[] fileContents, String contentTypeHeader) {
