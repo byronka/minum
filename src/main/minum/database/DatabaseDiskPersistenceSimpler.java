@@ -129,6 +129,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         // now handle the disk portion
         final Path fullPath = makeFullPathFromData(newData);
         actionQueue.enqueue("persist data to disk", () -> {
+            mustBeTrue(! fullPath.toFile().exists(), fullPath + " must not already exist before persisting");
             writeString(fullPath, newData.serialize());
             writeString(fullPathForIndexFile, String.valueOf(newData.getIndex()));
         });
@@ -167,9 +168,10 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         final Path fullPath = makeFullPathFromData(dataToDelete);
         actionQueue.enqueue("delete data from disk", () -> {
             try {
+                mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist before deletion");
                 Files.delete(fullPath);
             } catch (Exception ex) {
-                logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk");
+                logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk. Exception: " + ex);
             }
         });
     }
@@ -203,7 +205,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
 
         actionQueue.enqueue("update data on disk", () -> {
             // if the file isn't already there, throw an exception
-            mustBeTrue(fullPath.toFile().exists(), "we were asked to update "+fullPath+" but it doesn't exist");
+            mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist during updates");
             writeString(fullPath, dataUpdate.serialize());
         });
     }
