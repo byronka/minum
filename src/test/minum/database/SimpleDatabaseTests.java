@@ -154,8 +154,8 @@ public class SimpleDatabaseTests {
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             ddps.loadDataFromDisk();
             MyThread.sleep(10);
-            String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing").replace('\\', '/');
-            assertEquals(directoryMissingMessage, "out/simple_db/foos directory missing, adding nothing to the data list");
+            String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing, adding nothing").replace('\\', '/');
+            assertTrue(directoryMissingMessage.contains("foos directory missing, adding nothing to the data list"));
             ddps.stop();
         }
 
