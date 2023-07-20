@@ -68,8 +68,11 @@ public class StaticFilesCache {
             byte[] fileContents = null;
             if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> file.contains(x) )) {
                 URL resource = StaticFilesCache.class.getClassLoader().getResource(fullFileLocation);
-                logger.logDebug(() -> "Did not find " + file + " in our resources, returning null Response");
-                if (resource == null) return null;
+
+                if (resource == null) {
+                    logger.logDebug(() -> "Did not find " + file + " in our resources, returning null Response");
+                    return null;
+                }
 
                 URI uri = URI.create("");
                 try {
