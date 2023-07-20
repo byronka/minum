@@ -48,7 +48,7 @@ public class TestLogger extends Logger {
                 </testsuites>
                 """;
         Files.createDirectories(Path.of("out/reports/tests"));
-        FileUtils.writeString("out/reports/tests/tests.xml", innerXmlReport);
+        FileUtils.writeString(Path.of("out/reports/tests/tests.xml"), innerXmlReport);
     }
 
     public void testSuite(String className) {

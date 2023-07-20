@@ -99,7 +99,7 @@ public class StaticFilesCacheTests {
         }
 
         logger.test("If the static cache is given something that it can't handle, it throws an exception"); {
-            var ex = assertThrows(RuntimeException.class, () -> staticFilesCache.createStaticFileResponse(Path.of("Foo"), new byte[0]));
+            var ex = assertThrows(RuntimeException.class, () -> staticFilesCache.createStaticFileResponse("Foo", new byte[0]));
             assertEquals(ex.getMessage(), "StaticFilesCache cannot handle this file: Foo");
         }
     }

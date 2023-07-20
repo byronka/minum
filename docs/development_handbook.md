@@ -545,6 +545,8 @@ What if testing drove the design?
 
 If we understand that our software is a reflection of our culture, should we not focus on improving that first?
 
+See the [parable of two programmers](parable_two_programmers.md)
+
 >A complex system that works is invariably found to have evolved from a simple system
 >that worked. The inverse proposition also appears to be true: A complex system designed
 >from scratch never works and cannot be made to work. You have to start over,

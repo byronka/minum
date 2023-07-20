@@ -171,7 +171,7 @@ clean::
 	 rm -fr $(OUT_DIR)
 
 #: Build a jar of the project for use as a library
-jar:: test copysources
+jar:: test
 	 rm -fr $(OUT_DIR_MAIN)/static/* $(OUT_DIR_MAIN)/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))

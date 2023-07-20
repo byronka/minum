@@ -122,11 +122,8 @@ public class SimpleDatabaseTests {
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
             final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
 
-            // if we try deleting something that doesn't exist, we get an error shown in the log
-            ddps_throwaway.deleteOnDisk(new Foo(123, 123, ""));
-            MyThread.sleep(10);
-            String failureMessage = logger.findFirstMessageThatContains("failed to").replace('\\', '/');
-            assertEquals(failureMessage, "failed to delete file out/simple_db/foos/123.ddps during deleteOnDisk");
+            var ex = assertThrows(RuntimeException.class, () -> ddps_throwaway.deleteOnDisk(new Foo(123, 123, "")));
+            assertEquals(ex.getMessage(), "no data was found with id of 123");
 
             ddps_throwaway.stop();
         }

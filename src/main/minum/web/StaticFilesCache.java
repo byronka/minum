@@ -3,8 +3,10 @@ package minum.web;
 import minum.logging.ILogger;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,22 +64,43 @@ public class StaticFilesCache {
         if (badFilePathPatterns.matcher(file).find()) return null;
 
         try {
-            Path path = Path.of(STATIC_FILES_DIRECTORY).resolve(file);
+            String fullFileLocation = STATIC_FILES_DIRECTORY + file;
             byte[] fileContents = null;
-            if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> path.getFileName().toString().contains(x) )) {
-                URL resource = StaticFilesCache.class.getClassLoader().getResource(path.toString());
-                fileContents = Files.readAllBytes(Paths.get(resource.toURI()));
+            if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> file.contains(x) )) {
+                URL resource = StaticFilesCache.class.getClassLoader().getResource(fullFileLocation);
+                if (resource == null) return null;
+
+                URI uri = URI.create("");
+                try {
+                    uri = resource.toURI();
+                } catch (URISyntaxException ex) {
+                    logger.logDebug(() -> "Exception thrown when converting URI to URL for "+resource+": "+ex);
+                }
+
+                if (uri.getScheme().equals("jar")) {
+                /*
+                This part is necessary because it's the only way we can set up to loop
+                through paths (files) later.  That is to say, when we getResource(path), it works fine,
+                but if we want to get a list of all the files in a directory inside our jar file,
+                we have to do it this way.
+                 */
+                    try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                        final var myPath = fileSystem.getPath(fullFileLocation);
+                        fileContents = Files.readAllBytes(myPath);
+                    }
+                } else {
+                    final var myPath = Paths.get(uri);
+                    fileContents = Files.readAllBytes(myPath);
+                }
             }
             if (fileContents == null) return null;
 
-            Response result = createStaticFileResponse(path, fileContents);
+            Response result = createStaticFileResponse(file, fileContents);
 
-            String route = getRoute(path);
-
-            logger.logTrace(() -> "Storing in cache - filename: " + route);
-            staticResponses.put(route, result);
+            logger.logTrace(() -> "Storing in cache - filename: " + file);
+            staticResponses.put(file, result);
             return result;
-        } catch (IOException | URISyntaxException ex) {
+        } catch (IOException ex) {
             logger.logAsyncError(() -> "at getStaticResponse.  Returning null.  Error: " + ex.getMessage());
             return null;
         }
@@ -87,7 +110,7 @@ public class StaticFilesCache {
      * Given a file type (really, just a file suffix) and its contents, create
      * an appropritate {@link Response} object to be stored in the cache.
      */
-    Response createStaticFileResponse(Path path, byte[] fileContents) {
+    Response createStaticFileResponse(String path, byte[] fileContents) {
         Response result;
         if (path.toString().endsWith(".css")) {
             result = createOkResponseForStaticFiles(fileContents,"Content-Type: text/css");
@@ -108,9 +131,9 @@ public class StaticFilesCache {
      * static file, regardless of if we are running in a Zipfile, on a
      * Windows machine, on Unix, etc.
      */
-    private static String getRoute(Path path) {
+    private static String getRoute(String path) {
         // I imagine this function will be an endless source of mirth
-        String path2 = path.toUri().getPath();
+        String path2 = Path.of(path).toUri().getPath();
         String path1 = path2 == null ? path.toString() : path2;
         int indexToStartSubstring = path1.indexOf("static/") + "static/".length();
         return path1.substring(indexToStartSubstring);

@@ -27,9 +27,9 @@ public class FileUtils {
     /**
      * Write a string to a path on disk.
      */
-    public static void writeString(String path, String content) {
+    public static void writeString(Path path, String content) {
         try {
-            Files.writeString(Path.of(path), content);
+            Files.writeString(path, content);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

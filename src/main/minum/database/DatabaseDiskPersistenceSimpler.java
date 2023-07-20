@@ -6,7 +6,9 @@ import minum.utils.ActionQueue;
 import minum.utils.FileUtils;
 import minum.utils.StacktraceUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +39,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
      * value.  When we start the program, we use this to determine
      * where to start counting for new indexes.
      */
-    private final String fullPathForIndexFile;
+    private final Path fullPathForIndexFile;
 
     final AtomicLong index;
 
@@ -60,14 +62,14 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
         this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
-        this.fullPathForIndexFile = dbDirectory + "/index" + databaseFileSuffix;
+        this.fullPathForIndexFile = dbDirectory.resolve("index" + databaseFileSuffix);
         this.emptyInstance = instance;
 
-        Path indexPath = Path.of(fullPathForIndexFile);
-        if (Files.exists(indexPath)) {
+        if (Files.exists(fullPathForIndexFile)) {
             long indexValue;
-            try {
-                indexValue = Long.parseLong(Files.readString(indexPath));
+            try (var fileReader = new FileReader(fullPathForIndexFile.toFile())) {
+                String trim = new BufferedReader(fileReader).readLine().trim();
+                indexValue = Long.parseLong(trim);
             } catch (IOException e) {
                 logger.logDebug(() -> "Exception while reading file in DatabaseDiskPersistenceSimpler constructor: " + e);
                 indexValue = 1;
@@ -125,7 +127,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         data.add(newData);
 
         // now handle the disk portion
-        final String fullPath = makeFullPathFromData(newData);
+        final Path fullPath = makeFullPathFromData(newData);
         actionQueue.enqueue("persist data to disk", () -> {
             writeString(fullPath, newData.serialize());
             writeString(fullPathForIndexFile, String.valueOf(newData.getIndex()));
@@ -144,16 +146,28 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         if (!hasLoadedData) loadData();
 
         // deal with the in-memory portion
-        data.remove(dataToDelete.getIndex());
+        int indexFound = -1;
+        for (int i = 0; i < data.size(); i++) {
+            if (data.get(i).getIndex() == dataToDelete.getIndex()) {
+                indexFound = i;
+                break;
+            }
+        }
+
+        if (indexFound == -1) {
+            throw new RuntimeException("no data was found with id of " + dataToDelete.getIndex());
+        } else {
+            data.remove(indexFound);
+        }
 
         if (data.isEmpty()) {
             index.set(1);
         }
         // now handle the disk portion
-        final String fullPath = makeFullPathFromData(dataToDelete);
+        final Path fullPath = makeFullPathFromData(dataToDelete);
         actionQueue.enqueue("delete data from disk", () -> {
             try {
-                Files.delete(Path.of(fullPath));
+                Files.delete(fullPath);
             } catch (Exception ex) {
                 logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk");
             }
@@ -185,12 +199,11 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         }
 
         // now handle the disk portion
-        final String fullPath = makeFullPathFromData(dataUpdate);
-        final var file = new File(fullPath);
+        final Path fullPath = makeFullPathFromData(dataUpdate);
 
         actionQueue.enqueue("update data on disk", () -> {
             // if the file isn't already there, throw an exception
-            mustBeTrue(file.exists(), "we were asked to update "+file+" but it doesn't exist");
+            mustBeTrue(fullPath.toFile().exists(), "we were asked to update "+fullPath+" but it doesn't exist");
             writeString(fullPath, dataUpdate.serialize());
         });
     }
@@ -198,8 +211,8 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
     /**
      * The full path to the files of this data
      */
-    private String makeFullPathFromData(T data) {
-        return dbDirectory + "/" + data.getIndex() + databaseFileSuffix;
+    private Path makeFullPathFromData(T data) {
+        return dbDirectory.resolve(data.getIndex() + databaseFileSuffix);
     }
 
     /**
@@ -213,7 +226,11 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         }
 
         try (final var pathStream = Files.walk(dbDirectory)) {
-            final var listOfFiles = pathStream.filter(path -> Files.exists(path) && Files.isRegularFile(path)).toList();
+            final var listOfFiles = pathStream.filter(path -> {
+                return Files.exists(path) &&
+                        Files.isRegularFile(path) &&
+                        !path.getFileName().toString().startsWith("index");
+            }).toList();
             for (Path p : listOfFiles) {
                 readAndDeserialize(p);
             }
@@ -248,9 +265,18 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
         return data.stream();
     }
 
-    private void loadData() {
-        loadDataFromDisk();
-        hasLoadedData = true;
+    /**
+     * This is what loads the data from disk the
+     * first time someone needs it.  Because it is
+     * synchronized, only one thread can enter at
+     * a time.  The first one in will load the data,
+     * and the second will encounter a branch which skips loading.
+     */
+    private synchronized void loadData() {
+        if (!hasLoadedData) {
+            loadDataFromDisk();
+            hasLoadedData = true;
+        }
     }
 
 }
