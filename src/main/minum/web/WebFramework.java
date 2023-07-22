@@ -258,7 +258,7 @@ public class WebFramework {
      * or the static cache and returns the appropriate one (If we
      * do not find anything, return null)
      */
-    private Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
+    Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
         String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
         final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), requestedPath));
         if (functionFound == null) {

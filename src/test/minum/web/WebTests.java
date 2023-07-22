@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 
 import static minum.testing.TestFramework.*;
+import static minum.web.StartLine.Verb.GET;
 import static minum.web.StartLine.startLineRegex;
 import static minum.web.StatusLine.StatusCode._200_OK;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
@@ -168,7 +169,7 @@ public class WebTests {
 
         logger.test("starting server with a handler part 2");{
             var wf = new WebFramework(context, default_zdt);
-            wf.registerPath(StartLine.Verb.GET, "add_two_numbers", Summation::addTwoNumbers);
+            wf.registerPath(GET, "add_two_numbers", Summation::addTwoNumbers);
             try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                 try (var client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
@@ -225,7 +226,7 @@ public class WebTests {
 
         logger.test("alernate case - empty path");{
             StartLine sl = StartLine.EMPTY(context).extractStartLine("GET / HTTP/1.1");
-            assertEquals(sl.getVerb(), StartLine.Verb.GET);
+            assertEquals(sl.getVerb(), GET);
             assertEquals(sl.getPathDetails().isolatedPath(), "");
         }
 
@@ -466,6 +467,46 @@ public class WebTests {
             assertEqualsDisregardOrder(myMap.get("foo"), List.of("a","b"));
         }
 
+        /*
+        If we just stayed with path plus query string....  But no, it's boring, I guess, to
+        have consistency and safety, so people decided we should have paths
+        with a pattern like /my/path/{id}.  unnecessary.  stupid.  whatever,
+        it's the world I have to live in.  That said, here we go. It's a bit
+        complicated of a test, so I'll explain as I go.
+         */
+        logger.test("Matching a path in an insane world"); {
+            // The startline causing us heartache
+            String startLineString = "GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX HTTP/1.1";
+
+            // Convert it to a typed value
+            var startLine = StartLine.EMPTY(context).extractStartLine(startLineString);
+
+            // instantiate a web framework to do the processing.  We're TDD'ing some new
+            // code inside this.
+            var webFramework = new WebFramework(context);
+
+            // register a path to handle this pattern.  Wishful-thinking for the win.
+            webFramework.registerPath(GET, ".well-known/acme-challenge", request -> {
+                String path = request.startLine().getPathDetails().isolatedPath();
+                return Response.htmlOk("value was " + path);
+            });
+
+            // our code should properly find a handler for this endpoint
+            var endpoint = webFramework.findEndpointForThisStartline(startLine);
+
+            // now we create a whole request to stuff into this handler. We only
+            // care about the startline.
+            Request request = new Request(
+                    new Headers(List.of(), context),
+                    startLine,
+                    Body.EMPTY(context),
+                    ""
+            );
+
+            // when we run that handler against the request, it works.
+            Response response = endpoint.apply(request);
+            assertEquals(response.body(), ".well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX");
+        }
 
     }
 
