@@ -333,10 +333,10 @@ public class WebFramework {
      * Since this is a generic method, a bit of care is required when
      * calling.  Try to use a pattern like this:
      * <pre>
-     * {@code DatabaseDiskPersistenceSimpler<Photograph> photoDdps = wf.getDdps("photos");}
+     * {@code Db<Photograph> photoDb = wf.getDb("photos");}
      * </pre>
      */
-    public <T extends DbData<?>> Db<T> getDdps(String name, T instance) {
+    public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
         return new Db<>(Path.of(constants.DB_DIRECTORY, name), context, instance);
     }
 }

@@ -75,13 +75,13 @@ public class TheRegister {
     }
 
     private UploadPhoto setupUploadPhotos(AuthUtils auth) {
-        var photoDdps = webFramework.getDdps("photos", Photograph.EMPTY);
+        var photoDdps = webFramework.getDb("photos", Photograph.EMPTY);
         return new UploadPhoto(photoDdps, auth, context);
     }
 
     private AuthUtils buildAuthDomain() {
-        var sessionDdps = webFramework.getDdps("sessions", SessionId.EMPTY);
-        var userDdps = webFramework.getDdps("users", User.EMPTY);
+        var sessionDdps = webFramework.getDb("sessions", SessionId.EMPTY);
+        var userDdps = webFramework.getDb("users", User.EMPTY);
         var au = new AuthUtils(sessionDdps, userDdps, context);
         new LoopingSessionReviewing(context, au).initialize();
         return au;
