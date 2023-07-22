@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static minum.utils.Invariants.mustBeTrue;
@@ -32,7 +33,7 @@ public class TheBrig {
     private final Db<Inmate> ddps;
     private final ILogger logger;
     private final Constants constants;
-
+    private final ReentrantLock lock = new ReentrantLock();
     private Thread myThread;
 
     /**
@@ -205,14 +206,19 @@ public class TheBrig {
      * @param clientIdentifier the client's address plus some feature identifier, like 1.2.3.4_too_freq_downloads
      * @param sentenceDuration length of stay, in milliseconds
      */
-    public synchronized void sendToJail(String clientIdentifier, long sentenceDuration) {
-        logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " +sentenceDuration + " milliseconds");
-        clientKeys.put(clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-        var existingInmates = ddps.stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
-        mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug" );
-        if (existingInmates == 0) {
-            Inmate newInmate = new Inmate(0L, clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-            ddps.write(newInmate);
+    public void sendToJail(String clientIdentifier, long sentenceDuration) {
+        lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
+        try {
+            logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds");
+            clientKeys.put(clientIdentifier, System.currentTimeMillis() + sentenceDuration);
+            var existingInmates = ddps.stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
+            mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug");
+            if (existingInmates == 0) {
+                Inmate newInmate = new Inmate(0L, clientIdentifier, System.currentTimeMillis() + sentenceDuration);
+                ddps.write(newInmate);
+            }
+        } finally {
+            lock.unlock();
         }
 
     }

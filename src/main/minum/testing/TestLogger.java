@@ -24,7 +24,7 @@ public class TestLogger extends Logger {
     private String previousTestName;
     private TestSuite currentTestSuite;
     private Queue<String> recentLogLines;
-    private final int MAX_CACHE_SIZE = 10;
+    private final int MAX_CACHE_SIZE = 20;
 
     /**
      * Writes a Junit-style xml file to out/reports/tests/tests.xml
@@ -120,9 +120,10 @@ public class TestLogger extends Logger {
     /**
      * Provides an ability to search over the recent past log messages,
      * case-insensitively.
+     * @param lines number of lines of log messages to look back through
      */
-    public String findFirstMessageThatContains(String value) {
-        var lineList = recentLogLines.stream().toList();
+    public String findFirstMessageThatContains(String value, int lines) {
+        var lineList = recentLogLines.stream().skip(MAX_CACHE_SIZE-lines).toList();
         var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
         int size = values.size();
         if (size == 0) {
@@ -133,6 +134,10 @@ public class TestLogger extends Logger {
             throw new RuntimeException("multiple values found: " + values);
         }
         throw new RuntimeException("Shouldn't be possible to get here.");
+    }
+
+    public String findFirstMessageThatContains(String value) {
+        return findFirstMessageThatContains(value, 3);
     }
 
     /**

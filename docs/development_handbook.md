@@ -626,19 +626,23 @@ want to write to the same file at the same time.
 
 This could lead to exceptions being thrown or data being corrupted.  Bad stuff, yeah.  To avoid that outcome, we
 have some options - we could mark the function as `synchronized`, which means only one thread can be running it
-at a time.  This might be a good approach a lot of the time, and if you can separate out the code properly, would
-probably we your wisest course of action.  For example:
+at a time.  I'd recommend *against* this, since as of this writing, there is some conflict between virtual threads
+and using the synchronized keyword. Instead, use ReentrantLocks like this:
 
-```Java
-    if (needToWrite) {
-        writeData(myData);
-    }
-    
-    ...
-    
-    public synchronized void writeData(Data data) {
-        // do cool stuff
-    }
+```java
+class X {
+   private final ReentrantLock lock = new ReentrantLock();
+   // ...
+
+   public void m() {
+     lock.lock();  // block until condition holds
+     try {
+       // ... method body
+     } finally {
+       lock.unlock();
+     }
+   }
+ }
 ```
 
 Here, you can see that multiple threads will contend only if they really need to write data.  What will happen is
@@ -646,9 +650,6 @@ one thread will go in and write the data, the others will wait outside for their
 
 There is a performance issue with this - if there are lots of writes happening, you will block lots of threads,
 even if they wouldn't have necessarily written to the same file.
-
-There's also [Lock](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/Lock.html), and you can
-read up on that.  Also, a good option for many cases.
 
 With this context in mind, let's talk about ActionQueue.
 

@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
 import static minum.utils.FileUtils.writeString;
@@ -21,7 +22,7 @@ import static minum.utils.Invariants.mustBeTrue;
 
 /**
  * This allows us to run some disk-persistence operations more consistently
- * on any data that extends from {@link ISimpleDataType}
+ * on any data that extends from {@link DbData}
  * @param <T> the type of data we'll be persisting
  */
 public class Db<T extends DbData<?>> {
@@ -31,6 +32,7 @@ public class Db<T extends DbData<?>> {
      */
     static final String databaseFileSuffix = ".ddps";
     private final T emptyInstance;
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * The full path to the file that contains the most-recent index
@@ -140,8 +142,6 @@ public class Db<T extends DbData<?>> {
      * and delete it from the disk
      *
      * @param dataToDelete the data we are serializing and writing
-     * @return true if this list contained the specified element (or
-     * equivalently, if this list changed as a result of the call).
      */
     public void delete(T dataToDelete) {
         // load data if needed
@@ -270,6 +270,10 @@ public class Db<T extends DbData<?>> {
         return (T) emptyInstance.deserialize(fileContents);
     }
 
+    /**
+     * The primary way to analyze this data.
+     * @return the {@link List#stream()} for the data.
+     */
     public Stream<T> stream() {
         // load data if needed
         if (!hasLoadedData) loadData();
@@ -280,14 +284,19 @@ public class Db<T extends DbData<?>> {
     /**
      * This is what loads the data from disk the
      * first time someone needs it.  Because it is
-     * synchronized, only one thread can enter at
+     * locked, only one thread can enter at
      * a time.  The first one in will load the data,
      * and the second will encounter a branch which skips loading.
      */
-    private synchronized void loadData() {
-        if (!hasLoadedData) {
-            loadDataFromDisk();
-            hasLoadedData = true;
+    private void loadData() {
+        lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
+        try {
+            if (!hasLoadedData) {
+                loadDataFromDisk();
+                hasLoadedData = true;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

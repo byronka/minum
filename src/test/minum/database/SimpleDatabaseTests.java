@@ -56,7 +56,7 @@ public class SimpleDatabaseTests {
             assertEquals(foos, deserializedFoos);
         }
 
-        logger.test("let's fold in some of the capability of AlternateDatabaseDiskPersistenceSimpler");
+        logger.test("let's fold in some of the capability of Db");
         Path foosDirectory = Path.of("out/simple_db/foos");
         {
             deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
@@ -202,10 +202,6 @@ public class SimpleDatabaseTests {
             ddps.stop(10, 20);
             logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
         }
-
-
-
-
     }
 
 

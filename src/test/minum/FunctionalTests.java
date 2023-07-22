@@ -129,7 +129,7 @@ public class FunctionalTests {
             // block the client, don't even return a normal response
             assertEquals(get("version").statusLine().status(), NULL);
             MyThread.sleep(50);
-            String vulnMsg = ((TestLogger)logger).findFirstMessageThatContains("looking for a vulnerability? true");
+            String vulnMsg = ((TestLogger)logger).findFirstMessageThatContains("looking for a vulnerability? true", 6);
             assertTrue(vulnMsg.contains("looking for a vulnerability? true"), "expect to find correct error in this: " + vulnMsg);
 
         }
