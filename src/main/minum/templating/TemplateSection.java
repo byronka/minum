@@ -16,16 +16,15 @@ import static minum.utils.Invariants.mustBeTrue;
 public record TemplateSection(String key, String subString) {
 
     public String render(Map<String, String> myMap) {
+        mustBeTrue(subString != null || key != null, "Either the key or substring must exist");
         if (subString != null) {
             mustBeTrue(key == null, "If this object has a substring, then it must not have a key");
             return subString;
-        } else if (key != null) {
+        } else {
             mustBeTrue(subString == null, "If this object has a key, then it must not have a substring");
             var value = myMap.get(key);
             if (value == null) throw new TemplateRenderException("Missing a value for key {"+key+"}");
             return value;
-        } else {
-            return "";
         }
     }
 
