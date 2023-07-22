@@ -17,10 +17,7 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,6 +50,13 @@ public class WebFramework {
      * The list of paths that our system is registered to handle.
      */
     private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
+
+    /**
+     * These are registrations for paths that partially match, for example,
+     * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
+     * and we want to match
+     */
+    private final Map<VerbPath, Function<Request, Response>> registeredPartialPaths;
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
@@ -259,30 +263,48 @@ public class WebFramework {
      * do not find anything, return null)
      */
     Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
-        String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
-        final var functionFound = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), requestedPath));
-        if (functionFound == null) {
-            logger.logTrace(() -> "Did not find a function to handle a verb of " + sl.getVerb() + " and a path of " + requestedPath);
-            // if nothing was found in the registered dynamic endpoints, look
-            // through the static endpoints
-            final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
+        Function<Request, Response> handler;
 
-            if (staticResponseFound != null) {
-                logger.logTrace(() -> "found a static value to handle "+requestedPath+", returning it");
-                return request -> staticResponseFound;
-            } else {
-                logger.logTrace(() -> "Found neither a function nor a static value in the cache, checking files on disk");
-                // last ditch effort - look on disk.  This response will either
-                // be the file to return, or null if we didn't find anything.
-                Response response = staticFilesCache.loadStaticFile(requestedPath);
-                if (response != null) {
-                    return request -> response;
-                } else {
-                    return null;
-                }
+        // first we check if there's a simple direct match
+        String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
+        handler = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), requestedPath));
+
+        if (handler == null) {
+            // if there's no direct match, let's see if we can match the
+            // registered paths against part of the startline
+            logger.logTrace(() -> "No direct handler found.  looking for a partial match for " + requestedPath);
+            var verbPathFunctionEntry = registeredPartialPaths.entrySet().stream()
+                    .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
+                            x.getKey().verb().equals(sl.getVerb()))
+                    .findFirst().orElse(null);
+            if (verbPathFunctionEntry != null) {
+                handler = verbPathFunctionEntry.getValue();
             }
         }
-        return functionFound;
+
+        if (handler == null) {
+            // if nothing was found in the registered dynamic endpoints, look
+            // through the static cache of responses
+            logger.logTrace(() -> "Did not find a function to handle a verb of " + sl.getVerb() + " and a path of " + requestedPath);
+            final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
+            if (staticResponseFound != null) {
+                logger.logTrace(() -> "found a static value to handle "+requestedPath+", returning it");
+                handler = request -> staticResponseFound;
+            }
+        }
+
+        if (handler == null) {
+            logger.logTrace(() -> "Found neither a function nor a static value in the cache, checking files on disk");
+            // last ditch effort - look on disk.  This response will either
+            // be the file to return, or null if we didn't find anything.
+            Response response = staticFilesCache.loadStaticFile(requestedPath);
+            if (response != null) {
+                handler = request -> response;
+            }
+        }
+
+        // we'll return this, and it could be a null.
+        return handler;
     }
 
     /**
@@ -303,6 +325,7 @@ public class WebFramework {
         this.constants = context.getConstants();
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
+        this.registeredPartialPaths = new HashMap<>();
         this.staticFilesCache = new StaticFilesCache(logger);
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
@@ -324,6 +347,10 @@ public class WebFramework {
         registeredDynamicPaths.put(new VerbPath(verb, pathName), webHandler);
     }
 
+
+    public void registerPartialPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
+        registeredPartialPaths.put(new VerbPath(verb, pathName), webHandler);
+    }
 
     public void registerStaticFiles(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;

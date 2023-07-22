@@ -47,6 +47,9 @@ public class FunctionalTests {
             /* Second time, it gets loaded from cache */
             assertEquals(get("index.html").statusLine().status(), _200_OK);
 
+            /* what if we ask for a file that doesn't exist? */
+            assertEquals(get("DOES_NOT_EXIST.html").statusLine().status(), _404_NOT_FOUND);
+
             /*
             grab the photos page unauthenticated. We should be able
             to view the photos.

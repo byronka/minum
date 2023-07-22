@@ -471,8 +471,7 @@ public class WebTests {
         If we just stayed with path plus query string....  But no, it's boring, I guess, to
         have consistency and safety, so people decided we should have paths
         with a pattern like /my/path/{id}.  unnecessary.  stupid.  whatever,
-        it's the world I have to live in.  That said, here we go. It's a bit
-        complicated of a test, so I'll explain as I go.
+        it's the world I have to live in.  It's a bit complicated of a test, so I'll explain as I go.
          */
         logger.test("Matching a path in an insane world"); {
             // The startline causing us heartache
@@ -486,7 +485,7 @@ public class WebTests {
             var webFramework = new WebFramework(context);
 
             // register a path to handle this pattern.  Wishful-thinking for the win.
-            webFramework.registerPath(GET, ".well-known/acme-challenge", request -> {
+            webFramework.registerPartialPath(GET, ".well-known/acme-challenge", request -> {
                 String path = request.startLine().getPathDetails().isolatedPath();
                 return Response.htmlOk("value was " + path);
             });
@@ -505,7 +504,7 @@ public class WebTests {
 
             // when we run that handler against the request, it works.
             Response response = endpoint.apply(request);
-            assertEquals(response.body(), ".well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX");
+            assertEquals(StringUtils.byteArrayToString(response.body()), "value was .well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX");
         }
 
     }

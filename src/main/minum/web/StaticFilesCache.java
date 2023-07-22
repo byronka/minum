@@ -52,7 +52,7 @@ public class StaticFilesCache {
     /**
      * Given a file path inside the "static" directory,
      * if we find it we read it from disk, add it to the cache,
-     * and return it.  If we don't fine it, we return null.
+     * and return it.  If we don't find it, we return null.
      * <p>
      *     If an IOException is thrown, return null, since the
      *     callers above us know to return 404 or whatever
