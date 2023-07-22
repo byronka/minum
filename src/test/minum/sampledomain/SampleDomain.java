@@ -38,7 +38,7 @@ public class SampleDomain {
             return new Response(_401_UNAUTHORIZED);
         }
         final String names = ddps
-                .stream().sorted(Comparator.comparingLong(PersonName::getIndex))
+                .values().stream().sorted(Comparator.comparingLong(PersonName::getIndex))
                 .map(x -> "<li>" + StringUtils.safeHtml(x.getFullname()) + "</li>\n")
                 .collect(Collectors.joining());
 

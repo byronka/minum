@@ -106,7 +106,7 @@ public class AuthUtils {
         }
 
         // Did we find that session identifier in the database?
-        final SessionId sessionFoundInDatabase = sessionDiskData.stream()
+        final SessionId sessionFoundInDatabase = sessionDiskData.values().stream()
                 .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
                 .findFirst()
                 .orElse(emptySessionId);
@@ -119,7 +119,7 @@ public class AuthUtils {
         }
 
         // find the user
-        final List<User> authenticatedUser = userDiskData.stream().filter(x -> Objects.equals(x.getCurrentSession(), sessionFoundInDatabase.getSessionCode())).toList();
+        final List<User> authenticatedUser = userDiskData.values().stream().filter(x -> Objects.equals(x.getCurrentSession(), sessionFoundInDatabase.getSessionCode())).toList();
 
         mustBeTrue(authenticatedUser.size() == 1, "There must be exactly one user found for a current session. We found: " + authenticatedUser.size());
 
@@ -127,11 +127,11 @@ public class AuthUtils {
     }
 
     public List<User> getUsers() {
-        return this.userDiskData.stream().toList();
+        return this.userDiskData.values().stream().toList();
     }
 
     public List<SessionId> getSessions() {
-        return sessionDiskData.stream().toList();
+        return sessionDiskData.values().stream().toList();
     }
 
     public void deleteSession(SessionId s) {
@@ -160,7 +160,7 @@ public class AuthUtils {
     }
 
     public RegisterResult registerUser(String newUsername, String newPassword) {
-        if (userDiskData.stream().anyMatch(x -> x.getUsername().equals(newUsername))) {
+        if (userDiskData.values().stream().anyMatch(x -> x.getUsername().equals(newUsername))) {
             return new RegisterResult(ALREADY_EXISTING_USER, User.EMPTY);
         }
         final var newSalt = StringUtils.generateSecureRandomString(10);
@@ -185,7 +185,7 @@ public class AuthUtils {
      * This is the real findUser
      */
     private LoginResult findUser(String username, String password) {
-        final var foundUsers = userDiskData.stream().filter(x -> x.getUsername().equals(username)).toList();
+        final var foundUsers = userDiskData.values().stream().filter(x -> x.getUsername().equals(username)).toList();
         return switch (foundUsers.size()) {
             case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
             case 1 -> passwordCheck(foundUsers.get(0), password);
@@ -208,7 +208,7 @@ public class AuthUtils {
      * the user to have a null session value.
      */
     public User logoutUser(User user) {
-        final List<SessionId> userSession = sessionDiskData.stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
+        final List<SessionId> userSession = sessionDiskData.values().stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
 
         sessionDiskData.delete(userSession.get(0));

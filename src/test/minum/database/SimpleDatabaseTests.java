@@ -81,12 +81,12 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(20);
             assertEqualsDisregardOrder(
-                    ddps.stream().map(Foo::toString).toList(),
+                    ddps.values().stream().map(Foo::toString).toList(),
                     foos.stream().map(Foo::toString).toList());
 
             // change those files
             final var updatedFoos = new ArrayList<Foo>();
-            for (var foo : ddps.stream().toList()) {
+            for (var foo : ddps.values().stream().toList()) {
                 final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
                 updatedFoos.add(newFoo);
                 ddps.update(newFoo);
@@ -97,7 +97,7 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(40);
             assertEqualsDisregardOrder(
-                    ddps.stream().map(Foo::toString).toList(),
+                    ddps.values().stream().map(Foo::toString).toList(),
                     updatedFoos.stream().map(Foo::toString).toList());
 
             // delete the files

@@ -11,11 +11,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Stream;
 
 import static minum.utils.FileUtils.writeString;
 import static minum.utils.Invariants.mustBeTrue;
@@ -32,7 +33,12 @@ public class Db<T extends DbData<?>> {
      */
     static final String databaseFileSuffix = ".ddps";
     private final T emptyInstance;
-    private final ReentrantLock lock = new ReentrantLock();
+
+    // some locks we use for certain operations
+    private final ReentrantLock loadDataLock = new ReentrantLock();
+    private final ReentrantLock writeLock = new ReentrantLock();
+    private final ReentrantLock updateLock = new ReentrantLock();
+    private final ReentrantLock deleteLock = new ReentrantLock();
 
     /**
      * The full path to the file that contains the most-recent index
@@ -47,7 +53,7 @@ public class Db<T extends DbData<?>> {
     private final Path dbDirectory;
     private final ActionQueue actionQueue;
     private final ILogger logger;
-    private final List<T> data;
+    private final Map<Long, T> data;
     private boolean hasLoadedData;
 
     /**
@@ -59,7 +65,7 @@ public class Db<T extends DbData<?>> {
      */
     public Db(Path dbDirectory, Context context, T instance) {
         this.hasLoadedData = false;
-        this.data = new ArrayList<>();
+        data = new HashMap<>();
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
         this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
@@ -89,7 +95,6 @@ public class Db<T extends DbData<?>> {
                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
             }
         });
-
     }
 
     /**
@@ -121,20 +126,25 @@ public class Db<T extends DbData<?>> {
      * @param newData the data we are writing
      */
     public void write(T newData) {
-        // load data if needed
-        if (!hasLoadedData) loadData();
+        writeLock.lock();
+        try {
+            // load data if needed
+            if (!hasLoadedData) loadData();
 
-        // deal with the in-memory portion
-        newData.setIndex(index.getAndIncrement());
-        data.add(newData);
+            // deal with the in-memory portion
+            newData.setIndex(index.getAndIncrement());
+            data.put(newData.getIndex(), newData);
 
-        // now handle the disk portion
-        final Path fullPath = makeFullPathFromData(newData);
-        actionQueue.enqueue("persist data to disk", () -> {
-            mustBeTrue(! fullPath.toFile().exists(), fullPath + " must not already exist before persisting");
-            writeString(fullPath, newData.serialize());
-            writeString(fullPathForIndexFile, String.valueOf(newData.getIndex()+1));
-        });
+            // now handle the disk portion
+            final Path fullPath = dbDirectory.resolve(newData.getIndex() + databaseFileSuffix);
+            actionQueue.enqueue("persist data to disk", () -> {
+                mustBeTrue(!fullPath.toFile().exists(), fullPath + " must not already exist before persisting");
+                writeString(fullPath, newData.serialize());
+                writeString(fullPathForIndexFile, String.valueOf(newData.getIndex() + 1));
+            });
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     /**
@@ -144,46 +154,45 @@ public class Db<T extends DbData<?>> {
      * @param dataToDelete the data we are serializing and writing
      */
     public void delete(T dataToDelete) {
-        // load data if needed
-        if (!hasLoadedData) loadData();
+        deleteLock.lock();
+        try {
+            // load data if needed
+            if (!hasLoadedData) loadData();
 
-        // deal with the in-memory portion
-        int indexFound = -1;
-        for (int i = 0; i < data.size(); i++) {
-            if (data.get(i).getIndex() == dataToDelete.getIndex()) {
-                indexFound = i;
-                break;
+            // deal with the in-memory portion
+            long dataIndex = dataToDelete.getIndex();
+            if (!data.containsKey(dataIndex)) {
+                throw new RuntimeException("no data was found with id of " + dataIndex);
             }
-        }
+            data.remove(dataIndex);
 
-        if (indexFound == -1) {
-            throw new RuntimeException("no data was found with id of " + dataToDelete.getIndex());
-        } else {
-            data.remove(indexFound);
-        }
+            // if all the data was just now deleted, we need to
+            // reset the index back to 1
+            boolean hasResetIndex;
+            if (data.isEmpty()) {
+                index.set(1);
+                hasResetIndex = true;
+            } else {
+                hasResetIndex = false;
+            }
 
-        boolean hasResetIndex;
-        if (data.isEmpty()) {
-            index.set(1);
-            hasResetIndex = true;
-        } else {
-            hasResetIndex = false;
-        }
-        // now handle the disk portion
-        final Path fullPath = makeFullPathFromData(dataToDelete);
-        actionQueue.enqueue("delete data from disk", () -> {
-            try {
-                mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist before deletion");
-                Files.delete(fullPath);
-                if (hasResetIndex) {
-                    writeString(fullPathForIndexFile, String.valueOf(1));
+            // now handle the disk portion
+            actionQueue.enqueue("delete data from disk", () -> {
+                final Path fullPath = dbDirectory.resolve(dataIndex + databaseFileSuffix);
+                try {
+                    mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist before deletion");
+                    Files.delete(fullPath);
+                    if (hasResetIndex) {
+                        writeString(fullPathForIndexFile, String.valueOf(1));
+                    }
+                } catch (Exception ex) {
+                    logger.logAsyncError(() -> "failed to delete file " + fullPath + " during deleteOnDisk. Exception: " + ex);
                 }
-            } catch (Exception ex) {
-                logger.logAsyncError(() -> "failed to delete file "+fullPath+" during deleteOnDisk. Exception: " + ex);
-            }
-        });
+            });
+        } finally {
+            deleteLock.unlock();
+        }
     }
-
 
     /**
      * updates an element in the in-memory data structure by
@@ -192,39 +201,28 @@ public class Db<T extends DbData<?>> {
      * update the data on disk with this id.
      */
     public void update(T dataUpdate) {
-        // load data if needed
-        if (!hasLoadedData) loadData();
+        updateLock.lock();
+        try {
+            // load data if needed
+            if (!hasLoadedData) loadData();
 
-        // deal with the in-memory portion
-        int indexFound = -1;
-        for (int i = 0; i < data.size(); i++) {
-            if (data.get(i).getIndex() == dataUpdate.getIndex()) {
-                indexFound = i;
-                break;
+            // deal with the in-memory portion
+            long dataIndex = dataUpdate.getIndex();
+            if (!data.containsKey(dataIndex)) {
+                throw new RuntimeException("no data was found with id of " + dataIndex);
             }
+            data.put(dataIndex, dataUpdate);
+
+            // now handle the disk portion
+            actionQueue.enqueue("update data on disk", () -> {
+                final Path fullPath = dbDirectory.resolve(dataIndex + databaseFileSuffix);
+                // if the file isn't already there, throw an exception
+                mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist during updates");
+                writeString(fullPath, dataUpdate.serialize());
+            });
+        } finally {
+            updateLock.unlock();
         }
-
-        if (indexFound == -1) {
-            throw new RuntimeException("no data was found with id of " + dataUpdate.getIndex());
-        } else {
-            data.set(indexFound, dataUpdate);
-        }
-
-        // now handle the disk portion
-        final Path fullPath = makeFullPathFromData(dataUpdate);
-
-        actionQueue.enqueue("update data on disk", () -> {
-            // if the file isn't already there, throw an exception
-            mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist during updates");
-            writeString(fullPath, dataUpdate.serialize());
-        });
-    }
-
-    /**
-     * The full path to the files of this data
-     */
-    private Path makeFullPathFromData(T data) {
-        return dbDirectory.resolve(data.getIndex() + databaseFileSuffix);
     }
 
     /**
@@ -251,6 +249,10 @@ public class Db<T extends DbData<?>> {
         }
     }
 
+    /**
+     * Carry out the process of reading data files into our in-memory structure
+     * @param p the path of a particular file
+     */
     void readAndDeserialize(Path p) throws IOException {
         String fileContents;
         fileContents = Files.readString(p);
@@ -258,27 +260,25 @@ public class Db<T extends DbData<?>> {
             logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
         } else {
             try {
-                data.add(deserialize(fileContents));
+                @SuppressWarnings("unchecked")
+                T deserializedData = (T) emptyInstance.deserialize(fileContents);
+                data.put(deserializedData.getIndex(), deserializedData);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
             }
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private T deserialize(String fileContents) {
-        return (T) emptyInstance.deserialize(fileContents);
-    }
-
     /**
      * The primary way to analyze this data.
-     * @return the {@link List#stream()} for the data.
+     *
+     * @return a {@link Collection} view of the data
      */
-    public Stream<T> stream() {
+    public Collection<T> values() {
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        return data.stream();
+        return data.values();
     }
 
     /**
@@ -289,14 +289,14 @@ public class Db<T extends DbData<?>> {
      * and the second will encounter a branch which skips loading.
      */
     private void loadData() {
-        lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
+        loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
                 loadDataFromDisk();
                 hasLoadedData = true;
             }
         } finally {
-            lock.unlock();
+            loadDataLock.unlock();
         }
     }
 
