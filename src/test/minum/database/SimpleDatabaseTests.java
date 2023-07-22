@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
 
 import static java.util.stream.IntStream.range;
@@ -185,23 +186,40 @@ public class SimpleDatabaseTests {
             // change the foos
             final var outerTimer = new StopwatchUtils().startTimer();
             final var innerTimer = new StopwatchUtils().startTimer();
+
+            final var newFoos = new ArrayList<Foo>();
             for (var i = 1; i < 10; i++) {
-                final var newFoos = new ArrayList<Foo>();
+                newFoos.clear();
                 /*
                 loop through the old foos and update them to new values,
                 creating a new list in the process.  There should only
                 ever be 10 foos.
                  */
                 for (var foo : foos) {
-                    final var newFoo = new Foo(0, foo.a + 1, foo.b + "_updated");
+                    final var newFoo = new Foo(foo.getIndex(), foo.a + 1, foo.b + "_updated");
                     newFoos.add(newFoo);
-                    ddps.write(newFoo);
+                    ddps.update(newFoo);
                 }
             }
             logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
             ddps.stop(10, 20);
             logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
+
+            logger.test("Instantiating a new database with existing files on disk");
+            final var ddps1 = new Db<Foo>(foosDirectory, context, INSTANCE);
+            Collection<Foo> values = ddps1.values();
+            assertTrue(newFoos.containsAll(values));
+            ddps1.stop(10, 20);
+
+            logger.test("Dealing with a corrupted index file");
+            final var pathToIndex = foosDirectory.resolve("index.ddps");
+            // this file should not be empty, but we are making it empty
+            Files.writeString(pathToIndex,"");
+            var ex = assertThrows(RuntimeException.class, () -> new Db<Foo>(foosDirectory, context, INSTANCE));
+            assertEquals(ex.getMessage(), "Exception while reading out\\simple_db\\foos\\index.ddps in DatabaseDiskPersistenceSimpler constructor");
         }
+
+
     }
 
 

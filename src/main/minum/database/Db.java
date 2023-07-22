@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static minum.utils.FileUtils.writeString;
-import static minum.utils.Invariants.mustBeTrue;
+import static minum.utils.Invariants.*;
 
 /**
  * This allows us to run some disk-persistence operations more consistently
@@ -75,11 +75,13 @@ public class Db<T extends DbData<?>> {
         if (Files.exists(fullPathForIndexFile)) {
             long indexValue;
             try (var fileReader = new FileReader(fullPathForIndexFile.toFile())) {
-                String trim = new BufferedReader(fileReader).readLine().trim();
+                String s = new BufferedReader(fileReader).readLine();
+                mustNotBeNull(s);
+                mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
+                String trim = s.trim();
                 indexValue = Long.parseLong(trim);
-            } catch (IOException e) {
-                logger.logDebug(() -> "Exception while reading file in DatabaseDiskPersistenceSimpler constructor: " + e);
-                indexValue = 1;
+            } catch (Exception e) {
+                throw new RuntimeException("Exception while reading "+fullPathForIndexFile+" in DatabaseDiskPersistenceSimpler constructor", e);
             }
 
             this.index = new AtomicLong(indexValue);
