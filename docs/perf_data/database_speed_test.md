@@ -23,7 +23,7 @@ use cases.
 logger.test("Just how fast is our minum.database?");{
     // clear out the directory to start
     FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-    final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+    final var db = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
     MyThread.sleep(10);
 
     final var foos = new ArrayList<Foo>();
@@ -32,7 +32,7 @@ logger.test("Just how fast is our minum.database?");{
     for (int i = 0; i < 10; i++) {
         final var newFoo = new Foo(i, i + 1, "original");
         foos.add(newFoo);
-        ddps.persistToDisk(newFoo);
+        db.persistToDisk(newFoo);
     }
 
     // change the foos
@@ -48,11 +48,11 @@ logger.test("Just how fast is our minum.database?");{
         for (var foo : foos) {
             final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
             newFoos.add(newFoo);
-            ddps.persistToDisk(newFoo);
+            db.persistToDisk(newFoo);
         }
     }
     logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
-    ddps.stop(10, 20);
+    db.stop(10, 20);
     logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
 }
 ```

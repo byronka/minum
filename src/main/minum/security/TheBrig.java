@@ -30,7 +30,7 @@ import static minum.utils.Invariants.mustBeTrue;
  */
 public class TheBrig {
     private final ExecutorService es;
-    private final Db<Inmate> ddps;
+    private final Db<Inmate> db;
     private final ILogger logger;
     private final Constants constants;
     private final ReentrantLock lock = new ReentrantLock();
@@ -114,8 +114,8 @@ public class TheBrig {
         this.constants = context.getConstants();
         this.logger = context.getLogger();
         Path dbDir = Path.of(constants.DB_DIRECTORY);
-        this.ddps = new Db<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
-        this.clientKeys = this.ddps.values().stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
+        this.db = new Db<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
+        this.clientKeys = this.db.values().stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
         this.sleepTime = sleepTime;
     }
 
@@ -154,11 +154,11 @@ public class TheBrig {
                     }
                     for (var k : keysToRemove) {
                         logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-                        List<Inmate> inmates1 = ddps.values().stream().filter(x -> x.clientId.equals(k)).toList();
+                        List<Inmate> inmates1 = db.values().stream().filter(x -> x.clientId.equals(k)).toList();
                         mustBeTrue(inmates1.size() == 1, "There must be exactly one inmate found or there's a bug");
                         Inmate inmateToRemove = inmates1.get(0);
                         clientKeys.remove(k);
-                        ddps.delete(inmateToRemove);
+                        db.delete(inmateToRemove);
                     }
                     Thread.sleep(sleepTime);
                 } catch (InterruptedException ex) {
@@ -211,11 +211,11 @@ public class TheBrig {
         try {
             logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds");
             clientKeys.put(clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-            var existingInmates = ddps.values().stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
+            var existingInmates = db.values().stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
             mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug");
             if (existingInmates == 0) {
                 Inmate newInmate = new Inmate(0L, clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-                ddps.write(newInmate);
+                db.write(newInmate);
             }
         } finally {
             lock.unlock();

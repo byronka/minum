@@ -23,19 +23,19 @@ import static minum.web.StatusLine.StatusCode.*;
 public class UploadPhoto {
 
     private final String uploadPhotoTemplateHtml;
-    private final Db<Photograph> ddps;
+    private final Db<Photograph> db;
     private final ILogger logger;
     private final Path dbDir;
     private final AuthUtils auth;
     private final Constants constants;
 
-    public UploadPhoto(Db<Photograph> ddps, AuthUtils auth, Context context) {
+    public UploadPhoto(Db<Photograph> db, AuthUtils auth, Context context) {
         this.constants = context.getConstants();
         this.auth = auth;
         this.logger = context.getLogger();
         this.dbDir = Path.of(constants.DB_DIRECTORY);
         uploadPhotoTemplateHtml = FileUtils.readTemplate("uploadphoto/upload_photo_template.html");
-        this.ddps = ddps;
+        this.db = db;
     }
 
     public Response uploadPage(Request r) {
@@ -74,12 +74,12 @@ public class UploadPhoto {
             logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
             return new Response(_500_INTERNAL_SERVER_ERROR, e.toString());
         }
-        ddps.write(newPhotograph);
+        db.write(newPhotograph);
         return Response.redirectTo("photos");
     }
 
     public List<Photograph> getPhotographs() {
-        return ddps.values().stream().toList();
+        return db.values().stream().toList();
     }
 
 }

@@ -48,7 +48,7 @@ public class SampleDomain {
         This object lets us deal with disk persistence for
         all the PersonName data. 
      */
-    private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
+    private final DatabaseDiskPersistenceSimpler<PersonName> db;
     
     /*
         This is important data for the endpoints.  It remains
@@ -101,7 +101,7 @@ public class SampleDomain {
     public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
         
         
-        this.ddps = diskData;
+        this.db = diskData;
         
         /*
             This is where we pull the data from disk, and only happens once - when
@@ -116,7 +116,7 @@ public class SampleDomain {
             based on what has been read from disk.    
          */
         
-        newPersonIndex = new AtomicLong(ddps.calculateNextIndex(personNames));
+        newPersonIndex = new AtomicLong(db.calculateNextIndex(personNames));
         nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
         authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
         unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
@@ -160,7 +160,7 @@ public class SampleDomain {
 
         final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
         personNames.add(newPersonName);
-        ddps.persistToDisk(newPersonName);
+        db.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
     }
 
@@ -206,8 +206,8 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDdps = webFramework.getDdps("names");
-        return new SampleDomain(sampleDomainDdps, auth);
+        DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDb = webFramework.getDb("names");
+        return new SampleDomain(sampleDomainDb, auth);
     }
 }
 

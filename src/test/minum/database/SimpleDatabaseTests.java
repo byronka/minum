@@ -62,11 +62,11 @@ public class SimpleDatabaseTests {
         {
             deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
-            final var ddps = new Db<Foo>(foosDirectory, context, INSTANCE);
+            final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
 
             // make some files on disk
             for (var foo : foos) {
-                ddps.write(foo);
+                db.write(foo);
             }
 
             // check that the files are now there.
@@ -82,15 +82,15 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(20);
             assertEqualsDisregardOrder(
-                    ddps.values().stream().map(Foo::toString).toList(),
+                    db.values().stream().map(Foo::toString).toList(),
                     foos.stream().map(Foo::toString).toList());
 
             // change those files
             final var updatedFoos = new ArrayList<Foo>();
-            for (var foo : ddps.values().stream().toList()) {
+            for (var foo : db.values().stream().toList()) {
                 final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
                 updatedFoos.add(newFoo);
-                ddps.update(newFoo);
+                db.update(newFoo);
             }
 
             // rebuild some objects from what was written to disk
@@ -98,12 +98,12 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(40);
             assertEqualsDisregardOrder(
-                    ddps.values().stream().map(Foo::toString).toList(),
+                    db.values().stream().map(Foo::toString).toList(),
                     updatedFoos.stream().map(Foo::toString).toList());
 
             // delete the files
             for (var foo : foos) {
-                ddps.delete(foo);
+                db.delete(foo);
             }
 
             // check that all the files are now gone
@@ -116,48 +116,48 @@ public class SimpleDatabaseTests {
 
             // give the action queue time to save files to disk
             // then shut down.
-            ddps.stop();
+            db.stop();
             deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
-            final var ddps_throwaway = new Db<Foo>(foosDirectory, context, INSTANCE);
+            final var db_throwaway = new Db<Foo>(foosDirectory, context, INSTANCE);
 
-            var ex = assertThrows(RuntimeException.class, () -> ddps_throwaway.delete(new Foo(123, 123, "")));
+            var ex = assertThrows(RuntimeException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
             assertEquals(ex.getMessage(), "no data was found with id of 123");
 
-            ddps_throwaway.stop();
+            db_throwaway.stop();
         }
 
         logger.test("edge cases for deserialization"); {
             // what if the directory is missing when try to deserialize?
-            // note: this would only happen if, after instantiating our ddps,
+            // note: this would only happen if, after instantiating our db,
             // the directory gets deleted/corrupted.
 
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new Db<Foo>(foosDirectory, context, INSTANCE);
+            final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             // create an empty file, to create that edge condition
             final var pathToSampleFile = foosDirectory.resolve("1.ddps");
             Files.createFile(pathToSampleFile);
-            ddps.loadDataFromDisk();
+            db.loadDataFromDisk();
             MyThread.sleep(10);
             String existsButEmptyMessage = logger.findFirstMessageThatContains("file exists but");
             assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
 
             // create a corrupted file, to create that edge condition
             Files.write(pathToSampleFile, "invalid data".getBytes());
-            final var ex = assertThrows(RuntimeException.class, () -> ddps.loadDataFromDisk());
+            final var ex = assertThrows(RuntimeException.class, () -> db.loadDataFromDisk());
             assertEquals(ex.getMessage().replace('\\','/'), "Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            ddps.loadDataFromDisk();
+            db.loadDataFromDisk();
             MyThread.sleep(10);
             String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing, adding nothing").replace('\\', '/');
             assertTrue(directoryMissingMessage.contains("foos directory missing, adding nothing to the data list"));
-            ddps.stop();
+            db.stop();
         }
 
 
@@ -171,7 +171,7 @@ public class SimpleDatabaseTests {
         logger.test("Just how fast is our minum.database?");{
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new Db<Foo>(foosDirectory, context, INSTANCE);
+            final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             final var foos = new ArrayList<Foo>();
@@ -180,7 +180,7 @@ public class SimpleDatabaseTests {
             for (int i = 0; i < 10; i++) {
                 final var newFoo = new Foo(i, i + 1, "original");
                 foos.add(newFoo);
-                ddps.write(newFoo);
+                db.write(newFoo);
             }
 
             // change the foos
@@ -198,18 +198,18 @@ public class SimpleDatabaseTests {
                 for (var foo : foos) {
                     final var newFoo = new Foo(foo.getIndex(), foo.a + 1, foo.b + "_updated");
                     newFoos.add(newFoo);
-                    ddps.update(newFoo);
+                    db.update(newFoo);
                 }
             }
             logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
-            ddps.stop(10, 20);
+            db.stop(10, 20);
             logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
 
             logger.test("Instantiating a new database with existing files on disk");
-            final var ddps1 = new Db<Foo>(foosDirectory, context, INSTANCE);
-            Collection<Foo> values = ddps1.values();
+            final var db1 = new Db<Foo>(foosDirectory, context, INSTANCE);
+            Collection<Foo> values = db1.values();
             assertTrue(newFoos.containsAll(values));
-            ddps1.stop(10, 20);
+            db1.stop(10, 20);
 
             logger.test("Dealing with a corrupted index file");
             final var pathToIndex = foosDirectory.resolve("index.ddps");
