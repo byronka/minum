@@ -216,7 +216,7 @@ public class SimpleDatabaseTests {
             // this file should not be empty, but we are making it empty
             Files.writeString(pathToIndex,"");
             var ex = assertThrows(RuntimeException.class, () -> new Db<Foo>(foosDirectory, context, INSTANCE));
-            assertEquals(ex.getMessage(), "Exception while reading out\\simple_db\\foos\\index.ddps in DatabaseDiskPersistenceSimpler constructor");
+            assertEquals(ex.getMessage(), "Exception while reading out\\simple_db\\foos\\index.ddps in Db constructor");
         }
 
 
