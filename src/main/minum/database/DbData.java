@@ -12,19 +12,19 @@ import java.util.List;
  * serialization to a collection of data.
  * @param <T> the type of data
  */
-public abstract class SimpleDataTypeImpl<T>{
+public abstract class DbData<T>{
 
     /**
      * Serializes this object into a string representation.  It will be
      * the values of this object as strings, encoded with URL encoding,
      * separated by pipe symbols.
-     * @return this type serialized to a string - use {@link SimpleDataTypeImpl#serializeHelper(Object[])}
+     * @return this type serialized to a string - use {@link DbData#serializeHelper(Object[])}
      */
     protected abstract String serialize();
 
     /**
      * deserializes the text back into an object.  See helper
-     * method {@link SimpleDataTypeImpl#deserializeHelper(String)} to split a serialized
+     * method {@link DbData#deserializeHelper(String)} to split a serialized
      * string into tokens for rebuilding the object.  See
      * also {@link #serialize()}
      * @param serializedText the serialized string
@@ -41,7 +41,7 @@ public abstract class SimpleDataTypeImpl<T>{
 
     protected abstract void setIndex(long index);
 
-    protected SimpleDataTypeImpl() {}
+    protected DbData() {}
 
     /**
      * This is a helper that will encode the values you give it

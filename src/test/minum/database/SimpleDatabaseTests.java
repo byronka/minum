@@ -61,11 +61,11 @@ public class SimpleDatabaseTests {
         {
             deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps = new Db<Foo>(foosDirectory, context, INSTANCE);
 
             // make some files on disk
             for (var foo : foos) {
-                ddps.persistToDisk(foo);
+                ddps.write(foo);
             }
 
             // check that the files are now there.
@@ -73,7 +73,7 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(100);
             for (var foo : foos) {
-                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.databaseFileSuffix)));
             }
 
             // rebuild some objects from what was written to disk
@@ -89,7 +89,7 @@ public class SimpleDatabaseTests {
             for (var foo : ddps.stream().toList()) {
                 final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
                 updatedFoos.add(newFoo);
-                ddps.updateOnDisk(newFoo);
+                ddps.update(newFoo);
             }
 
             // rebuild some objects from what was written to disk
@@ -102,7 +102,7 @@ public class SimpleDatabaseTests {
 
             // delete the files
             for (var foo : foos) {
-                ddps.deleteOnDisk(foo);
+                ddps.delete(foo);
             }
 
             // check that all the files are now gone
@@ -110,7 +110,7 @@ public class SimpleDatabaseTests {
             // (milli)second or two here for them to get onto the disk before we check for them.
             MyThread.sleep(50);
             for (var foo : foos) {
-                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + DatabaseDiskPersistenceSimpler.databaseFileSuffix)));
+                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.databaseFileSuffix)));
             }
 
             // give the action queue time to save files to disk
@@ -120,9 +120,9 @@ public class SimpleDatabaseTests {
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
-            final var ddps_throwaway = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps_throwaway = new Db<Foo>(foosDirectory, context, INSTANCE);
 
-            var ex = assertThrows(RuntimeException.class, () -> ddps_throwaway.deleteOnDisk(new Foo(123, 123, "")));
+            var ex = assertThrows(RuntimeException.class, () -> ddps_throwaway.delete(new Foo(123, 123, "")));
             assertEquals(ex.getMessage(), "no data was found with id of 123");
 
             ddps_throwaway.stop();
@@ -135,7 +135,7 @@ public class SimpleDatabaseTests {
 
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps = new Db<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             // create an empty file, to create that edge condition
@@ -170,7 +170,7 @@ public class SimpleDatabaseTests {
         logger.test("Just how fast is our minum.database?");{
             // clear out the directory to start
             FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-            final var ddps = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context, INSTANCE);
+            final var ddps = new Db<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
             final var foos = new ArrayList<Foo>();
@@ -179,7 +179,7 @@ public class SimpleDatabaseTests {
             for (int i = 0; i < 10; i++) {
                 final var newFoo = new Foo(i, i + 1, "original");
                 foos.add(newFoo);
-                ddps.persistToDisk(newFoo);
+                ddps.write(newFoo);
             }
 
             // change the foos
@@ -195,7 +195,7 @@ public class SimpleDatabaseTests {
                 for (var foo : foos) {
                     final var newFoo = new Foo(0, foo.a + 1, foo.b + "_updated");
                     newFoos.add(newFoo);
-                    ddps.persistToDisk(newFoo);
+                    ddps.write(newFoo);
                 }
             }
             logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
@@ -209,7 +209,7 @@ public class SimpleDatabaseTests {
     }
 
 
-    static class Foo extends SimpleDataTypeImpl<Foo> implements Comparable<Foo> {
+    static class Foo extends DbData<Foo> implements Comparable<Foo> {
 
         private long index;
         private final int a;

@@ -1,7 +1,7 @@
 package minum.sampledomain;
 
 import minum.auth.AuthUtils;
-import minum.database.DatabaseDiskPersistenceSimpler;
+import minum.database.Db;
 import minum.templating.TemplateProcessor;
 import minum.utils.FileUtils;
 import minum.utils.StringUtils;
@@ -18,13 +18,13 @@ import static minum.web.StatusLine.StatusCode.*;
 
 public class SampleDomain {
 
-    private final DatabaseDiskPersistenceSimpler<PersonName> ddps;
+    private final Db<PersonName> ddps;
     private final AuthUtils auth;
     private final TemplateProcessor nameEntryTemplate;
     private final String authHomepage;
     private final String unauthHomepage;
 
-    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
+    public SampleDomain(Db<PersonName> diskData, AuthUtils auth) {
         this.ddps = diskData;
         this.auth = auth;
         nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
@@ -54,7 +54,7 @@ public class SampleDomain {
         final var nameEntry = r.body().asString("name_entry");
 
         final var newPersonName = new PersonName(0L, nameEntry);
-        ddps.persistToDisk(newPersonName);
+        ddps.write(newPersonName);
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
     }
 

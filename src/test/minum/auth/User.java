@@ -1,11 +1,11 @@
 package minum.auth;
 
-import minum.database.SimpleDataTypeImpl;
+import minum.database.DbData;
 
 /**
  * A data structure representing authentication information for a user.
  */
-public class User extends SimpleDataTypeImpl<User> {
+public class User extends DbData<User> {
 
     private long id;
     private final String username;

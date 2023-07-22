@@ -2,7 +2,7 @@ package minum.auth;
 
 import minum.Constants;
 import minum.Context;
-import minum.database.DatabaseDiskPersistenceSimpler;
+import minum.database.Db;
 import minum.logging.ILogger;
 import minum.utils.CryptoUtils;
 import minum.utils.FileUtils;
@@ -33,16 +33,16 @@ import static minum.web.StatusLine.StatusCode.*;
 public class AuthUtils {
 
     private final ILogger logger;
-    private final DatabaseDiskPersistenceSimpler<User> userDiskData;
-    private final DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData;
+    private final Db<User> userDiskData;
+    private final Db<SessionId> sessionDiskData;
 
     private final String loginPageTemplate;
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
 
-    public AuthUtils(DatabaseDiskPersistenceSimpler<SessionId> sessionDiskData,
-                     DatabaseDiskPersistenceSimpler<User> userDiskData,
+    public AuthUtils(Db<SessionId> sessionDiskData,
+                     Db<User> userDiskData,
                      Context context) {
         this.constants = context.getConstants();
         this.userDiskData = userDiskData;
@@ -135,7 +135,7 @@ public class AuthUtils {
     }
 
     public void deleteSession(SessionId s) {
-        sessionDiskData.deleteOnDisk(s);
+        sessionDiskData.delete(s);
     }
 
     public record NewSessionResult(SessionId sessionId, User user){}
@@ -147,14 +147,14 @@ public class AuthUtils {
         final var newSession = SessionId.createNewSession(0);
 
         // add a new session to memory and the disk
-        sessionDiskData.persistToDisk(newSession);
+        sessionDiskData.write(newSession);
 
         // remove the old user details
-        userDiskData.deleteOnDisk(user);
+        userDiskData.delete(user);
 
         // create details of the new user (the one who has a session)
         final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), newSession.getSessionCode());
-        userDiskData.persistToDisk(updatedUser);
+        userDiskData.write(updatedUser);
 
         return new NewSessionResult(newSession, updatedUser);
     }
@@ -166,7 +166,7 @@ public class AuthUtils {
         final var newSalt = StringUtils.generateSecureRandomString(10);
         final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
         final var newUser = new User(0, newUsername, hashedPassword, newSalt, null);
-        userDiskData.persistToDisk(newUser);
+        userDiskData.write(newUser);
         return new RegisterResult(RegisterResultStatus.SUCCESS, newUser);
     }
 
@@ -211,11 +211,11 @@ public class AuthUtils {
         final List<SessionId> userSession = sessionDiskData.stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
 
-        sessionDiskData.deleteOnDisk(userSession.get(0));
+        sessionDiskData.delete(userSession.get(0));
 
-        userDiskData.deleteOnDisk(user);
+        userDiskData.delete(user);
         final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), null);
-        userDiskData.persistToDisk(updatedUser);
+        userDiskData.write(updatedUser);
 
         return updatedUser;
     }

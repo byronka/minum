@@ -7,7 +7,6 @@ import minum.utils.FileUtils;
 import minum.utils.StacktraceUtils;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,7 +24,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * on any data that extends from {@link ISimpleDataType}
  * @param <T> the type of data we'll be persisting
  */
-public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
+public class Db<T extends DbData<?>> {
 
     /**
      * The suffix we will apply to each database file
@@ -56,7 +55,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
      *                     "db", and we're building this for a domain "foo", we
      *                     might expect to receive "db/foo" here.
      */
-    public DatabaseDiskPersistenceSimpler(Path dbDirectory, Context context, T instance) {
+    public Db(Path dbDirectory, Context context, T instance) {
         this.hasLoadedData = false;
         this.data = new ArrayList<>();
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
@@ -101,7 +100,7 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
      * on our minum.database
      * </p>
      */
-    public void stop() {
+    void stop() {
         actionQueue.stop();
     }
 
@@ -109,16 +108,17 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
      * Similar to {@link #stop()} but gives more control over how long
      * we'll wait before crashing it closed.  See {@link ActionQueue#stop(int, int)}
      */
-    public void stop(int count, int sleepTime) {
+    void stop(int count, int sleepTime) {
         actionQueue.stop(count, sleepTime);
     }
 
     /**
-     * takes any serializable data and writes it to disk
+     * writes new data to the in-memory data
+     * and persists it to disk
      *
      * @param newData the data we are writing
      */
-    public void persistToDisk(T newData) {
+    public void write(T newData) {
         // load data if needed
         if (!hasLoadedData) loadData();
 
@@ -136,13 +136,14 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
     }
 
     /**
-     * Deletes a piece of data from the disk
+     * Deletes a piece of data from the in-memory data structure
+     * and delete it from the disk
      *
      * @param dataToDelete the data we are serializing and writing
      * @return true if this list contained the specified element (or
      * equivalently, if this list changed as a result of the call).
      */
-    public void deleteOnDisk(T dataToDelete) {
+    public void delete(T dataToDelete) {
         // load data if needed
         if (!hasLoadedData) loadData();
 
@@ -185,10 +186,12 @@ public class DatabaseDiskPersistenceSimpler<T extends SimpleDataTypeImpl<?>> {
 
 
     /**
-     * updates an element by replacing the element having the same id
+     * updates an element in the in-memory data structure by
+     * replacing the element having the same id
      * if the data to update is not found, throw an exception
+     * update the data on disk with this id.
      */
-    public void updateOnDisk(T dataUpdate) {
+    public void update(T dataUpdate) {
         // load data if needed
         if (!hasLoadedData) loadData();
 
