@@ -81,7 +81,7 @@ public class Db<T extends DbData<?>> {
                 String trim = s.trim();
                 indexValue = Long.parseLong(trim);
             } catch (Exception e) {
-                throw new RuntimeException("Exception while reading "+fullPathForIndexFile+" in DatabaseDiskPersistenceSimpler constructor", e);
+                throw new RuntimeException("Exception while reading "+fullPathForIndexFile+" in Db constructor", e);
             }
 
             this.index = new AtomicLong(indexValue);
