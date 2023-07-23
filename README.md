@@ -25,3 +25,7 @@ Developer documentation:
 
 See [The development handbook](docs/development_handbook.md)
 
+
+* [The Javadoc](https://byronka.github.io/javadoc/)
+* [Test coverage](https://byronka.github.io/coveragereport/)
+* [Tests](https://byronka.github.io/minum_tests.html)

@@ -32,7 +32,6 @@ Table of contents
 - [Theme](#theme)
 - [Generate a Maven package](#generate-a-maven-package)
 - [ActionQueue](#actionqueue)
-- [Appendix](#appendix)
 
 
 Features:
@@ -42,7 +41,7 @@ Features:
 - In-memory database with disk persistence
 - Efficient server-side templating
 - Defensive security capabilities
-- Togging framework
+- Logging framework
 - Testing framework
 - Authentication
 - HTML parsing
@@ -668,12 +667,3 @@ Any time it is important to put something to be done later, ActionQueue is ready
 drawbacks.  For one, you won't get exceptions bubbling up from your call.  If you need to immediately return
 a 400 error to a user based on some calculation, it wouldn't make sense to use ActionQueue there.  And like I 
 mentioned, the other options - synchrnonized, Locks - are also good in many cases.
-
-
-
-Appendix
---------
-
-* [The Javadoc](https://byronka.github.io/javadoc/)
-* [Test coverage](https://byronka.github.io/coveragereport/)
-* [Tests](https://byronka.github.io/minum_tests.html)
