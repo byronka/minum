@@ -15,8 +15,7 @@ Example projects demonstrating usage:
 
 See the following links for sample projects that use this framework.
 
-- [One with a few features](https://github.com/byronka/minum_usage_example) 
-- [Using Maven](https://github.com/byronka/minum_usage_example_mvn) 
+- [One with a few features](https://github.com/byronka/minum_usage_example_mvn) 
 - [Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
 
 
