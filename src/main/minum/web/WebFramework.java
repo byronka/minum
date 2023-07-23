@@ -54,7 +54,7 @@ public class WebFramework {
     /**
      * These are registrations for paths that partially match, for example,
      * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
-     * and we want to match
+     * and we want to match ".well-known/acme-challenge"
      */
     private final Map<VerbPath, Function<Request, Response>> registeredPartialPaths;
 
@@ -131,8 +131,6 @@ public class WebFramework {
                         return;
                     }
 
-                    Function<Request, Response> endpoint = handlerFinder.apply(sl);
-
                     // The response we will send to the client
                     Response resultingResponse;
                     boolean isKeepAlive = false;
@@ -178,6 +176,7 @@ public class WebFramework {
 
                     Now, on the other hand, if they are looking for vulnerabilities, it's ok to dump them.
                      */
+                    Function<Request, Response> endpoint = handlerFinder.apply(sl);
                     if (endpoint == null) {
                         logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
                         boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
@@ -264,46 +263,66 @@ public class WebFramework {
      */
     Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
         Function<Request, Response> handler;
+        logger.logTrace(() -> "Seeking a handler for " + sl);
 
         // first we check if there's a simple direct match
         String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
         handler = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), requestedPath));
 
         if (handler == null) {
-            // if there's no direct match, let's see if we can match the
-            // registered paths against part of the startline
             logger.logTrace(() -> "No direct handler found.  looking for a partial match for " + requestedPath);
-            var verbPathFunctionEntry = registeredPartialPaths.entrySet().stream()
-                    .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
-                            x.getKey().verb().equals(sl.getVerb()))
-                    .findFirst().orElse(null);
-            if (verbPathFunctionEntry != null) {
-                handler = verbPathFunctionEntry.getValue();
-            }
+            handler = findHandlerByPartialMatch(sl, handler, requestedPath);
         }
 
         if (handler == null) {
-            // if nothing was found in the registered dynamic endpoints, look
-            // through the static cache of responses
-            logger.logTrace(() -> "Did not find a function to handle a verb of " + sl.getVerb() + " and a path of " + requestedPath);
-            final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
-            if (staticResponseFound != null) {
-                logger.logTrace(() -> "found a static value to handle "+requestedPath+", returning it");
-                handler = request -> staticResponseFound;
-            }
+            logger.logTrace(() -> "no registered handler for " + requestedPath + ", looking in cache");
+            handler = findHandlerInStaticCache(sl, handler, requestedPath);
         }
 
         if (handler == null) {
-            logger.logTrace(() -> "Found neither a function nor a static value in the cache, checking files on disk");
-            // last ditch effort - look on disk.  This response will either
-            // be the file to return, or null if we didn't find anything.
-            Response response = staticFilesCache.loadStaticFile(requestedPath);
-            if (response != null) {
-                handler = request -> response;
-            }
+            logger.logTrace(() -> "Nothing in cache, checking files on disk for " + requestedPath );
+            handler = findHandlerByFilesOnDisk(handler, requestedPath);
         }
 
         // we'll return this, and it could be a null.
+        return handler;
+    }
+
+    /**
+     * last ditch effort - look on disk.  This response will either
+     * be the file to return, or null if we didn't find anything.
+     */
+    private Function<Request, Response> findHandlerByFilesOnDisk(Function<Request, Response> handler, String requestedPath) {
+        Response response = staticFilesCache.loadStaticFile(requestedPath);
+        if (response != null) {
+            handler = request -> response;
+        }
+        return handler;
+    }
+
+    /**
+     * look through the static cache (see staticFilesCache) of responses
+     */
+    private Function<Request, Response> findHandlerInStaticCache(StartLine sl, Function<Request, Response> handler, String requestedPath) {
+        final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
+        if (staticResponseFound != null) {
+            logger.logTrace(() -> "found a static value to handle "+ requestedPath +", returning it");
+            handler = request -> staticResponseFound;
+        }
+        return handler;
+    }
+
+    /**
+     * let's see if we can match the registered paths against a **portion** of the startline
+     */
+    private Function<Request, Response> findHandlerByPartialMatch(StartLine sl, Function<Request, Response> handler, String requestedPath) {
+        var verbPathFunctionEntry = registeredPartialPaths.entrySet().stream()
+                .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
+                        x.getKey().verb().equals(sl.getVerb()))
+                .findFirst().orElse(null);
+        if (verbPathFunctionEntry != null) {
+            handler = verbPathFunctionEntry.getValue();
+        }
         return handler;
     }
 
@@ -347,11 +366,32 @@ public class WebFramework {
         registeredDynamicPaths.put(new VerbPath(verb, pathName), webHandler);
     }
 
-
+    /**
+     * Similar to {@link #registerPath(StartLine.Verb, String, Function)} except that the paths
+     * registered here may be partially matched.
+     * <p>
+     *     For example, if you register <pre>.well-known/acme-challenge</pre> then it
+     *     can match a client request for <pre>.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX</pre>
+     * </p>
+     * <p>
+     *     What if I didn't have the ability to match partial paths? In
+     * that case, if I tried <pre>GET .well-known/acme-challenge/sadoifpiefewsfae</pre>
+     * I would get an {@link StartLine.PathDetails#isolatedPath()} of
+     * <pre>.well-known/acme-challenge/sadoifpiefewsfae</pre> which wouldn't
+     * match anything I could statically register.
+     * </p>
+     * <p>
+     *     Be careful here, be thoughtful - partial paths will
+     * </p>
+     */
     public void registerPartialPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
         registeredPartialPaths.put(new VerbPath(verb, pathName), webHandler);
     }
 
+    /**
+     * register a {@link StaticFilesCache} to use for getting
+     * and caching static values
+     */
     public void registerStaticFiles(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;
     }

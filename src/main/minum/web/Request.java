@@ -42,7 +42,8 @@ package minum.web;
  * </ul>
  *
  * <p>
- * A request line containing only the path name is accepted by servers to maintain compatibility with HTTP clients before the HTTP/1.0 specification in RFC 1945.
+ * A request line containing only the path name is accepted by servers to
+ * maintain compatibility with HTTP clients before the HTTP/1.0 specification in RFC 1945.
  *</p>
  */
 public record Request(Headers headers, StartLine startLine, Body body,
