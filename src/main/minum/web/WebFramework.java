@@ -271,17 +271,17 @@ public class WebFramework {
 
         if (handler == null) {
             logger.logTrace(() -> "No direct handler found.  looking for a partial match for " + requestedPath);
-            handler = findHandlerByPartialMatch(sl, handler, requestedPath);
+            handler = findHandlerByPartialMatch(sl);
         }
 
         if (handler == null) {
             logger.logTrace(() -> "no registered handler for " + requestedPath + ", looking in cache");
-            handler = findHandlerInStaticCache(sl, handler, requestedPath);
+            handler = findHandlerInStaticCache(sl);
         }
 
         if (handler == null) {
             logger.logTrace(() -> "Nothing in cache, checking files on disk for " + requestedPath );
-            handler = findHandlerByFilesOnDisk(handler, requestedPath);
+            handler = findHandlerByFilesOnDisk(sl);
         }
 
         // we'll return this, and it could be a null.
@@ -292,38 +292,51 @@ public class WebFramework {
      * last ditch effort - look on disk.  This response will either
      * be the file to return, or null if we didn't find anything.
      */
-    private Function<Request, Response> findHandlerByFilesOnDisk(Function<Request, Response> handler, String requestedPath) {
+    private Function<Request, Response> findHandlerByFilesOnDisk(StartLine sl) {
+        if (sl.getVerb() != StartLine.Verb.GET) {
+            return null;
+        }
+        String requestedPath = sl.getPathDetails().isolatedPath();
         Response response = staticFilesCache.loadStaticFile(requestedPath);
         if (response != null) {
-            handler = request -> response;
+            return request -> response;
+        } else {
+            return null;
         }
-        return handler;
     }
 
     /**
-     * look through the static cache (see staticFilesCache) of responses
+     * look through the static cache (see staticFilesCache) of responses.
+     * Note these can only be responses to {@link StartLine.Verb#GET} requests.
      */
-    private Function<Request, Response> findHandlerInStaticCache(StartLine sl, Function<Request, Response> handler, String requestedPath) {
+    private Function<Request, Response> findHandlerInStaticCache(StartLine sl) {
+        if (sl.getVerb() != StartLine.Verb.GET) {
+            return null;
+        }
+        String requestedPath = sl.getPathDetails().isolatedPath();
         final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
         if (staticResponseFound != null) {
             logger.logTrace(() -> "found a static value to handle "+ requestedPath +", returning it");
-            handler = request -> staticResponseFound;
+            return request -> staticResponseFound;
+        } else {
+            return null;
         }
-        return handler;
     }
 
     /**
      * let's see if we can match the registered paths against a **portion** of the startline
      */
-    private Function<Request, Response> findHandlerByPartialMatch(StartLine sl, Function<Request, Response> handler, String requestedPath) {
+    private Function<Request, Response> findHandlerByPartialMatch(StartLine sl) {
+        String requestedPath = sl.getPathDetails().isolatedPath();
         var verbPathFunctionEntry = registeredPartialPaths.entrySet().stream()
                 .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
                         x.getKey().verb().equals(sl.getVerb()))
                 .findFirst().orElse(null);
         if (verbPathFunctionEntry != null) {
-            handler = verbPathFunctionEntry.getValue();
+            return verbPathFunctionEntry.getValue();
+        } else {
+            return null;
         }
-        return handler;
     }
 
     /**
