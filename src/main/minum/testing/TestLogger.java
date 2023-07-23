@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static minum.utils.Invariants.mustNotBeNull;
 
@@ -23,14 +24,21 @@ public class TestLogger extends Logger {
     private final List<TestSuite> testSuites;
     private String previousTestName;
     private TestSuite currentTestSuite;
-    private TestSuite previousTestSuite;
     private Queue<String> recentLogLines;
     private final int MAX_CACHE_SIZE = 20;
+    private final ReentrantLock logDebugLock;
+    private final ReentrantLock logAuditLock;
+    private final ReentrantLock logTraceLock;
+    private final ReentrantLock logAsyncErrorLock;
+    private int testCount = 1;
 
     /**
      * Writes a Junit-style xml file to out/reports/tests/tests.xml
      */
     public void writeTestReport() throws IOException {
+        if (currentTestSuite != null) {
+            includeTimingForPreviousTest();
+        }
         StringBuilder sb = new StringBuilder();
         long totalTime = 0;
         long totalCountTests = 0;
@@ -67,18 +75,35 @@ public class TestLogger extends Logger {
         testSuites.add(currentTestSuite);
     }
 
+    /**
+     * Represents a particular test case
+     */
     record TestCase(String name, long duration) {}
+
+    /**
+     * Represents a suite of tests, typically the set
+     * of tests in a particular class
+     */
     record TestSuite(String className, List<TestCase> testCases) {}
 
+    /**
+     * See {@link TestLogger}
+     */
     public TestLogger(LoggingContext context, String name) {
         super(context, name);
         this.testSuites = new ArrayList<>();
         this.stopWatch = new StopwatchUtils();
         this.recentLogLines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
+        this.logDebugLock = new ReentrantLock();
+        this.logTraceLock = new ReentrantLock();
+        this.logAuditLock = new ReentrantLock();
+        this.logAsyncErrorLock = new ReentrantLock();
     }
 
-    private int testCount = 1;
-
+    /**
+     * A helper to get the string message value out of a
+     * {@link ThrowingSupplier}
+     */
     private String extractMessage(ThrowingSupplier<String, Exception> msg) {
         String receivedMessage;
         try {
@@ -105,33 +130,54 @@ public class TestLogger extends Logger {
     }
 
     @Override
-    public synchronized void logDebug(ThrowingSupplier<String, Exception> msg) {
-        addToCache(msg);
-        super.logDebug(msg);
+    public void logDebug(ThrowingSupplier<String, Exception> msg) {
+        logDebugLock.lock();
+        try {
+            addToCache(msg);
+            super.logDebug(msg);
+        } finally {
+            logDebugLock.unlock();
+        }
     }
 
     @Override
-    public synchronized void logTrace(ThrowingSupplier<String, Exception> msg) {
-        addToCache(msg);
-        super.logTrace(msg);
+    public void logTrace(ThrowingSupplier<String, Exception> msg) {
+        logTraceLock.lock();
+        try {
+            addToCache(msg);
+            super.logTrace(msg);
+        } finally {
+            logTraceLock.unlock();
+        }
     }
 
     @Override
-    public synchronized void logAudit(ThrowingSupplier<String, Exception> msg) {
-        addToCache(msg);
-        super.logAudit(msg);
+    public void logAudit(ThrowingSupplier<String, Exception> msg) {
+        logAuditLock.lock();
+        try {
+            addToCache(msg);
+            super.logAudit(msg);
+        } finally {
+            logAuditLock.unlock();
+        }
     }
 
     @Override
-    public synchronized void logAsyncError(ThrowingSupplier<String, Exception> msg) {
-        addToCache(msg);
-        super.logAsyncError(msg);
+    public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
+        logAsyncErrorLock.lock();
+        try {
+            addToCache(msg);
+            super.logAsyncError(msg);
+        } finally {
+            logAsyncErrorLock.unlock();
+        }
     }
 
     /**
      * Provides an ability to search over the recent past log messages,
      * case-insensitively.
-     * @param lines number of lines of log messages to look back through
+     * @param lines number of lines of log messages to look back through,
+     *              up to {@link #MAX_CACHE_SIZE}
      */
     public String findFirstMessageThatContains(String value, int lines) {
         var lineList = recentLogLines.stream().skip(MAX_CACHE_SIZE-lines).toList();
@@ -147,12 +193,22 @@ public class TestLogger extends Logger {
         throw new RuntimeException("Shouldn't be possible to get here.");
     }
 
+    /**
+     * Looks back through the last 3 log messages for one that
+     * contains the provided value.  Returns the whole line if
+     * found and an exception if not found.
+     * <p>
+     *     See {@link #findFirstMessageThatContains(String, int)} if you
+     *     want to search through more than 3.  However, it is only
+     *     possible to search up to {@link #MAX_CACHE_SIZE}
+     * </p>
+     */
     public String findFirstMessageThatContains(String value) {
         return findFirstMessageThatContains(value, 3);
     }
 
     /**
-     * A little helper function to log a test title prefixed with "TEST:"
+     * A helper function to log a test title prefixed with "TEST:"
      * <br>
      * Also collects data about the previously-run test
      */
@@ -170,6 +226,10 @@ public class TestLogger extends Logger {
         });
     }
 
+    /**
+     * Code for calculating how long the previous test took, replaces
+     * the data from that previous test with new data that includes the timing.
+     */
     private void includeTimingForPreviousTest() {
         // enter information for previous test
         if (stopWatch != null && previousTestName != null) {
