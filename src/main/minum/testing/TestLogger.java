@@ -23,6 +23,7 @@ public class TestLogger extends Logger {
     private final List<TestSuite> testSuites;
     private String previousTestName;
     private TestSuite currentTestSuite;
+    private TestSuite previousTestSuite;
     private Queue<String> recentLogLines;
     private final int MAX_CACHE_SIZE = 20;
 
@@ -51,7 +52,17 @@ public class TestLogger extends Logger {
         FileUtils.writeString(Path.of("out/reports/tests/tests.xml"), innerXmlReport);
     }
 
+    /**
+     * An organizational tool - indicates in the test report that the following
+     * tests are within this testing suite
+     * @param className copy the name of the testing class for this parameter
+     */
     public void testSuite(String className) {
+        // if there is an existing test suite, we need to add the timing for the
+        // last test here in that previous suite.
+        if (currentTestSuite != null) {
+            includeTimingForPreviousTest();
+        }
         currentTestSuite = new TestSuite(className, new ArrayList<>());
         testSuites.add(currentTestSuite);
     }
@@ -146,17 +157,10 @@ public class TestLogger extends Logger {
      * Also collects data about the previously-run test
      */
     public void test(String msg) {
-        // enter information for previous test
-        if (stopWatch != null && previousTestName != null) {
-             // The time taken for the previous test to complete.
-            long previousTestMillis = stopWatch.stopTimer();
-            currentTestSuite.testCases().add(new TestCase(previousTestName, previousTestMillis));
-        }
+        currentTestSuite.testCases().add(new TestCase(msg, 0));
 
-        // reset for next test.
-        stopWatch = stopWatch == null ? new StopwatchUtils() : stopWatch.startTimer();
+        includeTimingForPreviousTest();
         previousTestName = msg;
-
         // put together some pretty-looking text graphics to show the suiteName of our test in log
         final var baseLength = 11;
         final var dashes = "-".repeat(msg.length() + baseLength);
@@ -164,6 +168,26 @@ public class TestLogger extends Logger {
         loggerPrinter.enqueue("Testlogger#test("+msg+")", () -> {
             printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", testCount++, msg);
         });
+    }
+
+    private void includeTimingForPreviousTest() {
+        // enter information for previous test
+        if (stopWatch != null && previousTestName != null) {
+             // The time taken for the previous test to complete.
+            long previousTestMillis = stopWatch.stopTimer();
+            TestCase testCase = currentTestSuite.testCases().stream()
+                    .filter(x -> x.name().equals(previousTestName))
+                    .findFirst()
+                    .orElse(null);
+            if (testCase != null) {
+                var testCaseWithTiming = new TestCase(testCase.name(), previousTestMillis);
+                currentTestSuite.testCases().remove(testCase);
+                currentTestSuite.testCases.add(testCaseWithTiming);
+            }
+        }
+
+        // reset for next test.
+        stopWatch = stopWatch == null ? new StopwatchUtils() : stopWatch.startTimer();
     }
 
 }
