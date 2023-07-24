@@ -6,6 +6,10 @@ package minum;
  */
 public class Config {
 
+    private Config() {
+        // making this private to be clearer it isn't supposed to be instantiated.
+    }
+
     private static String getDefaultConfig() {
         return """
                 ###
@@ -76,33 +80,31 @@ public class Config {
      * explicit where the "knobs and dials" of the application are
      * located.
      */
-    public static void printConfigError() {
-        System.out.print("\n\n\n");
-        System.out.println("----------------------------------------------------------------");
-        System.out.println("----------------- System misconfiguration ----------------------");
-        System.out.println("----------------------------------------------------------------");
-        System.out.println();
-        System.out.println("No properties file found at ./app.config");
-        System.out.println();
-        System.out.println("A file named app.config with the following contents must exist in");
-        System.out.println("the directory you were at when running this program. Copy the");
-        System.out.println("following text and save it as a file called app.config at that");
-        System.out.println("location.");
-        System.out.println();
-        System.out.println("----------------------------------------------------------------");
-        System.out.println("----------------------------------------------------------------");
-
-
-        System.out.print("\n\n");
-        System.out.println("    ****   Copy after this line -v    ****");
-        System.out.println("                       ");
-
-        String defaultConfig = Config.getDefaultConfig();
-        System.out.print(defaultConfig);
-
-        System.out.println("                        ");
-        System.out.println("    ****   Copy before this line -^    ****");
-
-        System.exit(1);
+    public static String getConfigErrorMessage() {
+        return """
+                
+                
+                
+                ----------------------------------------------------------------
+                ----------------- System misconfiguration ----------------------
+                ----------------------------------------------------------------
+                
+                No properties file found at ./app.config
+                
+                A file named app.config with the following contents must exist in
+                the directory you were at when running this program. Copy the
+                following text and save it as a file called app.config at that
+                location.
+                
+                ----------------------------------------------------------------
+                ----------------------------------------------------------------
+                
+                    ****   Copy after this line -v    ****
+                
+                """ +
+                Config.getDefaultConfig() + """
+                
+                    ****   Copy before this line -^    ****
+                """;
     }
 }

@@ -194,7 +194,8 @@ public class Constants {
                     " found properties file at ./app.config.  Loading properties");
             properties.load(fis);
         } catch (Exception ex) {
-            Config.printConfigError();
+            System.out.println(Config.getConfigErrorMessage());
+            System.exit(1);
         }
         return properties;
     }

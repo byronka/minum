@@ -2,6 +2,13 @@ package minum.utils;
 
 import minum.Context;
 import minum.testing.TestLogger;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import static minum.testing.TestFramework.assertEquals;
 
 public class StringUtilsTests {
@@ -34,6 +41,13 @@ public class StringUtilsTests {
         logger.test("safeAttr should return an empty string if given null"); {
             final var cleanedHtml = StringUtils.safeAttr(null);
             assertEquals("", cleanedHtml);
+        }
+
+        logger.test("Can convert a list of bytes to a string"); {
+            byte[] bytes = "hello".getBytes(StandardCharsets.UTF_8);
+            List<Byte> bytesList = IntStream.range(0, bytes.length).mapToObj(i -> bytes[i]).collect(Collectors.toList());
+            String s = StringUtils.byteListToString(bytesList);
+            assertEquals(s, "hello");
         }
     }
 }

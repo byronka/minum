@@ -57,5 +57,15 @@ public class FullSystemTests {
             assertEquals(fakeSocketWrapper.baos.toString(), "");
         }
 
+        /*
+        It's quite important that the user has a configuration file.
+        We specify it to be named app.config in the root directory.
+         */
+        logger.test("configuration missing"); {
+            String configErrorMessage = Config.getConfigErrorMessage();
+            assertTrue(configErrorMessage.contains("No properties file found at ./app.config"));
+            assertTrue(configErrorMessage.contains("****   Copy after this line -v    ****"));
+            assertTrue(configErrorMessage.contains("The log levels are:"));
+        }
     }
 }
