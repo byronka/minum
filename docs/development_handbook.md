@@ -58,28 +58,17 @@ Quick start:
 Description
 ------------
 
-Minum is a web library with all the components needed to build a web application,
-include a web server and a database.  
-
-It follows some unusual conventions that new developers should be aware of.
-
-For example, we don't have many dependencies in the system.
-
-As we have developed, we would occasionally bring in a
-dependency to handle a need.  Since we operated with sufficient time
-to reflect on things, it often occurred to us that a particular
-dependency was providing relatively little value.  We then could easily
-replace it with just a little custom code. As that continued, we
-generally found that the only outside code worth its salt happened to
-already exist in the JDK standard library.  As of this writing, we have no
-dependencies outside the standard library (which is just incredible -
-thanks Java library developers!)
+Minum is a framework with most of the components needed to build a web application,
+including a web server and a database.  The major paradigm is to stay simple, but high-quality, and avoid
+third-party dependencies whenever possible.
 
 
 Why?
 ----
 
-To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of [following](parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) [technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients.
+To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of 
+[following](parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) 
+[technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients.
 Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment).
 
 Developers benefit from several aspects:
