@@ -6,10 +6,10 @@ Web frameworks
 
 | Minum | Javalin |
 |-------|---------|
-| 3,312 | 255,384 |
+| 3,474 | 255,384 |
 
 
-#### Our project is 77 times smaller than [Javalin](https://javalin.io/), which bills itself as
+#### Our project is 70 times smaller than [Javalin](https://javalin.io/), which bills itself as
 
 >"A simple web framework for Java and Kotlin"
 > 
