@@ -22,8 +22,7 @@ programmer, Charles, to tackle the job, to see if he was as good as he pretended
 Alan, having had experience in difficult programming projects, decided to
 use the PQR structured design methodology. With this in mind he asked his
 department manager to assign another three programmers as a programming team.
-Then the team went to work, churning out preliminary reports and problem ana-
-lyses.
+Then the team went to work, churning out preliminary reports and problem analyses.
 
  Back at Consolidated, Charles spent some time thinking about the problem.
 His fellow employees noticed that Charles often sat with his feet on the desk,
