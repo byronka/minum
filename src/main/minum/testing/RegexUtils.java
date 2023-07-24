@@ -56,6 +56,8 @@ public class RegexUtils {
      *     right after the opening parenthesis a question mark and
      *     then a string literal surrounded by angle brackets
      * </p>
+     * <p><b>Important!!!</b>: the name of the match group must be alphanumeric - do
+     * <b>not</b> use any special characters or punctuation</p>
      * @return returns the first match found, or an empty string
      */
     public static String find(String regex, String matchGroupName, String data) {
