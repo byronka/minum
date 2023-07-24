@@ -54,7 +54,9 @@ public class Body {
     }
 
     /**
-     * Return the body as a string.
+     * Return the body as a string, presuming
+     * that the Request body data is organized
+     * as key-value pairs.
      */
     public String asString(String key) {
         byte[] byteArray = bodyMap.get(key);
@@ -66,10 +68,22 @@ public class Body {
 
     }
 
+    /**
+     * Return the entire raw contents of the body of this
+     * request, as a string. No processing involved other
+     * than converting the bytes to a string.
+     */
     public String asString() {
         return StringUtils.byteArrayToString(raw).trim();
     }
 
+    /**
+     * Return the bytes of this request body by its
+     * key.  HTTP requests often
+     * organize the data as key-value pairs,
+     * and thus if you were expecting that organization,
+     * this will get the value by its key.
+     */
     public byte[] asBytes(String key) {
         return bodyMap.get(key);
     }
