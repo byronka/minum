@@ -512,7 +512,7 @@ public class HtmlParser {
                 foundNodes.add(result);
             }
         }
-        mustBeTrue(foundNodes.size() == 0 || foundNodes.size() == 1, "More than 1 node found.  Here they are:" + foundNodes);
+        mustBeTrue(foundNodes.size() == 0 || foundNodes.size() == 1, "There must be 0 or 1 nodes found.  Nodes:" + foundNodes);
         if (foundNodes.size() == 0) {
             return HtmlParseNode.EMPTY;
         } else {
