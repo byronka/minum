@@ -1,5 +1,6 @@
 package minum;
 
+import minum.htmlparsing.HtmlParseNode;
 import minum.htmlparsing.HtmlParser;
 import minum.htmlparsing.TagName;
 import minum.logging.ILogger;
@@ -90,15 +91,8 @@ public class FunctionalTests {
             assertEquals(get("login", authHeader).statusLine().status(), _303_SEE_OTHER);
 
             // visit the page for uploading photos, authenticated
-            var uploadPageResponse = get("upload", authHeader);
-            var uploadNodes = htmlParser.parse(uploadPageResponse.body().asString());
-            var uploadNodeFound = htmlParser.searchOne(uploadNodes, TagName.LABEL, Map.of("for", "image_uploads"));
-            assertEquals(uploadNodeFound.innerText(), "Choose images to upload (PNG, JPG)");
-
-//            var uploadPageResponse = get("upload", authHeader).s;
-//            var uploadNodes = htmlParser.parse(uploadPageResponse.body().asString());
-//            var uploadNodeFound = htmlParser.searchOne(uploadNodes, TagName.LABEL, Map.of("for", "image_uploads"));
-//            assertEquals(uploadNodeFound.innerText(), "Choose images to upload (PNG, JPG)");
+            HtmlParseNode uploadNodeFound1 = get("upload", authHeader).searchOne(TagName.LABEL, Map.of("for", "image_uploads"));
+            assertEquals(uploadNodeFound1.innerText(), "Choose images to upload (PNG, JPG)");
 
             // upload some content, authenticated
             post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", authHeader);
@@ -156,7 +150,21 @@ public class FunctionalTests {
 
     }
 
-    record TestResponse(StatusLine statusLine, Headers headers, Body body) {}
+    record TestResponse(StatusLine statusLine, Headers headers, Body body) {
+
+        /**
+         * Presuming the response body is HTML, search for a single
+         * HTML element with the given tag name and attributes.
+         *
+         * @return {@link HtmlParseNode#EMPTY} if none found, a particular node if found,
+         * and an exception thrown if more than one found.
+         */
+        public HtmlParseNode searchOne(TagName tagName, Map<String, String> attributes) {
+            var htmlParser = new HtmlParser();
+            var nodes = htmlParser.parse(body.asString());
+            return htmlParser.searchOne(nodes, tagName, attributes);
+        }
+    }
 
     public TestResponse get(String path) throws IOException {
         return get(path, List.of());
