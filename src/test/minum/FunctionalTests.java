@@ -98,12 +98,13 @@ public class FunctionalTests {
             post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", authHeader);
 
             // check out what's on the photos page now, unauthenticated
-            var response2 = get("photos");
-            var htmlResponse = response2.body().asString();
-            String photoSrc = find("photo\\?name=[a-z0-9\\-]*", htmlResponse);
+            var response2 = get("photos").searchOne(TagName.IMG, Map.of("alt", "photo alt text"));
+            String photoUrl = response2.tagInfo().attributes().get("src");
+            assertTrue(photoUrl.contains("photo?name="));
 
             // look at the contents of a particular photo, unauthenticated
-            get(photoSrc, authHeader);
+            var photoResponse = get(photoUrl);
+            assertTrue(photoResponse.body.asBytes().length > 2);
 
             // check out what's on the sample domain page, authenticated
             assertTrue(get("index", authHeader).body().asString().contains("Enter a name"));

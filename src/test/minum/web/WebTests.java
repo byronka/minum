@@ -507,6 +507,65 @@ public class WebTests {
             assertEquals(StringUtils.byteArrayToString(response.body()), "value was .well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX");
         }
 
+        /*
+        Playing a bit with some of keep-alive behavior
+         */
+        logger.test("If a client makes a HTTP/1.0 request, we'll check to see if it's keep-alive"); {
+
+            final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
+               return Response.htmlOk("looking good!");
+            });
+
+            WebFramework wf = new WebFramework(context, default_zdt);
+            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+                try (var client = webEngine.startClient(primaryServer)) {
+                    InputStream is = client.getInputStream();
+                    Headers headers = Headers.make(context, inputStreamUtils);
+
+                    // send a GET request
+                    client.sendHttpLine("GET /some_endpoint HTTP/1.0");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Connection: keep-alive");
+                    client.sendHttpLine("");
+
+                    StatusLine statusLine1 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    assertEquals(statusLine1.status(), _200_OK);
+                    Headers headers1 = headers.extractHeaderInformation(is);
+                    assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
+                    new BodyProcessor(context).extractData(is, headers1);
+
+                    // send another GET request, but closing it
+                    client.sendHttpLine("GET /some_endpoint HTTP/1.1");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Connection: close");
+                    client.sendHttpLine("");
+
+                    StatusLine statusLine2 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    assertEquals(statusLine2.status(), _200_OK);
+                    Headers headers2 = headers.extractHeaderInformation(is);
+                    assertTrue(headers2.valueByKey("keep-alive") == null);
+                }
+            }
+
+            try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+                try (var client = webEngine.startClient(primaryServer)) {
+                    InputStream is = client.getInputStream();
+
+                    // send a GET request
+                    client.sendHttpLine("GET /some_endpoint HTTP/1.0");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Connection: keep-alive");
+                    client.sendHttpLine("");
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    assertEquals(statusLine.status(), _200_OK);
+                    Headers headers = Headers.make(context, inputStreamUtils);
+                    Headers headers1 = headers.extractHeaderInformation(is);
+                    assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
+                }
+            }
+        }
+
     }
 
     private static byte[] makeTestMultiPartData() {

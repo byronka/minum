@@ -88,4 +88,10 @@ public class Body {
         return bodyMap.get(key);
     }
 
+    /**
+     * Returns the raw bytes of this HTTP message's body
+     */
+    public byte[] asBytes() {
+        return this.raw;
+    }
 }

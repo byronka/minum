@@ -12,6 +12,10 @@ import java.util.List;
  */
 public class TestFramework {
 
+    private TestFramework() {
+        // making this private to be clearer it isn't supposed to be instantiated.
+    }
+
     /**
      * assert that a particular chunk of code throws a particular
      * exception.

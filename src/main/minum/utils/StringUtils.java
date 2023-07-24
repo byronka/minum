@@ -20,10 +20,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class StringUtils {
 
-    private final Constants constants;
-
-    public StringUtils(Context context) {
-        this.constants = context.getConstants();
+    private StringUtils() {
+        // making this private to be clearer it isn't supposed to be instantiated.
     }
 
 
@@ -130,30 +128,6 @@ public class StringUtils {
         return new String(byteArray, UTF_8);
     }
 
-    /**
-     * Splits up a string into tokens.
-     * @param serializedText the string we are splitting up
-     * @param delimiter the character acting as a boundary between sections
-     * @return a list of strings.  If the delimiter is not found, we will just return the whole string
-     */
-    public List<String> tokenizer(String serializedText, char delimiter) {
-        final var resultList = new ArrayList<String>();
-        var currentPlace = 0;
-        // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
-        for(int i = 0; i <= constants.MAX_TOKENIZER_PARTITIONS; i++) {
-            if (i == constants.MAX_TOKENIZER_PARTITIONS) throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + constants.MAX_TOKENIZER_PARTITIONS);
-            final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
-            if (nextPipeSymbolIndex == -1) {
-                // if we don't see any pipe symbols ahead, grab the rest of the text from our current place
-                resultList.add(serializedText.substring(currentPlace));
-                break;
-            }
-            resultList.add(serializedText.substring(currentPlace, nextPipeSymbolIndex));
-            currentPlace = nextPipeSymbolIndex + 1;
-        }
-
-        return resultList;
-    }
 
 }
 

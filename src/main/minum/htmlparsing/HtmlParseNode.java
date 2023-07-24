@@ -18,7 +18,7 @@ public record HtmlParseNode(ParseNodeType type,
                             List<HtmlParseNode> innerContent,
                             String textContent) {
 
-    public static final HtmlParseNode EMPTY = new HtmlParseNode(ParseNodeType.ELEMENT, TagInfo.EMPTY, List.of(), "");
+    public static final HtmlParseNode EMPTY = new HtmlParseNode(ParseNodeType.ELEMENT, TagInfo.EMPTY, List.of(), "EMPTY HTMLPARSENODE");
 
     /**
      * This method traverses the tree from this node downwards,
@@ -56,11 +56,11 @@ public record HtmlParseNode(ParseNodeType type,
     }
 
     private void recursiveTreeWalkSearch(ArrayList<HtmlParseNode> myList, TagName tagName, Map<String, String> attributes) {
-        for (var hpn : innerContent) {
-            if (tagInfo.tagName().equals(tagName) && tagInfo.attributes().equals(attributes)) {
-                myList.add(this);
-            }
-            hpn.recursiveTreeWalkSearch(myList, tagName, attributes);
+        if (this.tagInfo().tagName().equals(tagName) && this.tagInfo().attributes().entrySet().containsAll(attributes.entrySet())) {
+            myList.add(this);
+        }
+        for (var htmlParseNode : innerContent) {
+            htmlParseNode.recursiveTreeWalkSearch(myList, tagName, attributes);
         }
     }
 

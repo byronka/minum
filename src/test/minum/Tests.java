@@ -4,6 +4,7 @@ import minum.database.SimpleDatabaseTests;
 import minum.logging.LoggingContext;
 import minum.sampledomain.LruCacheTests;
 import minum.security.TheBrigTests;
+import minum.testing.RegexUtilsTests;
 import minum.testing.TestFrameworkTests;
 import minum.testing.TestLogger;
 import minum.utils.*;
@@ -70,6 +71,7 @@ public class Tests {
     new BodyProcessorTests(context).tests();
     new ActionQueueTests(context).tests();
     new ThrowingRunnableTests(context).tests();
+    new RegexUtilsTests(context).tests();
 
     handleShutdown(context);
   }

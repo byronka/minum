@@ -2,6 +2,7 @@ package minum.web;
 
 import minum.Constants;
 import minum.Context;
+import minum.exceptions.ForbiddenUseException;
 import minum.htmlparsing.ParsingException;
 import minum.logging.ILogger;
 import minum.utils.ByteUtils;
@@ -28,7 +29,6 @@ public class BodyProcessor {
     private final ILogger logger;
     private final InputStreamUtils inputStreamUtils;
     private final Context context;
-    private final StringUtils stringUtils;
 
     /**
      * When parsing fails, we would like to send the raw text
@@ -42,7 +42,6 @@ public class BodyProcessor {
     public BodyProcessor(Context context) {
         this.context = context;
         this.logger = context.getLogger();
-        this.stringUtils = new StringUtils(context);
         this.inputStreamUtils = new InputStreamUtils(context);
     }
 
@@ -114,7 +113,7 @@ public class BodyProcessor {
         final var postedPairs = new HashMap<String, byte[]>();
 
         try {
-            final var splitByAmpersand = stringUtils.tokenizer(input, '&');
+            final var splitByAmpersand = tokenizer(input, '&');
 
             for (final var s : splitByAmpersand) {
                 final var pair = splitKeyAndValue(s);
@@ -257,6 +256,32 @@ public class BodyProcessor {
             indexInBody = endOfBoundaryIndex+1;
         }
         return result;
+    }
+
+
+    /**
+     * Splits up a string into tokens.
+     * @param serializedText the string we are splitting up
+     * @param delimiter the character acting as a boundary between sections
+     * @return a list of strings.  If the delimiter is not found, we will just return the whole string
+     */
+    private List<String> tokenizer(String serializedText, char delimiter) {
+        final var resultList = new ArrayList<String>();
+        var currentPlace = 0;
+        // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
+        for(int i = 0; i <= context.getConstants().MAX_TOKENIZER_PARTITIONS; i++) {
+            if (i == context.getConstants().MAX_TOKENIZER_PARTITIONS) throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + context.getConstants().MAX_TOKENIZER_PARTITIONS);
+            final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
+            if (nextPipeSymbolIndex == -1) {
+                // if we don't see any pipe symbols ahead, grab the rest of the text from our current place
+                resultList.add(serializedText.substring(currentPlace));
+                break;
+            }
+            resultList.add(serializedText.substring(currentPlace, nextPipeSymbolIndex));
+            currentPlace = nextPipeSymbolIndex + 1;
+        }
+
+        return resultList;
     }
 
 }
