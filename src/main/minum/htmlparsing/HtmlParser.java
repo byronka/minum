@@ -153,7 +153,8 @@ public class HtmlParser {
 
             String textContent = state.stringBuilder.toString();
 
-            if (state.parseStack.size() > 0) {
+            // This is where we add characters if we found any between tags.
+            if (state.parseStack.size() > 0 && ! textContent.isBlank()) {
                 state.parseStack.peek().innerContent().add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), textContent));
             }
         }
@@ -351,15 +352,21 @@ public class HtmlParser {
             HtmlParseNode newNode = new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), "");
 
             if (state.parseStack.size() > 0) {
+                // if we're inside an html element,
+                // add this to the inner content
                 state.parseStack.peek().innerContent().add(newNode);
             }
 
-            if (tagName.isVoidElement) {
+            if (state.parseStack.size() == 0 && tagName.isVoidElement) {
+                // if we're at the root level and encountering a void element,
+                // add it to the root-level list of nodes
                 nodes.add(newNode);
-            } else {
+            } else if (!tagName.isVoidElement) {
                 state.parseStack.push(newNode);
             }
         } else {
+            // if we're leaving an end-tag, it means we have a
+            // full element with potentially inner content
             HtmlParseNode htmlParseNode = state.parseStack.pop();
 
              /*
@@ -490,6 +497,26 @@ public class HtmlParser {
             this.quoteType = quoteType;
             this.isReadingAttributeKey = isReadingAttributeKey;
             this.isHalfClosedTag = isHalfClosedTag;
+        }
+    }
+
+    /**
+     * Searches the node tree. If zero nodes are found, returns HtmlParseNode.EMPTY.
+     * If one is found, it is returned.  If more than one is found, an exception is thrown.
+     */
+    public HtmlParseNode searchOne(List<HtmlParseNode> nodes, TagName tagName, Map<String, String> attributes) {
+        List<HtmlParseNode> foundNodes = new ArrayList<>();
+        for (var node : nodes) {
+            var result = node.searchOne(tagName, attributes);
+            if (result != HtmlParseNode.EMPTY) {
+                foundNodes.add(result);
+            }
+        }
+        mustBeTrue(foundNodes.size() == 0 || foundNodes.size() == 1, "More than 1 node found.  Here they are:" + foundNodes);
+        if (foundNodes.size() == 0) {
+            return HtmlParseNode.EMPTY;
+        } else {
+            return foundNodes.get(0);
         }
     }
 

@@ -1,5 +1,7 @@
 package minum;
 
+import minum.htmlparsing.HtmlParser;
+import minum.htmlparsing.TagName;
 import minum.logging.ILogger;
 import minum.testing.TestLogger;
 import minum.utils.MyThread;
@@ -10,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.util.List;
+import java.util.Map;
 
 import static minum.testing.RegexUtils.find;
 import static minum.testing.TestFramework.assertEquals;
@@ -28,6 +31,7 @@ public class FunctionalTests {
     private final Context context;
     private final InputStreamUtils inputStreamUtils;
     private final WebFramework webFramework;
+    private final HtmlParser htmlParser;
 
     public FunctionalTests(Context context) {
         this.webFramework = context.getFullSystem().getWebFramework();
@@ -36,6 +40,7 @@ public class FunctionalTests {
         this.primaryServer = context.getFullSystem().getServer();
         this.webEngine = new WebEngine(context);
         this.inputStreamUtils = new InputStreamUtils(context);
+        this.htmlParser = new HtmlParser();
     }
 
     public void test() throws Exception {
@@ -54,7 +59,11 @@ public class FunctionalTests {
             grab the photos page unauthenticated. We should be able
             to view the photos.
              */
-            assertEquals(get("photos").statusLine().status(), _200_OK);
+            TestResponse photos = get("photos");
+            assertEquals(photos.statusLine().status(), _200_OK);
+            var nodes = htmlParser.parse(photos.body.asString());
+            var pNode = htmlParser.searchOne(nodes, TagName.A, Map.of("href", "index.html"));
+            assertEquals(pNode.innerText(), "Index");
 
             // go to the page for registering a user, while unauthenticated.
             assertEquals(get("register").statusLine().status(), _200_OK);
@@ -81,7 +90,15 @@ public class FunctionalTests {
             assertEquals(get("login", authHeader).statusLine().status(), _303_SEE_OTHER);
 
             // visit the page for uploading photos, authenticated
-            get("upload", authHeader);
+            var uploadPageResponse = get("upload", authHeader);
+            var uploadNodes = htmlParser.parse(uploadPageResponse.body().asString());
+            var uploadNodeFound = htmlParser.searchOne(uploadNodes, TagName.LABEL, Map.of("for", "image_uploads"));
+            assertEquals(uploadNodeFound.innerText(), "Choose images to upload (PNG, JPG)");
+
+//            var uploadPageResponse = get("upload", authHeader).s;
+//            var uploadNodes = htmlParser.parse(uploadPageResponse.body().asString());
+//            var uploadNodeFound = htmlParser.searchOne(uploadNodes, TagName.LABEL, Map.of("for", "image_uploads"));
+//            assertEquals(uploadNodeFound.innerText(), "Choose images to upload (PNG, JPG)");
 
             // upload some content, authenticated
             post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", authHeader);
