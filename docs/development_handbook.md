@@ -84,8 +84,9 @@ Developers benefit from several aspects:
 
 - It is less difficult to understand than major web frameworks, purely because there is _a hundred times_ less code.
 
-- [No magic](https://blog.codinghorror.com/the-magpie-developer/).  There is no surprising
-  behavior.  Plain method calls help make the maintenance cheaper and less stressful.
+- [No magic](https://blog.codinghorror.com/the-magpie-developer/). There are no systems that use reflection or annotations
+  to figure things out for you.  This project assumes a developer wants more control over the levers and can handle
+  a bit more of the essential complexity, as a tradeoff for improved maintainability.
 
 - [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/).
   More supportive of long-term maintenance.
