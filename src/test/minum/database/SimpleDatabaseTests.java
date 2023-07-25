@@ -1,6 +1,7 @@
 package minum.database;
 
 import minum.Context;
+import minum.testing.RegexUtils;
 import minum.testing.StopwatchUtils;
 import minum.testing.TestLogger;
 import minum.utils.FileUtils;
@@ -216,7 +217,8 @@ public class SimpleDatabaseTests {
             // this file should not be empty, but we are making it empty
             Files.writeString(pathToIndex,"");
             var ex = assertThrows(RuntimeException.class, () -> new Db<Foo>(foosDirectory, context, INSTANCE));
-            assertEquals(ex.getMessage(), "Exception while reading out\\simple_db\\foos\\index.ddps in Db constructor");
+            // because the error message includes a path that varies depending on which OS, using regex to search.
+            assertTrue(RegexUtils.isFound("Exception while reading out.simple_db.foos.index.ddps in Db constructor",ex.getMessage()));
         }
 
 
