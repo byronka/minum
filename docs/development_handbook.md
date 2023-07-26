@@ -39,14 +39,10 @@ Features:
 
 - Secure TLS 1.3 HTTP/1.1 web server
 - In-memory database with disk persistence
-- Efficient server-side templating
-- Defensive security capabilities
+- Server-side templating
 - Logging framework
 - Testing framework
-- Authentication
 - HTML parsing
-- Action queueing
-- Job scheduling
 
 Quick start:
 ------------
