@@ -108,8 +108,7 @@ Concrete benefits:
   > Tony Hoare,  _1980 ACM Turing award lecture_
 
 
-See the [theme](development_handbook.md#theme) section in
-the development handbook for more philosophical underpinnings.
+See the [theme](development_handbook.md#theme) for more philosophical underpinnings.
 
 
 System requirements:
