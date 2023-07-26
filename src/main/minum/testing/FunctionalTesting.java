@@ -4,6 +4,7 @@ import minum.Context;
 import minum.htmlparsing.HtmlParseNode;
 import minum.htmlparsing.HtmlParser;
 import minum.htmlparsing.TagName;
+import minum.logging.ILogger;
 import minum.utils.MyThread;
 import minum.web.*;
 
@@ -25,7 +26,7 @@ public class FunctionalTesting {
     private final Server primaryServer;
     private final InputStreamUtils inputStreamUtils;
     private final WebFramework webFramework;
-    private final TestLogger logger;
+    private final ILogger logger;
 
     public FunctionalTesting(Context context) {
         this.context = context;
@@ -33,7 +34,7 @@ public class FunctionalTesting {
         this.primaryServer = context.getFullSystem().getServer();
         this.inputStreamUtils = new InputStreamUtils(context);
         this.webFramework = context.getFullSystem().getWebFramework();
-        this.logger = (TestLogger)context.getLogger();
+        this.logger = context.getLogger();
     }
 
     /**
