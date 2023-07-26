@@ -34,6 +34,7 @@ public class FullSystem implements AutoCloseable {
     private TheBrig theBrig;
     final ExecutorService es;
     final InputStreamUtils inputStreamUtils;
+    private WebEngine webEngine;
 
     private final Context context;
 
@@ -81,7 +82,7 @@ public class FullSystem implements AutoCloseable {
         String serverComment = "at http://" + constants.HOST_NAME + ":" + constants.SERVER_PORT + " and https://" + constants.HOST_NAME + ":" + constants.SECURE_SERVER_PORT;
         System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting "+serverComment+" ***");
         theBrig = new TheBrig(context).initialize();
-        WebEngine webEngine = new WebEngine(context);
+        webEngine = new WebEngine(context);
         StaticFilesCache sfc = new StaticFilesCache(logger);
         webFramework = new WebFramework(context);
         addShutdownHook();
@@ -187,6 +188,10 @@ public class FullSystem implements AutoCloseable {
 
     public Context getContext() {
         return context;
+    }
+
+    public WebEngine getWebEngine() {
+        return webEngine;
     }
 
     public void close() {
