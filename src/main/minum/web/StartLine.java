@@ -144,11 +144,11 @@ public class StartLine{
      * a query string (e.g. foo=bar&name=alice), split that
      * into a map of the key to value (e.g. foo to bar, and name to alice)
      */
-    private Map<String, String> extractMapFromQueryString(String rawQueryString) {
+    Map<String, String> extractMapFromQueryString(String rawQueryString) {
         Map<String, String> queryStrings = new HashMap<>();
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
         // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
-        for (int i = 0; tokenizer.hasMoreTokens() && i <= constants.MAX_QUERY_STRING_KEYS_COUNT; i++) {
+        for (int i = 0; tokenizer.hasMoreTokens(); i++) {
             if (i == constants.MAX_QUERY_STRING_KEYS_COUNT) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + constants.MAX_QUERY_STRING_KEYS_COUNT);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();

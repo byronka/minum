@@ -1,6 +1,7 @@
 package minum.web;
 
 import minum.Context;
+import minum.exceptions.ForbiddenUseException;
 import minum.htmlparsing.ParsingException;
 import minum.testing.TestLogger;
 import minum.utils.InvariantException;
@@ -15,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -25,9 +27,11 @@ import java.util.regex.Matcher;
 
 import static minum.testing.TestFramework.*;
 import static minum.web.StartLine.Verb.GET;
+import static minum.web.StartLine.Verb.POST;
 import static minum.web.StartLine.startLineRegex;
 import static minum.web.StatusLine.StatusCode._200_OK;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
+import static minum.web.WebEngine.HttpVersion.ONE_DOT_ONE;
 
 public class WebTests {
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
@@ -221,7 +225,7 @@ public class WebTests {
 
         logger.test("alternate case for extractStartLine - POST");{
             StartLine sl = StartLine.EMPTY(context).extractStartLine("POST /something HTTP/1.0");
-            assertEquals(sl.getVerb(), StartLine.Verb.POST);
+            assertEquals(sl.getVerb(), POST);
         }
 
         logger.test("alernate case - empty path");{
@@ -300,7 +304,7 @@ public class WebTests {
             try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
                 try (var client = webEngine.startClient(primaryServer)) {
                     wf.registerPath(
-                            StartLine.Verb.POST,
+                            POST,
                             "some_post_endpoint",
                             request -> Response.htmlOk(request.body().asString("value_a"))
                     );
@@ -564,6 +568,96 @@ public class WebTests {
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                 }
             }
+        }
+
+        /*
+        Noticed a failure in this code, adjusting to be more robust
+         */
+        logger.test("making isThereABody more robust"); {
+            var webFramework = new WebFramework(context, default_zdt);
+
+            // content-type: foo is illegitimate, but it will cause the system to look closer
+            var headers1 = new Headers(List.of("content-type: foo"), context);
+            assertFalse(webFramework.isThereIsABody(headers1));
+
+            // transfer-encoding: foo is illegitimate, it will look for chunked but won't find it.
+            var headers2 = new Headers(List.of("content-type: foo", "transfer-encoding: foo"), context);
+            assertFalse(webFramework.isThereIsABody(headers2));
+
+            // transfer-encoding: chunked is acceptable, it will return true here
+            var headers3 = new Headers(List.of("content-type: foo", "transfer-encoding: chunked"), context);
+            assertTrue(webFramework.isThereIsABody(headers3));
+        }
+
+        /*
+        Since I recently saw a failure on the server due to missing testing of some logic
+        branches, trying to get into a pattern of testing branches more robustly.
+         */
+        logger.test("making findHandlerByPartialMatch more robust"); {
+            var webFramework = new WebFramework(context, default_zdt);
+            Function<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+
+            // a situation where nothing was registered to the list of partial paths
+            var startLine1 = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+            assertTrue(webFramework.findHandlerByPartialMatch(startLine1) == null);
+
+            // a complete match - not merely a partial match.  mypath == mypath
+            webFramework.registerPartialPath(GET, "mypath", helloHandler);
+            assertEquals(webFramework.findHandlerByPartialMatch(startLine1), helloHandler);
+
+            // doesn't match
+            var startLine2 = new StartLine(GET, new StartLine.PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", context);
+            assertTrue(webFramework.findHandlerByPartialMatch(startLine2) == null);
+
+            // doesn't match because different verb
+            var startLine3 = new StartLine(POST, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+            assertTrue(webFramework.findHandlerByPartialMatch(startLine3) == null);
+
+            // a poor choice of partial matcher - registering a path that will match too much
+            webFramework.registerPartialPath(GET, "m", helloHandler);
+            assertEquals(webFramework.findHandlerByPartialMatch(startLine1), helloHandler);
+
+        }
+
+        logger.test("Make the queryString method more robust"); {
+            // if pathDetails is null, we'll get an empty hashmap
+            var startLine1 = new StartLine(GET, null, ONE_DOT_ONE, "", context);
+            assertEquals(startLine1.queryString(), new HashMap<>());
+
+            // if the querystring in pathdetails is null, we'll get an empty hashmap
+            var startLine2 = new StartLine(GET, new StartLine.PathDetails("mypath", "", null), ONE_DOT_ONE, "", context);
+            assertEquals(startLine2.queryString(), new HashMap<>());
+
+            // if the querystring in pathdetails is empty, we'll get an empty hashmap
+            var startLine3 = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+            assertEquals(startLine3.queryString(), new HashMap<>());
+        }
+
+        /**
+         * The hash function we generated ought to get some use.
+         * We'll pop StartLine in a hashmap to test it.
+         */
+        logger.test("Make sure we can enter startlines as keys in a hash map"); {
+            var startLines = Map.of(
+                    new StartLine(GET, new StartLine.PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", context),   "foo",
+                    new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context),   "bar",
+                    new StartLine(GET, new StartLine.PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", context),   "baz"
+            );
+            assertEquals(startLines.get(new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context)), "bar");
+        }
+
+        logger.test("Make the extractMapFromQueryString method more robust"); {
+            // test when there's more query string key-value pairs than allowed by MAX_QUERY_STRING_KEYS_COUNT
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < context.getConstants().MAX_QUERY_STRING_KEYS_COUNT + 2; i++) {
+                    sb.append(String.format("foo%d=bar%d&", i, i));
+            }
+            StartLine startLine = StartLine.EMPTY(context);
+            assertThrows(ForbiddenUseException.class, () -> startLine.extractMapFromQueryString(sb.toString()));
+
+            // if there is no equals sign in the query string
+            var result = startLine.extractMapFromQueryString("foo");
+            assertEquals(result, Map.of());
         }
 
     }

@@ -212,8 +212,17 @@ public class WebFramework {
      * a body is available to read
      */
     public boolean isThereIsABody(Headers hi) {
-        return !hi.contentType().isBlank() &&
-                (hi.contentLength() > 0 || hi.valueByKey("transfer-encoding").stream().anyMatch(x -> x.equalsIgnoreCase("chunked")));
+        // if the client sent us a content-type header at all...
+        if (!hi.contentType().isBlank()) {
+            // if the content-length is greater than 0, we've got a body
+            if (hi.contentLength() > 0) return true;
+
+            // if the transfer-encoding header is set to chunked, we have a body
+            List<String> transferEncodingHeaders = hi.valueByKey("transfer-encoding");
+            if (transferEncodingHeaders != null && transferEncodingHeaders.stream().anyMatch(x -> x.equalsIgnoreCase("chunked"))) return true;
+        }
+        // otherwise, no body we recognize
+        return false;
     }
 
     /**
@@ -326,7 +335,7 @@ public class WebFramework {
     /**
      * let's see if we can match the registered paths against a **portion** of the startline
      */
-    private Function<Request, Response> findHandlerByPartialMatch(StartLine sl) {
+    Function<Request, Response> findHandlerByPartialMatch(StartLine sl) {
         String requestedPath = sl.getPathDetails().isolatedPath();
         var verbPathFunctionEntry = registeredPartialPaths.entrySet().stream()
                 .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
