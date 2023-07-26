@@ -66,40 +66,33 @@ third-party dependencies whenever possible.
 Why?
 ----
 
-To demonstrate [the results](https://hasen.substack.com/p/the-stupid-programmer-manifesto) of 
-[following](parable_two_programmers.md) the [programming](https://en.wikipedia.org/wiki/Extreme_programming) 
-[technique](https://web.stanford.edu/~ouster/cgi-bin/book.php) I offer to colleagues and clients.
-Built using [test-driven development](http://wiki.c2.com/?TestDrivenDevelopment).
+To have a working example of the programming technique I offer to colleagues and clients.
 
-Developers benefit from several aspects:
+Concrete benefits:
 
 - The code is [minimalistic](size_comparisons.md) on purpose.  It does not
   handle every imaginable case, but it fosters [modifying the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There
   is nothing to prevent inclusion of extra libraries, but basics are handled.
 
 - The [compiled binary is small](perf_data/framework_perf_comparison.md) - around 150 kilobytes, which includes the database, web server,
-  templating, logging, and HTML parsing.  The [example projects](#example-projects-demonstrating-usage)
+  templating, logging, and HTML parsing.  The [example projects](../README.md#example-projects-demonstrating-usage)
   show how to continue that pattern with the business logic.  This makes everything faster - sending to
   production takes seconds.
 
-- It is less difficult to understand than major web frameworks, purely because there is _a hundred times_ less code.
-
-- [No magic](https://blog.codinghorror.com/the-magpie-developer/). There are no systems that use reflection or annotations
-  to figure things out for you.  This project assumes a developer wants more control over the levers and can handle
-  a bit more of the essential complexity, as a tradeoff for improved maintainability.
+- In many web frameworks, there are annotation-based mechanisms for hiding complexity. These have their greatest
+  value during the initial implementation phase, saving a few seconds typing.  However, we spend the majority of time in the
+  maintenance phase, where such tools obscure the control flow. Since the priority here is on making the maintenance phase easiest,
+  mechanisms like these were avoided.
 
 - [Well-documented throughout](https://hackaday.com/2019/03/05/good-code-documents-itself-and-other-hilarious-jokes-you-shouldnt-tell-yourself/).
   More supportive of long-term maintenance.
 
-- Zero dependencies.  Projects often
-  incorporate many dependencies, which must be kept updated, leading to churn. It turns out
-  the standard library is sufficient for most needs.  Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
+- Zero dependencies.  Projects often incorporate many dependencies, which must be kept updated, leading to churn. The 
+  standard library is sufficient for most needs.  Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
 
-- Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). As an example,
-  it can respond to [19,500 web requests per second](perf_data/response_speed_test.md). The [database can perform 2 _million_ writes](perf_data/database_speed_test.md) per
-  second.  The [templating engine renders 27,000 times per second](perf_data/templateRenderTest.md).
-
-- Minimal resource requirements.  The free-tier on cloud providers should suit it well.
+- Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). See
+  the [response speed test](perf_data/response_speed_test.md), the [database speed test](perf_data/database_speed_test.md), and 
+  the [templating engine speed test](perf_data/templateRenderTest.md).
 
 - Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
   This allows it to manage [thousands of concurrent requests](perf_data/loom_perf.md) on resource-constrained
