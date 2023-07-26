@@ -38,7 +38,7 @@ public class FunctionalTesting {
     }
 
     /**
-     * A {@link Request} supporting easier testing
+     * A {@link Response} designed to work with {@link FunctionalTesting}
      */
     public record TestResponse(StatusLine statusLine, Headers headers, Body body) {
 
