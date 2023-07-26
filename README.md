@@ -22,7 +22,7 @@ See the following links for sample projects that use this framework.
 Developer documentation:
 ------------------------
 
-See [The development handbook](docs/development_handbook.md)
+See the [development handbook](docs/development_handbook.md)
 
 
 * [The Javadoc](https://byronka.github.io/javadoc/)
