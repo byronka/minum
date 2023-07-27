@@ -134,7 +134,7 @@ public class FullSystem implements AutoCloseable {
                             "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
                                     "Date: " + date + HTTP_CRLF +
                                     "Server: minum" + HTTP_CRLF +
-                                    "Location: https://" + hostname + ":" + constants.SECURE_SERVER_PORT + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
+                                    "Location: https://" + hostname + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
                                     HTTP_CRLF
                     );
                 }
