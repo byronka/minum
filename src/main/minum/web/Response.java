@@ -70,10 +70,6 @@ public record Response(StatusLine.StatusCode statusCode, List<String> extraHeade
         this(statusCode, extraHeaders, "".getBytes());
     }
 
-    public Response(StatusLine.StatusCode statusCode, List<String> extraHeaders, String body) {
-        this(statusCode, extraHeaders, body.getBytes());
-    }
-
     public Response(StatusLine.StatusCode statusCode) {
         this(statusCode, Collections.emptyList(), "".getBytes());
     }

@@ -437,10 +437,7 @@ public class WebTests {
                         (r.body().asBytes("image_uploads"))[1] == 2 &&
                         (r.body().asBytes("image_uploads"))[2] == 3
                 ) {
-                    return new Response(
-                            _200_OK,
-                            List.of("Content-Type: text/html; charset=UTF-8"),
-                            "<p>r was </p>");
+                    return Response.htmlOk("<p>r was </p>");
                 } else {
                   return new Response(_404_NOT_FOUND);
                 }

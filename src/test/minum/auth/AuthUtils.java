@@ -239,10 +239,10 @@ public class AuthUtils {
             }
             default -> {
                 return new Response(_401_UNAUTHORIZED,
-                        List.of("Content-Type: text/html"),
                         """
-                                Invalid account credentials. <a href="index.html">Index</a>
-                                """);
+                        Invalid account credentials. <a href="index.html">Index</a>
+                        """,
+                        List.of("Content-Type: text/html"));
             }
         }
     }
