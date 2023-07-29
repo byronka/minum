@@ -54,7 +54,7 @@ public class StartLine{
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
      */
-    static final String startLinePattern = "^(GET|POST) /(.*) HTTP/(1.1|1.0)$";
+    static final String startLinePattern = "^(GET|POST|PUT|DELETE|TRACE|PATCH|OPTIONS) /(.*) HTTP/(1.1|1.0)$";
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
     public static StartLine EMPTY(Context context) {
@@ -76,10 +76,22 @@ public class StartLine{
     }
 
     /**
-     * These are the HTTP Verbs we handle
+     * These are the HTTP Verbs we handle.
+     * @see #startLinePattern
      */
     public enum Verb {
-        GET, POST, NONE
+        GET,
+        POST,
+        PUT,
+        DELETE,
+        TRACE,
+        PATCH,
+        OPTIONS,
+
+        /**
+         * Represents the null value of Verb
+         */
+        NONE
     }
 
     /**

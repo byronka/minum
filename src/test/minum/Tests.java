@@ -72,6 +72,7 @@ public class Tests {
     new ActionQueueTests(context).tests();
     new ThrowingRunnableTests(context).tests();
     new RegexUtilsTests(context).tests();
+    new SearchUtilsTests(context).tests();
 
     handleShutdown(context);
   }
