@@ -9,6 +9,7 @@ import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
 import minum.testing.StopwatchUtils;
+import minum.utils.StacktraceUtils;
 import minum.utils.StringUtils;
 import minum.utils.ThrowingConsumer;
 
@@ -23,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
+import static minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
 import static minum.web.WebEngine.HTTP_CRLF;
 
 /**
@@ -40,6 +42,7 @@ public class WebFramework {
     private final InputStreamUtils inputStreamUtils;
     private final StopwatchUtils stopWatchUtils;
     private final BodyProcessor bodyProcessor;
+    private final Random random;
 
     /**
      * This is used as a key when registering endpoints
@@ -188,7 +191,17 @@ public class WebFramework {
                         resultingResponse = new Response(_404_NOT_FOUND);
                     } else {
                         var handlerStopwatch = new StopwatchUtils().startTimer();
-                        resultingResponse = endpoint.apply(new Request(hi, sl, body, sw.getRemoteAddr()));
+                        try {
+                            resultingResponse = endpoint.apply(new Request(hi, sl, body, sw.getRemoteAddr()));
+                        } catch (Exception ex) {
+                            // if an error happens while running an endpoint's code, this is the
+                            // last-chance handling of that error where we return a 500 and a
+                            // random code to the client, so a developer can find the detailed
+                            // information in the logs, which have that same value.
+                            int randomNumber = random.nextInt();
+                            logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
+                            resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber);
+                        }
                         logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
                     }
 
@@ -196,7 +209,8 @@ public class WebFramework {
 
                     // Here is where the bytes actually go out on the socket
                     String response = statusLineAndHeaders + HTTP_CRLF;
-                    logger.logTrace(() -> "Sending back: " + response + StringUtils.byteArrayToString(resultingResponse.body()));
+                    Response finalResultingResponse = resultingResponse;
+                    logger.logTrace(() -> "Sending back: " + response + StringUtils.byteArrayToString(finalResultingResponse.body()));
                     sw.send(response);
                     sw.send(resultingResponse.body());
                     logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
@@ -373,6 +387,7 @@ public class WebFramework {
         this.inputStreamUtils = new InputStreamUtils(context);
         this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);
+        this.random = new Random();
     }
 
     /**
