@@ -56,7 +56,7 @@ public class ActionQueue {
                     try {
                         action.run();
                     } catch (Throwable e) {
-                        logger.logAsyncError(() -> e.getMessage());
+                        logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
                     }
                 }
             } catch (InterruptedException ex) {

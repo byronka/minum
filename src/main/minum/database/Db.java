@@ -141,7 +141,11 @@ public class Db<T extends DbData<?>> {
             final Path fullPath = dbDirectory.resolve(newData.getIndex() + databaseFileSuffix);
             actionQueue.enqueue("persist data to disk", () -> {
                 mustBeTrue(!fullPath.toFile().exists(), fullPath + " must not already exist before persisting");
-                writeString(fullPath, newData.serialize());
+                String serializedData = newData.serialize();
+                mustBeFalse(serializedData == null || serializedData.isBlank(),
+                        "the serialized form of data must not be blank. " +
+                                "Is the serialization code written properly? Our datatype: " + emptyInstance);
+                writeString(fullPath, serializedData);
                 writeString(fullPathForIndexFile, String.valueOf(newData.getIndex() + 1));
             });
 
@@ -276,6 +280,8 @@ public class Db<T extends DbData<?>> {
                 int startOfSuffixIndex = filename.indexOf('.');
                 mustBeTrue(startOfSuffixIndex > 0, "the files must look like 1.ddps");
                 int fileNameIdentifier = Integer.parseInt(filename.substring(0, startOfSuffixIndex));
+                mustBeTrue(deserializedData != null, "deserialization of " + emptyInstance +
+                        " resulted in a null value. Was the serialization method implemented properly?");
                 mustBeTrue(deserializedData.getIndex() == fileNameIdentifier, "The filename must correspond to the data's index. e.g. 1.ddps must have an id of 1");
 
                 // put the data into the in-memory data structure

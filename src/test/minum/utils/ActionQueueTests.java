@@ -4,6 +4,7 @@ import minum.Context;
 import minum.testing.TestLogger;
 
 import static minum.testing.TestFramework.assertEquals;
+import static minum.testing.TestFramework.assertTrue;
 
 public class ActionQueueTests {
 
@@ -34,8 +35,9 @@ public class ActionQueueTests {
             // unavoidable race condition - if I check logger's list of messages without
             // waiting, I will definitely get there before actionqueue.
             MyThread.sleep(50);
-            String loggedMessage = logger.findFirstMessageThatContains("This is a");
-            assertEquals(loggedMessage, message);
+            String loggedMessage = logger.findFirstMessageThatContains(message);
+            assertTrue(!loggedMessage.isBlank(),
+                    "logged message must include expected message.  What was logged: " + loggedMessage);
         }
     }
 }
