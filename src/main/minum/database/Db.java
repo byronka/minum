@@ -127,7 +127,7 @@ public class Db<T extends DbData<?>> {
      *
      * @param newData the data we are writing
      */
-    public void write(T newData) {
+    public T write(T newData) {
         writeLock.lock();
         try {
             // load data if needed
@@ -144,6 +144,10 @@ public class Db<T extends DbData<?>> {
                 writeString(fullPath, newData.serialize());
                 writeString(fullPathForIndexFile, String.valueOf(newData.getIndex() + 1));
             });
+
+            // returning the data at this point is the most convenient
+            // way users will have access to the new index of the data.
+            return newData;
         } finally {
             writeLock.unlock();
         }
