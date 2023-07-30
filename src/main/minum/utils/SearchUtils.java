@@ -19,7 +19,7 @@ public class SearchUtils {
     /**
      * This helper method will give you the one item in this list, or
      * null if there are none.  If there's more than 1, it will throw
-     * an exception.  This is for those time when we absolutely expect
+     * an exception.  This is for those times when we absolutely expect
      * there to be just one of a thing in a database, like if we're searching
      * for Persons by id.
      * @param searchPredicate a {@link Predicate} run to search for an element in the stream.
