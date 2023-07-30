@@ -237,6 +237,8 @@ public class Db<T extends DbData<?>> {
             return;
         }
 
+        // walk through all the files in this directory, collecting
+        // all regular files (non-subdirectories) except for index.ddps
         try (final var pathStream = Files.walk(dbDirectory)) {
             final var listOfFiles = pathStream.filter(path -> {
                 return Files.exists(path) &&
@@ -264,6 +266,15 @@ public class Db<T extends DbData<?>> {
             try {
                 @SuppressWarnings("unchecked")
                 T deserializedData = (T) emptyInstance.deserialize(fileContents);
+
+                // confirm that the name of the file (e.g. 1.ddps) and its internal identifier (e.g. 1) are aligned.
+                String filename = p.getFileName().toString();
+                int startOfSuffixIndex = filename.indexOf('.');
+                mustBeTrue(startOfSuffixIndex > 0, "the files must look like 1.ddps");
+                int fileNameIdentifier = Integer.parseInt(filename.substring(0, startOfSuffixIndex));
+                mustBeTrue(deserializedData.getIndex() == fileNameIdentifier, "The filename must correspond to the data's index. e.g. 1.ddps must have an id of 1");
+
+                // put the data into the in-memory data structure
                 data.put(deserializedData.getIndex(), deserializedData);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
