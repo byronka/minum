@@ -63,7 +63,7 @@ Why?
 ----
 
 To have a working example of the programming technique I offer to colleagues and clients.  This 
-was an experiment.  The hypothesis was: If I take all my beliefs about software development and 
+was an experiment.  The hypothesis was: If I take all my [beliefs](#theme) about software development and 
 apply them in the most idealistic manner possible, I think it will enable productivity far 
 exceeding ordinary development practices.  
 
