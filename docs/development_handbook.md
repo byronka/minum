@@ -62,7 +62,12 @@ third-party dependencies whenever possible.
 Why?
 ----
 
-To have a working example of the programming technique I offer to colleagues and clients.
+To have a working example of the programming technique I offer to colleagues and clients.  This 
+was an experiment.  The hypothesis was: If I take all my beliefs about software development and 
+apply them in the most idealistic manner possible, I think it will enable productivity far 
+exceeding ordinary development practices.  
+
+The experiment is still ongoing, but I have seen some interim benefits.
 
 Concrete benefits:
 
