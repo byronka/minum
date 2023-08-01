@@ -98,9 +98,16 @@ public class StaticFilesCacheTests {
             assertTrue(response == null);
         }
 
-        logger.test("If the static cache is given something that it can't handle, it throws an exception"); {
-            var ex = assertThrows(RuntimeException.class, () -> staticFilesCache.createStaticFileResponse("Foo", new byte[0]));
-            assertEquals(ex.getMessage(), "StaticFilesCache cannot handle this file: Foo");
+        /*
+         If we encounter a file we don't recognize, we'll label it as application/octet-stream.  Browsers
+         won't know what to do with this, so they will treat it as if the Content-Disposition header was set
+        to attachment, and propose a "Save As" dialog.  This will make it clearer when data has not
+        been labeled with a proper mime.
+         */
+        logger.test("If the static cache is given something that it can't handle, it returns application/octet-stream"); {
+            var response = staticFilesCache.createStaticFileResponse("Foo", new byte[0]);
+            assertEquals(response.extraHeaders().get("Content-Type"), "application/octet-stream");
         }
+
     }
 }

@@ -8,7 +8,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -39,10 +38,27 @@ public class StaticFilesCache {
 
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
+    private final Map<String, String> fileSuffixToMime;
 
     public StaticFilesCache(ILogger logger) {
         staticResponses = new HashMap<>();
         this.logger = logger;
+        fileSuffixToMime = new HashMap<>();
+        addDefaultValuesForMimeMap();
+    }
+
+    /**
+     * These are the default starting values for mappings
+     * between file suffixes and appropriate mime types
+     */
+    private void addDefaultValuesForMimeMap() {
+        fileSuffixToMime.put("css", "text/css");
+        fileSuffixToMime.put("js", "application/javascript");
+        fileSuffixToMime.put("webp", "image/webp");
+        fileSuffixToMime.put("jpg", "image/jpeg");
+        fileSuffixToMime.put("jpeg", "image/jpeg");
+        fileSuffixToMime.put("htm", "text/html; charset=UTF-8");
+        fileSuffixToMime.put("html", "text/html; charset=UTF-8");
     }
 
     public Response getStaticResponse(String key) {
@@ -65,40 +81,39 @@ public class StaticFilesCache {
 
         try {
             String fullFileLocation = STATIC_FILES_DIRECTORY + file;
-            byte[] fileContents = null;
-            if (Set.of(".css",".js",".webp",".html",".htm").stream().anyMatch(x -> file.contains(x) )) {
-                URL resource = StaticFilesCache.class.getClassLoader().getResource(fullFileLocation);
+            byte[] fileContents;
+            URL resource = StaticFilesCache.class.getClassLoader().getResource(fullFileLocation);
 
-                if (resource == null) {
-                    logger.logDebug(() -> "Did not find " + file + " in our resources, returning null Response");
-                    return null;
-                }
+            if (resource == null) {
+                logger.logDebug(() -> "Did not find " + file + " in our resources, returning null Response");
+                return null;
+            }
 
-                URI uri = URI.create("");
-                try {
-                    uri = resource.toURI();
-                } catch (URISyntaxException ex) {
-                    logger.logDebug(() -> "Exception thrown when converting URI to URL for "+resource+": "+ex);
-                }
+            URI uri = URI.create("");
+            try {
+                uri = resource.toURI();
+            } catch (URISyntaxException ex) {
+                logger.logDebug(() -> "Exception thrown when converting URI to URL for "+resource+": "+ex);
+            }
 
-                if (uri.getScheme().equals("jar")) {
-                /*
-                This part is necessary because it's the only way we can set up to loop
-                through paths (files) later.  That is to say, when we getResource(path), it works fine,
-                but if we want to get a list of all the files in a directory inside our jar file,
-                we have to do it this way.
-                 */
-                    try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-                        final var myPath = fileSystem.getPath(fullFileLocation);
-                        fileContents = Files.readAllBytes(myPath);
-                    }
-                } else {
-                    final var myPath = Paths.get(uri);
+            if (uri.getScheme().equals("jar")) {
+            /*
+            This part is necessary because it's the only way we can set up to loop
+            through paths (files) later.  That is to say, when we getResource(path), it works fine,
+            but if we want to get a list of all the files in a directory inside our jar file,
+            we have to do it this way.
+             */
+                try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                    final var myPath = fileSystem.getPath(fullFileLocation);
                     fileContents = Files.readAllBytes(myPath);
                 }
+            } else {
+                final var myPath = Paths.get(uri);
+                fileContents = Files.readAllBytes(myPath);
             }
-            if (fileContents == null) return null;
+            if (fileContents == null || fileContents.length == 0) return null;
 
+            // if we do get bytes, figure out the best response headers for it.
             Response result = createStaticFileResponse(file, fileContents);
 
             logger.logTrace(() -> "Storing in cache - filename: " + file);
@@ -115,28 +130,46 @@ public class StaticFilesCache {
      * an appropritate {@link Response} object to be stored in the cache.
      */
     Response createStaticFileResponse(String path, byte[] fileContents) {
-        Response result;
-        if (path.toString().endsWith(".css")) {
-            result = createOkResponseForStaticFiles(fileContents,"Content-Type: text/css");
-        } else if (path.toString().endsWith(".js")) {
-            result = createOkResponseForStaticFiles(fileContents, "Content-Type: application/javascript");
-        } else if (path.toString().endsWith(".webp")) {
-            result = createOkResponseForStaticFiles(fileContents, "Content-Type: image/webp");
-        } else if (path.toString().endsWith(".html") || path.toString().endsWith(".htm")) {
-            result = createOkResponseForStaticFiles(fileContents, "Content-Type: text/html; charset=UTF-8");
-        } else {
-            throw new RuntimeException("StaticFilesCache cannot handle this file: " + path.toString());
+        String mimeType = null;
+
+        // if the provided path has a dot in it, use that
+        // to obtain a suffix for determining file type
+        String fileName = path.toString();
+        int suffixBeginIndex = fileName.lastIndexOf('.');
+        if (suffixBeginIndex > 0) {
+            String suffix = fileName.substring(suffixBeginIndex+1);
+            mimeType = fileSuffixToMime.get(suffix);
         }
-        return result;
+
+        // if we don't find any registered mime types for this
+        // suffix, or if it doesn't have a suffix, set the mime type
+        // to application/octet-stream
+        if (mimeType == null) {
+            mimeType = "application/octet-stream";
+        }
+
+        return createOkResponseForStaticFiles(fileContents, mimeType);
     }
 
     /**
      * All static responses will get a cache time of 60 seconds
      */
-    private Response createOkResponseForStaticFiles(byte[] fileContents, String contentTypeHeader) {
+    private Response createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
+        var headers = Map.of("Cache-Control", "max-age=60",
+                "Content-Type", mimeType);
+
         return new Response(
                 StatusLine.StatusCode._200_OK,
-                List.of(contentTypeHeader, "Cache-Control: max-age=60"),
+                headers,
                 fileContents);
+    }
+
+    /**
+     * This getter allows users to add extra mappings
+     * between file suffixes and mime types, in case
+     * a user needs one that was not provided.
+     */
+    public Map<String,String> getSuffixToMime() {
+        return fileSuffixToMime;
     }
 }

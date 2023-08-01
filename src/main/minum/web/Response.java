@@ -1,9 +1,6 @@
 package minum.web;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Represents an HTTP response. This is what will get sent back to the
@@ -20,62 +17,62 @@ import java.util.List;
  * A server sends response messages to the client, which consist of:
  * </p>
  * <ul>
- *     <li>
- *      a status line, consisting of the protocol version, a space, the
- *      response status code, another space, a possibly empty reason
- *      phrase, a carriage return and a line feed, e.g.:
- *      <pre>
- *          HTTP/1.1 200 OK
- *      </pre>
- *      </li>
+ * li>
+ * a status line, consisting of the protocol version, a space, the
+ * response status code, another space, a possibly empty reason
+ * phrase, a carriage return and a line feed, e.g.:
+ * <pre>
+ * HTTP/1.1 200 OK
+ * </pre>
+ * </li>
  *
- *      <li>
- *          zero or more response header fields, each consisting of the case-insensitive
- *          field name, a colon, optional leading whitespace, the field value, an
- *          optional trailing whitespace and ending with a carriage return and a line feed, e.g.:
- *          <pre>
- *          Content-Type: text/html
- *          </pre>
- *      </li>
+ * <li>
+ * zero or more response header fields, each consisting of the case-insensitive
+ * field name, a colon, optional leading whitespace, the field value, an
+ * optional trailing whitespace and ending with a carriage return and a line feed, e.g.:
+ * <pre>
+ * Content-Type: text/html
+ * </pre>
+ * </li>
  *
- *      <li>
- *          an empty line, consisting of a carriage return and a line feed;
- *      </li>
+ * <li>
+ * an empty line, consisting of a carriage return and a line feed;
+ * </li>
  *
- *      <li>
- *          an optional message body.
- *      </li>
+ * <li>
+ * an optional message body.
+ * </li>
  *</ul>
  * @param extraHeaders extra headers we want to return with the response.
  */
-public record Response(StatusLine.StatusCode statusCode, List<String> extraHeaders,
+public record Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders,
                        byte[] body) {
     public Response(StatusLine.StatusCode statusCode, byte[] body) {
-        this(statusCode, Collections.emptyList(), body);
+        this(statusCode, Map.of(), body);
     }
 
     public Response(StatusLine.StatusCode statusCode, String body) {
-        this(statusCode, Collections.emptyList(), body.getBytes());
+        this(statusCode, Map.of(), body.getBytes());
     }
 
-    public Response(StatusLine.StatusCode statusCode, String body, List<String> extraHeaders) {
+    public Response(StatusLine.StatusCode statusCode, String body, Map<String, String> extraHeaders) {
         this(statusCode, extraHeaders, body.getBytes());
     }
 
-    public Response(StatusLine.StatusCode statusCode, byte[] body, List<String> extraHeaders) {
+    public Response(StatusLine.StatusCode statusCode, byte[] body, Map<String, String> extraHeaders) {
         this(statusCode, extraHeaders, body);
     }
 
-    public Response(StatusLine.StatusCode statusCode, List<String> extraHeaders) {
+    public Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders) {
         this(statusCode, extraHeaders, "".getBytes());
     }
 
     public Response(StatusLine.StatusCode statusCode) {
-        this(statusCode, Collections.emptyList(), "".getBytes());
+        this(statusCode, Map.of(), "".getBytes());
     }
 
     public static Response redirectTo(String locationUrl) {
-        return new Response(StatusLine.StatusCode._303_SEE_OTHER, List.of("location: " + locationUrl));
+        return new Response(StatusLine.StatusCode._303_SEE_OTHER, Map.of("location", locationUrl));
     }
 
     /**
@@ -84,10 +81,10 @@ public record Response(StatusLine.StatusCode statusCode, List<String> extraHeade
      * lets you add extra headers on top of the basic content-type headers
      * that are needed to specify this is HTML.
      */
-    public static Response htmlOk(String body, List<String> extraHeaders) {
-        var headers = new ArrayList<String>();
-        headers.add("Content-Type: text/html; charset=UTF-8");
-        headers.addAll(extraHeaders);
+    public static Response htmlOk(String body, Map<String, String> extraHeaders) {
+        var headers = new HashMap<String, String>();
+        headers.put("Content-Type", "text/html; charset=UTF-8");
+        headers.putAll(extraHeaders);
         return new Response(StatusLine.StatusCode._200_OK, body, headers);
     }
 
@@ -96,6 +93,6 @@ public record Response(StatusLine.StatusCode statusCode, List<String> extraHeade
      * lets you skip some of the boilerplate.
      */
     public static Response htmlOk(String body) {
-        return htmlOk(body, List.of());
+        return htmlOk(body, Map.of());
     }
 }

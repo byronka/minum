@@ -33,9 +33,11 @@ public class TestLogger extends Logger {
     private int testCount = 1;
 
     /**
-     * Writes a Junit-style xml file to out/reports/tests/tests.xml
+     * Writes a Junit-style xml file to out/reports/tests/YOUR_FILENAME_HERE.xml
+     * @param filename the name of the test report.  Since this is
+     *                 an XML file, it will receive a suffix of .xml
      */
-    public void writeTestReport() throws IOException {
+    public void writeTestReport(String filename) throws IOException {
         if (currentTestSuite != null) {
             includeTimingForPreviousTest();
         }
@@ -57,7 +59,7 @@ public class TestLogger extends Logger {
                 </testsuites>
                 """;
         Files.createDirectories(Path.of("out/reports/tests"));
-        FileUtils.writeString(Path.of("out/reports/tests/tests.xml"), innerXmlReport);
+        FileUtils.writeString(Path.of("out/reports/tests/"+filename+".xml"), innerXmlReport);
     }
 
     /**

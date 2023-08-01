@@ -255,7 +255,7 @@ public class WebFramework {
         stringBuilder
                 .append( "Date: " + date + HTTP_CRLF )
                 .append( "Server: minum" + HTTP_CRLF )
-                .append(  r.extraHeaders().stream().map(x -> x + HTTP_CRLF).collect(Collectors.joining()))
+                .append(  r.extraHeaders().entrySet().stream().map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF).collect(Collectors.joining()))
                 .append("Content-Length: " + r.body().length + HTTP_CRLF );
 
         // if we're a keep-alive connection, reply with a keep-alive header
@@ -442,5 +442,24 @@ public class WebFramework {
      */
     public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
         return new Db<>(Path.of(constants.DB_DIRECTORY, name), context, instance);
+    }
+
+    /**
+     * This allows users to add extra mappings
+     * between file suffixes and mime types, in case
+     * a user needs one that was not provided.
+     * <p>
+     *     This is made available through the
+     *     web framework.
+     * </p>
+     * <p>
+     *     Example:
+     * </p>
+     * <pre>
+     * {@code webFramework.addMimeForSuffix().put("foo","text/foo")}
+     * </pre>
+     */
+    public void addMimeForSuffix(String suffix, String mimeType) {
+        staticFilesCache.getSuffixToMime().put(suffix, mimeType);
     }
 }

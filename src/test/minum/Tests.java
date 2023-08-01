@@ -45,7 +45,7 @@ public class Tests {
     System.out.println("----  Tests finished ----");
     System.out.println("-------------------------");
     System.out.println();
-    System.out.println("See test report at out/reports/tests/tests.xml\n");
+    System.out.println("See test reports at out/reports/tests/\n");
   }
 
   /**
@@ -101,7 +101,7 @@ public class Tests {
 
   private void handleShutdown(Context context) throws IOException {
     var logger2 = (TestLogger) context.getLogger();
-    logger2.writeTestReport();
+    logger2.writeTestReport("unit_tests");
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger2);
     new ActionQueueKiller(context).killAllQueues();
     context.getExecutorService().shutdownNow();
@@ -128,7 +128,9 @@ public class Tests {
     fs2.removeShutdownHook();
     fs2.close();
     context.getExecutorService().shutdownNow();
+    ((TestLogger)context.getLogger()).writeTestReport("functional_tests");
     context.getLogger().stop();
+
   }
 
 }

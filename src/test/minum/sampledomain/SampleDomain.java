@@ -55,7 +55,7 @@ public class SampleDomain {
 
         final var newPersonName = new PersonName(0L, nameEntry);
         db.write(newPersonName);
-        return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+        return new Response(_303_SEE_OTHER, Map.of("Location","formentry"));
     }
 
     /**

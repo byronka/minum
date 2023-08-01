@@ -269,11 +269,9 @@ public static <T> void assertEquals(T left, T right) {
 The rest of the testing framework is about the same.  It's never simple,
 but we can choose to work with fewer tools.
 
-There aren't any reporting tools (other than the code coverage, for which we
-use Jacoco), but in some regards that doesn't diverge from the paradigm too much: Reporting is
-not really the point of tests.  Instead, the point is to give the developer confidence that the
-recent changes aren't breaking anything.  Until there's a compelling developer-oriented reason
-for a report, it will remain a lower priority.
+There is some rudimentary test reporting (see out/reports/test/tests.xml after running tests,
+and see writeTestReport in TestLogger), but in most regards it is unimportant.  Reporting is not
+the point of tests.  Instead, the point is to give the developer confidence that the recent changes aren't breaking anything.
 
 Instead of using a mocking framework, we just create a
 "Fake" version of a class (e.g. FakeSocketWrapper).  This is
@@ -284,48 +282,60 @@ often take less than even 1 millisecond.
 Database
 --------
 
-developers are accustomed to using sophisticated databases. We're talking relational or NoSQL
-databases here - there's lots of mechanisms for the CRUD and ACID-compliance, high-availability,
-awesome performance, and so on.
+Developers are accustomed to using sophisticated databases - relational or NoSQL
+databases.  But what if your system has low-risk user stories (especially at its inception)
+such that a different approach may work?
 
-But what if you started with much less?
-
-In the paradigm here, you are given a scarce minimum of abilities.  Here's an example where we
+In the paradigm here, your capabilities are minimal.  Here's an example where we
 create a new user in a registration process:
 
 ```java
-    private final List<User> users;
-    
-    ...
-
-    var newUser = new User(foo, bar);
-    users.add(newUser);
-    userDiskData.persistToDisk(newUser);
+  final var newUser = new User(0L, newUsername, hashedPassword, newSalt);
+  userDiskData.write(newUser);
 ```
 
-You can see here how it works - in this example we're creating a new user and storing it in a 
-list.  Immediately after, we persist that data to disk.
+This data stays in memory and its manipulations eventually end up persisted.  The database
+reads from disk just once - the first time any data is required, all data is loaded from disk.
+Reading that, you may ask - would it not take a long time to read all that data? It does not
+as long as you follow the general paradigm:
 
-The only time we read this data is at system startup, where we run a command `readAndDeserialize()`
-to load all the data from the disk into a list, and from there into any structure we wish.
+_thin data_: identifiers, metadata
+
+_fat data_: documents, detailed data
+
+The expectation is to use the database for storing thin data, and store fat data using regular
+file writes.  Let me explain with a concrete example.
+
+Say your system receives photograph files.  When a user uploads a photograph, you may create
+thin data - a new integer representing the identifier for the photograph, and a UUID for use
+in representing that photograph to the outside world.  Because the system uses atomic values
+for the identifiers, you are assured no photograph's identifier will conflict with any other.
+Now that you have some unique identifiers (the UUID is also unique), you may use either to
+name the photograph and store it in a directory for later retrieval.  
+
+So you see, the only data that gets stored in the in-memory database is the thin data.
+
+Another way this plays out is audit information.  There is no need to overstuff your database.
+If you need to record many audits of user actions in the system, it would be better to 
+write those actions to simple files, per person maybe, rather than store it all in memory.
 
 
 Logging
 -------
 
 Logging capabilities are provided by the `Logger` class.  When the system starts, it 
-creates one instance of this class and then passes it down the call tree.  It is 
-stored and available for your use in the WebFramework class.
+creates one instance of this class and then stores that in an instance of Context, which
+is passed around everywhere.
 
 
 Threads
 -------
 
-If you need to run parts of your program in their own threads, it's available.  Your 
-class will need an instance of the ExecutorService class - for example, see `LoopingSessionReviewing`
-in the test folder, which shows some samples of framework use.  In this case, it requires
-the thread so that it can periodically wake up and check whether any of the authentication
-sessions are old and need to be removed.
+If you need to run parts of your program in their own threads, it is available by creating
+threads and running them in an instance of the ExecutorService, which is available in the Context instance
+that is passed around the system.  for an example of its use, see `LoopingSessionReviewing`
+in the test folder.  In this case, it requires the thread so that it can periodically wake up 
+and check whether any of the authentication sessions are old and need to be removed.
 
 Our project uses virtual threads, a very recent addition to the Java language.  Also known
 as "Project Loom", it enables our server to handle many concurrent requests with minimal
