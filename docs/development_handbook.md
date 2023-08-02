@@ -282,12 +282,14 @@ often take less than even 1 millisecond.
 Database
 --------
 
-Developers are accustomed to using sophisticated databases - relational or NoSQL
-databases.  But what if your system has low-risk user stories (especially at its inception)
-such that a different approach may work?
+If your business needs are relatively lower-risk, there is a chance you can use
+a database with less safety guarantees.  The database provided here is just such
+a one.  It's in-memory-based, with eventual disk persistence.  This is a clear
+and intentionally different choice than an ACID-compliant database, but can
+be valuable in a variety of business cases.
 
-In the paradigm here, your capabilities are minimal.  Here's an example where we
-create a new user in a registration process:
+In this paradigm, the capabilities are minimal.  Here is an example of
+creating a new user in a registration process:
 
 ```java
   final var newUser = new User(0L, newUsername, hashedPassword, newSalt);
@@ -296,22 +298,22 @@ create a new user in a registration process:
 
 This data stays in memory and its manipulations eventually end up persisted.  The database
 reads from disk just once - the first time any data is required, all data is loaded from disk.
-Reading that, you may ask - would it not take a long time to read all that data? It does not
-as long as you follow the general paradigm:
+
+This is the general paradigm:
 
 _thin data_: identifiers, metadata
 
-_fat data_: documents, detailed data
+_fat data_: documents and other large data
 
 The expectation is to use the database for storing thin data, and store fat data using regular
-file writes.  Let me explain with a concrete example.
+file writes.  Here is a concrete example:
 
 Say your system receives photograph files.  When a user uploads a photograph, you may create
 thin data - a new integer representing the identifier for the photograph, and a UUID for use
 in representing that photograph to the outside world.  Because the system uses atomic values
 for the identifiers, you are assured no photograph's identifier will conflict with any other.
 Now that you have some unique identifiers (the UUID is also unique), you may use either to
-name the photograph and store it in a directory for later retrieval.  
+name the photograph file itself.
 
 So you see, the only data that gets stored in the in-memory database is the thin data.
 
