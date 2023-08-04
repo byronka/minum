@@ -12,27 +12,28 @@ To build a new endpoint, follow this guidance.
 
 I've generally found that for something as hard as naming, it's best just to 
 pick a bad name and bad location, and hold off until the end to make those 
-choices.  Foo is always an excellent option.  Thankfully, Java is a 
-strongly-typed language with good tooling options, so automatic renaming is 
+choices.  Foo is an excellent option.  Thankfully, Java is a 
+strongly-typed language with good tooling options, so automatic moving and renaming is 
 easy and safe.  You are using a good IDE aren't you? Even though I love 
-[Vim](https://www.vim.org/), I really recommend fully-fledged IDE's for 
-serious work, like [Intellij](https://www.jetbrains.com/idea/)
+[Vim](https://www.vim.org/), I really recommend fully-fledged IDE's like [Intellij](https://www.jetbrains.com/idea/) for 
+serious work. 
 
 ### Step 2 - Setup the template
 
 Here's a template for the most likely case - needing access to persisted data. I'm
 including a method called `myNewEndpoint` which is what will handle the client request.
 
-The full example is at 'src/test/minum/sampledomain/SampleDomain.java'
+The full example is at `src/test/minum/sampledomain/SampleDomain.java`
 
 I'm going to heavily document this so you understand why each part is necessary, and
 to explain some parts which aren't immediately apparent in the code. Please do pay
 attention to all the comments, they are all contextual to this HOWTO.
 
 Quick summary:
+--------------
 
-Endpoints in this class, `formEntry`, `testform`, and `sampleDomainIndex`.
-Each has the same method signature: `Response methodName(Request r)`
+* Endpoints in this class: `formEntry`, `testform`, and `sampleDomainIndex`.
+* Each has the same method signature: `Response methodName(Request r)`
 
 ```java
 
@@ -48,29 +49,12 @@ public class SampleDomain {
         This object lets us deal with disk persistence for
         all the PersonName data. 
      */
-    private final DatabaseDiskPersistenceSimpler<PersonName> db;
-    
-    /*
-        This is important data for the endpoints.  It remains
-        here in memory, but when we add to it, we must also remember
-        to write to disk.  When we delete from this, we delete
-        from disk.
-     */
-    private final List<PersonName> personNames;
+    private final Db<PersonName> db;
     
     /*
         The AuthUtils are used to authenticate / authorize the user
      */
     private final AuthUtils auth;
-    
-    /*
-        Each new PersonName gets a unique identifier.  Using an
-        AtomicLong, we don't have to worry about multiple threads.
-        The whole point of the Atomic classes is that they are
-        thread safe and don't require synchronization, so they
-        don't slow us down.
-     */
-    private final AtomicLong newPersonIndex;
     
     /*
         A TemplateProcessor is how we use templates.  See the
@@ -89,7 +73,7 @@ public class SampleDomain {
     /*
         You may decide to keep non-template strings in the template directory,
         simply because it is easier to organize, and they won't be publicly 
-        available - you will need to read them in.
+        available for GET requests.
      */
     private final String authHomepage;
     private final String unauthHomepage;
@@ -98,25 +82,12 @@ public class SampleDomain {
     /* Constructor        */
     /* ****************** */
     
-    public SampleDomain(DatabaseDiskPersistenceSimpler<PersonName> diskData, AuthUtils auth) {
+    public SampleDomain(Db<PersonName> diskData, AuthUtils auth) {
         
         
         this.db = diskData;
-        
-        /*
-            This is where we pull the data from disk, and only happens once - when
-            this class is instantiated at system startup.
-         */
-        
-        personNames = diskData.readAndDeserialize(PersonName.EMPTY);
         this.auth = auth;
         
-        /*
-            Initialize the AtomicLong.  We have to calculate the first index
-            based on what has been read from disk.    
-         */
-        
-        newPersonIndex = new AtomicLong(db.calculateNextIndex(personNames));
         nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
         authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
         unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
@@ -144,12 +115,6 @@ public class SampleDomain {
         return Response.htmlOk(nameEntryTemplate.renderTemplate(Map.of("names", names)));
     }
 
-    /*
-        Observe that as we get new data, we have to incorporate it in
-        the in-memory data structure (in this case, a list), as well
-        as writing it to disk.    
-     */
-    
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
@@ -159,7 +124,6 @@ public class SampleDomain {
         final var nameEntry = r.body().asString("name_entry");
 
         final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
-        personNames.add(newPersonName);
         db.persistToDisk(newPersonName);
         return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
     }
@@ -206,7 +170,7 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        DatabaseDiskPersistenceSimpler<PersonName> sampleDomainDb = webFramework.getDb("names");
+        Db<PersonName> sampleDomainDb = webFramework.getDb("names");
         return new SampleDomain(sampleDomainDb, auth);
     }
 }

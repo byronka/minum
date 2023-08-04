@@ -1,8 +1,8 @@
 Creating a new test class
 =========================
 
-If you're following good practices, you ought to be creating automated tests for your
-work.  Here, we're just going to talk about the practical necessities of what you need
+If you're following good practices, you are creating automated tests for your
+work.  Here are the practical necessities of what you need
 to do if you are adding a new test class.
 
 ### Step 1 - Name and location
@@ -10,7 +10,7 @@ to do if you are adding a new test class.
 Decide the name and location of your test class.  This might be the most difficult part. As
 they say, there are only two hard problems in computer science, and naming things is one!
 
-Enough joking.
+But enough joking.
 
 Consider the location of your test class.  All tests should
 be placed under the `src/test` directory, but be aware that the subdirectories underneath
@@ -55,7 +55,7 @@ public class FooTests {
         logger.testSuite("FooTests");
     }
 
-    public void tests() throws IOException {
+    public void tests() {
 
         /*
         Four score and seven years ago our fathers brought forth, upon 
