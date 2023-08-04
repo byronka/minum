@@ -2,6 +2,9 @@ package minum.sampledomain.photo;
 
 import minum.database.DbData;
 
+import static minum.utils.SerializationUtils.deserializeHelper;
+import static minum.utils.SerializationUtils.serializeHelper;
+
 public class Photograph extends DbData<Photograph> {
 
     private long index;

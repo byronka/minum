@@ -2,6 +2,9 @@ package minum.sampledomain;
 
 import minum.database.DbData;
 
+import static minum.utils.SerializationUtils.deserializeHelper;
+import static minum.utils.SerializationUtils.serializeHelper;
+
 public class PersonName extends DbData<PersonName> {
 
     private long index;

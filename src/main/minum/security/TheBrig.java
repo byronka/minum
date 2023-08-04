@@ -19,6 +19,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static minum.utils.Invariants.mustBeTrue;
+import static minum.utils.SerializationUtils.deserializeHelper;
+import static minum.utils.SerializationUtils.serializeHelper;
 
 /**
  * This class is responsible for monitoring the inmates who have

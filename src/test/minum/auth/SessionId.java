@@ -9,6 +9,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
+import static minum.utils.SerializationUtils.deserializeHelper;
+import static minum.utils.SerializationUtils.serializeHelper;
+
 /**
  * A record for holding information related to a session. Typically, creation of
  * this should be handled by {@link #createNewSession(long)}

@@ -18,6 +18,8 @@ import static java.util.stream.IntStream.range;
 import static minum.database.SimpleDatabaseTests.Foo.INSTANCE;
 import static minum.testing.TestFramework.*;
 import static minum.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
+import static minum.utils.SerializationUtils.deserializeHelper;
+import static minum.utils.SerializationUtils.serializeHelper;
 
 public class SimpleDatabaseTests {
     private final TestLogger logger;
