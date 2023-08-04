@@ -1,5 +1,6 @@
 package minum.web;
 
+import minum.Context;
 import minum.logging.ILogger;
 
 import java.io.IOException;
@@ -11,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import static minum.utils.Invariants.mustBeTrue;
 
 /**
  * This is a store of data for any static data we
@@ -40,9 +43,9 @@ public class StaticFilesCache {
     private final ILogger logger;
     private final Map<String, String> fileSuffixToMime;
 
-    public StaticFilesCache(ILogger logger) {
+    public StaticFilesCache(Context context) {
         staticResponses = new HashMap<>();
-        this.logger = logger;
+        this.logger = context.getLogger();
         fileSuffixToMime = new HashMap<>();
         addDefaultValuesForMimeMap();
     }
@@ -169,7 +172,15 @@ public class StaticFilesCache {
      * between file suffixes and mime types, in case
      * a user needs one that was not provided.
      */
-    public Map<String,String> getSuffixToMime() {
+    Map<String,String> getSuffixToMime() {
         return fileSuffixToMime;
+    }
+
+    void readExtraMappings(List<String> input) {
+        mustBeTrue(input.size() % 2 == 0, "input must be even (key + value = 2 items). Your input: " + input);
+
+        for (int i = 0; i < input.size(); i += 2) {
+            fileSuffixToMime.put(input.get(i), input.get(i+1));
+        }
     }
 }

@@ -320,6 +320,7 @@ public class WebFramework {
             return null;
         }
         String requestedPath = sl.getPathDetails().isolatedPath();
+        if (staticFilesCache == null) return null;
         Response response = staticFilesCache.loadStaticFile(requestedPath);
         if (response != null) {
             return request -> response;
@@ -337,6 +338,7 @@ public class WebFramework {
             return null;
         }
         String requestedPath = sl.getPathDetails().isolatedPath();
+        if (staticFilesCache == null) return null;
         final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
         if (staticResponseFound != null) {
             logger.logTrace(() -> "found a static value to handle "+ requestedPath +", returning it");
@@ -381,7 +383,6 @@ public class WebFramework {
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
         this.registeredPartialPaths = new HashMap<>();
-        this.staticFilesCache = new StaticFilesCache(logger);
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
         this.inputStreamUtils = new InputStreamUtils(context);
@@ -429,7 +430,7 @@ public class WebFramework {
      * register a {@link StaticFilesCache} to use for getting
      * and caching static values
      */
-    public void registerStaticFiles(StaticFilesCache sfc) {
+    public void setStaticFilesCache(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;
     }
 

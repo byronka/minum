@@ -1,7 +1,6 @@
 package minum;
 
 import minum.logging.ILogger;
-import minum.logging.Logger;
 import minum.logging.LoggingLevel;
 import minum.security.TheBrig;
 import minum.utils.*;
@@ -83,10 +82,10 @@ public class FullSystem implements AutoCloseable {
         System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting "+serverComment+" ***");
         theBrig = new TheBrig(context).initialize();
         webEngine = new WebEngine(context);
-        StaticFilesCache sfc = new StaticFilesCache(logger);
+        StaticFilesCache sfc = new StaticFilesCache(context);
         webFramework = new WebFramework(context);
         addShutdownHook();
-        webFramework.registerStaticFiles(sfc);
+        webFramework.setStaticFilesCache(sfc);
         final var webHandler = webFramework.makePrimaryHttpHandler();
         // should we redirect all insecure traffic to https?
         boolean shouldRedirect = constants.REDIRECT_TO_SECURE;

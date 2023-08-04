@@ -41,6 +41,7 @@ public class Constants {
         SUSPICIOUS_ERRORS = getProp("SUSPICIOUS_ERRORS", "");
         SUSPICIOUS_PATHS = getProp("SUSPICIOUS_PATHS", "");
         START_TIME = System.currentTimeMillis();
+        EXTRA_MIME_MAPPINGS = getProp("EXTRA_MIME_MAPPINGS", "");
     }
 
     /**
@@ -156,6 +157,18 @@ public class Constants {
      * class gets instantiated, and that is done at the very beginning.
      */
     public final long START_TIME;
+
+    /**
+     * These are key-value pairs for mappings between a file
+     * suffix and a mime type.
+     * <p>
+     *     These are read by our system in the StaticFilesCache
+     *     as key-1,value-1,key-2,value-2,... and so on.
+     * </p>
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+     *
+     */
+    public final List<String> EXTRA_MIME_MAPPINGS;
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing

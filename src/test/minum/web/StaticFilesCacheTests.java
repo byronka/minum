@@ -3,23 +3,27 @@ package minum.web;
 import minum.Context;
 import minum.testing.TestLogger;
 import minum.utils.FileUtils;
+import minum.utils.InvariantException;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static minum.testing.TestFramework.*;
 
 public class StaticFilesCacheTests {
     private final TestLogger logger;
+    private final Context context;
 
     public StaticFilesCacheTests(Context context) {
+        this.context = context;
         this.logger = (TestLogger) context.getLogger();
         logger.testSuite("StaticFilesCacheTests");
     }
 
     public void tests() throws IOException {
 
-        var staticFilesCache = new StaticFilesCache(logger);
+        var staticFilesCache = new StaticFilesCache(context);
 
         logger.test("Happy path - someone requests a file we have in the static directory"); {
             // first, there should be no value for this in the cache.
@@ -109,5 +113,33 @@ public class StaticFilesCacheTests {
             assertEquals(response.extraHeaders().get("Content-Type"), "application/octet-stream");
         }
 
+        /*
+        Users can add more mime types to our system by registering them
+        in the app.config file in EXTRA_MIME_MAPPINGS.
+         */
+        logger.test("It can read the extra_mime_mappings"); {
+            var input = List.of("png","image/png","wav","audio/wav");
+            staticFilesCache.readExtraMappings(input);
+            var mappings = staticFilesCache.getSuffixToMime();
+            assertEquals(mappings.get("png"), "image/png");
+            assertEquals(mappings.get("wav"), "audio/wav");
+        }
+
+        logger.test("while reading the extra mappings, bad syntax will cause a clear failure"); {
+            var input = List.of("png","image/png","EXTRA_WORD_HERE","wav","audio/wav");
+            var ex = assertThrows(InvariantException.class, () -> staticFilesCache.readExtraMappings(input));
+            assertEquals(ex.getMessage(), "input must be even (key + value = 2 items). Your input: [png, image/png, EXTRA_WORD_HERE, wav, audio/wav]");
+        }
+
+        logger.test("If there's no values, it should work fine, it should simply not add any new mime mappings"); {
+            var mappings = staticFilesCache.getSuffixToMime();
+            int before = mappings.size();
+            List<String> input = List.of();
+
+            staticFilesCache.readExtraMappings(input);
+
+            int after = mappings.size();
+            assertEquals(before,after);
+        }
     }
 }
