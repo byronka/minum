@@ -48,6 +48,7 @@ public class StaticFilesCache {
         this.logger = context.getLogger();
         fileSuffixToMime = new HashMap<>();
         addDefaultValuesForMimeMap();
+        readExtraMappings(context.getConstants().EXTRA_MIME_MAPPINGS);
     }
 
     /**
@@ -123,7 +124,7 @@ public class StaticFilesCache {
             staticResponses.put(file, result);
             return result;
         } catch (IOException ex) {
-            logger.logAsyncError(() -> "at getStaticResponse.  Returning null.  Error: " + ex.getMessage());
+            logger.logAsyncError(() -> "at getStaticResponse.  Returning null.  Error: " + ex);
             return null;
         }
     }
@@ -180,7 +181,10 @@ public class StaticFilesCache {
         mustBeTrue(input.size() % 2 == 0, "input must be even (key + value = 2 items). Your input: " + input);
 
         for (int i = 0; i < input.size(); i += 2) {
-            fileSuffixToMime.put(input.get(i), input.get(i+1));
+            String fileSuffix = input.get(i);
+            String mime = input.get(i+1);
+            logger.logTrace(() -> "Adding mime mapping: " + fileSuffix + " -> " + mime);
+            fileSuffixToMime.put(fileSuffix, mime);
         }
     }
 }
