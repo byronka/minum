@@ -28,6 +28,7 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
         _200_OK(200, "OK"),
         _201_CREATED(201, "CREATED"),
         _202_ACCEPTED(202, "ACCEPTED"),
+        _204_NO_CONTENT(204, "NO CONTENT"),
 
         /* Redirection messages (300 – 399) */
 
