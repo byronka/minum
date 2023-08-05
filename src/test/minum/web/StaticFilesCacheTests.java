@@ -29,7 +29,6 @@ public class StaticFilesCacheTests {
             // first, there should be no value for this in the cache.
             assertTrue(staticFilesCache.getStaticResponse("moon.webp") == null);
 
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("moon.webp");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
@@ -40,7 +39,6 @@ public class StaticFilesCacheTests {
         }
 
         logger.test("Testing CSS"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("main.css");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
@@ -48,7 +46,6 @@ public class StaticFilesCacheTests {
         }
 
         logger.test("Testing JS"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("index.js");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
@@ -56,7 +53,6 @@ public class StaticFilesCacheTests {
         }
 
         logger.test("Testing HTM"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("index.html");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
@@ -68,35 +64,30 @@ public class StaticFilesCacheTests {
          a directory - we don't really want that happening.
          */
         logger.test("Edge case - reading from outside the directory"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("../templates/auth/login_page_template.html");
 
             assertTrue(response == null);
         }
 
         logger.test("Edge case - forward slashes"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("//index.html");
 
             assertTrue(response == null);
         }
 
         logger.test("Edge case - colon"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile(":");
 
             assertTrue(response == null);
         }
 
         logger.test("Edge case - a directory"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("./listphotos");
 
             assertTrue(response == null);
         }
 
         logger.test("Edge case - current directory"); {
-            // When we run the load command, we get back a response
             Response response = staticFilesCache.loadStaticFile("./");
 
             assertTrue(response == null);
