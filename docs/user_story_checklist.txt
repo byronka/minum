@@ -32,6 +32,7 @@ non-functionals:
 white-box testing:
     [ ] static analysis considered
     [ ] should it be refactored?
+    [ ] have you done a quick visual scan of the test log output for issues?
 
 rendered text is highly correct:
      [ ] rendered HTML is valid (through a tool like W3C's https://validator.w3.org/)
