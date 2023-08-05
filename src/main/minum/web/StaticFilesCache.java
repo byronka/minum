@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -107,10 +105,21 @@ public class StaticFilesCache {
             but if we want to get a list of all the files in a directory inside our jar file,
             we have to do it this way.
              */
-                try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                try (final var fileSystem = FileSystems.getFileSystem(uri)) {
+                    logger.logDebug(() -> "decompressing data into an existing file system");
                     final var myPath = fileSystem.getPath(fullFileLocation);
                     fileContents = Files.readAllBytes(myPath);
+                } catch (Exception ex) {
+                    logger.logDebug(() -> "Unable to use existing file system for decompressing resources.  Falling back to creating new.");
+                    try (final var fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                        final var myPath = fileSystem.getPath(fullFileLocation);
+                        fileContents = Files.readAllBytes(myPath);
+                    } catch (Exception innerException) {
+                        logger.logAsyncError(() -> "Unable to build file system for decompressing resource.  Exception: " + innerException);
+                        fileContents = null;
+                    }
                 }
+
             } else {
                 final var myPath = Paths.get(uri);
                 fileContents = Files.readAllBytes(myPath);
