@@ -9,9 +9,7 @@ import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
 import minum.testing.StopwatchUtils;
-import minum.utils.StacktraceUtils;
-import minum.utils.StringUtils;
-import minum.utils.ThrowingConsumer;
+import minum.utils.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -23,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static minum.utils.Invariants.mustBeFalse;
+import static minum.utils.Invariants.mustBeTrue;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
 import static minum.web.WebEngine.HTTP_CRLF;
@@ -200,7 +200,7 @@ public class WebFramework {
                             // information in the logs, which have that same value.
                             int randomNumber = random.nextInt();
                             logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                            resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber);
+                            resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
                         }
                         logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
                     }
@@ -255,14 +255,21 @@ public class WebFramework {
         stringBuilder
                 .append( "Date: " + date + HTTP_CRLF )
                 .append( "Server: minum" + HTTP_CRLF )
-                .append(  r.extraHeaders().entrySet().stream().map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF).collect(Collectors.joining()))
-                .append("Content-Length: " + r.body().length + HTTP_CRLF );
+                .append(  r.extraHeaders().entrySet().stream().map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF).collect(Collectors.joining()));
+
+        // check the correctness of the content-type header versus the data length (if any data, that is)
+        boolean hasContentType = r.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
+        mustBeFalse(hasContentType && r.body().length == 0, "Only if there is data to return should you include a Content-Type header. Response headers: " + r.extraHeaders());
+
+        // if there *is* data, we had better be returning a content type
+        if (r.body().length > 0) {
+            mustBeTrue(hasContentType, "You must specify a Content-Type header in your Response object if you are returning data. Response headers: " + r.extraHeaders());
+            stringBuilder.append("Content-Length: " + r.body().length + HTTP_CRLF );
+        }
 
         // if we're a keep-alive connection, reply with a keep-alive header
-
         if (isKeepAlive) {
-            stringBuilder
-                    .append("Keep-Alive: timeout=" + constants.SOCKET_TIMEOUT_MILLIS / 1000 + HTTP_CRLF);
+            stringBuilder.append("Keep-Alive: timeout=" + constants.SOCKET_TIMEOUT_MILLIS / 1000 + HTTP_CRLF);
         }
 
         return stringBuilder.toString();

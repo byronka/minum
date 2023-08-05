@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static minum.web.StatusLine.StatusCode.*;
@@ -72,7 +73,7 @@ public class UploadPhoto {
             Files.write(photoPath, photoBytes);
         } catch (IOException e) {
             logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-            return new Response(_500_INTERNAL_SERVER_ERROR, e.toString());
+            return new Response(_500_INTERNAL_SERVER_ERROR, e.toString(), Map.of("Content-Type", "text/plain;charset=UTF-8"));
         }
         db.write(newPhotograph);
         return Response.redirectTo("photos");
