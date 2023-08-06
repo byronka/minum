@@ -42,6 +42,7 @@ public class Constants {
         SUSPICIOUS_PATHS = getProp("SUSPICIOUS_PATHS", "");
         START_TIME = System.currentTimeMillis();
         EXTRA_MIME_MAPPINGS = getProp("EXTRA_MIME_MAPPINGS", "");
+        STATIC_FILE_CACHE_TIME = getProp("STATIC_FILE_CACHE_TIME", 60 * 5);
     }
 
     /**
@@ -169,6 +170,15 @@ public class Constants {
      *
      */
     public final List<String> EXTRA_MIME_MAPPINGS;
+
+    /**
+     * Length of time, in seconds, for static files to be cached,
+     * per the provisions of the Cache-Control header, e.g.
+     * <pre>
+     *     {@code Cache-Control: max-age=300}
+     * </pre>
+     */
+    public final long STATIC_FILE_CACHE_TIME;
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing

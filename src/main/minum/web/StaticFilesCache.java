@@ -1,5 +1,6 @@
 package minum.web;
 
+import minum.Constants;
 import minum.Context;
 import minum.logging.ILogger;
 
@@ -40,11 +41,13 @@ public class StaticFilesCache {
     private final Map<String, Response> staticResponses;
     private final ILogger logger;
     private final Map<String, String> fileSuffixToMime;
+    private final Constants constants;
 
     public StaticFilesCache(Context context) {
         staticResponses = new HashMap<>();
         this.logger = context.getLogger();
         fileSuffixToMime = new HashMap<>();
+        this.constants = context.getConstants();
         addDefaultValuesForMimeMap();
         readExtraMappings(context.getConstants().EXTRA_MIME_MAPPINGS);
     }
@@ -165,10 +168,11 @@ public class StaticFilesCache {
     }
 
     /**
-     * All static responses will get a cache time of 60 seconds
+     * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private Response createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
-        var headers = Map.of("Cache-Control", "max-age=60",
+        var headers = Map.of(
+                "Cache-Control", "max-age=" + constants.STATIC_FILE_CACHE_TIME,
                 "Content-Type", mimeType);
 
         return new Response(
