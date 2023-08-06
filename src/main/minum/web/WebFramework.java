@@ -259,7 +259,6 @@ public class WebFramework {
 
         // check the correctness of the content-type header versus the data length (if any data, that is)
         boolean hasContentType = r.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
-        mustBeFalse(hasContentType && r.body().length == 0, "Only if there is data to return should you include a Content-Type header. Response headers: " + r.extraHeaders());
 
         // if there *is* data, we had better be returning a content type
         if (r.body().length > 0) {
