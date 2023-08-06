@@ -264,8 +264,20 @@ public class WebFramework {
         // if there *is* data, we had better be returning a content type
         if (r.body().length > 0) {
             mustBeTrue(hasContentType, "You must specify a Content-Type header in your Response object if you are returning data. Response headers: " + r.extraHeaders());
-            stringBuilder.append("Content-Length: " + r.body().length + HTTP_CRLF );
         }
+
+        /*
+        The rules regarding the content-length header are byzantine.  Even in the cases
+        where you aren't returning anything, servers can use this header to determine when the
+        response is finished.
+
+        There are a few rules when you MUST include it, MUST NOT, blah blah blah, but I'm
+        not following that stuff too closely because this code skips a lot of the spec.
+        For example, we don't handle OPTIONS or return any 1xx response types.
+
+        See https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length
+         */
+        stringBuilder.append("Content-Length: " + r.body().length + HTTP_CRLF );
 
         // if we're a keep-alive connection, reply with a keep-alive header
         if (isKeepAlive) {
