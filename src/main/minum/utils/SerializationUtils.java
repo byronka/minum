@@ -33,7 +33,7 @@ public class SerializationUtils {
     }
 
     /**
-     * Splits up a string based on a pipe character.  See {@link DbData#tokenizer(String, char)}
+     * Splits up a string based on a pipe character.  See {@link #tokenizer(String, char)}
      *
      * @param serializedText the string we are splitting into tokens
      */
