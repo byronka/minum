@@ -169,7 +169,7 @@ public class FullSystem implements AutoCloseable {
     }
 
     public void close() {
-        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+
         logger.logTrace(() -> "close called on " + this);
         try {
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
@@ -184,6 +184,7 @@ public class FullSystem implements AutoCloseable {
             new ActionQueueKiller(context).killAllQueues();
 
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
+
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
