@@ -34,6 +34,15 @@ public class FullSystem implements AutoCloseable {
     final InputStreamUtils inputStreamUtils;
     private WebEngine webEngine;
 
+    /**
+     * This flag gives us some control if we need
+     * to call {@link #close()} manually, so close()
+     * doesn't get run again when the shutdownHook
+     * tries calling it.  This is primarily an issue just during
+     * testing.
+     */
+    private boolean hasShutdown;
+
     private final Context context;
 
     /**
@@ -96,22 +105,25 @@ public class FullSystem implements AutoCloseable {
         // instantiate our security code
         theBrig = new TheBrig(context).initialize();
         
-        // get basic internet capabilities started 
-        webEngine = new WebEngine(context);
-        
-        // our static files cache - any static (unchanging) files, like css or images
-        StaticFilesCache sfc = new StaticFilesCache(context);
-        
         // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
+
+        // our static files cache - any static (unchanging) files, like css or images
+        StaticFilesCache sfc = new StaticFilesCache(context);
         webFramework.setStaticFilesCache(sfc);
+
+        // build the primary http handler - the beating heart of code
+        // that handles HTTP protocol
         final var webHandler = webFramework.makePrimaryHttpHandler();
-        // should we redirect all insecure traffic to https?
+
+        // should we redirect all insecure traffic to https? If so,
+        // then for port 80 all requests will cause a redirect to the secure TLS endpoint
         boolean shouldRedirect = constants.REDIRECT_TO_SECURE;
-        var handler = shouldRedirect ? webFramework.makeRedirectHandler() : webHandler;
+        var nonTlsWebHandler = shouldRedirect ? webFramework.makeRedirectHandler() : webHandler;
         
         // kick off the servers - low level internet handlers
-        server = webEngine.startServer(es, handler);
+        webEngine = new WebEngine(context);
+        server = webEngine.startServer(es, nonTlsWebHandler);
         sslServer = webEngine.startSslServer(es, webHandler);
 
         // document how long to start up the system
@@ -170,23 +182,32 @@ public class FullSystem implements AutoCloseable {
 
     public void close() {
 
-        logger.logTrace(() -> "close called on " + this);
-        try {
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
+        if (!hasShutdown) {
+            logger.logTrace(() -> "close called on " + this);
+            try {
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
 
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
-            if (server != null) server.close();
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
+                if (server != null) server.close();
 
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
-            if (sslServer != null) sslServer.close();
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
+                if (sslServer != null) sslServer.close();
 
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all the action queues: " + this.context.getActionQueueList());
-            new ActionQueueKiller(context).killAllQueues();
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all the action queues: " + this.context.getActionQueueList());
+                new ActionQueueKiller(context).killAllQueues();
 
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                    System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
 
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            } finally {
+                hasShutdown = true;
+            }
         }
     }
 
