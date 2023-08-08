@@ -1,9 +1,12 @@
 package minum;
 
+import minum.database.Db;
+import minum.database.DbData;
 import minum.logging.ILogger;
 import minum.utils.ActionQueue;
 import minum.web.FullSystem;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -71,4 +74,25 @@ public class Context {
         return actionQueueList;
     }
 
+    /**
+     * This is a helper method to instantiate a {@link Db} class,
+     * avoiding the need for a user to provide the root database
+     * directory and the context.
+     *
+     * Since this is a generic method, a bit of care is required when
+     * calling.  Try to use a pattern like this:
+     * <pre>
+     * {@code Db<Photograph> photoDb = wf.getDb("photos");}
+     * </pre>
+     * @param name the name of this data.  Note that this will be used
+     *             as the directory for the data, so use characters your
+     *             operating system would allow.
+     * @param instance an instance of the {@link DbData} data, preferably
+     *                 following a null-object pattern.  For example,
+     *                 Photograph.EMPTY.  This is used in the Db code
+     *                 to deserialize the data when reading.
+     */
+    public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
+        return new Db<>(Path.of(constants.DB_DIRECTORY, name), this, instance);
+    }
 }

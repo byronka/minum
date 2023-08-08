@@ -9,7 +9,7 @@ import static minum.utils.Invariants.mustBeTrue;
 /**
  * This class represents the text that is sent back in a {@link Response}
  */
-public record StatusLine(StatusCode status, WebEngine.HttpVersion version, String rawValue) {
+public record StatusLine(StatusCode status, HttpVersion version, String rawValue) {
 
     /**
      * This is the regex used to analyze a status line sent by the server and
@@ -101,14 +101,14 @@ public record StatusLine(StatusCode status, WebEngine.HttpVersion version, Strin
      */
     public static StatusLine extractStatusLine(String value) {
         if (value == null || value.isBlank()) {
-            return new StatusLine(StatusCode.NULL, WebEngine.HttpVersion.NONE, "");
+            return new StatusLine(StatusCode.NULL, HttpVersion.NONE, "");
         }
         Matcher mr = StatusLine.statusLineRegex.matcher(value);
         mustBeTrue(mr.matches(), String.format("%s must match the statusLinePattern: %s", value, statusLinePattern));
         String version = mr.group(1);
-        WebEngine.HttpVersion httpVersion = switch (version) {
-            case "1.1" -> WebEngine.HttpVersion.ONE_DOT_ONE;
-            case "1.0" -> WebEngine.HttpVersion.ONE_DOT_ZERO;
+        HttpVersion httpVersion = switch (version) {
+            case "1.1" -> HttpVersion.ONE_DOT_ONE;
+            case "1.0" -> HttpVersion.ONE_DOT_ZERO;
             default -> throw new RuntimeException(String.format("HTTP version was not an acceptable value. Given: %s", version));
         };
         StatusCode status = StatusCode.findByCode(Integer.parseInt(mr.group(2)));

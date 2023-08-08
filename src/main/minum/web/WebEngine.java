@@ -38,10 +38,6 @@ class WebEngine {
     this.context = context;
   }
 
-  enum HttpVersion {
-    ONE_DOT_ZERO, ONE_DOT_ONE, NONE
-  }
-
   private final ILogger logger;
   static final String HTTP_CRLF = "\r\n";
 

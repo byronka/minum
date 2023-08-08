@@ -152,9 +152,9 @@ public class WebFramework {
                     logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
 
                     // determine if we are in a keep-alive connection
-                    if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ZERO) {
+                    if (sl.getVersion() == HttpVersion.ONE_DOT_ZERO) {
                         isKeepAlive = hi.hasKeepAlive();
-                    } else if (sl.getVersion() == WebEngine.HttpVersion.ONE_DOT_ONE) {
+                    } else if (sl.getVersion() == HttpVersion.ONE_DOT_ONE) {
                         isKeepAlive = ! hi.hasConnectionClose();
                     }
                     boolean finalIsKeepAlive = isKeepAlive;
@@ -488,28 +488,6 @@ public class WebFramework {
      */
     void setStaticFilesCache(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;
-    }
-
-    /**
-     * This is a helper method to instantiate a {@link Db} class,
-     * avoiding the need for a user to provide the root database
-     * directory and the context.
-     *
-     * Since this is a generic method, a bit of care is required when
-     * calling.  Try to use a pattern like this:
-     * <pre>
-     * {@code Db<Photograph> photoDb = wf.getDb("photos");}
-     * </pre>
-     * @param name the name of this data.  Note that this will be used
-     *             as the directory for the data, so use characters your
-     *             operating system would allow.
-     * @param instance an instance of the {@link DbData} data, preferably
-     *                 following a null-object pattern.  For example,
-     *                 Photograph.EMPTY.  This is used in the Db code
-     *                 to deserialize the data when reading.
-     */
-    public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
-        return new Db<>(Path.of(constants.DB_DIRECTORY, name), context, instance);
     }
 
     /**

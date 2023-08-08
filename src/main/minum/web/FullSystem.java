@@ -156,7 +156,7 @@ public class FullSystem implements AutoCloseable {
         return webFramework;
     }
 
-    TheBrig getTheBrig() {
+    public TheBrig getTheBrig() {
         return theBrig;
     }
 

@@ -30,7 +30,7 @@ import static minum.web.StartLine.Verb.POST;
 import static minum.web.StartLine.startLineRegex;
 import static minum.web.StatusLine.StatusCode._200_OK;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
-import static minum.web.WebEngine.HttpVersion.ONE_DOT_ONE;
+import static minum.web.HttpVersion.ONE_DOT_ONE;
 
 public class WebTests {
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));

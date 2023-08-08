@@ -21,7 +21,7 @@ public class StartLine{
 
     private final Verb verb;
     private final PathDetails pathDetails;
-    private final WebEngine.HttpVersion version;
+    private final HttpVersion version;
     private final String rawValue;
     private final Context context;
     private final Constants constants;
@@ -35,7 +35,7 @@ public class StartLine{
     public StartLine(
             Verb verb,
             PathDetails pathDetails,
-            WebEngine.HttpVersion version,
+            HttpVersion version,
             String rawValue,
             Context context
     ) {
@@ -60,7 +60,7 @@ public class StartLine{
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
     public static StartLine EMPTY(Context context) {
-        return new StartLine(Verb.NONE, PathDetails.empty, WebEngine.HttpVersion.NONE, "", context);
+        return new StartLine(Verb.NONE, PathDetails.empty, HttpVersion.NONE, "", context);
     }
 
     /**
@@ -111,7 +111,7 @@ public class StartLine{
         mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, startLinePattern));
         Verb verb = extractVerb(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
-        WebEngine.HttpVersion httpVersion = getHttpVersion(m.group(3));
+        HttpVersion httpVersion = getHttpVersion(m.group(3));
 
         return new StartLine(verb, pd, httpVersion, value, context);
     }
@@ -177,11 +177,11 @@ public class StartLine{
     /**
      * Extract the HTTP version from the start line
      */
-    private WebEngine.HttpVersion getHttpVersion(String version) {
+    private HttpVersion getHttpVersion(String version) {
         if (version.equals("1.1")) {
-            return WebEngine.HttpVersion.ONE_DOT_ONE;
+            return HttpVersion.ONE_DOT_ONE;
         } else {
-            return WebEngine.HttpVersion.ONE_DOT_ZERO;
+            return HttpVersion.ONE_DOT_ZERO;
         }
     }
 
@@ -193,7 +193,7 @@ public class StartLine{
         return pathDetails;
     }
 
-    public WebEngine.HttpVersion getVersion() {
+    public HttpVersion getVersion() {
         return this.version;
     }
 
