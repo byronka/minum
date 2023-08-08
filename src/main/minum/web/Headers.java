@@ -188,7 +188,7 @@ public class Headers{
     }
 
     /**
-     * Allows a user to obtain any header value by its key.
+     * Allows a user to obtain any header value by its key, case-insensitively
      * @return a {@link List} of string values, or null
      * if no header was found.
      */
