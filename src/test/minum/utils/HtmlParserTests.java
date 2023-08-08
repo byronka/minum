@@ -143,5 +143,17 @@ public class HtmlParserTests {
             assertEquals(myList.toString(), expected);
         }
 
+        logger.test("Newline after tag name"); {
+            String html = """
+                    <button
+                            type="button"
+                            class="delete_button"
+                            personid="3b2fef36-338e-4a57-b327-f42c8ae8896a">Delete</button>
+                    """;
+            List<HtmlParseNode> htmlRoots = new HtmlParser().parse(html);
+            assertEquals(htmlRoots.size(), 1);
+            assertEquals(htmlRoots.get(0).tagInfo().tagName(), TagName.BUTTON);
+        }
+
     }
 }

@@ -88,7 +88,13 @@ public class HtmlParser {
      */
     private void processState(char currentChar, State state, List<HtmlParseNode> nodes) {
 
+        // handle basic recording of stats
         state.charsRead += 1;
+        if (currentChar == '\n') {
+            state.lineRow += 1;
+            state.lineColumn = 0;
+        }
+        state.lineColumn += 1;
 
         if (currentChar == '<') {
             /* less-than signs are policed strictly */
@@ -218,7 +224,7 @@ public class HtmlParser {
                 state.stringBuilder.append(currentChar);
             }
         } else if (state.isReadingTagName) {
-            if (currentChar == ' ') {
+            if (Character.isWhitespace(currentChar)) {
                 /*
                 At this point, we've been reading the tag name and we've encountered whitespace.
                 That means we are done reading the tag name
@@ -345,7 +351,7 @@ public class HtmlParser {
         try {
             tagName = TagName.valueOf(upperCaseToken);
         } catch (IllegalArgumentException ex) {
-            throw new ParsingException("Invalid HTML element: " + upperCaseToken + " at character " + (state.charsRead - (1 + upperCaseToken.length())));
+            throw new ParsingException("Invalid HTML element: " + upperCaseToken + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character");
         }
         var tagInfo = new TagInfo(tagName, state.attributes);
         if (state.isStartTag) {
@@ -379,7 +385,7 @@ public class HtmlParser {
             }
             TagName expectedTagName = htmlParseNode.tagInfo().tagName();
             if (expectedTagName != tagName) {
-                throw new ParsingException("Did not find expected element. " + "Expected: " + expectedTagName + " at character " + (state.charsRead - (1 + tagNameString.length())));
+                throw new ParsingException("Did not find expected element. " + "Expected: " + expectedTagName + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character");
             }
         }
     }
@@ -405,7 +411,7 @@ public class HtmlParser {
 
     private static class State {
         static State buildNewState() {
-            return new State(0, false, new StringBuilder(), new Stack<>(), false, false, true, false, "", "", new HashMap<>(), QuoteType.NONE, false, false);
+            return new State(0, false, new StringBuilder(), new Stack<>(), false, false, true, false, "", "", new HashMap<>(), QuoteType.NONE, false, false, 1, 0);
         }
 
         /**
@@ -474,6 +480,17 @@ public class HtmlParser {
         Map<String, String> attributes;
 
         /**
+         * indicate which line we're on in debugging
+         */
+        int lineRow;
+
+        /**
+         * How far we are from the last newline character, including
+         * all whitespace as well.
+         */
+        int lineColumn;
+
+        /**
          * Holds the state so we can remember where we are as we examine the HTML
          * a character at a time.
          */
@@ -481,7 +498,7 @@ public class HtmlParser {
                      Stack<HtmlParseNode> parseStack, boolean hasEncounteredTagName, boolean isReadingTagName,
                      boolean isStartTag, boolean isInsideAttributeValueQuoted, String tagName,
                      String currentAttributeKey, Map<String, String> attributes, QuoteType quoteType,
-                     boolean isReadingAttributeKey, boolean isHalfClosedTag) {
+                     boolean isReadingAttributeKey, boolean isHalfClosedTag, int lineRow, int lineColumn) {
 
             this.charsRead = charsRead;
             this.isInsideTag = isInsideTag;
@@ -497,6 +514,8 @@ public class HtmlParser {
             this.quoteType = quoteType;
             this.isReadingAttributeKey = isReadingAttributeKey;
             this.isHalfClosedTag = isHalfClosedTag;
+            this.lineRow = lineRow;
+            this.lineColumn = lineColumn;
         }
     }
 
