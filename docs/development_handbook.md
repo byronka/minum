@@ -69,8 +69,6 @@ exceeding ordinary development practices.
 
 The experiment is still ongoing, but I have seen some interim benefits.
 
-Concrete benefits:
-
 - The code is [minimalistic](size_comparisons.md) on purpose.  It does not
   handle every imaginable case, but it fosters [modifying the code](https://programmingisterrible.com/post/139222674273/write-code-that-is-easy-to-delete-not-easy-to).  There
   is nothing to prevent inclusion of extra libraries, but basics are handled.
