@@ -2,12 +2,9 @@ package minum.web;
 
 import minum.Context;
 import minum.htmlparsing.ParsingException;
-import minum.logging.ILogger;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import static minum.testing.TestFramework.*;
 

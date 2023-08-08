@@ -3,7 +3,7 @@ package minum.database;
 import minum.Context;
 import minum.testing.RegexUtils;
 import minum.testing.StopwatchUtils;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 import minum.utils.FileUtils;
 import minum.utils.MyThread;
 

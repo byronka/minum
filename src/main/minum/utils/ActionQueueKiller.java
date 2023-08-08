@@ -29,8 +29,6 @@ public class ActionQueueKiller {
             if (aq.getQueueThread() != null) {
                 aq.getQueueThread().interrupt();
             }
-            // at this point, clear out the queue if anything is left in it.
-            // this feels imprecise. TODO: look into this deeply.
             aq.getQueue().clear();
 
         }

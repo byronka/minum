@@ -1,10 +1,9 @@
 package minum.utils;
 
 import minum.Context;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;

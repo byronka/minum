@@ -17,11 +17,11 @@ import static minum.utils.ByteUtils.byteListToArray;
 /**
  * Handy helpful utilities for working with input streams.
  */
-public class InputStreamUtils {
+class InputStreamUtils {
 
     private final Constants constants;
 
-    public InputStreamUtils(Context context) {
+    InputStreamUtils(Context context) {
         this.constants = context.getConstants();
     }
 

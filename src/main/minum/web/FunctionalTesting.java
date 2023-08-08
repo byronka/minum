@@ -1,4 +1,4 @@
-package minum.testing;
+package minum.web;
 
 import minum.Context;
 import minum.htmlparsing.HtmlParseNode;
@@ -6,7 +6,6 @@ import minum.htmlparsing.HtmlParser;
 import minum.htmlparsing.TagName;
 import minum.logging.ILogger;
 import minum.utils.MyThread;
-import minum.web.*;
 
 import java.io.IOException;
 import java.io.InputStream;

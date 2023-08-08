@@ -4,9 +4,9 @@ package minum;
  * If the user has no configuration file, this class
  * contains code that will run to assist them.
  */
-public class Config {
+class ConfigErrorMessage {
 
-    private Config() {
+    private ConfigErrorMessage() {
         // making this private to be clearer it isn't supposed to be instantiated.
     }
 
@@ -80,7 +80,7 @@ public class Config {
      * explicit where the "knobs and dials" of the application are
      * located.
      */
-    public static String getConfigErrorMessage() {
+    static String getConfigErrorMessage() {
         return """
                 
                 
@@ -102,7 +102,7 @@ public class Config {
                     ****   Copy after this line -v    ****
                 
                 """ +
-                Config.getDefaultConfig() + """
+                ConfigErrorMessage.getDefaultConfig() + """
                 
                     ****   Copy before this line -^    ****
                 """;

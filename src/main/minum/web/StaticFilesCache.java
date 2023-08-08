@@ -29,7 +29,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * map, but we wrap it in a custom class just to enable better
  * documentation.
  */
-public class StaticFilesCache {
+class StaticFilesCache {
 
     /**
      * in the resources, where we store our static files, like jpegs,
@@ -43,7 +43,7 @@ public class StaticFilesCache {
     private final Map<String, String> fileSuffixToMime;
     private final Constants constants;
 
-    public StaticFilesCache(Context context) {
+    StaticFilesCache(Context context) {
         staticResponses = new HashMap<>();
         this.logger = context.getLogger();
         fileSuffixToMime = new HashMap<>();
@@ -66,7 +66,7 @@ public class StaticFilesCache {
         fileSuffixToMime.put("html", "text/html; charset=UTF-8");
     }
 
-    public Response getStaticResponse(String key) {
+    Response getStaticResponse(String key) {
         return staticResponses.get(key);
     }
 

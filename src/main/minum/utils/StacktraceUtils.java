@@ -10,6 +10,10 @@ import java.util.stream.Collectors;
  */
 public class StacktraceUtils {
 
+    private StacktraceUtils() {
+        // cannot construct
+    }
+
     /**
      * grabs the stacktrace out of a {@link Throwable} as a string
      */

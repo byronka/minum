@@ -24,7 +24,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * This code is responsible for extracting the {@link Body} from
  * an HTTP request.
  */
-public class BodyProcessor {
+class BodyProcessor {
 
     private final ILogger logger;
     private final InputStreamUtils inputStreamUtils;
@@ -37,9 +37,9 @@ public class BodyProcessor {
      * we would rather not include all that data in the logs.
      * So we will cap out at this value.
      */
-    public final static int MAX_SIZE_DATA_RETURNED_IN_EXCEPTION = 1024;
+    final static int MAX_SIZE_DATA_RETURNED_IN_EXCEPTION = 1024;
 
-    public BodyProcessor(Context context) {
+    BodyProcessor(Context context) {
         this.context = context;
         this.logger = context.getLogger();
         this.inputStreamUtils = new InputStreamUtils(context);
@@ -57,7 +57,7 @@ public class BodyProcessor {
      * can stop reading at precisely the right point.  There's simply no
      * other way to reasonably do this.
      */
-    public Body extractData(InputStream is, Headers h) throws IOException {
+    Body extractData(InputStream is, Headers h) throws IOException {
         final var contentType = h.contentType();
 
         byte[] bodyBytes = h.contentLength() > 0 ?
@@ -108,7 +108,7 @@ public class BodyProcessor {
      * <p>
      * for example, {@code valuea=3&valueb=this+is+something}
      */
-    public Body parseUrlEncodedForm(String input) {
+    Body parseUrlEncodedForm(String input) {
         if (input.isEmpty()) return Body.EMPTY(context);
         final var postedPairs = new HashMap<String, byte[]>();
 
@@ -172,7 +172,7 @@ public class BodyProcessor {
     /**
      * Extract multipart/form data from a body.  See docs/http_protocol/returning_values_from_multipart_rfc_7578.txt
      */
-    public Body parseMultiform(byte[] body, String boundaryValue) {
+    Body parseMultiform(byte[] body, String boundaryValue) {
         // how to split this up? It's a mix of strings and bytes.
         List<byte[]> partitions = split(body, "--" + boundaryValue);
         final String nameEquals = "name=";
@@ -191,8 +191,8 @@ public class BodyProcessor {
                 throw new RuntimeException(e);
             }
 
-            String contentDisposition = headers.getHeaderStrings().stream()
-                    .filter(x -> x.toLowerCase().contains("form-data") && x.contains(nameEquals)).collect(Collectors.joining());
+            List<String> cds = headers.valueByKey("Content-Disposition");
+            String contentDisposition = String.join(";", cds == null ? List.of("") : cds);
 
             Matcher matcher = multiformNameRegex.matcher(contentDisposition);
 
@@ -228,7 +228,7 @@ public class BodyProcessor {
      * Given a multipart-formatted data, return a list of byte arrays
      * between the boundary values
      */
-    public List<byte[]> split(byte[] body, String boundaryValue) {
+    List<byte[]> split(byte[] body, String boundaryValue) {
         List<byte[]> result = new ArrayList<>();
         List<Integer> indexesOfEndsOfBoundaries = new ArrayList<>();
         byte[] boundaryValueBytes = boundaryValue.getBytes(StandardCharsets.UTF_8);

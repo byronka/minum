@@ -12,6 +12,11 @@ public class RunnableWithDescription<E extends Throwable> implements ThrowingRun
     private final String description;
     private final ThrowingRunnable<E> r;
 
+    /**
+     * By constructing a {@link ThrowingRunnable} here, you can
+     * provide a description of the runnable that will be reviewable
+     * during debugging.
+     */
     public RunnableWithDescription(ThrowingRunnable<E> r, String description) {
         this.description = description;
         this.r = r;

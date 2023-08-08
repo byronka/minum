@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  *     this was the only way to free ourselves during initialization / shutdown.
  * </p>
  */
-public class LoggingActionQueue {
+class LoggingActionQueue {
     private final String name;
     private final ExecutorService executorService;
     private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;
@@ -28,7 +28,7 @@ public class LoggingActionQueue {
     private Thread queueThread;
     private final Constants constants;
 
-    public LoggingActionQueue(String name, ExecutorService executorService, Constants constants) {
+    LoggingActionQueue(String name, ExecutorService executorService, Constants constants) {
         this.name = name;
         this.executorService = executorService;
         this.queue = new LinkedBlockingQueue<>();
@@ -38,7 +38,7 @@ public class LoggingActionQueue {
     // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings("InfiniteLoopStatement")
-    public LoggingActionQueue initialize() {
+    LoggingActionQueue initialize() {
         Runnable queueThread = () -> {
             Thread.currentThread().setName(name);
             this.queueThread = Thread.currentThread();
@@ -72,7 +72,7 @@ public class LoggingActionQueue {
      * Adds something to the queue to be processed.
      * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
      */
-    public void enqueue(String description, ThrowingRunnable<?> action) {
+    void enqueue(String description, ThrowingRunnable<?> action) {
         if (! stop) {
             queue.add(new RunnableWithDescription<>(action, description));
         }
@@ -83,7 +83,7 @@ public class LoggingActionQueue {
      * @param count how many loops to wait before we crash it closed
      * @param sleepTime how long to wait in milliseconds between loops
      */
-    public void stop(int count, int sleepTime) {
+    void stop(int count, int sleepTime) {
         if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
         stop = true;
         for (int i = 0; i < count; i++) {

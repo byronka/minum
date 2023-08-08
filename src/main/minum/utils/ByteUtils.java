@@ -7,6 +7,10 @@ import java.util.List;
  */
 public class ByteUtils {
 
+    private ByteUtils() {
+        // cannot construct
+    }
+
     /**
      * A helper method to reduce some of the boilerplate
      * code when converting a list of bytes to an array.

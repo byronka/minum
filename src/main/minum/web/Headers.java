@@ -189,16 +189,10 @@ public class Headers{
 
     /**
      * Allows a user to obtain any header value by its key.
+     * @return a {@link List} of string values, or null
+     * if no header was found.
      */
     public List<String> valueByKey(String key) {
         return headersMap.get(key.toLowerCase(Locale.ROOT));
-    }
-
-    /**
-     * Just a getter for the headers map, but note that all
-     * the key values are lower-cased during processing.
-     */
-    public Map<String, List<String>> getHeadersMap() {
-        return headersMap;
     }
 }

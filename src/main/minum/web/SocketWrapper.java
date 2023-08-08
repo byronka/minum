@@ -8,11 +8,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.charset.Charset;
 
 /**
  * This wraps Sockets to make them more particular to our use case
  */
-public class SocketWrapper implements ISocketWrapper, AutoCloseable {
+class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -26,11 +27,11 @@ public class SocketWrapper implements ISocketWrapper, AutoCloseable {
      * @param logger not much more to say on this param
      * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
      */
-    public SocketWrapper(Socket socket, ILogger logger, int timeoutMillis) throws IOException {
+    SocketWrapper(Socket socket, ILogger logger, int timeoutMillis) throws IOException {
         this(socket, null, logger, timeoutMillis);
     }
 
-    public SocketWrapper(Socket socket, Server server, ILogger logger, int timeoutMillis) throws IOException {
+    SocketWrapper(Socket socket, Server server, ILogger logger, int timeoutMillis) throws IOException {
         this.socket = socket;
         this.socket.setSoTimeout(timeoutMillis);
         this.inputStream = socket.getInputStream();
@@ -41,7 +42,7 @@ public class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     @Override
     public void send(String msg) throws IOException {
-        writer.write(msg.getBytes());
+        writer.write(msg.getBytes(Charset.defaultCharset()));
     }
 
     @Override
@@ -51,7 +52,7 @@ public class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     @Override
     public void sendHttpLine(String msg) throws IOException {
-        logger.logTrace(() -> String.format("%s sending: \"%s\"", this, Logger.showWhiteSpace(msg)));
+        logger.logTrace(() -> String.format("%s sending: \"%s\"", this, msg));
         send(msg + WebEngine.HTTP_CRLF);
     }
 

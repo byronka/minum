@@ -2,7 +2,7 @@ package minum.utils;
 
 import minum.Context;
 import minum.auth.User;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
 import java.util.List;
 

@@ -43,10 +43,10 @@ ought to look:
 package minum.database;
 
 import minum.Context;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
 public class FooTests {
-    
+
     private final TestLogger logger;
     private final Context context;
 
@@ -62,7 +62,8 @@ public class FooTests {
         this continent, a new nation, conceived in Liberty, and dedicated 
         to the proposition that all men are created equal.
          */
-        logger.test("Here is the name of the test");{
+        logger.test("Here is the name of the test");
+        {
             final var foo = new Foo(1, 123, "abc");
             final var deserializedFoo = foo.deserialize(foo.serialize());
             assertEquals(deserializedFoo, foo);

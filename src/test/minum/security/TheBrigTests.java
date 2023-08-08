@@ -1,10 +1,8 @@
 package minum.security;
 
 import minum.Context;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 import minum.utils.MyThread;
-
-import java.util.concurrent.ExecutorService;
 
 import static minum.testing.TestFramework.assertFalse;
 import static minum.testing.TestFramework.assertTrue;

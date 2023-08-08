@@ -6,6 +6,10 @@ package minum.utils;
  */
 public class MyThread {
 
+    private MyThread() {
+        // cannot construct
+    }
+
     /**
      * Same behavior as {@link Thread#sleep(long)}, but
      * wrapped so that it prints the exception's stacktrace

@@ -1,22 +1,21 @@
-package minum;
+package minum.web;
 
+import minum.Constants;
+import minum.Context;
 import minum.logging.ILogger;
 import minum.logging.LoggingLevel;
 import minum.security.TheBrig;
 import minum.utils.*;
-import minum.web.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-
-import static minum.web.WebEngine.HTTP_CRLF;
 
 /**
  * This class is responsible for kicking off the entire system.
@@ -75,24 +74,47 @@ public class FullSystem implements AutoCloseable {
 
     /**
      * Kicks off the various bits and pieces.
+     * 
+     * <p>
+     *     There's a number of components to be built and run
+     *     to get this application up and running.  Feel free
+     *     to peruse this method's code to get a sense of it.
+     * </p>
+     * 
      */
     public FullSystem start() throws IOException  {
+        // create a file in our current working directory to indicate we are running
         createSystemRunningMarker();
+
+        // set up an action to take place if the user shuts us down
+        addShutdownHook();
+        
+        // Add useful startup info to the logs
         String serverComment = "at http://" + constants.HOST_NAME + ":" + constants.SERVER_PORT + " and https://" + constants.HOST_NAME + ":" + constants.SECURE_SERVER_PORT;
         System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting "+serverComment+" ***");
+        
+        // instantiate our security code
         theBrig = new TheBrig(context).initialize();
+        
+        // get basic internet capabilities started 
         webEngine = new WebEngine(context);
+        
+        // our static files cache - any static (unchanging) files, like css or images
         StaticFilesCache sfc = new StaticFilesCache(context);
+        
+        // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
-        addShutdownHook();
         webFramework.setStaticFilesCache(sfc);
         final var webHandler = webFramework.makePrimaryHttpHandler();
         // should we redirect all insecure traffic to https?
         boolean shouldRedirect = constants.REDIRECT_TO_SECURE;
-        var handler = shouldRedirect ? makeRedirectHandler() : webHandler;
+        var handler = shouldRedirect ? webFramework.makeRedirectHandler() : webHandler;
+        
+        // kick off the servers - low level internet handlers
         server = webEngine.startServer(es, handler);
         sslServer = webEngine.startSslServer(es, webHandler);
 
+        // document how long to start up the system
         var now = ZonedDateTime.now(ZoneId.of("UTC"));
         var formattedNow = now.format(DateTimeFormatter.ISO_INSTANT);
         var nowMillis = now.toInstant().toEpochMilli();
@@ -100,45 +122,6 @@ public class FullSystem implements AutoCloseable {
         System.out.println(formattedNow + " *** Minum has finished primary startup after " + startupTime + " milliseconds ***");
 
         return this;
-    }
-
-    /**
-     * This handler redirects all traffic to the HTTPS endpoint.
-     * <br>
-     * It is necessary to extract the target path, but that's all
-     * the help we'll give.  We're not going to extract headers or
-     * body, we'll just read the start line and then stop reading from them.
-     */
-    ThrowingConsumer<ISocketWrapper, IOException> makeRedirectHandler() {
-        return (sw) -> {
-            try (sw) {
-                try (InputStream is = sw.getInputStream()) {
-
-                    String rawStartLine = inputStreamUtils.readLine(is);
-                 /*
-                  if the rawStartLine is null, that means the client stopped talking.
-                  See ISocketWrapper.readLine()
-                  */
-                    if (rawStartLine == null) {
-                        return;
-                    }
-
-                    var sl = StartLine.EMPTY(context).extractStartLine(rawStartLine);
-
-                    // just ignore all the rest of the incoming lines.  TCP is duplex -
-                    // we'll just start talking back the moment we understand the first line.
-                    String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
-                    String hostname = constants.HOST_NAME;
-                    sw.send(
-                            "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
-                                    "Date: " + date + HTTP_CRLF +
-                                    "Server: minum" + HTTP_CRLF +
-                                    "Location: https://" + hostname + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
-                                    HTTP_CRLF
-                    );
-                }
-            }
-        };
     }
 
     /**
@@ -152,10 +135,6 @@ public class FullSystem implements AutoCloseable {
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
-    public void removeShutdownHook() {
-        Runtime.getRuntime().removeShutdownHook(shutdownHook);
-    }
-
     /**
      * this saves a file to the home directory, SYSTEM_RUNNING,
      * that will indicate the system is active
@@ -165,15 +144,11 @@ public class FullSystem implements AutoCloseable {
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
-    public ExecutorService getExecutorService() {
-        return es;
-    }
-
-    public Server getServer() {
+    Server getServer() {
         return server;
     }
 
-    public Server getSslServer() {
+    Server getSslServer() {
         return sslServer;
     }
 
@@ -181,7 +156,7 @@ public class FullSystem implements AutoCloseable {
         return webFramework;
     }
 
-    public TheBrig getTheBrig() {
+    TheBrig getTheBrig() {
         return theBrig;
     }
 
@@ -189,11 +164,12 @@ public class FullSystem implements AutoCloseable {
         return context;
     }
 
-    public WebEngine getWebEngine() {
+    WebEngine getWebEngine() {
         return webEngine;
     }
 
     public void close() {
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
         logger.logTrace(() -> "close called on " + this);
         try {
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
@@ -211,5 +187,42 @@ public class FullSystem implements AutoCloseable {
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    /**
+     * A blocking call for our multi-threaded application.
+     * <p>
+     * This method is needed because the entire application is
+     * multi-threaded.  Let me help contextualize the problem
+     * for you:
+     * </p>
+     * <p>
+     *     For this application, multi-threaded means that we
+     *     are wrapping our code in {@link Thread} classes and
+     *     having them run using a {@link ExecutorService}.  It's
+     *     sort of like giving instructions to someone else to carry
+     *     out the work and sending them away, trusting the work will
+     *     get done, rather than doing it yourself.
+     * </p>
+     * <p>
+     *     But, since our entire system is done this way, once we
+     *     have sent all our threads on their way, there's nothing
+     *     left for us to do! Continuing the analogy, it is like
+     *     our whole job is to give other people instructions, and
+     *     then just wait for them to return.
+     * </p>
+     * <p>
+     *     That's the purpose of this method.  It's to wait for
+     *     the return.
+     * </p>
+     * <p>
+     *     It's probably best to call this method as one of the
+     *     last statements in the main method, so it is clear where
+     *     execution is blocking.
+     * </p>
+     */
+    public void block() throws ExecutionException, InterruptedException {
+        this.server.getCentralLoopFuture().get();
+        this.sslServer.getCentralLoopFuture().get();
     }
 }

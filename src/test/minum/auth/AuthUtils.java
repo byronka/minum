@@ -77,13 +77,8 @@ public class AuthUtils {
      */
     public AuthResult processAuth(Request request) {
         // grab the headers from the request.
-        final var headers = request.headers().getHeaderStrings();
-
-        // get all the headers that start with "cookie", case-insensitive
-        final var cookieHeaders = headers.stream()
-                .map(String::toLowerCase)
-                .filter(x -> x.startsWith("cookie"))
-                .collect(Collectors.joining("; "));
+        List<String> cookieValues = request.headers().valueByKey("cookie");
+        final var cookieHeaders = String.join(";", cookieValues == null ? List.of("") : cookieValues);
 
         // extract session identifiers from the cookies
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);

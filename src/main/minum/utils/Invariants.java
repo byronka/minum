@@ -10,6 +10,10 @@ package minum.utils;
  */
 public class Invariants {
 
+    private Invariants() {
+        // cannot construct
+    }
+
     /**
      * Specify something which must be true.
      * <p>

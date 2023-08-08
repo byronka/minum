@@ -2,11 +2,8 @@ package minum.logging;
 
 import minum.Constants;
 import minum.Context;
-import minum.utils.ActionQueue;
 import minum.utils.ExtendedExecutor;
-import minum.utils.ThrowingSupplier;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -19,16 +16,16 @@ import static minum.utils.TimeUtils.getTimestampIsoInstant;
  */
 public class Logger implements ILogger {
     /**
-     * The {@link ActionQueue} that handles all
+     * The {@link LoggingActionQueue} that handles all
      * our messages thread-safely by taking
      * them off the top of a queue.
      */
-    protected final LoggingActionQueue loggerPrinter;
+    protected final LoggingActionQueue loggingActionQueue;
     private final LoggingContext context;
     private Map<LoggingLevel, Boolean> activeLogLevels;
 
     /**
-     * This constructor initializes an {@link ActionQueue}
+     * This constructor initializes an {@link LoggingActionQueue}
      * to handle log messages.
      */
     public Logger(LoggingContext context) {
@@ -38,7 +35,7 @@ public class Logger implements ILogger {
     public Logger(LoggingContext context, String name) {
         this.context = context;
         Constants constants = context.getConstants();
-        loggerPrinter = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
+        loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
         toggleDefaultLogging(constants.LOG_LEVELS);
     }
 
@@ -62,22 +59,6 @@ public class Logger implements ILogger {
         ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
         var loggingContext = new LoggingContext(es, constants);
         return new Logger(loggingContext, "_primary_system_logger");
-    }
-
-    /**
-     * Given a list of strings representing logging levels,
-     * convert it to a list of enums.  Log levels are enumerated
-     * in {@link LoggingLevel}.
-     */
-    public static List<LoggingLevel> convertLoggingStringsToEnums(List<String> logLevels) {
-        List<String> logLevelStrings = logLevels.stream().map(String::toUpperCase).toList();
-        List<LoggingLevel> enabledLoggingLevels = new ArrayList<>();
-        for (LoggingLevel t : LoggingLevel.values()) {
-            if (logLevelStrings.contains(t.name())) {
-                enabledLoggingLevels.add(t);
-            }
-        }
-        return enabledLoggingLevels;
     }
 
     /**
@@ -108,7 +89,7 @@ public class Logger implements ILogger {
 
     @Override
     public void stop() {
-        this.loggerPrinter.stop();
+        this.loggingActionQueue.stop();
         this.context.getExecutorService().shutdownNow();
     }
 
@@ -120,7 +101,7 @@ public class Logger implements ILogger {
     /**
      * A helper method to reduce duplication
      */
-    public void logHelper(ThrowingSupplier<String, Exception> msg, LoggingLevel loggingLevel) {
+    private void logHelper(ThrowingSupplier<String, Exception> msg, LoggingLevel loggingLevel) {
         if (activeLogLevels.get(loggingLevel)) {
         String receivedMessage;
             try {
@@ -129,8 +110,9 @@ public class Logger implements ILogger {
                 receivedMessage = "EXCEPTION DURING GET: " + ex;
             }
             String finalReceivedMessage = receivedMessage;
-            loggerPrinter.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
-                printf(loggingLevel.name() + ": %s %s%n", getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage));
+            loggingActionQueue.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
+                Object[] args = new Object[]{getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage)};
+                System.out.printf(loggingLevel.name() + ": %s %s%n", args);
             });
         }
     }
@@ -138,7 +120,7 @@ public class Logger implements ILogger {
     /**
      * Given a string that may have whitespace chars, render it in a way we can see
      */
-    public static String showWhiteSpace(String msg) {
+    private static String showWhiteSpace(String msg) {
         if (msg == null) return "(NULL)";
         // if we have tabs, returns, newlines in the text, show them
         String text = msg
@@ -150,10 +132,6 @@ public class Logger implements ILogger {
         // if the text is nothing but whitespace, show that
         text = text.isBlank() ? "(BLANK)" : text;
         return text;
-    }
-
-    public static void printf(String msg, Object ...args) {
-        System.out.printf(msg, args);
     }
 
 }

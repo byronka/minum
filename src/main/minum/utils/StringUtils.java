@@ -85,7 +85,7 @@ public class StringUtils {
     }
 
     /**
-     * Decodes URL-encoded UTF-8 text... except that we
+     * Decodes URL-encoded UTF-8 text, except that we
      * first check if the string value is the token %NULL%,
      * which is our way to signify null.
      */

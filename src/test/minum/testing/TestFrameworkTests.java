@@ -1,6 +1,7 @@
 package minum.testing;
 
 import minum.Context;
+import minum.logging.TestLogger;
 
 import java.io.IOException;
 import java.util.List;

@@ -2,10 +2,8 @@ package minum.utils;
 
 import minum.Context;
 import minum.htmlparsing.*;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 

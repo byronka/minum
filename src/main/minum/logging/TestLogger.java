@@ -1,9 +1,7 @@
-package minum.testing;
+package minum.logging;
 
-import minum.logging.LoggingContext;
-import minum.logging.Logger;
+import minum.testing.StopwatchUtils;
 import minum.utils.FileUtils;
-import minum.utils.ThrowingSupplier;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,8 +9,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static minum.utils.Invariants.mustNotBeNull;
 
 /**
  * This implementation of {@link Logger} has a few
@@ -223,8 +219,9 @@ public class TestLogger extends Logger {
         final var baseLength = 11;
         final var dashes = "-".repeat(msg.length() + baseLength);
 
-        loggerPrinter.enqueue("Testlogger#test("+msg+")", () -> {
-            printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", testCount++, msg);
+        loggingActionQueue.enqueue("Testlogger#test("+msg+")", () -> {
+            Object[] args = new Object[]{testCount++, msg};
+            System.out.printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", args);
         });
     }
 

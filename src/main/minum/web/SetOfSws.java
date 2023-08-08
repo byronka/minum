@@ -15,24 +15,22 @@ import static minum.utils.Invariants.mustBeFalse;
  * in our system.  It exists so that we can keep tabs on how many
  * open sockets we have, and can then find them all in one place
  * when we need to kill them at server shutdown.
+ * @param nameOfSet This parameter is used to distinguish different servers'
+ *        list of sockets (e.g.
+ *        the server for 80 vs 443)
  */
-public record SetOfSws(
+record SetOfSws(
         ConcurrentSet<ISocketWrapper> data,
         ILogger logger,
-       /*
-       This parameter is used to distinguish different servers'
-       list of sockets (e.g.
-       the server for 80 vs 443)
-        */
         String nameOfSet) {
 
-    public void add(ISocketWrapper sw) {
+    void add(ISocketWrapper sw) {
         data().add(sw);
         int size = data().size();
         logger.logTrace(() -> nameOfSet + " added " + sw + " to SetOfSws. size: " + size);
     }
 
-    public void remove(ISocketWrapper sw) {
+    void remove(ISocketWrapper sw) {
         data().remove(sw);
         int size = data().size();
         logger.logTrace(() -> nameOfSet +" removed " + sw + " from SetOfSws. size: " + size);
@@ -49,7 +47,7 @@ public record SetOfSws(
      * For that reason, if we come in here and don't find it initially, we'll
      * sleep and then try again, up to three times.
      */
-    public ISocketWrapper getSocketWrapperByRemoteAddr(String address, int port) {
+    ISocketWrapper getSocketWrapperByRemoteAddr(String address, int port) {
         int maxLoops = 3;
         for (int loopCount = 0; loopCount < maxLoops; loopCount++ ) {
             List<ISocketWrapper> servers = data()
@@ -74,7 +72,7 @@ public record SetOfSws(
         throw new RuntimeException("No socket found with that address");
     }
 
-    public void stopAllServers() throws IOException {
+    void stopAllServers() throws IOException {
         for(var s : data()) {
             s.close();
         }

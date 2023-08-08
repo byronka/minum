@@ -17,7 +17,7 @@ import java.util.*;
  * A server sends response messages to the client, which consist of:
  * </p>
  * <ul>
- * li>
+ * <li>
  * a status line, consisting of the protocol version, a space, the
  * response status code, another space, a possibly empty reason
  * phrase, a carriage return and a line feed, e.g.:
@@ -71,6 +71,11 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
         this(statusCode, Map.of(), "".getBytes());
     }
 
+    /**
+     * A helper method to create a response that returns a
+     * 303 status code ("see other").  Provide a url that will
+     * be handed to the browser.  This url may be relative or absolute.
+     */
     public static Response redirectTo(String locationUrl) {
         return new Response(StatusLine.StatusCode._303_SEE_OTHER, Map.of("location", locationUrl));
     }

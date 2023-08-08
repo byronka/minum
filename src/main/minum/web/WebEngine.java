@@ -4,7 +4,6 @@ import minum.Constants;
 import minum.Context;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
-import minum.utils.ThrowingConsumer;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -25,13 +24,13 @@ import java.util.concurrent.ExecutorService;
  * communications we need to handle to support a web application. Sockets,
  * Servers, Threads, that kind of stuff.
  */
-public class WebEngine {
+class WebEngine {
 
   private final TheBrig theBrig;
   private final Constants constants;
   private final Context context;
 
-  public WebEngine(Context context) {
+  WebEngine(Context context) {
     this.logger = context.getLogger();
     this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
     this.theBrig = context.getFullSystem() != null ? context.getFullSystem().getTheBrig() : null;
@@ -39,14 +38,14 @@ public class WebEngine {
     this.context = context;
   }
 
-  public enum HttpVersion {
+  enum HttpVersion {
     ONE_DOT_ZERO, ONE_DOT_ONE, NONE
   }
 
   private final ILogger logger;
-  public static final String HTTP_CRLF = "\r\n";
+  static final String HTTP_CRLF = "\r\n";
 
-  public Server startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
+  Server startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
     int port = constants.SERVER_PORT;
     ServerSocket ss = new ServerSocket(port);
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
@@ -58,7 +57,7 @@ public class WebEngine {
     return server;
   }
 
-  public Server startSslServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
+  Server startSslServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
 
     /*
      * If we find the keystore and pass in the system properties
@@ -131,7 +130,7 @@ public class WebEngine {
   /**
    * Create an SSL Socket using a specified keystore
    */
-  public ServerSocket createSslSocketWithSpecificKeystore(int sslPort, URL keystoreUrl, String keystorePassword) {
+  ServerSocket createSslSocketWithSpecificKeystore(int sslPort, URL keystoreUrl, String keystorePassword) {
     try (InputStream keystoreInputStream = keystoreUrl.openStream()) {
       final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
       char[] passwordCharArray = keystorePassword.toCharArray();
@@ -157,14 +156,14 @@ public class WebEngine {
    * Create a listening server with no handler.
    * Mostly used to test the server very manually.
    */
-  public Server startServer(ExecutorService es) throws IOException {
+  Server startServer(ExecutorService es) throws IOException {
     return startServer(es, null);
   }
 
   /**
    * Create a client {@link ISocketWrapper} connected to the running host server
    */
-  public ISocketWrapper startClient(Server server) throws IOException {
+  ISocketWrapper startClient(Server server) throws IOException {
     Socket socket = new Socket(server.getHost(), server.getPort());
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
     return new SocketWrapper(socket, logger, constants.SOCKET_TIMEOUT_MILLIS);

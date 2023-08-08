@@ -6,7 +6,7 @@ import minum.sampledomain.LruCacheTests;
 import minum.security.TheBrigTests;
 import minum.testing.RegexUtilsTests;
 import minum.testing.TestFrameworkTests;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 import minum.utils.*;
 import minum.web.*;
 
@@ -61,7 +61,7 @@ public class Tests {
     new LruCacheTests(context).tests();
     new StringUtilsTests(context).tests();
     new TemplatingTests(context).tests();
-    new FullSystemTests(context).tests();
+    new ConfigErrorTests(context).tests();
     new StaticFilesCacheTests(context).tests();
     new TheBrigTests(context).tests();
     new HtmlParserTests(context).tests();
@@ -125,7 +125,6 @@ public class Tests {
   private void shutdownFunctionalTests(Context context) throws IOException {
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
     var fs2 = context.getFullSystem();
-    fs2.removeShutdownHook();
     fs2.close();
     context.getExecutorService().shutdownNow();
     ((TestLogger)context.getLogger()).writeTestReport("functional_tests");

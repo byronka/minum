@@ -2,7 +2,6 @@ package minum.web;
 
 import minum.Constants;
 import minum.Context;
-import minum.FullSystem;
 import minum.database.Db;
 import minum.database.DbData;
 import minum.logging.ILogger;
@@ -12,6 +11,7 @@ import minum.testing.StopwatchUtils;
 import minum.utils.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static minum.utils.Invariants.mustBeFalse;
 import static minum.utils.Invariants.mustBeTrue;
 import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
@@ -222,10 +221,49 @@ public class WebFramework {
     }
 
     /**
+     * This handler redirects all traffic to the HTTPS endpoint.
+     * <br>
+     * It is necessary to extract the target path, but that's all
+     * the help we'll give.  We're not going to extract headers or
+     * body, we'll just read the start line and then stop reading from them.
+     */
+    ThrowingConsumer<ISocketWrapper, IOException> makeRedirectHandler() {
+        return (sw) -> {
+            try (sw) {
+                try (InputStream is = sw.getInputStream()) {
+
+                    String rawStartLine = inputStreamUtils.readLine(is);
+                 /*
+                  if the rawStartLine is null, that means the client stopped talking.
+                  See ISocketWrapper.readLine()
+                  */
+                    if (rawStartLine == null) {
+                        return;
+                    }
+
+                    var sl = StartLine.EMPTY(context).extractStartLine(rawStartLine);
+
+                    // just ignore all the rest of the incoming lines.  TCP is duplex -
+                    // we'll just start talking back the moment we understand the first line.
+                    String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+                    String hostname = constants.HOST_NAME;
+                    sw.send(
+                            "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
+                                    "Date: " + date + HTTP_CRLF +
+                                    "Server: minum" + HTTP_CRLF +
+                                    "Location: https://" + hostname + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
+                                    HTTP_CRLF
+                    );
+                }
+            }
+        };
+    }
+
+    /**
      * Determine whether the headers in this HTTP message indicate that
      * a body is available to read
      */
-    public boolean isThereIsABody(Headers hi) {
+    boolean isThereIsABody(Headers hi) {
         // if the client sent us a content-type header at all...
         if (!hi.contentType().isBlank()) {
             // if the content-length is greater than 0, we've got a body
@@ -293,7 +331,7 @@ public class WebFramework {
      * the code to be run in the web testing engine that selects which
      * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(Function)}
      */
-    public ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler() {
+    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler() {
         return makePrimaryHttpHandler(this::findEndpointForThisStartline);
     }
 
@@ -385,7 +423,7 @@ public class WebFramework {
     /**
      * This constructor is used for the real production system
      */
-    public WebFramework(Context context) {
+    WebFramework(Context context) {
         this(context, null);
     }
 
@@ -394,7 +432,7 @@ public class WebFramework {
      * can set the current date (for testing purposes)
      * @param overrideForDateTime for those test cases where we need to control the time
      */
-    public WebFramework(Context context, ZonedDateTime overrideForDateTime) {
+    WebFramework(Context context, ZonedDateTime overrideForDateTime) {
         this.fs = context.getFullSystem();
         this.logger = context.getLogger();
         this.constants = context.getConstants();
@@ -448,16 +486,27 @@ public class WebFramework {
      * register a {@link StaticFilesCache} to use for getting
      * and caching static values
      */
-    public void setStaticFilesCache(StaticFilesCache sfc) {
+    void setStaticFilesCache(StaticFilesCache sfc) {
         this.staticFilesCache = sfc;
     }
 
     /**
+     * This is a helper method to instantiate a {@link Db} class,
+     * avoiding the need for a user to provide the root database
+     * directory and the context.
+     *
      * Since this is a generic method, a bit of care is required when
      * calling.  Try to use a pattern like this:
      * <pre>
      * {@code Db<Photograph> photoDb = wf.getDb("photos");}
      * </pre>
+     * @param name the name of this data.  Note that this will be used
+     *             as the directory for the data, so use characters your
+     *             operating system would allow.
+     * @param instance an instance of the {@link DbData} data, preferably
+     *                 following a null-object pattern.  For example,
+     *                 Photograph.EMPTY.  This is used in the Db code
+     *                 to deserialize the data when reading.
      */
     public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
         return new Db<>(Path.of(constants.DB_DIRECTORY, name), context, instance);

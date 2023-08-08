@@ -1,6 +1,7 @@
 package minum.testing;
 
 import minum.Context;
+import minum.logging.TestLogger;
 
 import static minum.testing.RegexUtils.find;
 import static minum.testing.TestFramework.*;

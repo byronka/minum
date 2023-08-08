@@ -8,15 +8,11 @@ import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
 import minum.utils.ConcurrentSet;
 import minum.utils.StacktraceUtils;
-import minum.utils.ThrowingConsumer;
 import minum.utils.ThrowingRunnable;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -30,7 +26,7 @@ import java.util.concurrent.Future;
  * the server side but also tie it in with an ExecutorService
  * for controlling lots of server threads.
  */
-public class Server implements AutoCloseable {
+class Server implements AutoCloseable {
     private final ServerSocket serverSocket;
     private final SetOfSws setOfSWs;
     private final ILogger logger;
@@ -43,9 +39,9 @@ public class Server implements AutoCloseable {
      * This is the future returned when we submitted the
      * thread for the central server loop to the ExecutorService
      */
-    public Future<?> centralLoopFuture;
+    private Future<?> centralLoopFuture;
 
-    public Server(ServerSocket ss, Context context, String serverName, TheBrig theBrig) {
+    Server(ServerSocket ss, Context context, String serverName, TheBrig theBrig) {
         this.serverSocket = ss;
         this.logger = context.getLogger();
         this.constants = context.getConstants();
@@ -61,7 +57,7 @@ public class Server implements AutoCloseable {
      * of the phone line" to the code that is "handler", which mainly handles it from there.
      * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
      */
-    public void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
+    void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
         ThrowingRunnable<Exception> serverCode = buildMainServerLoop(es, handler);
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(serverCode, logger);
         this.centralLoopFuture = es.submit(t);
@@ -154,11 +150,18 @@ public class Server implements AutoCloseable {
         serverSocket.close();
     }
 
-    public String getHost() {
+    /**
+     * Get the string version of the address of this
+     * server.  See {@link InetAddress#getHostAddress()}
+     */
+    String getHost() {
         return serverSocket.getInetAddress().getHostAddress();
     }
 
-    public int getPort() {
+    /**
+     * See {@link ServerSocket#getLocalPort()}
+     */
+    int getPort() {
         return serverSocket.getLocalPort();
     }
 
@@ -166,7 +169,7 @@ public class Server implements AutoCloseable {
      * This is a helper method to find the server SocketWrapper
      * connected to a client SocketWrapper.
      */
-    public ISocketWrapper getServer(ISocketWrapper sw) {
+    ISocketWrapper getServer(ISocketWrapper sw) {
         return setOfSWs.getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
     }
 
@@ -177,12 +180,24 @@ public class Server implements AutoCloseable {
      * sockets in setOfSWs, and allows generated SocketWrappers
      * to deregister themselves from this list by using this method.
      */
-    public void removeMyRecord(ISocketWrapper socketWrapper) {
+    void removeMyRecord(ISocketWrapper socketWrapper) {
         setOfSWs.remove(socketWrapper);
     }
 
+    /**
+     * Returns the name of this server, which is set
+     * when the server is instantiated.
+     */
     @Override
     public String toString() {
         return this.serverName;
+    }
+
+    /**
+     * Obtain the {@link Future} of the central loop of this
+     * server object, which is obtained during {@link #start(ExecutorService, ThrowingConsumer)}
+     */
+    Future<?> getCentralLoopFuture() {
+        return centralLoopFuture;
     }
 }

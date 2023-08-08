@@ -1,10 +1,10 @@
 package minum;
 
-import minum.logging.Logger;
 import minum.logging.LoggingLevel;
 import minum.utils.TimeUtils;
 
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -24,7 +24,7 @@ public class Constants {
         SECURE_SERVER_PORT = getProp("SSL_SERVER_PORT",  8443);
         HOST_NAME = properties.getProperty("HOST_NAME",  "localhost");
         DB_DIRECTORY = properties.getProperty("DB_DIRECTORY",  "db");
-        LOG_LEVELS = Logger.convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT"));
+        LOG_LEVELS = convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT"));
         USE_VIRTUAL = getProp("USE_VIRTUAL", false);
         KEYSTORE_PATH = properties.getProperty("KEYSTORE_PATH",  "");
         KEYSTORE_PASSWORD = properties.getProperty("KEYSTORE_PASSWORD",  "");
@@ -209,7 +209,7 @@ public class Constants {
      * This overload allows you to specify that the contents of the
      * properties file should be shown when it's read.
      */
-    public Properties getConfiguredProperties() {
+    private Properties getConfiguredProperties() {
         var properties = new Properties();
         String fileName = "app.config";
         try (FileInputStream fis = new FileInputStream(fileName)) {
@@ -217,10 +217,27 @@ public class Constants {
                     " found properties file at ./app.config.  Loading properties");
             properties.load(fis);
         } catch (Exception ex) {
-            System.out.println(Config.getConfigErrorMessage());
+            System.out.println(ConfigErrorMessage.getConfigErrorMessage());
             System.exit(1);
         }
         return properties;
+    }
+
+
+    /**
+     * Given a list of strings representing logging levels,
+     * convert it to a list of enums.  Log levels are enumerated
+     * in {@link LoggingLevel}.
+     */
+    private List<LoggingLevel> convertLoggingStringsToEnums(List<String> logLevels) {
+        List<String> logLevelStrings = logLevels.stream().map(String::toUpperCase).toList();
+        List<LoggingLevel> enabledLoggingLevels = new ArrayList<>();
+        for (LoggingLevel t : LoggingLevel.values()) {
+            if (logLevelStrings.contains(t.name())) {
+                enabledLoggingLevels.add(t);
+            }
+        }
+        return enabledLoggingLevels;
     }
 }
 

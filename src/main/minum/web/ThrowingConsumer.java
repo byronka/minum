@@ -1,8 +1,4 @@
-package minum.utils;
-
-import minum.logging.ILogger;
-
-import java.util.function.Supplier;
+package minum.web;
 
 /**
  * This exists so that we are able to slightly better manage
@@ -14,8 +10,7 @@ import java.util.function.Supplier;
  * alleviate that situation.
  */
 @FunctionalInterface
-public interface ThrowingSupplier<T, E extends Throwable>{
-
-    T get() throws E;
+interface ThrowingConsumer<T, E extends Throwable> {
+    void accept(T t) throws E;
 
 }

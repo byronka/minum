@@ -3,10 +3,9 @@ package minum.web;
 import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 import minum.htmlparsing.ParsingException;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 import minum.utils.InvariantException;
 import minum.utils.StringUtils;
-import minum.utils.ThrowingConsumer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -464,8 +463,7 @@ public class WebTests {
 
         logger.test("Headers test - multiple headers"); {
             Headers headers = new Headers(List.of("foo: a", "foo: b"), context);
-            Map<String, List<String>> myMap = headers.getHeadersMap();
-            assertEqualsDisregardOrder(myMap.get("foo"), List.of("a","b"));
+            assertEqualsDisregardOrder(headers.valueByKey("foo"), List.of("a","b"));
         }
 
         /*
@@ -656,6 +654,38 @@ public class WebTests {
             var result = startLine.extractMapFromQueryString("foo");
             assertEquals(result, Map.of());
         }
+
+        /*
+         *  When we run the redirection handler, it will redirect all traffic
+         * on the socket to the HTTPS endpoint.
+         *
+         *  Sometimes a client will connect to TCP but then close their
+         * connection, in which case when we readline it will return as null,
+         * and we'll return early from the handler, returning nothing.
+         */
+        logger.test("Typical happy path - a user makes an HTTP request to the insecure endpoint"); {
+            var webFramework = new WebFramework(context);
+            var redirectHandler = webFramework.makeRedirectHandler();
+            FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+            fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
+            redirectHandler.accept(fakeSocketWrapper);
+            String result = fakeSocketWrapper.baos.toString();
+            assertTrue(result.contains("303 SEE OTHER"), "result was: " + result);
+        }
+
+        /*
+         * Sometimes a client will connect to TCP but then close their
+         * connection, in which case when we readline it will return as null,
+         * and we'll return early from the handler, returning nothing.
+         */
+        logger.test("If the redirect handler receives no start line, return nothing"); {
+            var webFramework = new WebFramework(context);
+            var redirectHandler = webFramework.makeRedirectHandler();
+            FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+            redirectHandler.accept(fakeSocketWrapper);
+            assertEquals(fakeSocketWrapper.baos.toString(), "");
+        }
+
 
     }
 

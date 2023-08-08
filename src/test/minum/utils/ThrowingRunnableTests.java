@@ -1,7 +1,7 @@
 package minum.utils;
 
 import minum.Context;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
 import static minum.testing.TestFramework.assertTrue;
 

@@ -1,7 +1,5 @@
 package minum.logging;
 
-import minum.utils.ThrowingSupplier;
-
 /**
  * The functions necessary for logging runtime information
  */
@@ -37,10 +35,13 @@ public interface ILogger {
     void logAudit(ThrowingSupplier<String, Exception> msg);
 
     /**
-     * The logger has to stand apart from the rest of the system,
-     * or else we'll have circular dependencies.  For that reason,
-     * when we are shutting down the system it is necessary to
+     * When we are shutting down the system it is necessary to
      * explicitly stop the logger.
+     *
+     * <p>
+     * The logger has to stand apart from the rest of the system,
+     * or else we'll have circular dependencies.
+     * </p>
      */
     void stop();
 }

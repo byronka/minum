@@ -3,18 +3,11 @@ package minum;
 import minum.htmlparsing.HtmlParseNode;
 import minum.htmlparsing.HtmlParser;
 import minum.htmlparsing.TagName;
-import minum.logging.ILogger;
-import minum.testing.FunctionalTesting;
-import minum.testing.FunctionalTesting.TestResponse;
-import minum.testing.TestLogger;
+import minum.web.FunctionalTesting;
+import minum.web.FunctionalTesting.TestResponse;
+import minum.logging.TestLogger;
 import minum.utils.MyThread;
-import minum.utils.StringUtils;
-import minum.web.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -30,8 +23,6 @@ import static minum.web.StatusLine.StatusCode.*;
 public class FunctionalTests {
 
     private final TestLogger logger;
-    final Server primaryServer;
-    final WebEngine webEngine;
     private final Context context;
     private final HtmlParser htmlParser;
     private final FunctionalTesting ft;
@@ -39,8 +30,6 @@ public class FunctionalTests {
     public FunctionalTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
         this.context = context;
-        this.primaryServer = context.getFullSystem().getServer();
-        this.webEngine = new WebEngine(context);
         this.htmlParser = new HtmlParser();
         this.ft = new FunctionalTesting(context);
         logger.testSuite("FunctionalTests");
@@ -51,7 +40,7 @@ public class FunctionalTests {
 
         logger.test("Request a static png image that needed a mime type we just provided");
         assertEquals(ft.get("moon.png").statusLine().status(), _200_OK);
-        assertEquals(ft.get("moon.png").headers().getHeadersMap().get("content-type"), List.of("image/png"));
+        assertEquals(ft.get("moon.png").headers().valueByKey("content-type"), List.of("image/png"));
 
         logger.test("Request a static file.  First time it gets loaded from disk... ");
         assertEquals(ft.get("index.html").statusLine().status(), _200_OK);
@@ -131,10 +120,7 @@ public class FunctionalTests {
         // *********** ERROR HANDLING SECTION *****************
 
         logger.test("if we try sending too many characters on a line, it should block us");
-        try (var client = webEngine.startClient(primaryServer)) {
-            // send a GET request
-            client.sendHttpLine("a".repeat(context.getConstants().MAX_READ_LINE_SIZE_BYTES + 1));
-        }
+        ft.get("a".repeat(context.getConstants().MAX_READ_LINE_SIZE_BYTES + 1));
 
         // remember, we're the client, we don't have immediate access to the server here.  So,
         // we have to wait for it to get through some processing before we check.

@@ -1,12 +1,10 @@
 package minum.web;
 
 import minum.Context;
-import minum.testing.TestLogger;
-import minum.utils.FileUtils;
+import minum.logging.TestLogger;
 import minum.utils.InvariantException;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 import static minum.testing.TestFramework.*;

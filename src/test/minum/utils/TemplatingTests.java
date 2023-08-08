@@ -3,7 +3,7 @@ package minum.utils;
 import minum.Context;
 import minum.templating.TemplateProcessor;
 import minum.templating.TemplateRenderException;
-import minum.testing.TestLogger;
+import minum.logging.TestLogger;
 
 import java.util.Map;
 

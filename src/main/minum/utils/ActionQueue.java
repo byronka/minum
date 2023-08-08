@@ -137,11 +137,11 @@ public class ActionQueue {
         return this.name;
     }
 
-    public Thread getQueueThread() {
+    Thread getQueueThread() {
         return queueThread;
     }
 
-    public LinkedBlockingQueue<RunnableWithDescription<?>> getQueue() {
+    LinkedBlockingQueue<RunnableWithDescription<?>> getQueue() {
         return queue;
     }
 }

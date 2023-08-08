@@ -8,12 +8,23 @@ import java.net.SocketAddress;
  * This is the public interface to {@link ISocketWrapper}, whose
  * purpose is to make our lives easier when working with {@link java.net.Socket}.
  */
-public interface ISocketWrapper extends AutoCloseable {
+interface ISocketWrapper extends AutoCloseable {
 
+    /**
+     * Convert the provided string value into bytes
+     * using the default charset, and send on the socket.
+     */
     void send(String msg) throws IOException;
 
+    /**
+     * Simply send the bytes on the socket, simple as that.
+     */
     void send(byte[] bodyContents) throws IOException;
 
+    /**
+     * Sends a line of text, with carriage-return and line-feed
+     * appended to the end, required for the HTTP protocol.
+     */
     void sendHttpLine(String msg) throws IOException;
 
     /**
@@ -22,11 +33,14 @@ public interface ISocketWrapper extends AutoCloseable {
      */
     String getLocalAddr();
 
+    /**
+     * Get the port of the server
+     */
     int getLocalPort();
 
     /**
      * Returns a {@link SocketAddress}, which includes
-     * the host address and port
+     * the client's address and port
      */
     SocketAddress getRemoteAddrWithPort();
 

@@ -10,6 +10,10 @@ import java.security.spec.KeySpec;
  */
 public class CryptoUtils {
 
+    private CryptoUtils() {
+        // cannot construct
+    }
+
     /**
      * Converts an array of bytes to their corresponding hex string
      * @param bytes an array of bytes

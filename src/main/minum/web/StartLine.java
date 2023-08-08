@@ -29,8 +29,8 @@ public class StartLine{
     /**
      * @param verb GET, POST, etc.
      * @param pathDetails See {@link PathDetails}
-     * @param version the version of HTTP we're receiving
-     * @param rawValue he entire line of the start line
+     * @param version the version of HTTP (1.0 or 1.1) we're receiving
+     * @param rawValue the entire raw string of the start line
      */
     public StartLine(
             Verb verb,
@@ -46,6 +46,7 @@ public class StartLine{
         this.context = context;
         this.constants = context.getConstants();
     }
+
     /**
      * This is our regex for looking at a client's request
      * and determining what to send them.  For example,
@@ -54,7 +55,8 @@ public class StartLine{
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
      */
-    static final String startLinePattern = "^(GET|POST|PUT|DELETE|TRACE|PATCH|OPTIONS) /(.*) HTTP/(1.1|1.0)$";
+    static final String startLinePattern = "^([A-Z]{3,8}) /(.*) HTTP/(1.1|1.0)$";
+
     static final Pattern startLineRegex = Pattern.compile(startLinePattern);
 
     public static StartLine EMPTY(Context context) {
@@ -136,16 +138,14 @@ public class StartLine{
 
     /**
      * Some essential characteristics of the path portion of the start line
+     * @param isolatedPath the isolated path is found after removing the query string
+     * @param rawQueryString the raw query is the string after a question mark (if it exists - it's optional)
+     *                       if there is no query string, then we leave rawQuery as a null value
+     * @param queryString the query is a map of the keys -> values found in the query string
      */
     public record PathDetails (
-        // the isolated path is found after removing the query string
         String isolatedPath,
-
-        // the raw query is the string after a question mark (if it exists - it's optional)
-        // if there is no query string, then we leave rawQuery as a null value
         String rawQueryString,
-
-        // the query is a map of the keys -> values found in the query string
         Map<String, String> queryString
     ){
         public static final PathDetails empty = new PathDetails("", "", Map.of());
