@@ -54,8 +54,7 @@ public class FunctionalTests {
         logger.test("grab the photos page unauthenticated. We should be able to view the photos.");
         TestResponse photos = ft.get("photos");
         assertEquals(photos.statusLine().status(), _200_OK);
-        var nodes = htmlParser.parse(photos.body().asString());
-        var pNode = htmlParser.searchOne(nodes, TagName.A, Map.of("href", "index.html"));
+        var pNode = photos.searchOne(TagName.A, Map.of("href", "index.html"));
         assertEquals(pNode.innerText(), "Index");
 
         logger.test("go to the page for registering a user, while unauthenticated.");
@@ -90,7 +89,8 @@ public class FunctionalTests {
         ft.post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", authHeader);
 
         logger.test("check out what's on the photos page now, unauthenticated");
-        var response2 = ft.get("photos").searchOne(TagName.IMG, Map.of("alt", "photo alt text"));
+        TestResponse response1 = ft.get("photos");
+        var response2 = response1.searchOne(TagName.IMG, Map.of("alt", "photo alt text"));
         String photoUrl = response2.tagInfo().attributes().get("src");
         assertTrue(photoUrl.contains("photo?name="));
 

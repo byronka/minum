@@ -523,20 +523,13 @@ public class HtmlParser {
      * Searches the node tree. If zero nodes are found, returns HtmlParseNode.EMPTY.
      * If one is found, it is returned.  If more than one is found, an exception is thrown.
      */
-    public HtmlParseNode searchOne(List<HtmlParseNode> nodes, TagName tagName, Map<String, String> attributes) {
+    public List<HtmlParseNode> search(List<HtmlParseNode> nodes, TagName tagName, Map<String, String> attributes) {
         List<HtmlParseNode> foundNodes = new ArrayList<>();
         for (var node : nodes) {
-            var result = node.searchOne(tagName, attributes);
-            if (result != HtmlParseNode.EMPTY) {
-                foundNodes.add(result);
-            }
+            var result = node.search(tagName, attributes);
+            foundNodes.addAll(result);
         }
-        mustBeTrue(foundNodes.size() == 0 || foundNodes.size() == 1, "There must be 0 or 1 nodes found.  Nodes:" + foundNodes);
-        if (foundNodes.size() == 0) {
-            return HtmlParseNode.EMPTY;
-        } else {
-            return foundNodes.get(0);
-        }
+        return foundNodes;
     }
 
 }

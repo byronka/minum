@@ -44,15 +44,10 @@ public record HtmlParseNode(ParseNodeType type,
      * finds more than one match, it will throw an exception.
      * If none are found, HtmlParseNode.EMPTY is returned.
      */
-    public HtmlParseNode searchOne(TagName tagName, Map<String, String> attributes) {
+    public List<HtmlParseNode> search(TagName tagName, Map<String, String> attributes) {
         var myList = new ArrayList<HtmlParseNode>();
         recursiveTreeWalkSearch(myList, tagName, attributes);
-        mustBeTrue(myList.size() == 0 || myList.size() == 1, "More than 1 node found.  Here they are:" + myList);
-        if (myList.size() == 0) {
-            return HtmlParseNode.EMPTY;
-        } else {
-            return myList.get(0);
-        }
+        return myList;
     }
 
     private void recursiveTreeWalkSearch(ArrayList<HtmlParseNode> myList, TagName tagName, Map<String, String> attributes) {

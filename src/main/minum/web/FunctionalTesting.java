@@ -6,6 +6,7 @@ import minum.htmlparsing.HtmlParser;
 import minum.htmlparsing.TagName;
 import minum.logging.ILogger;
 import minum.utils.MyThread;
+import minum.utils.SearchUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import static minum.utils.Invariants.mustBeTrue;
 
 /**
  * Tools to enable system-wide integration testing
@@ -51,7 +54,26 @@ public class FunctionalTesting {
         public HtmlParseNode searchOne(TagName tagName, Map<String, String> attributes) {
             var htmlParser = new HtmlParser();
             var nodes = htmlParser.parse(body.asString());
-            return htmlParser.searchOne(nodes, tagName, attributes);
+            var searchResults = htmlParser.search(nodes, tagName, attributes);
+            mustBeTrue(searchResults.size() == 0 || searchResults.size() == 1, "More than 1 node found.  Here they are:" + searchResults);
+            if (searchResults.size() == 0) {
+                return HtmlParseNode.EMPTY;
+            } else {
+                return searchResults.get(0);
+            }
+        }
+
+        /**
+         * Presuming the response body is HTML, search for all
+         * HTML elements with the given tag name and attributes.
+         *
+         * @return a list of however many elements matched
+         */
+        public List<HtmlParseNode> search(TagName tagName, Map<String, String> attributes) {
+            var htmlParser = new HtmlParser();
+            var nodes = htmlParser.parse(body.asString());
+            var searchResults = htmlParser.search(nodes, tagName, attributes);
+            return searchResults;
         }
     }
 
