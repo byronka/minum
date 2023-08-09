@@ -141,7 +141,7 @@ public class FunctionalTesting {
     }
 
     /**
-     * Send a POST request (as a client to the server)
+     * Send a POST request (as a client to the server) using url encoding
      * @param path the path to an endpoint, that is, the value for path
      *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
      *             for pathname
@@ -152,7 +152,7 @@ public class FunctionalTesting {
     }
 
     /**
-     * Send a POST request (as a client to the server)
+     * Send a POST request (as a client to the server) using url encoding
      * @param path the path to an endpoint, that is, the value for path
      *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
      *             for pathname
@@ -165,7 +165,7 @@ public class FunctionalTesting {
     }
 
     /**
-     * Send a POST request (as a client to the server)
+     * Send a POST request (as a client to the server) using url encoding
      * @param path the path to an endpoint, that is, the value for path
      *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
      *             for pathname

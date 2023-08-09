@@ -119,7 +119,7 @@ public class Headers{
     public String contentType() {
         // find the header that starts with content-type
         List<String> cts = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
-        mustBeTrue(cts.isEmpty() || cts.size() == 1, "The number of content-type headers must be exactly zero or one");
+        mustBeTrue(cts.isEmpty() || cts.size() == 1, "The number of content-type headers must be exactly zero or one.  Recieved: " + cts);
         if (!cts.isEmpty()) {
             return cts.get(0);
         }
@@ -135,7 +135,7 @@ public class Headers{
      */
     public int contentLength() {
         List<String> cl = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
-        mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one");
+        mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one.  Received: " + cl);
         int contentLength = -1;
         if (!cl.isEmpty()) {
             Matcher clMatcher = contentLengthRegex.matcher(cl.get(0));
