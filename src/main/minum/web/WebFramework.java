@@ -133,6 +133,11 @@ public class WebFramework {
                         return;
                     }
 
+                    /****************************************
+                     *   Set up some important variables
+                     ***************************************/
+                    // The request we received from the client
+                    Request clientRequest = Request.EMPTY(context);
                     // The response we will send to the client
                     Response resultingResponse;
                     boolean isKeepAlive = false;
@@ -191,7 +196,8 @@ public class WebFramework {
                     } else {
                         var handlerStopwatch = new StopwatchUtils().startTimer();
                         try {
-                            resultingResponse = endpoint.apply(new Request(hi, sl, body, sw.getRemoteAddr()));
+                            clientRequest = new Request(hi, sl, body, sw.getRemoteAddr());
+                            resultingResponse = endpoint.apply(clientRequest);
                         } catch (Exception ex) {
                             // if an error happens while running an endpoint's code, this is the
                             // last-chance handling of that error where we return a 500 and a
@@ -204,7 +210,7 @@ public class WebFramework {
                         logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
                     }
 
-                    String statusLineAndHeaders = convertResponseToString(resultingResponse, isKeepAlive);
+                    String statusLineAndHeaders = convertResponseToString(clientRequest, resultingResponse, isKeepAlive);
 
                     // Here is where the bytes actually go out on the socket
                     String response = statusLineAndHeaders + HTTP_CRLF;
@@ -281,26 +287,26 @@ public class WebFramework {
      * This is where our strongly-typed {@link Response} gets converted
      * to a string and sent on the socket.
      */
-    private String convertResponseToString(Response r, boolean isKeepAlive) {
+    private String convertResponseToString(Request request, Response response, boolean isKeepAlive) {
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
         StringBuilder stringBuilder = new StringBuilder();
 
         // add the status line
-        stringBuilder.append( "HTTP/1.1 " + r.statusCode().code + " " + r.statusCode().shortDescription + HTTP_CRLF );
+        stringBuilder.append( "HTTP/1.1 " + response.statusCode().code + " " + response.statusCode().shortDescription + HTTP_CRLF );
 
         // add the headers
         stringBuilder
                 .append( "Date: " + date + HTTP_CRLF )
                 .append( "Server: minum" + HTTP_CRLF )
-                .append(  r.extraHeaders().entrySet().stream().map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF).collect(Collectors.joining()));
+                .append(  response.extraHeaders().entrySet().stream().map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF).collect(Collectors.joining()));
 
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = r.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
+        boolean hasContentType = response.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
 
         // if there *is* data, we had better be returning a content type
-        if (r.body().length > 0) {
-            mustBeTrue(hasContentType, "You must specify a Content-Type header in your Response object if you are returning data. Response headers: " + r.extraHeaders());
+        if (response.body().length > 0) {
+            mustBeTrue(hasContentType, "a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
         }
 
         /*
@@ -314,7 +320,7 @@ public class WebFramework {
 
         See https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length
          */
-        stringBuilder.append("Content-Length: " + r.body().length + HTTP_CRLF );
+        stringBuilder.append("Content-Length: " + response.body().length + HTTP_CRLF );
 
         // if we're a keep-alive connection, reply with a keep-alive header
         if (isKeepAlive) {

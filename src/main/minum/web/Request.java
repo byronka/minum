@@ -1,5 +1,9 @@
 package minum.web;
 
+import minum.Context;
+
+import java.util.List;
+
 /**
  * An HTTP request.
  * <p>
@@ -51,5 +55,9 @@ public record Request(Headers headers, StartLine startLine, Body body,
                       This is the remote address making the request
                        */
                       String remoteRequester) {
+
+    public static Request EMPTY(Context context) {
+        return new Request(new Headers(List.of(), context), StartLine.EMPTY(context), Body.EMPTY(context), "");
+    }
 
 }
