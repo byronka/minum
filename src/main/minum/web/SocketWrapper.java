@@ -1,7 +1,6 @@
 package minum.web;
 
 import minum.logging.ILogger;
-import minum.logging.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;

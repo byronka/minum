@@ -3,6 +3,7 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.exceptions.ForbiddenUseException;
+import minum.logging.ILogger;
 import minum.utils.StringUtils;
 
 import java.io.ByteArrayOutputStream;
@@ -20,9 +21,12 @@ import static minum.utils.ByteUtils.byteListToArray;
 class InputStreamUtils {
 
     private final Constants constants;
+    private final ILogger logger;
+
 
     InputStreamUtils(Context context) {
         this.constants = context.getConstants();
+        this.logger = context.getLogger();
     }
 
     /**
@@ -50,7 +54,11 @@ class InputStreamUtils {
     public byte[] readChunkedEncoding(InputStream inputStream) throws IOException {
         final var result = new ByteArrayOutputStream( );
         for (int countRead = 0; countRead <= (constants.MAX_READ_SIZE_BYTES + 1); )  {
-            if (countRead == constants.MAX_READ_SIZE_BYTES) throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES);
+            if (countRead == constants.MAX_READ_SIZE_BYTES) {
+                logger.logDebug(() -> "client sent more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES);
+                inputStream.close();
+                return new byte[0];
+            }
             String countToReadString = readLine(inputStream);
             if (countToReadString == null) {
                 return new byte[0];
@@ -83,7 +91,11 @@ class InputStreamUtils {
 
         final var result = new ByteArrayOutputStream(constants.MAX_READ_LINE_SIZE_BYTES / 3);
         for (int i = 0; i <= (constants.MAX_READ_LINE_SIZE_BYTES + 1); i++) {
-            if (i == constants.MAX_READ_LINE_SIZE_BYTES) throw new ForbiddenUseException("in readLine, client sent more bytes than allowed.  Current max: " + constants.MAX_READ_LINE_SIZE_BYTES);
+            if (i == constants.MAX_READ_LINE_SIZE_BYTES) {
+                logger.logDebug(() -> "in readLine, client sent more bytes than allowed.  Current max: " + constants.MAX_READ_LINE_SIZE_BYTES);
+                inputStream.close();
+                return "";
+            }
             int a = inputStream.read();
 
             if (a == -1) return null;
