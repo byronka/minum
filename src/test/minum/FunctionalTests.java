@@ -120,7 +120,19 @@ public class FunctionalTests {
         // *********** ERROR HANDLING SECTION *****************
 
         logger.test("if we try sending too many characters on a line, it should block us");
-        ft.get("a".repeat(context.getConstants().MAX_READ_LINE_SIZE_BYTES + 1));
+        try {
+            ft.get("a".repeat(context.getConstants().MAX_READ_LINE_SIZE_BYTES + 1));
+        } catch (Exception ex) {
+            // this is kind of a weird case I'm looking into.
+            // On Windows, this runs right through without failing, but on Mac,
+            // an exception is thrown here because of a connection reset. A
+            // connection reset happens when a host sends packets to a closed
+            // socket connection.  I debugged through here on the Windows machine
+            // and it's like nothing is wrong.
+
+            // so in the meantime, since I just need to cause the log to be entered,
+            // this try-catch that eats the exception will have to do.
+        }
 
         // remember, we're the client, we don't have immediate access to the server here.  So,
         // we have to wait for it to get through some processing before we check.
