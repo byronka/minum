@@ -215,9 +215,19 @@ public class WebFramework {
                     // Here is where the bytes actually go out on the socket
                     String response = statusLineAndHeaders + HTTP_CRLF;
                     Response finalResultingResponse = resultingResponse;
-                    logger.logTrace(() -> "Sending back: " + response + StringUtils.byteArrayToString(finalResultingResponse.body()));
+
+                    logger.logTrace(() -> "Sending headers back: " + response);
                     sw.send(response);
-                    sw.send(resultingResponse.body());
+
+                    if (clientRequest.startLine().getVerb() == StartLine.Verb.HEAD) {
+                        Request finalClientRequest = clientRequest;
+                        logger.logDebug(() -> "client " + finalClientRequest.remoteRequester() +
+                                " is requesting HEAD for "+ finalClientRequest.startLine().getPathDetails().isolatedPath() +
+                                ".  Excluding body from response");
+                    } else {
+                        logger.logTrace(() -> "Sending body back: " + StringUtils.byteArrayToString(finalResultingResponse.body()));
+                        sw.send(resultingResponse.body());
+                    }
                     logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
 
                     if (! isKeepAlive) break;
@@ -352,7 +362,13 @@ public class WebFramework {
 
         // first we check if there's a simple direct match
         String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
-        handler = registeredDynamicPaths.get(new VerbPath(sl.getVerb(), requestedPath));
+
+        // if the user is asking for a HEAD request, they want to run a GET command
+        // but don't want the body.  We'll simply exclude sending the body, later on, when returning the data
+        StartLine.Verb verb = sl.getVerb() == StartLine.Verb.HEAD ? StartLine.Verb.GET : sl.getVerb();
+
+        VerbPath key = new VerbPath(verb, requestedPath);
+        handler = registeredDynamicPaths.get(key);
 
         if (handler == null) {
             logger.logTrace(() -> "No direct handler found.  looking for a partial match for " + requestedPath);

@@ -3,6 +3,7 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.exceptions.ForbiddenUseException;
+import minum.logging.ILogger;
 import minum.utils.StringUtils;
 
 import java.util.*;
@@ -25,6 +26,7 @@ public class StartLine{
     private final String rawValue;
     private final Context context;
     private final Constants constants;
+    private final ILogger logger;
 
     /**
      * @param verb GET, POST, etc.
@@ -45,6 +47,7 @@ public class StartLine{
         this.rawValue = rawValue;
         this.context = context;
         this.constants = context.getConstants();
+        this.logger = context.getLogger();
     }
 
     /**
@@ -89,6 +92,7 @@ public class StartLine{
         TRACE,
         PATCH,
         OPTIONS,
+        HEAD,
 
         /**
          * Represents the null value of Verb
@@ -117,7 +121,12 @@ public class StartLine{
     }
 
     private Verb extractVerb(String verbString) {
-        return Verb.valueOf(verbString.toUpperCase(Locale.ROOT));
+        try {
+            return Verb.valueOf(verbString.toUpperCase(Locale.ROOT));
+        } catch (Exception ex) {
+            logger.logDebug(() -> "Unable to convert verb to enum: " + verbString);
+            return Verb.NONE;
+        }
     }
 
     private PathDetails extractPathDetails(String path) {
