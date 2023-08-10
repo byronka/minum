@@ -136,7 +136,7 @@ Here's the general series of steps for a new developer:
    it. Find it here: https://www.jetbrains.com/idea/download/
 3. Obtain this source code from Github, at https://github.com/byronka/minum.git
 4. Run the tests on your computer, using the command line: make test 
-5. Run the [using_minum](https://github.com/byronka/minum_usage_example) application to get a feel for the user experience: make run (and then go to http://localhost:8080)
+5. Run the [using_minum](https://github.com/byronka/minum_usage_example_mvn) application to get a feel for the user experience: make run (and then go to http://localhost:8080)
 6. Open the software with IntelliJ.  Navigate around the code a bit.
 7. Read through some of this developer documentation to get a feel for some of its unique characteristics.
 8. Examine some tests in the system to get a feel for how the system works and how
