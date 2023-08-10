@@ -73,7 +73,7 @@ public class RegexUtils {
      * <b>not</b> use any special characters or punctuation</p>
      * @return returns the first match found, or an empty string
      */
-    public static String find(String regex, String matchGroupName, String data) {
+    public static String find(String regex, String data, String matchGroupName) {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(data);
         return matcher.find() ? matcher.group(matchGroupName) : "";
