@@ -134,7 +134,7 @@ class Server implements AutoCloseable {
                 boolean isLookingForVulnerabilities = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
                 logger.logDebug(() -> "is " + sw.getRemoteAddr() + " looking for vulnerabilities? " + isLookingForVulnerabilities);
                 if (isLookingForVulnerabilities) {
-                    if (theBrig != null && constants.IS_THE_BRIG_ENABLED)
+                    if (theBrig != null)
                         theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                 }
             }

@@ -209,6 +209,9 @@ public class TheBrig {
      * @param sentenceDuration length of stay, in milliseconds
      */
     public void sendToJail(String clientIdentifier, long sentenceDuration) {
+        if (!constants.IS_THE_BRIG_ENABLED) {
+            return;
+        }
         lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds");
@@ -226,6 +229,9 @@ public class TheBrig {
     }
 
     public boolean isInJail(String clientIdentifier) {
+        if (!constants.IS_THE_BRIG_ENABLED) {
+            return false;
+        }
         return clientKeys.containsKey(clientIdentifier);
     }
 

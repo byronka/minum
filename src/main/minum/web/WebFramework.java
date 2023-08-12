@@ -90,7 +90,7 @@ public class WebFramework {
 
                 // if we recognize this client as an attacker, dump them.
                 TheBrig theBrig = (fs != null && fs.getTheBrig() != null) ? fs.getTheBrig() : null;
-                if (theBrig != null && constants.IS_THE_BRIG_ENABLED) {
+                if (theBrig != null) {
                     String remoteClient = sw.getRemoteAddr();
                     if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
                         // if this client is a vulnerability seeker, just dump them unceremoniously
@@ -188,7 +188,7 @@ public class WebFramework {
                         logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
                         boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
                         logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
-                        if (isVulnSeeking && theBrig != null && constants.IS_THE_BRIG_ENABLED) {
+                        if (isVulnSeeking && theBrig != null) {
                             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                             return;
                         }
