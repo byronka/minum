@@ -130,6 +130,38 @@ public class FunctionalTesting {
 
     /**
      * Send a request as a client to the server
+     *
+     * <p>
+     *     This helper method is the same as {@link #send(StartLine.Verb, String, byte[], List)} except
+     *     that it will automatically set the body as empty
+     * </p>
+     * @param path the path to an endpoint, that is, the value for path
+     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *             for pathname
+     * @param extraHeaders a list containing extra headers you need the client to send, for
+     *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
+     */
+    public TestResponse send(StartLine.Verb verb, String path, List<String> extraHeaders) throws IOException {
+        return send(verb, path, new byte[0], extraHeaders);
+    }
+
+    /**
+     * Send a request as a client to the server
+     * <p>
+     *     This helper method is the same as {@link #send(StartLine.Verb, String, byte[], List)} except
+     *     it will set the body as empty and does not require any extra headers to be set. In this
+     *     case, the headers sent are very minimal.  See the source.
+     * </p>
+     * @param path the path to an endpoint, that is, the value for path
+     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *             for pathname
+     */
+    public TestResponse send(StartLine.Verb verb, String path) throws IOException {
+        return send(verb, path, new byte[0], List.of());
+    }
+
+    /**
+     * Send a request as a client to the server
      * @param path the path to an endpoint, that is, the value for path
      *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
      *             for pathname
