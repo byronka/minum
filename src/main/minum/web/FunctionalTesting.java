@@ -6,12 +6,12 @@ import minum.htmlparsing.HtmlParser;
 import minum.htmlparsing.TagName;
 import minum.logging.ILogger;
 import minum.utils.MyThread;
-import minum.utils.SearchUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -84,7 +84,8 @@ public class FunctionalTesting {
      *             for pathname
      */
     public TestResponse get(String path) throws IOException {
-        return get(path, List.of());
+        ArrayList<String> headers = new ArrayList<>();
+        return send(StartLine.Verb.GET, path, new byte[0], headers);
     }
 
     /**
@@ -96,48 +97,7 @@ public class FunctionalTesting {
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
     public TestResponse get(String path, List<String> extraHeaders) throws IOException {
-        Body body = Body.EMPTY(context);
-        Headers headers = null;
-        StatusLine statusLine = null;
-        try (var client = webEngine.startClient(primaryServer)) {
-            InputStream is = client.getInputStream();
-
-            // send a GET request
-            client.sendHttpLine("GET /"+path+" HTTP/1.1");
-            client.sendHttpLine("Host: localhost:8080");
-            for (String header : extraHeaders) {
-                client.sendHttpLine(header);
-            }
-            client.sendHttpLine("");
-
-            statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-
-            headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
-
-            BodyProcessor bodyProcessor = new BodyProcessor(context);
-
-
-            // Determine whether there is a body (a block of data) in this request
-            if (webFramework.isThereIsABody(headers)) {
-                Headers finalHeaders = headers;
-                logger.logTrace(() -> "There is a body. Content-type is " + finalHeaders.contentType());
-                body = bodyProcessor.extractData(is, headers);
-            }
-
-        } catch (SocketException ex) {
-            if (ex.getMessage().equals("An established connection was aborted by the software in your host machine")) {
-                /*
-                When the server is done communicating with us, it will close
-                the socket on its side, which will cause a SocketException on our side.
-                If the message matches what we have here, it's just that happening, no
-                need to pass it up further, it's expected and ok.
-                 */
-            } else {
-                throw ex;
-            }
-        }
-        MyThread.sleep(100);
-        return new TestResponse(statusLine, headers, body);
+        return send(StartLine.Verb.GET, path, new byte[0], extraHeaders);
     }
 
     /**
@@ -148,7 +108,8 @@ public class FunctionalTesting {
      * @param payload a body payload in string form
      */
     public TestResponse post(String path, String payload) throws IOException {
-        return post(path, payload, List.of());
+        ArrayList<String> headers = new ArrayList<>();
+        return post(path, payload, headers);
     }
 
     /**
@@ -161,11 +122,14 @@ public class FunctionalTesting {
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
     public TestResponse post(String path, String payload, List<String> extraHeaders) throws IOException {
-        return post(path, payload.getBytes(StandardCharsets.UTF_8), extraHeaders);
+        var headers = new ArrayList<String>();
+        headers.add("Content-Type: application/x-www-form-urlencoded");
+        headers.addAll(extraHeaders);
+        return send(StartLine.Verb.POST, path, payload.getBytes(StandardCharsets.UTF_8), headers);
     }
 
     /**
-     * Send a POST request (as a client to the server) using url encoding
+     * Send a request as a client to the server
      * @param path the path to an endpoint, that is, the value for path
      *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
      *             for pathname
@@ -173,7 +137,7 @@ public class FunctionalTesting {
      * @param extraHeaders a list containing extra headers you need the client to send, for
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
-    public TestResponse post(String path, byte[] payload, List<String> extraHeaders) throws IOException {
+    public TestResponse send(StartLine.Verb verb, String path, byte[] payload, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY(context);
         Headers headers = null;
         StatusLine statusLine = null;
@@ -181,10 +145,9 @@ public class FunctionalTesting {
             InputStream is = client.getInputStream();
 
             // send a POST request
-            client.sendHttpLine("POST /"+path+" HTTP/1.1");
+            client.sendHttpLine(verb + " /"+path+" HTTP/1.1");
             client.sendHttpLine("Host: localhost:8080");
             client.sendHttpLine("Content-Length: " + payload.length);
-            client.sendHttpLine("Content-Type: application/x-www-form-urlencoded");
             for (String header : extraHeaders) {
                 client.sendHttpLine(header);
             }
@@ -205,7 +168,8 @@ public class FunctionalTesting {
             }
 
         } catch (SocketException ex) {
-            if (ex.getMessage().equals("An established connection was aborted by the software in your host machine")) {
+            if (ex.getMessage().equals("An established connection was aborted by the software in your host machine") ||
+                    ex.getMessage().equals("Connection reset")) {
                 /*
                 When the server is done communicating with us, it will close
                 the socket on its side, which will cause a SocketException on our side.
@@ -216,7 +180,7 @@ public class FunctionalTesting {
                 throw ex;
             }
         }
-        MyThread.sleep(100);
+
         return new TestResponse(statusLine, headers, body);
     }
 
