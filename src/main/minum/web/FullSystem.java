@@ -243,8 +243,12 @@ public class FullSystem implements AutoCloseable {
      *     execution is blocking.
      * </p>
      */
-    public void block() throws ExecutionException, InterruptedException {
-        this.server.getCentralLoopFuture().get();
-        this.sslServer.getCentralLoopFuture().get();
+    public void block() {
+        try {
+            this.server.getCentralLoopFuture().get();
+            this.sslServer.getCentralLoopFuture().get();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }
