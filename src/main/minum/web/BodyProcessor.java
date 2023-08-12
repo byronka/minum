@@ -91,7 +91,7 @@ class BodyProcessor {
                 }
                 throw new ParsingException("Did not find a valid boundary value for the multipart input. Header was: " + contentType);
             } else {
-                logger.logDebug(() -> "Did not find a recognized content-type, returning an empty map and the raw bytes for the body");
+                logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
                 return new Body(Map.of(), bodyBytes, context);
             }
         } catch (Throwable ex) {
