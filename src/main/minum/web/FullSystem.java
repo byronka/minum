@@ -78,7 +78,8 @@ public class FullSystem implements AutoCloseable {
         var context = new Context();
         var logger = new Logger(context);
         try {
-            return new FullSystem(context, logger).start();
+            var fullSystem = new FullSystem(context, logger);
+            return fullSystem.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

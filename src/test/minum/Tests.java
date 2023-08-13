@@ -95,9 +95,9 @@ public class Tests {
   }
 
   private void handleShutdown(Context context) throws IOException {
-    var logger2 = (TestLogger) context.getLogger();
-    logger2.writeTestReport("unit_tests");
-    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger2);
+    var logger = (TestLogger) context.getLogger();
+    logger.writeTestReport("unit_tests");
+    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
     new ActionQueueKiller(context).killAllQueues();
     context.getExecutorService().shutdownNow();
     context.getLogger().stop();
@@ -116,8 +116,8 @@ public class Tests {
     // delay a sec so our system has time to finish before we start deleting files
     MyThread.sleep(500);
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
-    var fs2 = context.getFullSystem();
-    fs2.close();
+    var fs = context.getFullSystem();
+    fs.close();
     context.getExecutorService().shutdownNow();
     ((TestLogger)context.getLogger()).writeTestReport("functional_tests");
     context.getLogger().stop();
