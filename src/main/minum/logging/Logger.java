@@ -109,8 +109,8 @@ public class Logger implements ILogger {
             }
             String finalReceivedMessage = receivedMessage;
             loggingActionQueue.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
-                Object[] args = new Object[]{getTimestampIsoInstant(), showWhiteSpace(finalReceivedMessage)};
-                System.out.printf(loggingLevel.name() + ": %s %s%n", args);
+                Object[] args = new Object[]{getTimestampIsoInstant(), loggingLevel.name(), showWhiteSpace(finalReceivedMessage)};
+                System.out.printf("%s\t%s\t%s%n", args);
             });
         }
     }
