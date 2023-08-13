@@ -34,6 +34,7 @@ public class Logger implements ILogger {
 
     public Logger(Context context, String name) {
         this.context = context;
+        this.context.setLogger(this);
         Constants constants = context.getConstants();
         loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
         toggleDefaultLogging(constants.LOG_LEVELS);
