@@ -3,6 +3,7 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.logging.ILogger;
+import minum.logging.Logger;
 import minum.logging.LoggingLevel;
 import minum.security.TheBrig;
 import minum.utils.*;
@@ -59,23 +60,25 @@ public class FullSystem implements AutoCloseable {
      *     Its own executor service, its own constants. What have you.
      * </p>
      */
-    public FullSystem(ExecutorService es, Constants constants, ILogger logger) {
-        this.es = es;
-        this.constants = constants;
-        this.context = new Context(es, constants, this);
+    public FullSystem(Context context, ILogger logger) {
+        this.context = context;
+        this.es = context.getExecutorService();
+        this.constants = context.getConstants();
         this.context.setLogger(logger);
         this.logger = logger;
         this.inputStreamUtils = new InputStreamUtils(context);
+        this.context.setFullSystem(this);
     }
 
 
     /**
      * This is the expected entry-point for most users.
      */
-    public static FullSystem initialize(ILogger logger, Constants constants) {
-        final var es = ExtendedExecutor.makeExecutorService(constants);
+    public static FullSystem initialize() {
+        var context = new Context();
+        var logger = new Logger(context);
         try {
-            return new FullSystem(es, constants, logger).start();
+            return new FullSystem(context, logger).start();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

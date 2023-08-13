@@ -1,5 +1,6 @@
 package minum.logging;
 
+import minum.Context;
 import minum.testing.StopwatchUtils;
 import minum.utils.FileUtils;
 
@@ -87,7 +88,7 @@ public class TestLogger extends Logger {
     /**
      * See {@link TestLogger}
      */
-    public TestLogger(LoggingContext context, String name) {
+    public TestLogger(Context context, String name) {
         super(context, name);
         this.testSuites = new ArrayList<>();
         this.stopWatch = new StopwatchUtils();

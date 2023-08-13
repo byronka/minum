@@ -82,19 +82,14 @@ public class Tests {
    * from {@link FullSystem}
    */
   private void testFullSystem_Soup_To_Nuts() throws Exception {
-    Context context2 = buildContextFunctionalTests();
-
-    new FunctionalTests(context2).test();
-
-    shutdownFunctionalTests(context2);
+    Context context = buildContextFunctionalTests();
+    new FunctionalTests(context).test();
+    shutdownFunctionalTests(context);
   }
 
   private Context buildContext() {
-    ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
-    var loggingContext = new LoggingContext(es, constants);
-    TestLogger logger = new TestLogger(loggingContext, "_unit_test_logger");
-    loggingContext.setLogger(logger);
-    var context = new Context(es, constants, null);
+    Context context = new Context();
+    TestLogger logger = new TestLogger(context, "_unit_test_logger");
     context.setLogger(logger);
     return context;
   }
@@ -108,28 +103,24 @@ public class Tests {
     context.getLogger().stop();
   }
 
-  private Context buildContextFunctionalTests() {
+  private Context buildContextFunctionalTests() throws IOException {
     System.out.println("Starting a soup-to-nuts tests of the full system");
-
-    ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
-    LoggingContext loggingContext = new LoggingContext(es, constants);
-    TestLogger logger = new TestLogger(loggingContext, "integration_test_logger");
-
-    var fs = FullSystem.initialize(logger, constants);
-    Context context = fs.getContext();
-
+    var context = new Context();
+    TestLogger logger = new TestLogger(context, "integration_test_logger");
+    new FullSystem(context, logger).start();
     new TheRegister(context).registerDomains();
     return context;
   }
 
   private void shutdownFunctionalTests(Context context) throws IOException {
+    // delay a sec so our system has time to finish before we start deleting files
+    MyThread.sleep(500);
     FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
     var fs2 = context.getFullSystem();
     fs2.close();
     context.getExecutorService().shutdownNow();
     ((TestLogger)context.getLogger()).writeTestReport("functional_tests");
     context.getLogger().stop();
-
   }
 
 }

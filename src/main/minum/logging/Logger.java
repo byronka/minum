@@ -21,18 +21,18 @@ public class Logger implements ILogger {
      * them off the top of a queue.
      */
     protected final LoggingActionQueue loggingActionQueue;
-    private final LoggingContext context;
+    private final Context context;
     private Map<LoggingLevel, Boolean> activeLogLevels;
 
     /**
      * This constructor initializes an {@link LoggingActionQueue}
      * to handle log messages.
      */
-    public Logger(LoggingContext context) {
+    public Logger(Context context) {
         this(context, "");
     }
 
-    public Logger(LoggingContext context, String name) {
+    public Logger(Context context, String name) {
         this.context = context;
         Constants constants = context.getConstants();
         loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
@@ -55,10 +55,8 @@ public class Logger implements ILogger {
      *     </li>
      * </ul>
      */
-    public static ILogger make(Constants constants) {
-        ExecutorService es = ExtendedExecutor.makeExecutorService(constants);
-        var loggingContext = new LoggingContext(es, constants);
-        return new Logger(loggingContext, "_primary_system_logger");
+    public static ILogger make(Context context) {
+        return new Logger(context, "_primary_system_logger");
     }
 
     /**

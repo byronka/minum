@@ -4,6 +4,7 @@ import minum.database.Db;
 import minum.database.DbData;
 import minum.logging.ILogger;
 import minum.utils.ActionQueue;
+import minum.utils.ExtendedExecutor;
 import minum.web.FullSystem;
 
 import java.nio.file.Path;
@@ -31,22 +32,16 @@ public class Context {
     private ILogger logger;
     private final ExecutorService executorService;
     private final Constants constants;
-    private final FullSystem fullSystem;
+    private FullSystem fullSystem;
     private final List<ActionQueue> actionQueueList;
 
     /**
      * In order to avoid statics or singletons allow certain objects to be widely
      * available, we'll store them in this class.
-     * @param executorService the code which controls threads
-     * @param constants constants that apply throughout the code, configurable by the
-     *                  user in the app.config file.
-     * @param fullSystem the code which kicks off many of the core functions of
-     *                   the application and maintains oversight on those objects.
      */
-    public Context(ExecutorService executorService, Constants constants, FullSystem fullSystem) {
-        this.executorService = executorService;
-        this.constants = constants;
-        this.fullSystem = fullSystem;
+    public Context() {
+        this.constants = new Constants();
+        this.executorService = ExtendedExecutor.makeExecutorService(constants);
         this.actionQueueList = new ArrayList<>();
     }
 
@@ -64,6 +59,10 @@ public class Context {
 
     public Constants getConstants() {
         return constants;
+    }
+
+    public void setFullSystem(FullSystem fullSystem) {
+        this.fullSystem = fullSystem;
     }
 
     public FullSystem getFullSystem() {
