@@ -215,9 +215,9 @@ jar_javadoc:: javadoc
 
 #: add to the local Maven repository
 mvnrepo:: clean jar jar_sources jar_javadoc
-	 mvn install:install-file -Dfile=out/$(PROJ_NAME).jar -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
-	 mvn install:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME)-sources -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
-	 mvn install:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME)-javadoc -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME).jar         -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=$(VERSION) -Dpackaging=jar -DgeneratePom=true
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=$(VERSION) -Dpackaging=jar -Dclassifier=sources
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=$(VERSION) -Dpackaging=jar -Dclassifier=javadoc
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
