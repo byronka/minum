@@ -172,6 +172,7 @@ clean::
 
 #: Build a jar of the project for use as a library
 jar:: test
+	 # remove the static content from static and templates, won't need it
 	 rm -fr $(OUT_DIR_MAIN)/static/* $(OUT_DIR_MAIN)/templates/*
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))
@@ -202,9 +203,17 @@ testcov:: classes testclasses copyresources copytestresources
 javadoc::
 	 javadoc -Xdoclint:none --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
+# this is used to bundle the source code into a jar, to prepare for Maven publishing
+jar_sources::
+	 jar --create --file $(PROJ_NAME)-sources.jar src/main && mv $(PROJ_NAME)-sources.jar $(OUT_DIR)/$(PROJ_NAME)-sources.jar
+
+# this is used to bundle the javadocs into a jar, to prepare for Maven publishing
+jar_javadoc:: javadoc
+	 jar --create --file $(PROJ_NAME)-javadoc.jar out/javadoc && mv $(PROJ_NAME)-javadoc.jar $(OUT_DIR)/$(PROJ_NAME)-javadoc.jar
+
 #: add to the local Maven repository
 mvnrepo:: jar
-	 mvn install:install-file -Dfile=out/minum.jar -DgroupId=com.renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+	 mvn install:install-file -Dfile=out/minum.jar -DgroupId=renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
