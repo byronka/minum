@@ -213,7 +213,7 @@ jar_sources::
 jar_javadoc:: javadoc
 	 cd $(OUT_DIR)/javadoc && jar --create --file $(PROJ_NAME)-javadoc.jar * && mv $(PROJ_NAME)-javadoc.jar ../$(PROJ_NAME)-javadoc.jar
 
-#: add to the local Maven repository
+#: add to the local Maven repository - see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
 mvnrepo:: clean jar jar_sources jar_javadoc
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME).jar         -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=$(VERSION) -Dpackaging=jar -DgeneratePom=true
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=$(VERSION) -Dpackaging=jar -Dclassifier=sources
