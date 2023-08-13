@@ -201,19 +201,23 @@ testcov:: classes testclasses copyresources copytestresources
 
 #: build the javadoc documentation in the out/javadoc directory
 javadoc::
+	 mkdir -p $(OUT_DIR)
 	 javadoc -Xdoclint:none --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
 # this is used to bundle the source code into a jar, to prepare for Maven publishing
 jar_sources::
-	 jar --create --file $(PROJ_NAME)-sources.jar src/main && mv $(PROJ_NAME)-sources.jar $(OUT_DIR)/$(PROJ_NAME)-sources.jar
+	 mkdir -p $(OUT_DIR)
+	 cd src/main/minum && jar --create --file $(PROJ_NAME)-sources.jar * && mv $(PROJ_NAME)-sources.jar ../../../$(OUT_DIR)/$(PROJ_NAME)-sources.jar
 
 # this is used to bundle the javadocs into a jar, to prepare for Maven publishing
 jar_javadoc:: javadoc
-	 jar --create --file $(PROJ_NAME)-javadoc.jar out/javadoc && mv $(PROJ_NAME)-javadoc.jar $(OUT_DIR)/$(PROJ_NAME)-javadoc.jar
+	 cd $(OUT_DIR)/javadoc && jar --create --file $(PROJ_NAME)-javadoc.jar * && mv $(PROJ_NAME)-javadoc.jar ../$(PROJ_NAME)-javadoc.jar
 
 #: add to the local Maven repository
-mvnrepo:: jar
-	 mvn install:install-file -Dfile=out/minum.jar -DgroupId=renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+mvnrepo:: clean jar jar_sources jar_javadoc
+	 mvn install:install-file -Dfile=out/$(PROJ_NAME).jar -DgroupId=renomad -DartifactId=$(PROJ_NAME) -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+	 mvn install:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME)-sources -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+	 mvn install:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar -DgroupId=renomad -DartifactId=$(PROJ_NAME)-javadoc -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
