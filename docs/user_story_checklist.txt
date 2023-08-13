@@ -39,7 +39,7 @@ rendered text is highly correct:
      [ ] dynamic parts are cleaned, e.g. using code like safeAttr(), safeHTML()
      [ ] CSS is valid (using a tool like W3C https://jigsaw.w3.org/css-validator/ )
 
-static values and methods are well-designed (See remove_static_variables.md).
+static values and methods are well-designed.
     [] Any new or modified values must be:
         * true, literal constants.  if any processing is required to build the constant, it's off the
           table, except for:
