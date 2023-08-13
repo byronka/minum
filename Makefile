@@ -207,7 +207,7 @@ javadoc::
 # this is used to bundle the source code into a jar, to prepare for Maven publishing
 jar_sources::
 	 mkdir -p $(OUT_DIR)
-	 cd src/main/minum && jar --create --file $(PROJ_NAME)-sources.jar * && mv $(PROJ_NAME)-sources.jar ../../../$(OUT_DIR)/$(PROJ_NAME)-sources.jar
+	 cd src/main && jar --create --file $(PROJ_NAME)-sources.jar * && mv $(PROJ_NAME)-sources.jar ../../$(OUT_DIR)/$(PROJ_NAME)-sources.jar
 
 # this is used to bundle the javadocs into a jar, to prepare for Maven publishing
 jar_javadoc:: javadoc
