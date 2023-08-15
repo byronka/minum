@@ -30,7 +30,6 @@ Table of contents
 - [Feature tracking](#feature-tracking)
 - [History](#history)
 - [Theme](#theme)
-- [Generate a Maven package](#generate-a-maven-package)
 - [ActionQueue](#actionqueue)
 
 
@@ -599,15 +598,6 @@ See the [parable of two programmers](parable_two_programmers.md)
 >
 > -- _Kelly Johnson, Lockheed Skunk Works_
 
-
-Generate a Maven package
-------------------------
-
-Run this command:
-
-```shell
-mvn install:install-file -Dfile=out/minum.jar -DgroupId=com.renomad -DartifactId=minum -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
-```
 
 ActionQueue
 -----------
