@@ -4,9 +4,9 @@ Size statistics:
 Web frameworks
 --------------
 
-| Minum | Javalin |
-|-------|---------|
-| 3,595 | 255,384 |
+| Minum | Javalin | Spring Boot |
+|-------|---------|-------------|
+| 3,757 | 255,384 | 1,085,405   |
 
 
 #### Our project is 70 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -84,6 +84,25 @@ Appendix
 _(all measurements of lines of code are for production code - that is, non-test-code)_
 
 used [cloc](https://github.com/AlDanial/cloc/) for lines-of-code calculations.
+
+Basis for Spring Boot's size:
+-----------------------------
+
+| Component              | LOC       |
+|------------------------|-----------|
+|                        |           |
+| essential dependencies |           |
+| logback                | 33,654    |
+| jackson-core           | 31,035    |
+| jackson-databind       | 75,165    |
+| micrometer             | 48,659    |
+| 	log4j                 | 113,377   |
+| tomcat                 | 258,583   |
+| 	slf4j                 | 3,000     |
+| 	spring-framework      | 365,961   |
+| 	spring-boot           | 156,061   |
+| 	                      |           |
+| 	total                 | 1,085,405 |
 
 
 Basis for Javalin's size:

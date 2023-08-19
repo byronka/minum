@@ -6,35 +6,46 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Allows rendering of templates
+ *
+ * <p>
  * In order to perform speedy template rendering, it is necessary
  * to get the template converted into this class.  The way to do
  * that is as follows.
- * <br>
+ * </p>
+ * <p>
  * First, you will be started with some suitable template. The values
  * to be substituted are surrounded by double brackets.  Here's an example:
- * <br>
+ * </p>
  * <pre>
  * Hello, my name is {{name}}
  * </pre>
+ * <p>
  * Then, feed that string into {@link #buildProcessor}, like
  * this:
+ * </p>
  * <pre>
  * <code>
  * {@code String input = "Hello, my name is {{name}}"
  * var helloProcessor = TemplateProcessor.buildProcessor(input);}
  * </code>
  * </pre>
+ * <p>
  * Now that you have built a template processor, hold onto it! The generation of
  * the template processor is the costly activity.  After that, you can use it
  * efficiently, by feeding it a {@link Map} of key names to desired values. For
  * our example, maybe we want <em>name</em> to be replaced with <em>Susanne</em>.
  * In that case, we would do this:
+ * </p>
  * <pre>
  * <code>
  * {@code var myMap = Map.of("name", "Susanne");
  * String fullyRenderedString = helloProcessor.renderTemplate(myMap);}
  * </code>
  * </pre>
+ * <p>
+ *     The result is: Hello, my name is Susanne
+ * </p>
  */
 public class TemplateProcessor {
 

@@ -11,6 +11,7 @@ Table of contents
 - [System Requirements](#system-requirements)
 - [New Developer Setup](#new-developer-setup)
 - [Step-by-step guide to installing Java on Windows](#step-by-step-guide-for-installing-java-on-windows)
+- [Java on Mac](#java-on-mac)
 - [HOWTO](#howto)
 - [To test the web server with Telnet](#to-test-the-web-server-with-telnet)
 - [To test with Chrome on localhost with invalid certificates](#to-test-with-chrome-on-localhost-with-invalid-certificates)
@@ -164,6 +165,10 @@ Step-by-step guide for installing Java on Windows:
 * For the variable name, enter `JAVA_HOME`, and for the value, enter `C:\java\jdk-20.0.1`
 * Edit your _Path_ variable, click _New_, and add `%JAVA_HOME%\bin`
 
+Java on Mac:
+------------
+
+1. You will need your JAVA_HOME variable set.  Check [this stackoverflow answer](https://stackoverflow.com/a/22842806/713809)
 
 HOWTO
 -----
