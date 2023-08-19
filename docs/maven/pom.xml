@@ -1,0 +1,38 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.renomad</groupId>
+    <artifactId>minum</artifactId>
+    <version>{{VERSION}}</version>
+    <packaging>jar</packaging>
+
+    <name>Minum web framework</name>
+    <description>A minimalist web framework</description>
+    <url>https://github.com/byronka/minum</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git://github.com/byronka/minum.git</connection>
+        <developerConnection>scm:git:ssh://github.com:byronka/minum.git</developerConnection>
+        <url>https://github.com/byronka/minum/tree/master</url>
+    </scm>
+
+    <dependencies>
+        <!-- None! -->
+    </dependencies>
+
+    <developers>
+        <developer>
+            <name>Byron Katz</name>
+            <email>byronka@msn.com</email>
+            <organization>Renomad</organization>
+            <organizationUrl>http://www.renomad.com</organizationUrl>
+        </developer>
+    </developers>
+
+</project>
