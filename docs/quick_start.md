@@ -49,8 +49,8 @@ $JAVA_HOME/bin
 Step 2 - download the "small" example
 -------------------------------------
 
-Continuing on, we'll download a project includes everything for a running
-web application, in the smallest working form.  Grab this project. 
+Next, we will download a project that includes the simplest-possible
+web application.  Grab this project. 
 
 https://github.com/byronka/minum_usage_example_smaller
 
@@ -58,7 +58,7 @@ https://github.com/byronka/minum_usage_example_smaller
 Step 3 - run the example
 ------------------------
 
-In its directory, run this command:
+Once you have downloaded it, run this command in its directory:
 
 ```shell
 ./mvnw compile exec:java
@@ -70,30 +70,48 @@ It will compile and you will be able to view it at http://localhost:8080
 Step 4 - modify the example
 ---------------------------
 
-In its source, go to Main.java and take a moment to review. You should
-be able to modify the message easily.  To see your changes, cancel the running
-program and re-run `./mvnw compile exec:java`.  
+In its source, go to Main.java and take a moment to review. Take your time
+to understand what you are looking at, and then try some of the following
+recommended changes, to acclimate.  To see your changes, cancel the running
+program and run `./mvnw compile exec:java` to start it again.  
+
+For ease of reference, here is the code you will see:
+
+```java
+public class Main {
+
+    public static void main(String[] args) {
+        // Start the system
+        FullSystem fs = FullSystem.initialize();
+
+        // Register some endpoints
+        fs.getWebFramework().registerPath(
+                StartLine.Verb.GET,
+                "",
+                request -> Response.htmlOk("<p>Hi there world!</p>"));
+
+        fs.block();
+    }
+}
+```
 
 * Modify the path - have it serve content from /hello
 
-```diff
-@@ -21 +21 @@ public class Main {
-- "",
-+ "hello",
+```java
+    StartLine.Verb.GET,
+    "hello",
+    request -> Response.htmlOk("<p>Hi there world!</p>"));
 ```
 
 * Adjust to say hello to a query string parameter
 
-```diff
-@@ -21,2 +21,5 @@ public class Main {
-- "",
-- request -> Response.htmlOk("<p>Hi there world!</p>"));
-+ "hello",
-+ request -> {
-+     String name = request.startLine().queryString().get("name");
-+     return Response.htmlOk(String.format("<p>Hi there %s!</p>", name));
-+ });
-
+```java
+    StartLine.Verb.GET,
+    "hello",
+    request -> {
+        String name = request.startLine().queryString().get("name");
+        return Response.htmlOk(String.format("<p>Hi there %s!</p>", name));
+    });
 ```
 
 Step 5 - review the larger example
