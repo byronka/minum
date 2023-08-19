@@ -1,15 +1,11 @@
 Quick Start
 ===========
 
-This software will enable you to create web applications in Java.  It provides
-what is necessary for that task, plainly and simply.
+First off, slow down! This project breaks many conventions you might be used to, so
+if you barge through these docs, you might miss crucial information.
 
-To obtain the best value from this, it is necessary to acquaint yourself with
-the basic technologies that comprise the web.  Most of the other frameworks
-abstract this heavily, in the name of an improved developer experience.  Here,
-HTTP, HTML, CSS, and Java code are first-class citizens.  Do you know what
-a [start-line](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line) is? 
-You should, if you plan to exploit the true power of the web.
+This software will enable you to create web applications in Java.  It provides
+the bare minimum of what is necessary for that task, plainly and simply.
 
 Let's get started.
 
@@ -34,16 +30,15 @@ echo $JAVA_HOME
 ```
 
 The output should be the directory where Java is installed, but *not* the bin 
-directory where java and javac live.  `JAVA_HOME` should look a bit like this:
+directory where java and javac live. Try this (this command changes directory to
+JAVA_HOME and then lists the files there):
 
 ```shell
-Byron@byron-desktop /cygdrive/c/Users/Byron
-$ cd $JAVA_HOME
-
-Byron@byron-desktop /cygdrive/c/java/jdk-20.0.1
-$ ls
-bin  conf  include  jmods  legal  lib  release
+cd $JAVA_HOME
+ls
 ```
+
+You should see results like: `bin  conf  include  jmods  legal  lib  release`
 
 This is why your `PATH` environment variable should include something like this:
 
@@ -55,8 +50,7 @@ Step 2 - download the "small" example
 -------------------------------------
 
 Continuing on, we'll download a project includes everything for a running
-web application, in the smallest working form.  Grab this project.  We will
-call it "smaller" from here on.
+web application, in the smallest working form.  Grab this project. 
 
 https://github.com/byronka/minum_usage_example_smaller
 
@@ -64,19 +58,19 @@ https://github.com/byronka/minum_usage_example_smaller
 Step 3 - run the example
 ------------------------
 
-In the directory for smaller, run this command:
+In its directory, run this command:
 
 ```shell
 ./mvnw compile exec:java
 ```
 
-This will compile smaller and you will be able to view it at http://localhost:8080
+It will compile and you will be able to view it at http://localhost:8080
 
 
 Step 4 - modify the example
 ---------------------------
 
-In the source for smaller, go to Main.java and think for a second about it. You should
+In its source, go to Main.java and take a moment to review. You should
 be able to modify the message easily.  To see your changes, cancel the running
 program and re-run `./mvnw compile exec:java`.  
 
