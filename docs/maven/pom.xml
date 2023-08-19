@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>{{VERSION}}</version>
+    <version>VERSION</version>
     <packaging>jar</packaging>
 
     <name>Minum web framework</name>

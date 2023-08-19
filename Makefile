@@ -217,10 +217,10 @@ jar_javadoc:: javadoc
 	 cd $(OUT_DIR)/javadoc && jar --create --file $(PROJ_NAME)-javadoc.jar * && mv $(PROJ_NAME)-javadoc.jar ../$(PROJ_NAME)-javadoc.jar
 
 #: add to the local Maven repository - see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
-mvnrepo:: clean jar jar_sources jar_javadoc
-	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME).jar          -Dversion=1.1.1 -DpomFile=docs/maven/pom.xml
-	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-sources.jar  -Dversion=1.1.1 -DpomFile=docs/maven/pom.xml -Dclassifier=sources
-	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar  -Dversion=1.1.1 -DpomFile=docs/maven/pom.xml -Dclassifier=javadoc
+mvnrepo:: clean set_pom_version jar jar_sources jar_javadoc
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME).jar         -DpomFile=out/pom.xml
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DpomFile=out/pom.xml -Dclassifier=sources
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar -DpomFile=out/pom.xml -Dclassifier=javadoc
 
 delay::
 	 @echo "about to deploy to Maven central"
@@ -235,14 +235,16 @@ delay::
 	 @echo 1...
 	 @sleep 1
 
+#: copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
 set_pom_version::
-	 sed -i docs/maven/pom.xml 's/{{VERSION}}/$VERSION/g'
+	 mkdir -p out
+	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/pom.xml
 
 #: publish to Maven central.  Make sure the version is set properly.
-mvndeploy:: delay set_pom_version clean jar jar_sources jar_javadoc
-	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=docs/maven/pom.xml -Dversion=1.1.1 -Dfile=out/$(PROJ_NAME).jar
-	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=docs/maven/pom.xml -Dversion=1.1.1 -Dfile=out/$(PROJ_NAME)-sources.jar -Dclassifier=sources
-	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=docs/maven/pom.xml -Dversion=1.1.1 -Dfile=out/$(PROJ_NAME)-javadoc.jar -Dclassifier=javadoc
+mvndeploy:: delay clean set_pom_version jar jar_sources jar_javadoc
+	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=out/pom.xml -Dfile=out/$(PROJ_NAME).jar
+	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=out/pom.xml -Dfile=out/$(PROJ_NAME)-sources.jar -Dclassifier=sources
+	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=out/pom.xml -Dfile=out/$(PROJ_NAME)-javadoc.jar -Dclassifier=javadoc
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
