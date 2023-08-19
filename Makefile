@@ -14,7 +14,6 @@ VERSION=1.0.0
 # the delimiter between directories in the classpath to the Java application
 # on a Windows box is a semicolon, and on a posix box it's a colon.
 ifeq ($(OS),Windows_NT)
-	JAVA_HOME := $(shell cygpath ${JAVA_HOME})
     DIR_DELIM := ;
 else
     DIR_DELIM := :
@@ -96,17 +95,21 @@ TST_CLS := $(TST_SRCS:$(TST_SRC_DIR)/%.java=$(OUT_DIR_TEST)/%.class)
 #
 # otherwise, it will just remain an empty string
 ifneq ($(JAVA_HOME),)
-  JAVA_HOME_BIN := $(JAVA_HOME)/bin
+	ifeq ($(OS),Windows_NT)
+		JAVA_HOME_BIN := $(cygpath $(JAVA_HOME))
+	else
+		JAVA_HOME_BIN := $(JAVA_HOME)/bin/
+	endif
 endif
 
 # the name of our Java compiler
 # -g means generate all debugging info
 # The following line, about enabling preview, is for using virtual threads with java 19
-JC = "$(JAVA_HOME_BIN)/javac" --release 20 --enable-preview -Xlint:all -g
+JC = "$(JAVA_HOME_BIN)javac" --release 20 --enable-preview -Xlint:all -g
 
 # the name of the java runner
 # The following line, about enabling preview, is for using virtual threads with java 19
-JAVA = "$(JAVA_HOME_BIN)/java"  --enable-preview
+JAVA = "$(JAVA_HOME_BIN)java"  --enable-preview
 
 # the directory where we store the code coverage report
 COV_DIR = out/coveragereport
