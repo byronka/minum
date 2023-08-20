@@ -9,14 +9,19 @@ A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-bori
 > 
 > -- Kent Beck, _Extreme Programming Explained_
 
-This software provides web application
-capability in a minimalist way.  Consider it an augmented
-"hello world" web server, combined with a pared-down database,
-template processor, and other necessary features.
+Minum is a framework that provides solely those components
+necessary to create a web-based application, including a web server, pared-down database,
+template processor, and other necessary features. It differs from a library in
+that it does not merely cater for a motley assortment of needs, but instead,
+covers every core need of a web application, minimalistically.
 
-This may be valuable to understand how a web server works, past the typical
-echo server demonstration.  For more detail on the intentions, see the
+For more detail on intentions, purpose, and benefits, see the
 [development handbook](docs/development_handbook.md).
+
+
+## 🚀 [Quick start](docs/quick_start.md)
+
+
 
 Features:
 --------
@@ -41,7 +46,6 @@ _lines of production code (including required dependencies)_
 Documentation:
 --------------
 
-* [Quick start](docs/quick_start.md)
 * [Development handbook](docs/development_handbook.md)
 * [Javadocs](https://byronka.github.io/javadoc/)
 * [Test coverage](https://byronka.github.io/coveragereport/)

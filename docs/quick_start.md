@@ -1,8 +1,8 @@
 Quick Start
 ===========
 
-First off, slow down! This project breaks many conventions you might be used to, so
-if you barge through these docs, you might miss crucial information.
+First off, slow down! This project breaks some conventions, so
+barging through the docs might cost you understanding.
 
 This software will enable you to create web applications in Java.  It provides
 the bare minimum of what is necessary for that task, plainly and simply.
