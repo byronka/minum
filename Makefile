@@ -222,19 +222,6 @@ mvnrepo:: clean set_pom_version jar jar_sources jar_javadoc
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DpomFile=out/pom.xml -Dclassifier=sources
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar -DpomFile=out/pom.xml -Dclassifier=javadoc
 
-delay::
-	 @echo "about to deploy to Maven central"
-	 @echo 5...
-	 @sleep 1
-	 @echo 4...
-	 @sleep 1
-	 @echo 3...
-	 @sleep 1
-	 @echo 2...
-	 @sleep 1
-	 @echo 1...
-	 @sleep 1
-
 #: copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
 set_pom_version::
 	 mkdir -p out
