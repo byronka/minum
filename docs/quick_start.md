@@ -98,20 +98,44 @@ public class Main {
 * Modify the path - have it serve content from /hello
 
 ```java
-    StartLine.Verb.GET,
-    "hello",
-    request -> Response.htmlOk("<p>Hi there world!</p>"));
+public class Main {
+
+    public static void main(String[] args) {
+        // Start the system
+        FullSystem fs = FullSystem.initialize();
+
+        // Register some endpoints
+        fs.getWebFramework().registerPath(
+                StartLine.Verb.GET,
+                "hello",
+                request -> Response.htmlOk("<p>Hi there world!</p>"));
+
+        fs.block();
+    }
+}
 ```
 
 * Adjust to say hello to a query string parameter
 
 ```java
-    StartLine.Verb.GET,
-    "hello",
-    request -> {
-        String name = request.startLine().queryString().get("name");
-        return Response.htmlOk(String.format("<p>Hi there %s!</p>", name));
-    });
+public class Main {
+
+    public static void main(String[] args) {
+        // Start the system
+        FullSystem fs = FullSystem.initialize();
+
+        // Register some endpoints
+        fs.getWebFramework().registerPath(
+                StartLine.Verb.GET,
+                "hello",
+                request -> {
+                    String name = request.startLine().queryString().get("name");
+                    return Response.htmlOk(String.format("<p>Hi there %s!</p>", name));
+                });
+
+        fs.block();
+    }
+}
 ```
 
 Step 5 - review the larger example
