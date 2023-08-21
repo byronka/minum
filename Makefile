@@ -3,7 +3,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=1.0.0
+VERSION=0.1.0
 
 ##
 # In cygwin on Windows, if I look at the OS environment value I get "Windows_NT".
@@ -239,12 +239,6 @@ delay::
 set_pom_version::
 	 mkdir -p out
 	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/pom.xml
-
-#: publish to Maven central.  Make sure the version is set properly.
-mvndeploy:: delay clean set_pom_version jar jar_sources jar_javadoc
-	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=out/pom.xml -Dfile=out/$(PROJ_NAME).jar
-	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=out/pom.xml -Dfile=out/$(PROJ_NAME)-sources.jar -Dclassifier=sources
-	 mvn gpg:sign-and-deploy-file -Durl=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -DrepositoryId=ossrh -DpomFile=out/pom.xml -Dfile=out/$(PROJ_NAME)-javadoc.jar -Dclassifier=javadoc
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
