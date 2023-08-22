@@ -95,7 +95,8 @@ public class Main {
 }
 ```
 
-* Modify the path - have it serve content from /hello
+* Add a new path - have it serve content from /hello:
+* After making this change, stop the running server and rerun the startup command
 
 ```java
 public class Main {
@@ -105,6 +106,10 @@ public class Main {
         FullSystem fs = FullSystem.initialize();
 
         // Register some endpoints
+        fs.getWebFramework().registerPath(
+                StartLine.Verb.GET,
+                "",
+                request -> Response.htmlOk("<p>Hi there world!</p>"));
         fs.getWebFramework().registerPath(
                 StartLine.Verb.GET,
                 "hello",
@@ -125,6 +130,10 @@ public class Main {
         FullSystem fs = FullSystem.initialize();
 
         // Register some endpoints
+        fs.getWebFramework().registerPath(
+                StartLine.Verb.GET,
+                "",
+                request -> Response.htmlOk("<p>Hi there world!</p>"));
         fs.getWebFramework().registerPath(
                 StartLine.Verb.GET,
                 "hello",
