@@ -95,8 +95,8 @@ public class Main {
 }
 ```
 
-* Add a new path - have it serve content from /hello:
-* After making this change, stop the running server and rerun the startup command
+* Add a new path - have it serve content from /hello
+* (After making this change, stop the running server and rerun the startup command)
 
 ```java
 public class Main {
