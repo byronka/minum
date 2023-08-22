@@ -607,7 +607,7 @@ See the [parable of two programmers](parable_two_programmers.md)
 ActionQueue
 -----------
 
-[ActionQueue](../src/main/minum/utils/ActionQueue.java) lets you run thread-contended actions safely.  Let's unpack 
+[ActionQueue](../src/main/java/minum/utils/ActionQueue.java) lets you run thread-contended actions safely.  Let's unpack 
 that sentence a bit with an example: Because this program is multithreaded, there will be times when multiple threads
 want to write to the same file at the same time.
 
