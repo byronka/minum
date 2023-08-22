@@ -180,9 +180,18 @@ jar:: test
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 $(eval GIT_BRANCH=$(shell git rev-parse --short HEAD))
 	 version=$(VERSION)_$(GIT_BRANCH) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
-	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME).jar * && mv $(PROJ_NAME).jar ../$(PROJ_NAME).jar
+	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME)-$(VERSION).jar * && mv $(PROJ_NAME)-$(VERSION).jar ../$(PROJ_NAME)-$(VERSION).jar
 	 @echo
-	 @echo "*** Your new jar file is at out/minum.jar ***"
+	 @echo "*** Your new jar file is at out/$(PROJ_NAME)-$(VERSION).jar ***"
+
+# this is used to bundle the source code into a jar, to prepare for Maven publishing
+jar_sources::
+	 mkdir -p $(OUT_DIR)
+	 cd src/main && jar --create --file $(PROJ_NAME)-$(VERSION)-sources.jar * && mv $(PROJ_NAME)-$(VERSION)-sources.jar ../../$(OUT_DIR)/$(PROJ_NAME)-$(VERSION)-sources.jar
+
+# this is used to bundle the javadocs into a jar, to prepare for Maven publishing
+jar_javadoc:: javadoc
+	 cd $(OUT_DIR)/javadoc && jar --create --file $(PROJ_NAME)-$(VERSION)-javadoc.jar * && mv $(PROJ_NAME)-$(VERSION)-javadoc.jar ../$(PROJ_NAME)-$(VERSION)-javadoc.jar
 
 #: run the tests
 test:: classes testclasses copyresources copytestresources
@@ -207,25 +216,20 @@ javadoc::
 	 mkdir -p $(OUT_DIR)
 	 javadoc -Xdoclint:none --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
-# this is used to bundle the source code into a jar, to prepare for Maven publishing
-jar_sources::
-	 mkdir -p $(OUT_DIR)
-	 cd src/main && jar --create --file $(PROJ_NAME)-sources.jar * && mv $(PROJ_NAME)-sources.jar ../../$(OUT_DIR)/$(PROJ_NAME)-sources.jar
-
-# this is used to bundle the javadocs into a jar, to prepare for Maven publishing
-jar_javadoc:: javadoc
-	 cd $(OUT_DIR)/javadoc && jar --create --file $(PROJ_NAME)-javadoc.jar * && mv $(PROJ_NAME)-javadoc.jar ../$(PROJ_NAME)-javadoc.jar
-
 #: add to the local Maven repository - see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
-mvnrepo:: clean set_pom_version jar jar_sources jar_javadoc
-	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME).jar         -DpomFile=out/pom.xml
-	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-sources.jar -DpomFile=out/pom.xml -Dclassifier=sources
-	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-javadoc.jar -DpomFile=out/pom.xml -Dclassifier=javadoc
+mvnlocalrepo:: clean set_pom_version jar jar_sources jar_javadoc
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION).jar         -DpomFile=out/pom.xml
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-sources.jar -DpomFile=out/pom.xml -Dclassifier=sources
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/pom.xml -Dclassifier=javadoc
+
+mvnprep:: clean set_pom_version jar jar_sources jar_javadoc
+	 for i in $$(ls out/minum-*); do gpg -ab $$i; done
+	 cd out && jar -cvf bundle.jar minum-*
 
 #: copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
 set_pom_version::
 	 mkdir -p out
-	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/pom.xml
+	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/$(PROJ_NAME)-$(VERSION).pom
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
