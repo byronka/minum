@@ -3,6 +3,7 @@
 
 # ignore the built stuff
 out/
+target/
 
 # don't want to commit any Intellij config files
 .idea
