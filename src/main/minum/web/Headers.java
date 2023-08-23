@@ -30,7 +30,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * of the document being downloaded, amongst others.
  * </p>
  */
-public class Headers{
+public final class Headers{
 
     private static InputStreamUtils inputStreamUtils;
     /**

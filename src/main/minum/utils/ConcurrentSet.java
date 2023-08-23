@@ -13,7 +13,7 @@ import java.util.stream.StreamSupport;
  * <p>
  * This is a thread-safe data structure.
  */
-public class ConcurrentSet<T> implements Iterable<T> {
+public final class ConcurrentSet<T> implements Iterable<T> {
 
     private final ConcurrentHashMap<T, NullEnum> map;
 

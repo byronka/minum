@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
  *     have its own values, independent of the rest of the system.
  * </p>
  */
-public class LoggingContext {
+public final class LoggingContext {
 
     private ILogger logger;
     private final ExecutorService executorService;

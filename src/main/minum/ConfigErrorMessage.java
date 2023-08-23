@@ -4,7 +4,7 @@ package minum;
  * If the user has no configuration file, this class
  * contains code that will run to assist them.
  */
-class ConfigErrorMessage {
+final class ConfigErrorMessage {
 
     private ConfigErrorMessage() {
         // making this private to be clearer it isn't supposed to be instantiated.

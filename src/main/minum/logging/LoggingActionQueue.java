@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  *     this was the only way to free ourselves during initialization / shutdown.
  * </p>
  */
-class LoggingActionQueue {
+final class LoggingActionQueue {
     private final String name;
     private final ExecutorService executorService;
     private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;

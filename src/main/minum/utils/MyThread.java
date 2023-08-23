@@ -4,7 +4,7 @@ package minum.utils;
  * This class exists just to avoid needing to handle
  * the exception when I use a regular Thread.sleep()
  */
-public class MyThread {
+public final class MyThread {
 
     private MyThread() {
         // cannot construct

@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutorService;
  *     prevented including logging in some areas.
  * </p>
  */
-public class Context {
+public final class Context {
 
     private ILogger logger;
     private final ExecutorService executorService;

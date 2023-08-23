@@ -10,7 +10,7 @@ import static minum.utils.Invariants.mustBeTrue;
 /**
  * Utilities for searching collections of data
  */
-public class SearchUtils {
+public final class SearchUtils {
 
     private SearchUtils() {
         // not meant to be instantiated

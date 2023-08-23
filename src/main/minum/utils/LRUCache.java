@@ -9,7 +9,7 @@ import java.util.Map;
  * A simple Least-Recently Used Cache
  * See <a href="https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)">LRU</a>
  */
-public class LRUCache<T> extends LinkedHashMap<String, T> {
+public final class LRUCache<T> extends LinkedHashMap<String, T> {
 
     @Serial
     private static final long serialVersionUID = -8687744696157499778L;

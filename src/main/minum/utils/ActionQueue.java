@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * thread and the only time required is passing the
  * function of what we want to run later.
  */
-public class ActionQueue {
+public final class ActionQueue {
     private final String name;
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;

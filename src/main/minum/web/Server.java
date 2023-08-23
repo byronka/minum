@@ -26,7 +26,7 @@ import java.util.concurrent.Future;
  * the server side but also tie it in with an ExecutorService
  * for controlling lots of server threads.
  */
-class Server implements AutoCloseable {
+final class Server implements AutoCloseable {
     private final ServerSocket serverSocket;
     private final SetOfSws setOfSWs;
     private final ILogger logger;

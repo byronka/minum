@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService;
  * communications we need to handle to support a web application. Sockets,
  * Servers, Threads, that kind of stuff.
  */
-class WebEngine {
+final class WebEngine {
 
   private final TheBrig theBrig;
   private final Constants constants;

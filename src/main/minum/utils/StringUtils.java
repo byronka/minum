@@ -18,7 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * Some helper methods for Strings.
  */
-public class StringUtils {
+public final class StringUtils {
 
     private StringUtils() {
         // making this private to be clearer it isn't supposed to be instantiated.

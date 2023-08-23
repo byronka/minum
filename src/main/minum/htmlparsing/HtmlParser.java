@@ -19,7 +19,7 @@ import static minum.utils.Invariants.mustBeTrue;
  *     this is understood to be a subset of the spec.
  * </p>
  */
-public class HtmlParser {
+public final class HtmlParser {
 
     /**
      * Most total chars we'll read.

@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
  * Handy helpers to make regular expression marginally
  * easier / more efficient, etc.
  */
-public class RegexUtils {
+public final class RegexUtils {
 
     private RegexUtils() {
         // making this private to be clearer it isn't supposed to be instantiated.

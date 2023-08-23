@@ -13,7 +13,7 @@ import java.util.Properties;
  * Very important system design decisions are made here.  All
  * developers on this project should look through each of these.
  */
-public class Constants {
+public final class Constants {
 
     private Properties properties;
 

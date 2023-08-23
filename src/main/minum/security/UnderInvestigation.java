@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Looking for bad actors in our system
  */
-public class UnderInvestigation {
+public final class UnderInvestigation {
 
     private final Constants constants;
 

@@ -5,7 +5,7 @@ import minum.database.DbData;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SerializationUtils {
+public final class SerializationUtils {
 
     private SerializationUtils() {
         // not meant to be constructed.

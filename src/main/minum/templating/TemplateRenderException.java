@@ -9,7 +9,7 @@ import java.io.Serial;
  * our map doesn't include a value for foo, this exception
  * will get thrown.
  */
-public class TemplateRenderException extends RuntimeException {
+public final class TemplateRenderException extends RuntimeException {
 
     @Serial
     private static final long serialVersionUID = -6403838479988560085L;

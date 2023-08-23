@@ -6,7 +6,7 @@ import java.io.Serial;
  * Thrown If a failure takes place during parsing in any
  * of the parsing code of the framework.
  */
-public class ParsingException extends RuntimeException {
+public final class ParsingException extends RuntimeException {
 
     @Serial
     private static final long serialVersionUID = 9158387443482452528L;

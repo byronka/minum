@@ -30,7 +30,7 @@ import java.util.Objects;
  *     The message body (or content) in this example is the text <pre>Hello world!</pre>.
  * </p>
  */
-public class Body {
+public final class Body {
 
     public static byte[] EMPTY_BYTES = new byte[0];
     private final Map<String, byte[]> bodyMap;

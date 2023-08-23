@@ -8,7 +8,7 @@ package minum.utils;
  * to include testing mindset in the code, and to guard against adding
  * bugs during maintenance.
  */
-public class Invariants {
+public final class Invariants {
 
     private Invariants() {
         // cannot construct

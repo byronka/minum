@@ -29,7 +29,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * map, but we wrap it in a custom class just to enable better
  * documentation.
  */
-class StaticFilesCache {
+final class StaticFilesCache {
 
     /**
      * in the resources, where we store our static files, like jpegs,

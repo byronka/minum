@@ -29,8 +29,11 @@ import static minum.utils.SerializationUtils.serializeHelper;
  * long as required.  After they have served their time, they
  * are released, but in certain cases (like when we deem them to
  * have no redeeming value to us) we may set their time extremely high.
+ * <p>
+ *     See also {@link UnderInvestigation}
+ * </p>
  */
-public class TheBrig {
+public final class TheBrig {
     private final ExecutorService es;
     private final Db<Inmate> db;
     private final ILogger logger;

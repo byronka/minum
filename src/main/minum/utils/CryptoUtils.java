@@ -8,7 +8,7 @@ import java.security.spec.KeySpec;
 /**
  * Handy helpers for dealing with cryptographic functions
  */
-public class CryptoUtils {
+public final class CryptoUtils {
 
     private CryptoUtils() {
         // cannot construct

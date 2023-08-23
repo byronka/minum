@@ -7,7 +7,7 @@ import java.util.concurrent.Callable;
  * possible reviewing the queue of actions and more easily understanding
  * the purpose of each Callable.
  */
-public class RunnableWithDescription<E extends Throwable> implements ThrowingRunnable<E> {
+public final class RunnableWithDescription<E extends Throwable> implements ThrowingRunnable<E> {
 
     private final String description;
     private final ThrowingRunnable<E> r;

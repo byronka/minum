@@ -34,7 +34,7 @@ import static minum.web.WebEngine.HTTP_CRLF;
  * slot in WebEngine and handles HTTP protocol.  Also handles
  * routing and static files.
  */
-public class WebFramework {
+public final class WebFramework {
 
     private final Constants constants;
     private final UnderInvestigation underInvestigation;

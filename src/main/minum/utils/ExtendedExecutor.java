@@ -9,7 +9,7 @@ import java.util.concurrent.*;
  * This lets us capture the stack traces thrown in a thread,
  * which the typical Executor does not.
  */
-public class ExtendedExecutor extends ThreadPoolExecutor {
+public final class ExtendedExecutor extends ThreadPoolExecutor {
 
     public ExtendedExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);

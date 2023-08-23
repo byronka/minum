@@ -17,7 +17,7 @@ import static minum.utils.Invariants.mustNotBeNull;
 /**
  * Helper functions for working with files.
  */
-public class FileUtils {
+public final class FileUtils {
 
     private FileUtils() {
         // private to prevent instantiation.

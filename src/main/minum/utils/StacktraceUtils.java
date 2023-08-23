@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 /**
  * Helper functions for manipulating stack traces.
  */
-public class StacktraceUtils {
+public final class StacktraceUtils {
 
     private StacktraceUtils() {
         // cannot construct

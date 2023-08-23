@@ -26,7 +26,7 @@ import static minum.utils.Invariants.*;
  * on any data that extends from {@link DbData}
  * @param <T> the type of data we'll be persisting
  */
-public class Db<T extends DbData<?>> {
+public final class Db<T extends DbData<?>> {
 
     /**
      * The suffix we will apply to each database file

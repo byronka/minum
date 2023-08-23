@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
  * This class is responsible for kicking off the entire system.
  * In particular, look at {@link #start()}
  */
-public class FullSystem implements AutoCloseable {
+public final class FullSystem implements AutoCloseable {
 
     final ILogger logger;
     private final Constants constants;

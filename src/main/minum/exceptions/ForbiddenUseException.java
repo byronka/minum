@@ -12,7 +12,7 @@ import java.io.Serial;
  * <br>
  * See Constants.java
  */
-public class ForbiddenUseException extends RuntimeException {
+public final class ForbiddenUseException extends RuntimeException {
 
     @Serial
     private static final long serialVersionUID = -1588862919515625579L;

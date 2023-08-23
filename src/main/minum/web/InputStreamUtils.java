@@ -18,7 +18,7 @@ import static minum.utils.ByteUtils.byteListToArray;
 /**
  * Handy helpful utilities for working with input streams.
  */
-class InputStreamUtils {
+final class InputStreamUtils {
 
     private final Constants constants;
     private final ILogger logger;

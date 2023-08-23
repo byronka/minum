@@ -12,7 +12,7 @@ import java.nio.charset.Charset;
 /**
  * This wraps Sockets to make them more particular to our use case
  */
-class SocketWrapper implements ISocketWrapper, AutoCloseable {
+final class SocketWrapper implements ISocketWrapper, AutoCloseable {
 
     private final Socket socket;
     private final InputStream inputStream;

@@ -24,7 +24,7 @@ import static minum.utils.Invariants.mustBeTrue;
  * This code is responsible for extracting the {@link Body} from
  * an HTTP request.
  */
-class BodyProcessor {
+final class BodyProcessor {
 
     private final ILogger logger;
     private final InputStreamUtils inputStreamUtils;

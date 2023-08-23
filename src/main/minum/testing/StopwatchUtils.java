@@ -18,7 +18,7 @@ package minum.testing;
  }
  * </pre>
  */
-public class StopwatchUtils {
+public final class StopwatchUtils {
 
     private long startTime = 0;
 

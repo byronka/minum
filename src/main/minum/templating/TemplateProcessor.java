@@ -47,7 +47,7 @@ import java.util.Map;
  *     The result is: Hello, my name is Susanne
  * </p>
  */
-public class TemplateProcessor {
+public final class TemplateProcessor {
 
     final private List<TemplateSection> templateSections;
 

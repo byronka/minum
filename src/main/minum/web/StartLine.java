@@ -18,7 +18,7 @@ import static minum.utils.Invariants.mustNotBeNull;
  * "start line" in an HTTP request.  For example,
  * GET /foo HTTP/1.1
  */
-public class StartLine{
+public final class StartLine{
 
     private final Verb verb;
     private final PathDetails pathDetails;

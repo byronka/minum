@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Handy helpers when working with bytes
  */
-public class ByteUtils {
+public final class ByteUtils {
 
     private ByteUtils() {
         // cannot construct

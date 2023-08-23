@@ -7,7 +7,7 @@ import minum.logging.LoggingLevel;
 /**
  * This class exists to properly kill off multiple action queues
  */
-public class ActionQueueKiller {
+public final class ActionQueueKiller {
 
     private final Context context;
     private final Constants constants;

@@ -5,7 +5,7 @@ import java.io.Serial;
 /**
  * Thrown when a test fails
  */
-public class TestFailureException extends RuntimeException{
+public final class TestFailureException extends RuntimeException{
 
     @Serial
     private static final long serialVersionUID = 2937719847418284951L;

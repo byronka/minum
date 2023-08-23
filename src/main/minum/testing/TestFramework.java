@@ -10,7 +10,7 @@ import java.util.List;
  * to do excellent testing.  Just a committment to
  * quality.  Don't let anyone tell you differently.
  */
-public class TestFramework {
+public final class TestFramework {
 
     private TestFramework() {
         // making this private to be clearer it isn't supposed to be instantiated.

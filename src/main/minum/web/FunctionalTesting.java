@@ -21,7 +21,7 @@ import static minum.utils.Invariants.mustBeTrue;
 /**
  * Tools to enable system-wide integration testing
  */
-public class FunctionalTesting {
+public final class FunctionalTesting {
 
     private final Context context;
     private final WebEngine webEngine;
