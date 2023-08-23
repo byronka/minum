@@ -231,6 +231,10 @@ public final class TheBrig {
 
     }
 
+    /**
+     * Return true if a particular client ip address is found
+     * in the list.
+     */
     public boolean isInJail(String clientIdentifier) {
         if (!constants.IS_THE_BRIG_ENABLED) {
             return false;
@@ -238,6 +242,10 @@ public final class TheBrig {
         return clientKeys.containsKey(clientIdentifier);
     }
 
+    /**
+     * Get the current list of ip addresses that have been
+     * judged as having carried out attacks on the system.
+     */
     public List<Map.Entry<String, Long>> getInmates() {
         return clientKeys.entrySet().stream().toList();
     }

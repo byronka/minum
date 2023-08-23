@@ -175,7 +175,6 @@ final class BodyProcessor {
     Body parseMultiform(byte[] body, String boundaryValue) {
         // how to split this up? It's a mix of strings and bytes.
         List<byte[]> partitions = split(body, "--" + boundaryValue);
-        final String nameEquals = "name=";
         // What we can bear in mind is that once we've read the headers, and gotten
         // past the single blank line, *everything else* is pure data.
         final var result = new HashMap<String, byte[]>();
