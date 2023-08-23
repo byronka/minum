@@ -7,9 +7,8 @@ import static minum.utils.Invariants.mustBeTrue;
 /**
  * Represents one item in the list that will eventually be cooked
  * up into a fully-rendered string.  This record is the magic
- * ingredient to an easy templating system.  It's got two fields,
- * key and substring, and .  If it has a key, then this object will be getting
- * replaced during final string rendering.  If it has a substring,
+ * ingredient to an easy templating system. If it has a key,
+ * then this object will be getting replaced during final string rendering.  If it has a substring,
  * then the substring gets concatenated unchanged when the final string
  * is rendered.
  */
