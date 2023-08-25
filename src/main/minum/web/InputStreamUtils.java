@@ -18,13 +18,13 @@ import static minum.utils.ByteUtils.byteListToArray;
 /**
  * Handy helpful utilities for working with input streams.
  */
-final class InputStreamUtils {
+public final class InputStreamUtils {
 
     private final Constants constants;
     private final ILogger logger;
 
 
-    InputStreamUtils(Context context) {
+    public InputStreamUtils(Context context) {
         this.constants = context.getConstants();
         this.logger = context.getLogger();
     }

@@ -1,7 +1,6 @@
 package minum;
 
 import minum.database.SimpleDatabaseTests;
-import minum.logging.LoggingContext;
 import minum.sampledomain.LruCacheTests;
 import minum.security.TheBrigTests;
 import minum.testing.RegexUtilsTests;
@@ -12,7 +11,6 @@ import minum.web.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
 
 public class Tests {
 
@@ -62,7 +60,7 @@ public class Tests {
     new StringUtilsTests(context).tests();
     new TemplatingTests(context).tests();
     new ConfigErrorTests(context).tests();
-    new StaticFilesCacheTests(context).tests();
+    new FileUtilsTests(context).tests();
     new TheBrigTests(context).tests();
     new HtmlParserTests(context).tests();
     new TestFrameworkTests(context).tests();
@@ -97,7 +95,7 @@ public class Tests {
   private void handleShutdown(Context context) throws IOException {
     var logger = (TestLogger) context.getLogger();
     logger.writeTestReport("unit_tests");
-    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
+    context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
     new ActionQueueKiller(context).killAllQueues();
     context.getExecutorService().shutdownNow();
     context.getLogger().stop();
@@ -115,7 +113,7 @@ public class Tests {
   private void shutdownFunctionalTests(Context context) throws IOException {
     // delay a sec so our system has time to finish before we start deleting files
     MyThread.sleep(500);
-    FileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
+    context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
     var fs = context.getFullSystem();
     fs.close();
     context.getExecutorService().shutdownNow();

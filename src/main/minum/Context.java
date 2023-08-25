@@ -5,7 +5,9 @@ import minum.database.DbData;
 import minum.logging.ILogger;
 import minum.utils.ActionQueue;
 import minum.utils.ExtendedExecutor;
+import minum.utils.FileUtils;
 import minum.web.FullSystem;
+import minum.web.InputStreamUtils;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,6 +31,8 @@ import java.util.concurrent.ExecutorService;
  */
 public final class Context {
 
+    private final InputStreamUtils inputStreamUtils;
+    private final FileUtils fileUtils;
     private ILogger logger;
     private final ExecutorService executorService;
     private final Constants constants;
@@ -43,6 +47,16 @@ public final class Context {
         this.constants = new Constants();
         this.executorService = ExtendedExecutor.makeExecutorService(constants);
         this.actionQueueList = new ArrayList<>();
+        this.inputStreamUtils = new InputStreamUtils(this);
+        this.fileUtils = new FileUtils(this);
+    }
+
+    public InputStreamUtils getInputStreamUtils() {
+        return inputStreamUtils;
+    }
+
+    public FileUtils getFileUtils() {
+        return fileUtils;
     }
 
     public void setLogger(ILogger logger) {
