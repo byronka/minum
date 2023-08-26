@@ -24,13 +24,6 @@ For comparison, the referenced project shows this for other well-known Java temp
 Notes:
 ------
 
-* Mustache: mentioned as really simple. 124 classes and 11,346 lines of
-          code.  " I always liked Mustache because of its simplicity -
-          it’s "just enough" templating - and you really couldn’t wish
-          for a cleaner, leaner, more lightweight library than this one,
-          if you have to render templates in the JVM"
-          - https://spring.io/blog/2016/11/21/the-joy-of-mustache-server-side-templates-for-the-jvm
-
 * Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
 * Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
 
