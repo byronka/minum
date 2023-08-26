@@ -72,9 +72,10 @@ public final class FullSystem implements AutoCloseable {
 
 
     /**
-     * This is the expected entry-point for most users.
+     * Builds a context object that is appropriate as a
+     * parameter to constructing a {@link FullSystem}
      */
-    public static FullSystem initialize() {
+    public static Context initializeContext() {
         var constants = new Constants();
         var executorService = ExtendedExecutor.makeExecutorService(constants);
         var logger = new Logger(constants, executorService, "primary logger");
@@ -89,12 +90,8 @@ public final class FullSystem implements AutoCloseable {
         context.setFileUtils(fileUtils);
         context.setInputStreamUtils(inputStreamUtils);
 
-        try {
-            var fullSystem = new FullSystem(context);
-            return fullSystem.start();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return context;
+
     }
 
     /**
