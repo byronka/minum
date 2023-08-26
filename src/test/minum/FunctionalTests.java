@@ -39,14 +39,14 @@ public class FunctionalTests {
         context.getFullSystem().getWebFramework().addMimeForSuffix("png", "image/png");
 
         logger.test("Request a static png image that needed a mime type we just provided");
-        assertEquals(ft.get("out/static/moon.png").statusLine().status(), _200_OK);
-        assertEquals(ft.get("out/static/moon.png").headers().valueByKey("content-type"), List.of("image/png"));
+        assertEquals(ft.get("moon.png").statusLine().status(), _200_OK);
+        assertEquals(ft.get("moon.png").headers().valueByKey("content-type"), List.of("image/png"));
 
         logger.test("Request a static file.  First time it gets loaded from disk... ");
-        assertEquals(ft.get("out/static/index.html").statusLine().status(), _200_OK);
+        assertEquals(ft.get("index.html").statusLine().status(), _200_OK);
 
         logger.test("Second time, it gets loaded from cache");
-        assertEquals(ft.get("out/static/index.html").statusLine().status(), _200_OK);
+        assertEquals(ft.get("index.html").statusLine().status(), _200_OK);
 
         logger.test("what if we ask for a file that doesn't exist?");
         assertEquals(ft.get("DOES_NOT_EXIST.html").statusLine().status(), _404_NOT_FOUND);
@@ -113,7 +113,7 @@ public class FunctionalTests {
         assertEquals(ft.post("testform", "foo=bar").statusLine().status(), _401_UNAUTHORIZED);
 
         logger.test("request a static asset");
-        TestResponse staticResponse = ft.get("out/static/main.css");
+        TestResponse staticResponse = ft.get("main.css");
         assertEquals(staticResponse.headers().contentType(), "content-type: text/css");
         assertTrue(staticResponse.body().asString().contains("margin-left: 0;"));
 

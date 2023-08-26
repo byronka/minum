@@ -220,11 +220,12 @@ public final class FileUtils {
 
         byte[] fileContents;
         try {
-            if (!Files.exists(Path.of(path))) {
+            Path staticFilePath = Path.of(constants.STATIC_FILES_DIRECTORY).resolve(path);
+            if (!Files.exists(staticFilePath)) {
                 logger.logDebug(() -> String.format("No file found at %s", path));
                 return new Response(_404_NOT_FOUND);
             }
-            fileContents = readFile(path);
+            fileContents = readFile(staticFilePath.toString());
         } catch (IOException e) {
             logger.logAsyncError(() -> String.format("Error while reading file: %s. %s", path, StacktraceUtils.stackTraceToString(e)));
             return new Response(_400_BAD_REQUEST);

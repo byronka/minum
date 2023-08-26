@@ -28,7 +28,7 @@ public class FileUtilsTests {
         var fileUtils = new FileUtils(logger, context.getConstants());
 
         logger.test("Testing CSS"); {
-            Response response = fileUtils.readStaticFile("out/static/main.css");
+            Response response = fileUtils.readStaticFile("main.css");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
             assertTrue(response.body().length > 0);
@@ -36,7 +36,7 @@ public class FileUtilsTests {
         }
 
         logger.test("Testing JS"); {
-            Response response = fileUtils.readStaticFile("out/static/index.js");
+            Response response = fileUtils.readStaticFile("index.js");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
             assertTrue(response.body().length > 0);
@@ -44,7 +44,7 @@ public class FileUtilsTests {
         }
 
         logger.test("Testing HTML"); {
-            Response response = fileUtils.readStaticFile("out/static/index.html");
+            Response response = fileUtils.readStaticFile("index.html");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
             assertTrue(response.body().length > 0);
@@ -92,7 +92,7 @@ public class FileUtilsTests {
         been labeled with a proper mime.
          */
         logger.test("If the static cache is given something that it can't handle, it returns application/octet-stream"); {
-            var response = fileUtils.readStaticFile("out/static/Foo");
+            var response = fileUtils.readStaticFile("Foo");
             assertEquals(response.extraHeaders().get("content-type"), "application/octet-stream");
         }
 
