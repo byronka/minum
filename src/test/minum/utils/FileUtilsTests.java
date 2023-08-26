@@ -2,7 +2,6 @@ package minum.utils;
 
 import minum.Context;
 import minum.logging.TestLogger;
-import minum.utils.InvariantException;
 import minum.web.Response;
 import minum.web.StatusLine;
 
@@ -11,6 +10,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static minum.testing.TestFramework.*;
+import static minum.web.StatusLine.StatusCode._400_BAD_REQUEST;
+import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 
 public class FileUtilsTests {
     private final TestLogger logger;
@@ -24,10 +25,10 @@ public class FileUtilsTests {
 
     public void tests() throws IOException {
 
-        var fileUtils = new FileUtils(context);
+        var fileUtils = new FileUtils(logger, context.getConstants());
 
         logger.test("Testing CSS"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("main.css"));
+            Response response = fileUtils.readStaticFile("out/static/main.css");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
             assertTrue(response.body().length > 0);
@@ -35,7 +36,7 @@ public class FileUtilsTests {
         }
 
         logger.test("Testing JS"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("index.js"));
+            Response response = fileUtils.readStaticFile("out/static/index.js");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
             assertTrue(response.body().length > 0);
@@ -43,7 +44,7 @@ public class FileUtilsTests {
         }
 
         logger.test("Testing HTML"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("index.html"));
+            Response response = fileUtils.readStaticFile("out/static/index.html");
 
             assertEquals(response.statusCode(), StatusLine.StatusCode._200_OK);
             assertTrue(response.body().length > 0);
@@ -55,33 +56,33 @@ public class FileUtilsTests {
          a directory - we don't really want that happening.
          */
         logger.test("Edge case - reading from outside the directory"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("../templates/auth/login_page_template.html"));
+            Response response = fileUtils.readStaticFile("../templates/auth/login_page_template.html");
 
-            assertEquals(response, new Response(StatusLine.StatusCode._400_BAD_REQUEST));
+            assertEquals(response.statusCode(), _400_BAD_REQUEST);
         }
 
         logger.test("Edge case - forward slashes"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("//index.html"));
+            Response response = fileUtils.readStaticFile("//index.html");
 
-            assertEquals(response, new Response(StatusLine.StatusCode._400_BAD_REQUEST));
+            assertEquals(response.statusCode(), _400_BAD_REQUEST);
         }
 
         logger.test("Edge case - colon"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of(":"));
+            Response response = fileUtils.readStaticFile(":");
 
-            assertEquals(response, new Response(StatusLine.StatusCode._400_BAD_REQUEST));
+            assertEquals(response.statusCode(), _400_BAD_REQUEST);
         }
 
         logger.test("Edge case - a directory"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("./listphotos"));
+            Response response = fileUtils.readStaticFile(".out/templates/listphotos");
 
-            assertEquals(response, new Response(StatusLine.StatusCode._400_BAD_REQUEST));
+            assertEquals(response.statusCode(), _404_NOT_FOUND);
         }
 
         logger.test("Edge case - current directory"); {
-            Response response = fileUtils.createStaticFileResponse(Path.of("./"));
+            Response response = fileUtils.readStaticFile("./");
 
-            assertEquals(response, new Response(StatusLine.StatusCode._400_BAD_REQUEST));
+            assertEquals(response.statusCode(), _400_BAD_REQUEST);
         }
 
         /*
@@ -91,8 +92,8 @@ public class FileUtilsTests {
         been labeled with a proper mime.
          */
         logger.test("If the static cache is given something that it can't handle, it returns application/octet-stream"); {
-            var response = fileUtils.createStaticFileResponse(Path.of("Foo"));
-            assertEquals(response.extraHeaders().get("Content-Type"), "application/octet-stream");
+            var response = fileUtils.readStaticFile("out/static/Foo");
+            assertEquals(response.extraHeaders().get("content-type"), "application/octet-stream");
         }
 
         /*

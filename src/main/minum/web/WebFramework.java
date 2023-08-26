@@ -2,8 +2,6 @@ package minum.web;
 
 import minum.Constants;
 import minum.Context;
-import minum.database.Db;
-import minum.database.DbData;
 import minum.logging.ILogger;
 import minum.security.TheBrig;
 import minum.security.UnderInvestigation;
@@ -42,6 +40,7 @@ public final class WebFramework {
     private final StopwatchUtils stopWatchUtils;
     private final BodyProcessor bodyProcessor;
     private final Random random;
+    private final FileUtils fileUtils;
 
     /**
      * This is used as a key when registering endpoints
@@ -63,7 +62,6 @@ public final class WebFramework {
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
     private final FullSystem fs;
-    private StaticFilesCache staticFilesCache;
     private final ILogger logger;
     private final Context context;
 
@@ -133,6 +131,13 @@ public final class WebFramework {
                         return;
                     }
 
+                    boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
+                    logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
+                    if (isVulnSeeking && theBrig != null) {
+                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                        return;
+                    }
+
                     /****************************************
                      *   Set up some important variables
                      ***************************************/
@@ -184,31 +189,21 @@ public final class WebFramework {
                     Now, on the other hand, if they are looking for vulnerabilities, it's ok to dump them.
                      */
                     Function<Request, Response> endpoint = handlerFinder.apply(sl);
-                    if (endpoint == null) {
-                        logger.logDebug(() -> String.format("%s requested an unregistered path of %s.  Returning 404", sw, sl.getPathDetails().isolatedPath()));
-                        boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
-                        logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
-                        if (isVulnSeeking && theBrig != null) {
-                            theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                            return;
-                        }
-                        resultingResponse = new Response(_404_NOT_FOUND);
-                    } else {
-                        var handlerStopwatch = new StopwatchUtils().startTimer();
-                        try {
-                            clientRequest = new Request(hi, sl, body, sw.getRemoteAddr());
-                            resultingResponse = endpoint.apply(clientRequest);
-                        } catch (Exception ex) {
-                            // if an error happens while running an endpoint's code, this is the
-                            // last-chance handling of that error where we return a 500 and a
-                            // random code to the client, so a developer can find the detailed
-                            // information in the logs, which have that same value.
-                            int randomNumber = random.nextInt();
-                            logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                            resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
-                        }
-                        logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
+
+                    var handlerStopwatch = new StopwatchUtils().startTimer();
+                    try {
+                        clientRequest = new Request(hi, sl, body, sw.getRemoteAddr());
+                        resultingResponse = endpoint.apply(clientRequest);
+                    } catch (Exception ex) {
+                        // if an error happens while running an endpoint's code, this is the
+                        // last-chance handling of that error where we return a 500 and a
+                        // random code to the client, so a developer can find the detailed
+                        // information in the logs, which have that same value.
+                        int randomNumber = random.nextInt();
+                        logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
+                        resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
                     }
+                    logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
 
                     String statusLineAndHeaders = convertResponseToString(clientRequest, resultingResponse, isKeepAlive);
 
@@ -334,7 +329,7 @@ public final class WebFramework {
 
         // if we're a keep-alive connection, reply with a keep-alive header
         if (isKeepAlive) {
-            stringBuilder.append("Keep-Alive: timeout=" + constants.SOCKET_TIMEOUT_MILLIS / 1000 + HTTP_CRLF);
+            stringBuilder.append("Keep-Alive: timeout=" + constants.KEEP_ALIVE_TIMEOUT_SECONDS + HTTP_CRLF);
         }
 
         return stringBuilder.toString();
@@ -376,12 +371,7 @@ public final class WebFramework {
         }
 
         if (handler == null) {
-            logger.logTrace(() -> "no registered handler for " + requestedPath + ", looking in cache");
-            handler = findHandlerInStaticCache(sl);
-        }
-
-        if (handler == null) {
-            logger.logTrace(() -> "Nothing in cache, checking files on disk for " + requestedPath );
+            logger.logTrace(() -> "No partial match found, checking files on disk for " + requestedPath );
             handler = findHandlerByFilesOnDisk(sl);
         }
 
@@ -398,29 +388,9 @@ public final class WebFramework {
             return null;
         }
         String requestedPath = sl.getPathDetails().isolatedPath();
-        if (staticFilesCache == null) return null;
-        Response response = staticFilesCache.loadStaticFile(requestedPath);
+        Response response = fileUtils.readStaticFile(requestedPath);
         if (response != null) {
             return request -> response;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * look through the static cache (see staticFilesCache) of responses.
-     * Note these can only be responses to {@link StartLine.Verb#GET} requests.
-     */
-    private Function<Request, Response> findHandlerInStaticCache(StartLine sl) {
-        if (sl.getVerb() != StartLine.Verb.GET) {
-            return null;
-        }
-        String requestedPath = sl.getPathDetails().isolatedPath();
-        if (staticFilesCache == null) return null;
-        final Response staticResponseFound = staticFilesCache.getStaticResponse(requestedPath);
-        if (staticResponseFound != null) {
-            logger.logTrace(() -> "found a static value to handle "+ requestedPath +", returning it");
-            return request -> staticResponseFound;
         } else {
             return null;
         }
@@ -463,7 +433,8 @@ public final class WebFramework {
         this.registeredPartialPaths = new HashMap<>();
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
-        this.inputStreamUtils = new InputStreamUtils(context);
+        this.inputStreamUtils = context.getInputStreamUtils();
+        this.fileUtils = context.getFileUtils();
         this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);
         this.random = new Random();
@@ -505,14 +476,6 @@ public final class WebFramework {
     }
 
     /**
-     * register a {@link StaticFilesCache} to use for getting
-     * and caching static values
-     */
-    void setStaticFilesCache(StaticFilesCache sfc) {
-        this.staticFilesCache = sfc;
-    }
-
-    /**
      * This allows users to add extra mappings
      * between file suffixes and mime types, in case
      * a user needs one that was not provided.
@@ -528,6 +491,6 @@ public final class WebFramework {
      * </pre>
      */
     public void addMimeForSuffix(String suffix, String mimeType) {
-        staticFilesCache.getSuffixToMime().put(suffix, mimeType);
+        fileUtils.getSuffixToMime().put(suffix, mimeType);
     }
 }

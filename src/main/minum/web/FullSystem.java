@@ -5,6 +5,7 @@ import minum.Context;
 import minum.logging.ILogger;
 import minum.logging.Logger;
 import minum.logging.LoggingLevel;
+import minum.logging.TestLogger;
 import minum.security.TheBrig;
 import minum.utils.*;
 
@@ -60,14 +61,13 @@ public final class FullSystem implements AutoCloseable {
      *     Its own executor service, its own constants. What have you.
      * </p>
      */
-    public FullSystem(Context context, ILogger logger) {
-        this.context = context;
-        this.es = context.getExecutorService();
+    public FullSystem(Context context) {
+        this.logger = context.getLogger();
         this.constants = context.getConstants();
-        this.context.setLogger(logger);
-        this.logger = logger;
-        this.inputStreamUtils = new InputStreamUtils(context);
-        this.context.setFullSystem(this);
+        this.es = context.getExecutorService();
+        this.inputStreamUtils = context.getInputStreamUtils();
+        this.context = context;
+        context.setFullSystem(this);
     }
 
 
@@ -75,10 +75,22 @@ public final class FullSystem implements AutoCloseable {
      * This is the expected entry-point for most users.
      */
     public static FullSystem initialize() {
+        var constants = new Constants();
+        var executorService = ExtendedExecutor.makeExecutorService(constants);
+        var logger = new Logger(constants, executorService, "primary logger");
+        var fileUtils = new FileUtils(logger, constants);
+        var inputStreamUtils = new InputStreamUtils(logger, constants);
+
         var context = new Context();
-        var logger = new Logger(context);
+
+        context.setConstants(constants);
+        context.setExecutorService(executorService);
+        context.setLogger(logger);
+        context.setFileUtils(fileUtils);
+        context.setInputStreamUtils(inputStreamUtils);
+
         try {
-            var fullSystem = new FullSystem(context, logger);
+            var fullSystem = new FullSystem(context);
             return fullSystem.start();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -111,10 +123,6 @@ public final class FullSystem implements AutoCloseable {
         
         // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
-
-        // our static files cache - any static (unchanging) files, like css or images
-        StaticFilesCache sfc = new StaticFilesCache(context);
-        webFramework.setStaticFilesCache(sfc);
 
         // build the primary http handler - the beating heart of code
         // that handles HTTP protocol

@@ -29,13 +29,15 @@ public class UploadPhoto {
     private final Path dbDir;
     private final AuthUtils auth;
     private final Constants constants;
+    private final FileUtils fileUtils;
 
     public UploadPhoto(Db<Photograph> db, AuthUtils auth, Context context) {
         this.constants = context.getConstants();
         this.auth = auth;
         this.logger = context.getLogger();
+        this.fileUtils = context.getFileUtils();
         this.dbDir = Path.of(constants.DB_DIRECTORY);
-        uploadPhotoTemplateHtml = FileUtils.readTemplate("uploadphoto/upload_photo_template.html");
+        uploadPhotoTemplateHtml = fileUtils.readTextFile("out/templates/uploadphoto/upload_photo_template.html");
         this.db = db;
     }
 

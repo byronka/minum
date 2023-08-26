@@ -34,7 +34,7 @@ public final class FunctionalTesting {
         this.context = context;
         this.webEngine = context.getFullSystem().getWebEngine();
         this.primaryServer = context.getFullSystem().getServer();
-        this.inputStreamUtils = new InputStreamUtils(context);
+        this.inputStreamUtils = context.getInputStreamUtils();
         this.webFramework = context.getFullSystem().getWebFramework();
         this.logger = context.getLogger();
     }

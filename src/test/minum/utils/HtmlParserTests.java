@@ -4,6 +4,7 @@ import minum.Context;
 import minum.htmlparsing.*;
 import minum.logging.TestLogger;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -12,9 +13,11 @@ import static minum.testing.TestFramework.assertThrows;
 
 public class HtmlParserTests {
     private final TestLogger logger;
+    private final FileUtils fileUtils;
 
     public HtmlParserTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
+        this.fileUtils = context.getFileUtils();
         logger.testSuite("HtmlParserTests");
     }
 
@@ -136,10 +139,10 @@ public class HtmlParserTests {
         }
 
         logger.test("Larger file"); {
-            String htmlText = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
+            String htmlText = fileUtils.readTextFile("out/templates/templatebenchmarks/expected_stock_output.html");
             List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
             List<List<String>> myList = htmlRoots.stream().map(x -> x.print()).filter(x -> ! x.isEmpty()).toList();
-            var expected = FileUtils.readTemplate("templatebenchmarks/expected_stock_output_parsed.txt");
+            var expected = fileUtils.readTextFile("out/templates/templatebenchmarks/expected_stock_output_parsed.txt");
             assertEquals(myList.toString(), expected);
         }
 

@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static minum.utils.FileUtils.writeString;
 import static minum.utils.Invariants.*;
 
 /**
@@ -54,6 +53,7 @@ public final class Db<T extends DbData<?>> {
     private final ActionQueue actionQueue;
     private final ILogger logger;
     private final Map<Long, T> data;
+    private final FileUtils fileUtils;
     private boolean hasLoadedData;
 
     /**
@@ -71,6 +71,7 @@ public final class Db<T extends DbData<?>> {
         this.dbDirectory = dbDirectory;
         this.fullPathForIndexFile = dbDirectory.resolve("index" + databaseFileSuffix);
         this.emptyInstance = instance;
+        this.fileUtils = context.getFileUtils();
 
         if (Files.exists(fullPathForIndexFile)) {
             long indexValue;
@@ -92,7 +93,7 @@ public final class Db<T extends DbData<?>> {
 
         actionQueue.enqueue("create directory" + dbDirectory, () -> {
             try {
-                FileUtils.makeDirectory(logger, dbDirectory);
+                fileUtils.makeDirectory(dbDirectory);
             } catch (IOException ex) {
                 logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
             }
@@ -145,8 +146,8 @@ public final class Db<T extends DbData<?>> {
                 mustBeFalse(serializedData == null || serializedData.isBlank(),
                         "the serialized form of data must not be blank. " +
                                 "Is the serialization code written properly? Our datatype: " + emptyInstance);
-                writeString(fullPath, serializedData);
-                writeString(fullPathForIndexFile, String.valueOf(newData.getIndex() + 1));
+                fileUtils.writeString(fullPath, serializedData);
+                fileUtils.writeString(fullPathForIndexFile, String.valueOf(newData.getIndex() + 1));
             });
 
             // returning the data at this point is the most convenient
@@ -193,7 +194,7 @@ public final class Db<T extends DbData<?>> {
                     mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist before deletion");
                     Files.delete(fullPath);
                     if (hasResetIndex) {
-                        writeString(fullPathForIndexFile, String.valueOf(1));
+                        fileUtils.writeString(fullPathForIndexFile, String.valueOf(1));
                     }
                 } catch (Exception ex) {
                     logger.logAsyncError(() -> "failed to delete file " + fullPath + " during deleteOnDisk. Exception: " + ex);
@@ -228,7 +229,7 @@ public final class Db<T extends DbData<?>> {
                 final Path fullPath = dbDirectory.resolve(dataIndex + databaseFileSuffix);
                 // if the file isn't already there, throw an exception
                 mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist during updates");
-                writeString(fullPath, dataUpdate.serialize());
+                fileUtils.writeString(fullPath, dataUpdate.serialize());
             });
         } finally {
             updateLock.unlock();

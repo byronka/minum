@@ -67,7 +67,7 @@ public class TheRegister {
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
         var sampleDomainDb = new Db<>(Path.of(context.getConstants().DB_DIRECTORY, "names"), context, PersonName.EMPTY);
-        return new SampleDomain(sampleDomainDb, auth);
+        return new SampleDomain(sampleDomainDb, auth, context);
     }
 
     private ListPhotos setupListPhotos(AuthUtils auth, UploadPhoto up) {

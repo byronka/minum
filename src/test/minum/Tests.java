@@ -11,8 +11,13 @@ import minum.web.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
+
+import static java.lang.System.exit;
 
 public class Tests {
+
+  Context context;
 
   public static void main(String[] args) {
     var tests = new Tests();
@@ -25,8 +30,8 @@ public class Tests {
       testFullSystem_Soup_To_Nuts();
       indicateTestsFinished();
     } catch (Exception ex) {
-      MyThread.sleep(100);
-      ex.printStackTrace();
+      String exceptionString = StacktraceUtils.stackTraceToString(ex);
+      context.getLogger().logAsyncError(() -> exceptionString);
     }
   }
 
@@ -52,7 +57,7 @@ public class Tests {
    * stop short of running {@link FullSystem}.
    */
   private void unitAndIntegrationTests() throws Exception {
-    Context context = buildContext();
+    Context context = buildContext("_unit_test");
 
     new WebTests(context).tests();
     new SimpleDatabaseTests(context).tests();
@@ -85,10 +90,22 @@ public class Tests {
     shutdownFunctionalTests(context);
   }
 
-  private Context buildContext() {
-    Context context = new Context();
-    TestLogger logger = new TestLogger(context, "_unit_test_logger");
+  private Context buildContext(String loggerName) {
+    var constants = new Constants();
+    var executorService = ExtendedExecutor.makeExecutorService(constants);
+    var logger = new TestLogger(constants, executorService, loggerName);
+    var fileUtils = new FileUtils(logger, constants);
+    var inputStreamUtils = new InputStreamUtils(logger, constants);
+
+    var context = new Context();
+
+    context.setConstants(constants);
+    context.setExecutorService(executorService);
     context.setLogger(logger);
+    context.setFileUtils(fileUtils);
+    context.setInputStreamUtils(inputStreamUtils);
+
+    this.context = context;
     return context;
   }
 
@@ -103,10 +120,10 @@ public class Tests {
 
   private Context buildContextFunctionalTests() throws IOException {
     System.out.println("Starting a soup-to-nuts tests of the full system");
-    var context = new Context();
-    TestLogger logger = new TestLogger(context, "integration_test_logger");
-    new FullSystem(context, logger).start();
+    var context = buildContext("_integration_test");
+    new FullSystem(context).start();
     new TheRegister(context).registerDomains();
+    this.context = context;
     return context;
   }
 

@@ -11,6 +11,7 @@ import minum.utils.StringUtils;
 import minum.web.Request;
 import minum.web.Response;
 
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,7 @@ public class AuthUtils {
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
+    private final FileUtils fileUtils;
 
     public AuthUtils(Db<SessionId> sessionDiskData,
                      Db<User> userDiskData,
@@ -50,9 +52,10 @@ public class AuthUtils {
         this.sessionDiskData = sessionDiskData;
         emptySessionId = SessionId.EMPTY;
         this.logger = context.getLogger();
+        this.fileUtils = context.getFileUtils();
 
-        loginPageTemplate = FileUtils.readTemplate("auth/login_page_template.html");
-        registerPageTemplate = FileUtils.readTemplate("auth/register_page_template.html");
+        loginPageTemplate = fileUtils.readTextFile("out/templates/auth/login_page_template.html");
+        registerPageTemplate = fileUtils.readTextFile("auth/register_page_template.html");
     }
 
     public static final String cookieKey = "sessionid";

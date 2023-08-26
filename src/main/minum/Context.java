@@ -31,11 +31,11 @@ import java.util.concurrent.ExecutorService;
  */
 public final class Context {
 
-    private final InputStreamUtils inputStreamUtils;
-    private final FileUtils fileUtils;
+    private InputStreamUtils inputStreamUtils;
+    private FileUtils fileUtils;
     private ILogger logger;
-    private final ExecutorService executorService;
-    private final Constants constants;
+    private ExecutorService executorService;
+    private Constants constants;
     private FullSystem fullSystem;
     private final List<ActionQueue> actionQueueList;
 
@@ -44,11 +44,11 @@ public final class Context {
      * available, we'll store them in this class.
      */
     public Context() {
-        this.constants = new Constants();
-        this.executorService = ExtendedExecutor.makeExecutorService(constants);
         this.actionQueueList = new ArrayList<>();
-        this.inputStreamUtils = new InputStreamUtils(this);
-        this.fileUtils = new FileUtils(this);
+    }
+
+    public void setInputStreamUtils(InputStreamUtils inputStreamUtils) {
+        this.inputStreamUtils = inputStreamUtils;
     }
 
     public InputStreamUtils getInputStreamUtils() {
@@ -59,6 +59,10 @@ public final class Context {
         return fileUtils;
     }
 
+    public void setFileUtils(FileUtils fileUtils) {
+        this.fileUtils = fileUtils;
+    }
+
     public void setLogger(ILogger logger) {
         this.logger = logger;
     }
@@ -67,10 +71,16 @@ public final class Context {
         return logger;
     }
 
+    public void setExecutorService(ExecutorService executorService) {
+        this.executorService = executorService;
+    }
     public ExecutorService getExecutorService() {
         return executorService;
     }
 
+    public void setConstants(Constants constants) {
+        this.constants = constants;
+    }
     public Constants getConstants() {
         return constants;
     }

@@ -5,6 +5,7 @@ import minum.templating.TemplateProcessor;
 import minum.templating.TemplateRenderException;
 import minum.logging.TestLogger;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 import static minum.testing.TestFramework.assertEquals;
@@ -13,9 +14,11 @@ import static minum.templating.TemplateProcessor.buildProcessor;
 
 public class TemplatingTests {
     private final TestLogger logger;
+    private final FileUtils fileUtils;
 
     public TemplatingTests(Context context) {
         this.logger = (TestLogger) context.getLogger();
+        this.fileUtils = context.getFileUtils();
         logger.testSuite("TemplatingTests");
     }
 
@@ -88,9 +91,9 @@ public class TemplatingTests {
          */
         logger.test("template for a more realistic input");
         {
-            var individualStockProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("templatebenchmarks/individual_stock.html"));
-            var stockPrices = TemplateProcessor.buildProcessor(FileUtils.readTemplate("templatebenchmarks/stock_prices.html"));
-            var expectedOutput = FileUtils.readTemplate("templatebenchmarks/expected_stock_output.html");
+            var individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("out/templates/templatebenchmarks/individual_stock"));
+            var stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("out/templates/templatebenchmarks/stock_prices"));
+            var expectedOutput = fileUtils.readTextFile("out/templates/templatebenchmarks/expected_stock_output");
 
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Stock.dummyItems().size(); i++) {

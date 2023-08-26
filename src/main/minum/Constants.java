@@ -35,7 +35,8 @@ public final class Constants {
         MOST_COOKIES_WELL_LOOK_THROUGH = getProp("MOST_COOKIES_WELL_LOOK_THROUGH", 5);
         MAX_HEADERS_COUNT = getProp("MAX_HEADERS_COUNT", 70);
         MAX_TOKENIZER_PARTITIONS = getProp("MAX_TOKENIZER_PARTITIONS", 20);
-        SOCKET_TIMEOUT_MILLIS = getProp("SOCKET_TIMEOUT_MILLIS", 3 * 1000);
+        SOCKET_TIMEOUT_MILLIS = getProp("SOCKET_TIMEOUT_MILLIS", 7 * 1000);
+        KEEP_ALIVE_TIMEOUT_SECONDS = getProp("KEEP_ALIVE_TIMEOUT_SECONDS", 3);
         VULN_SEEKING_JAIL_DURATION = getProp("VULN_SEEKING_JAIL_DURATION", 7 * 24 * 60 * 60 * 1000);
         IS_THE_BRIG_ENABLED = getProp("IS_THE_BRIG_ENABLED", false);
         SUSPICIOUS_ERRORS = getProp("SUSPICIOUS_ERRORS", "");
@@ -130,6 +131,13 @@ public final class Constants {
      * See {@link java.net.Socket#setSoTimeout(int)}
      */
     public final int SOCKET_TIMEOUT_MILLIS;
+
+    /**
+     * We include this value in the keep-alive header. It lets the
+     * browser know how long to hold the socket open, in seconds,
+     * before it decides we aren't sending anything else and closes it.
+     */
+    public final int KEEP_ALIVE_TIMEOUT_SECONDS;
 
     /**
      * If a client does something that we consider an indicator for attacking, put them in

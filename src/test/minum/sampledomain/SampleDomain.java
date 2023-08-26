@@ -1,5 +1,6 @@
 package minum.sampledomain;
 
+import minum.Context;
 import minum.auth.AuthUtils;
 import minum.database.Db;
 import minum.templating.TemplateProcessor;
@@ -8,8 +9,8 @@ import minum.utils.StringUtils;
 import minum.web.Request;
 import minum.web.Response;
 
+import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -23,13 +24,15 @@ public class SampleDomain {
     private final TemplateProcessor nameEntryTemplate;
     private final String authHomepage;
     private final String unauthHomepage;
+    private final FileUtils fileUtils;
 
-    public SampleDomain(Db<PersonName> diskData, AuthUtils auth) {
+    public SampleDomain(Db<PersonName> diskData, AuthUtils auth, Context context) {
         this.db = diskData;
         this.auth = auth;
-        nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
-        authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
-        unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
+        this.fileUtils = context.getFileUtils();
+        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTextFile("out/templates/sampledomain/name_entry.html"));
+        authHomepage = fileUtils.readTextFile("out/templates/sampledomain/auth_homepage.html");
+        unauthHomepage = fileUtils.readTextFile("out/templates/sampledomain/unauth_homepage.html");
     }
 
     public Response formEntry(Request r) {

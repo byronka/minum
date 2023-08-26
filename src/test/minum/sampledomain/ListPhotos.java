@@ -35,12 +35,14 @@ public class ListPhotos {
     private final AuthUtils auth;
     private final Map<String, byte[]> lruCache;
     private final Constants constants;
+    private final FileUtils fileUtils;
 
     public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
         this.logger = context.getLogger();
+        this.fileUtils = context.getFileUtils();
         this.constants = context.getConstants();
         this.dbDir = Path.of(constants.DB_DIRECTORY);
-        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(FileUtils.readTemplate("listphotos/list_photos_template.html"));
+        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("out/templates/listphotos/list_photos_template.html"));
         this.up = up;
         this.auth = auth;
         this.lruCache = LRUCache.getLruCache();

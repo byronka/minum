@@ -138,7 +138,7 @@ copyresources::
 	 @rsync --recursive --update --perms src/resources/ out/main/
 
 copytestresources::
-	 @rsync --recursive --update --perms src/testresources/ out/main/
+	 @rsync --recursive --update --perms src/testresources/ out/
 
 ##
 # copy the source code to the output directory.  This is used before we

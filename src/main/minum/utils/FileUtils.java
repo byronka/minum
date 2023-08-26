@@ -6,18 +6,19 @@ import minum.logging.ILogger;
 import minum.web.Response;
 import minum.web.StatusLine;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.FileSystems;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static minum.utils.Invariants.mustBeTrue;
-import static minum.utils.Invariants.mustNotBeNull;
+import static minum.web.StatusLine.StatusCode.*;
 
 /**
  * Helper functions for working with files.
@@ -36,12 +37,12 @@ public final class FileUtils {
     private final Constants constants;
     private final Map<String, String> fileSuffixToMime;
 
-    public FileUtils(Context context) {
-        this.logger = context.getLogger();
-        this.constants = context.getConstants();
+    public FileUtils(ILogger logger, Constants constants) {
+        this.logger = logger;
+        this.constants = constants;
         fileSuffixToMime = new HashMap<>();
         addDefaultValuesForMimeMap();
-        readExtraMappings(context.getConstants().EXTRA_MIME_MAPPINGS);
+        readExtraMappings(constants.EXTRA_MIME_MAPPINGS);
     }
 
     /**
@@ -54,8 +55,8 @@ public final class FileUtils {
         fileSuffixToMime.put("webp", "image/webp");
         fileSuffixToMime.put("jpg", "image/jpeg");
         fileSuffixToMime.put("jpeg", "image/jpeg");
-        fileSuffixToMime.put("htm", "text/html; charset=UTF-8");
-        fileSuffixToMime.put("html", "text/html; charset=UTF-8");
+        fileSuffixToMime.put("htm", "text/html");
+        fileSuffixToMime.put("html", "text/html");
     }
 
     /**
@@ -133,6 +134,72 @@ public final class FileUtils {
         }
     }
 
+    private byte[] readFile(String path) throws IOException {
+        if (badFilePathPatterns.matcher(path).find()) {
+            logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", path.toString()));
+            return new byte[0];
+        }
+
+        try (RandomAccessFile reader = new RandomAccessFile(path, "r");
+             FileChannel channel = reader.getChannel();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            int bufferSize = 1024;
+            if (bufferSize > channel.size()) {
+                bufferSize = (int) channel.size();
+            }
+            ByteBuffer buff = ByteBuffer.allocate(bufferSize);
+
+            while (channel.read(buff) > 0) {
+                out.write(buff.array(), 0, buff.position());
+                buff.clear();
+            }
+
+            byte[] bytes = out.toByteArray();
+            if (bytes.length == 0) {
+                logger.logDebug(() -> path + " filesize was 0, returning empty byte array");
+                return new byte[0];
+            } else {
+                String s = path + " filesize was " + bytes.length + " bytes.";
+                logger.logDebug(() -> s);
+
+                return bytes;
+
+            }
+        } catch (IOException e){
+            throw e;
+        }
+    }
+
+    /**
+     * Read a binary file, return as a byte array
+     * <p>
+     *     If there is an error, this will return an empty byte array.
+     * </p>
+     */
+    public byte[] readBinaryFile(String path) {
+        try {
+            return readFile(path);
+        } catch (IOException e) {
+            logger.logDebug(() -> path + String.format("Error while reading file %s, returning empty byte array. %s", path, StacktraceUtils.stackTraceToString(e)));
+            return new byte[0];
+        }
+    }
+
+    /**
+     * Read a text file, return as a string.
+     * <p>
+     *     If there is an error, this will return an empty string.
+     * </p>
+     */
+    public String readTextFile(String path) {
+        try {
+            return new String(readFile(path));
+        } catch (IOException e) {
+            logger.logDebug(() -> path + String.format("Error while reading file %s, returning empty string. %s", path, StacktraceUtils.stackTraceToString(e)));
+            return "";
+        }
+    }
 
     /**
      * Get a file from a path and create a response for it with a mime type.
@@ -144,27 +211,30 @@ public final class FileUtils {
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    public Response createStaticFileResponse(Path path) {
-        String pathString = path.toString();
-        if (badFilePathPatterns.matcher(pathString).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", pathString));
-            return new Response(StatusLine.StatusCode._400_BAD_REQUEST);
+    public Response readStaticFile(String path) {
+        if (badFilePathPatterns.matcher(path).find()) {
+            logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", path));
+            return new Response(_400_BAD_REQUEST);
         }
         String mimeType = null;
 
         byte[] fileContents;
         try {
-            fileContents = Files.readAllBytes(path);
+            if (!Files.exists(Path.of(path))) {
+                logger.logDebug(() -> String.format("No file found at %s", path));
+                return new Response(_404_NOT_FOUND);
+            }
+            fileContents = readFile(path);
         } catch (IOException e) {
-            logger.logAsyncError(() -> String.format("Error while reading file: %s. %s", pathString, StacktraceUtils.stackTraceToString(e)));
-            return new Response(StatusLine.StatusCode._400_BAD_REQUEST);
+            logger.logAsyncError(() -> String.format("Error while reading file: %s. %s", path, StacktraceUtils.stackTraceToString(e)));
+            return new Response(_400_BAD_REQUEST);
         }
+
         // if the provided path has a dot in it, use that
         // to obtain a suffix for determining file type
-        String fileName = pathString;
-        int suffixBeginIndex = fileName.lastIndexOf('.');
+        int suffixBeginIndex = path.lastIndexOf('.');
         if (suffixBeginIndex > 0) {
-            String suffix = fileName.substring(suffixBeginIndex+1);
+            String suffix = path.substring(suffixBeginIndex+1);
             mimeType = fileSuffixToMime.get(suffix);
         }
 
@@ -183,8 +253,8 @@ public final class FileUtils {
      */
     private Response createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
         var headers = Map.of(
-                "Cache-Control", "max-age=" + constants.STATIC_FILE_CACHE_TIME,
-                "Content-Type", mimeType);
+                "cache-control", "max-age=" + constants.STATIC_FILE_CACHE_TIME,
+                "content-type", mimeType);
 
         return new Response(
                 StatusLine.StatusCode._200_OK,

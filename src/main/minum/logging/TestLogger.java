@@ -1,5 +1,6 @@
 package minum.logging;
 
+import minum.Constants;
 import minum.Context;
 import minum.testing.StopwatchUtils;
 import minum.utils.FileUtils;
@@ -9,7 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static java.nio.file.Files.writeString;
 
 /**
  * This implementation of {@link Logger} has a few
@@ -56,7 +60,7 @@ public class TestLogger extends Logger {
                 </testsuites>
                 """;
         Files.createDirectories(Path.of("out/reports/tests"));
-        FileUtils.writeString(Path.of("out/reports/tests/"+filename+".xml"), innerXmlReport);
+        writeString(Path.of("out/reports/tests/"+filename+".xml"), innerXmlReport);
     }
 
     /**
@@ -88,8 +92,8 @@ public class TestLogger extends Logger {
     /**
      * See {@link TestLogger}
      */
-    public TestLogger(Context context, String name) {
-        super(context, name);
+    public TestLogger(Constants constants, ExecutorService executorService, String name) {
+        super(constants, executorService, name);
         this.testSuites = new ArrayList<>();
         this.stopWatch = new StopwatchUtils();
         this.recentLogLines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);

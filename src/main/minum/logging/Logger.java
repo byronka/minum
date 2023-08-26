@@ -3,6 +3,7 @@ package minum.logging;
 import minum.Constants;
 import minum.Context;
 import minum.utils.ExtendedExecutor;
+import minum.utils.FileUtils;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -21,43 +22,13 @@ public class Logger implements ILogger {
      * them off the top of a queue.
      */
     protected final LoggingActionQueue loggingActionQueue;
-    private final Context context;
+    private final ExecutorService executorService;
     private Map<LoggingLevel, Boolean> activeLogLevels;
 
-    /**
-     * This constructor initializes an {@link LoggingActionQueue}
-     * to handle log messages.
-     */
-    public Logger(Context context) {
-        this(context, "");
-    }
-
-    public Logger(Context context, String name) {
-        this.context = context;
-        this.context.setLogger(this);
-        Constants constants = context.getConstants();
-        loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, context.getExecutorService(), context.getConstants()).initialize();
+    public Logger(Constants constants, ExecutorService executorService, String name) {
+        this.executorService = executorService;
+        loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, executorService, constants).initialize();
         toggleDefaultLogging(constants.LOG_LEVELS);
-    }
-
-    /**
-     * Build a logger.
-     *
-     * <p>
-     *     Some interesting aspects of this builder:
-     * </p>
-     * <ul>
-     *     <li>
-     *         It uses its own {@link ExecutorService}, separate from
-     *         the one for the rest of the system.
-     *     </li>
-     *     <li>
-     *         It uses its own Context object, separate from the regular {@link Context}
-     *     </li>
-     * </ul>
-     */
-    public static ILogger make(Context context) {
-        return new Logger(context, "_primary_system_logger");
     }
 
     /**
@@ -89,7 +60,7 @@ public class Logger implements ILogger {
     @Override
     public void stop() {
         this.loggingActionQueue.stop();
-        this.context.getExecutorService().shutdownNow();
+        this.executorService.shutdownNow();
     }
 
     @Override

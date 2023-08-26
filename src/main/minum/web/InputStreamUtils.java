@@ -20,13 +20,13 @@ import static minum.utils.ByteUtils.byteListToArray;
  */
 public final class InputStreamUtils {
 
-    private final Constants constants;
     private final ILogger logger;
+    private final Constants constants;
 
 
-    public InputStreamUtils(Context context) {
-        this.constants = context.getConstants();
-        this.logger = context.getLogger();
+    public InputStreamUtils(ILogger logger, Constants constants) {
+        this.logger = logger;
+        this.constants = constants;
     }
 
     /**

@@ -17,17 +17,18 @@ import java.util.Objects;
 import static java.util.stream.IntStream.range;
 import static minum.database.SimpleDatabaseTests.Foo.INSTANCE;
 import static minum.testing.TestFramework.*;
-import static minum.utils.FileUtils.deleteDirectoryRecursivelyIfExists;
 import static minum.utils.SerializationUtils.deserializeHelper;
 import static minum.utils.SerializationUtils.serializeHelper;
 
 public class SimpleDatabaseTests {
     private final TestLogger logger;
     private final Context context;
+    private final FileUtils fileUtils;
 
     public SimpleDatabaseTests(Context context) {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
+        this.fileUtils = context.getFileUtils();
         logger.testSuite("SimpleDatabaseTests");
     }
 
@@ -63,7 +64,7 @@ public class SimpleDatabaseTests {
         logger.test("let's fold in some of the capability of Db");
         Path foosDirectory = Path.of("out/simple_db/foos");
         {
-            deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var foos = range(1,10).mapToObj(x -> new Foo(x, x, "abc"+x)).toList();
             final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
 
@@ -120,7 +121,7 @@ public class SimpleDatabaseTests {
             // give the action queue time to save files to disk
             // then shut down.
             db.stop();
-            deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
+            fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
         }
 
         logger.test("what happens if we try deleting a file that doesn't exist?"); {
@@ -138,7 +139,7 @@ public class SimpleDatabaseTests {
             // the directory gets deleted/corrupted.
 
             // clear out the directory to start
-            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 
@@ -155,7 +156,7 @@ public class SimpleDatabaseTests {
             final var ex = assertThrows(RuntimeException.class, () -> db.loadDataFromDisk());
             assertEquals(ex.getMessage().replace('\\','/'), "Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
 
-            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             db.loadDataFromDisk();
             MyThread.sleep(10);
             String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing, adding nothing").replace('\\', '/');
@@ -173,7 +174,7 @@ public class SimpleDatabaseTests {
          */
         logger.test("Just how fast is our minum.database?");{
             // clear out the directory to start
-            FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
             final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
             MyThread.sleep(10);
 

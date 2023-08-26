@@ -42,7 +42,7 @@ final class BodyProcessor {
     BodyProcessor(Context context) {
         this.context = context;
         this.logger = context.getLogger();
-        this.inputStreamUtils = new InputStreamUtils(context);
+        this.inputStreamUtils = context.getInputStreamUtils();
     }
 
     /**
