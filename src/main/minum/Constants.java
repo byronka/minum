@@ -24,6 +24,7 @@ public final class Constants {
         SECURE_SERVER_PORT = getProp("SSL_SERVER_PORT",  8443);
         HOST_NAME = properties.getProperty("HOST_NAME",  "localhost");
         DB_DIRECTORY = properties.getProperty("DB_DIRECTORY",  "db");
+        STATIC_FILES_DIRECTORY = properties.getProperty("STATIC_FILES_DIRECTORY",  "static");
         LOG_LEVELS = convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT"));
         USE_VIRTUAL = getProp("USE_VIRTUAL", false);
         KEYSTORE_PATH = properties.getProperty("KEYSTORE_PATH",  "");
@@ -65,6 +66,11 @@ public final class Constants {
      * This is the root directory of our database
      */
     public final String DB_DIRECTORY;
+
+    /**
+     * Root directory of static files
+     */
+    public final String STATIC_FILES_DIRECTORY;
 
     /**
      * The default logging levels
