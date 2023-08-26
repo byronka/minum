@@ -11,7 +11,7 @@ Directories:
 Root-level files:
 -----------------
 
-- app.config: a configuration file for the running app (a local / test-oriented version)
+- minum.config: a configuration file for the running app (a local / test-oriented version)
 - .gitignore: files we want Git to ignore.
 - Makefile: the configuration for Gnu Make, which is our build tool
 - README.md: this file

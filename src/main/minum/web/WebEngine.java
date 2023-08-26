@@ -63,7 +63,7 @@ final class WebEngine {
     ServerSocket ss;
 
     if (useExternalKeystore) {
-      logger.logDebug(() -> "Using keystore and password referenced in app.config");
+      logger.logDebug(() -> "Using keystore and password referenced in minum.config");
     } else {
       logger.logDebug(() -> "Using the default (self-signed / testing-only) certificate");
     }

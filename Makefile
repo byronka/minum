@@ -216,17 +216,19 @@ javadoc::
 	 mkdir -p $(OUT_DIR)
 	 javadoc -Xdoclint:none --source-path src/main -d out/javadoc -subpackages $(PROJ_NAME)
 
-#: add to the local Maven repository - see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
+#  see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
+#: add to the local Maven repository
 mvnlocalrepo:: clean set_pom_version jar jar_sources jar_javadoc
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION).jar         -DpomFile=out/pom.xml
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-sources.jar -DpomFile=out/pom.xml -Dclassifier=sources
 	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/pom.xml -Dclassifier=javadoc
 
+#: prepares the jars for sending to Maven central
 mvnprep:: clean set_pom_version jar jar_sources jar_javadoc
 	 for i in $$(ls out/minum-*); do gpg -ab $$i; done
 	 cd out && jar -cvf bundle.jar minum-*
 
-#: copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
+# copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
 set_pom_version::
 	 mkdir -p out
 	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/$(PROJ_NAME)-$(VERSION).pom

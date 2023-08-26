@@ -27,7 +27,7 @@ public final class LoggingContext {
      * available, we'll store them in this class.
      * @param executorService the code which controls threads
      * @param constants constants that apply throughout the code, configurable by the
-     *                  user in the app.config file.
+     *                  user in the minum.config file.
      */
     public LoggingContext(ExecutorService executorService, Constants constants) {
         this.executorService = executorService;

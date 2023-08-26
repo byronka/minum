@@ -190,7 +190,7 @@ public final class Constants {
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing
-     * configuration values from app.config
+     * configuration values from minum.config
      */
     private int getProp(String propName, int propDefault) {
         return Integer.parseInt(properties.getProperty(propName, String.valueOf(propDefault)));
@@ -198,7 +198,7 @@ public final class Constants {
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing
-     * configuration values from app.config
+     * configuration values from minum.config
      */
     private boolean getProp(String propName, boolean propDefault) {
         return Boolean.parseBoolean(properties.getProperty(propName, String.valueOf(propDefault)));
@@ -206,7 +206,7 @@ public final class Constants {
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing
-     * configuration values from app.config
+     * configuration values from minum.config
      */
     private List<String> getProp(String propName, String propDefault) {
         return Arrays.asList(properties.getProperty(propName, propDefault).split(","));
@@ -219,10 +219,10 @@ public final class Constants {
      */
     private Properties getConfiguredProperties() {
         var properties = new Properties();
-        String fileName = "app.config";
+        String fileName = "minum.config";
         try (FileInputStream fis = new FileInputStream(fileName)) {
             System.out.println(TimeUtils.getTimestampIsoInstant() +
-                    " found properties file at ./app.config.  Loading properties");
+                    " found properties file at ./minum.config.  Loading properties");
             properties.load(fis);
         } catch (Exception ex) {
             System.out.println(ConfigErrorMessage.getConfigErrorMessage());

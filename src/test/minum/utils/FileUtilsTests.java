@@ -98,7 +98,7 @@ public class FileUtilsTests {
 
         /*
         Users can add more mime types to our system by registering them
-        in the app.config file in EXTRA_MIME_MAPPINGS.
+        in the minum.config file in EXTRA_MIME_MAPPINGS.
          */
         logger.test("It can read the extra_mime_mappings"); {
             var input = List.of("png","image/png","wav","audio/wav");

@@ -74,7 +74,7 @@ final class ConfigErrorMessage {
     }
 
     /**
-     * If the user has no app.config file in the location they
+     * If the user has no minum.config file in the location they
      * run the software, this message will be shown to assist. It
      * is required that they have a configuration file, to make it
      * explicit where the "knobs and dials" of the application are
@@ -89,11 +89,11 @@ final class ConfigErrorMessage {
                 ----------------- System misconfiguration ----------------------
                 ----------------------------------------------------------------
                 
-                No properties file found at ./app.config
+                No properties file found at ./minum.config
                 
-                A file named app.config with the following contents must exist in
+                A file named minum.config with the following contents must exist in
                 the directory you were at when running this program. Copy the
-                following text and save it as a file called app.config at that
+                following text and save it as a file called minum.config at that
                 location.
                 
                 ----------------------------------------------------------------
