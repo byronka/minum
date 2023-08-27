@@ -22,17 +22,6 @@ import static minum.utils.Invariants.mustBeTrue;
 import static minum.utils.SerializationUtils.deserializeHelper;
 import static minum.utils.SerializationUtils.serializeHelper;
 
-/**
- * This class is responsible for monitoring the inmates who have
- * misbehaved in our system.  It's relatively simple - a client who
- * needs addressing will be stored in a map in this class for as
- * long as required.  After they have served their time, they
- * are released, but in certain cases (like when we deem them to
- * have no redeeming value to us) we may set their time extremely high.
- * <p>
- *     See also {@link UnderInvestigation}
- * </p>
- */
 public final class TheBrig implements ITheBrig {
     private final ExecutorService es;
     private final Db<Inmate> db;
@@ -188,10 +177,6 @@ public final class TheBrig implements ITheBrig {
         return this;
     }
 
-
-    /**
-     * Kills the infinite loop running inside this class.
-     */
     @Override
     public void stop() {
         logger.logDebug(() -> "TheBrig has been told to stop");
@@ -208,11 +193,6 @@ public final class TheBrig implements ITheBrig {
     }
 
 
-    /**
-     * Put a client in jail for some infraction, for a specified time.
-     * @param clientIdentifier the client's address plus some feature identifier, like 1.2.3.4_too_freq_downloads
-     * @param sentenceDuration length of stay, in milliseconds
-     */
     @Override
     public void sendToJail(String clientIdentifier, long sentenceDuration) {
         if (!constants.IS_THE_BRIG_ENABLED) {
@@ -234,10 +214,6 @@ public final class TheBrig implements ITheBrig {
 
     }
 
-    /**
-     * Return true if a particular client ip address is found
-     * in the list.
-     */
     @Override
     public boolean isInJail(String clientIdentifier) {
         if (!constants.IS_THE_BRIG_ENABLED) {
@@ -246,10 +222,6 @@ public final class TheBrig implements ITheBrig {
         return clientKeys.containsKey(clientIdentifier);
     }
 
-    /**
-     * Get the current list of ip addresses that have been
-     * judged as having carried out attacks on the system.
-     */
     @Override
     public List<Map.Entry<String, Long>> getInmates() {
         return clientKeys.entrySet().stream().toList();
