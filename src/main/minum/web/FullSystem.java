@@ -59,7 +59,7 @@ public final class FullSystem implements AutoCloseable {
      * Builds a context object that is appropriate as a
      * parameter to constructing a {@link FullSystem}
      */
-    public static Context initializeContext() {
+    public static Context buildContext() {
         var constants = new Constants();
         var executorService = ExtendedExecutor.makeExecutorService(constants);
         var logger = new Logger(constants, executorService, "primary logger");
@@ -81,7 +81,7 @@ public final class FullSystem implements AutoCloseable {
      * Expected entry point for typical system instantiation
      */
     public static FullSystem initialize() {
-        var context = initializeContext();
+        var context = buildContext();
         var fullSystem = new FullSystem(context);
         try {
             return fullSystem.start();
