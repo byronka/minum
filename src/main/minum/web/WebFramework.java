@@ -3,14 +3,13 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.logging.ILogger;
-import minum.security.TheBrig;
+import minum.security.ITheBrig;
 import minum.security.UnderInvestigation;
 import minum.testing.StopwatchUtils;
 import minum.utils.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,7 +19,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static minum.utils.Invariants.mustBeTrue;
-import static minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
 import static minum.web.WebEngine.HTTP_CRLF;
 
@@ -87,7 +85,7 @@ public final class WebFramework {
             try (sw) {
 
                 // if we recognize this client as an attacker, dump them.
-                TheBrig theBrig = (fs != null && fs.getTheBrig() != null) ? fs.getTheBrig() : null;
+                ITheBrig theBrig = (fs != null && fs.getTheBrig() != null) ? fs.getTheBrig() : null;
                 if (theBrig != null) {
                     String remoteClient = sw.getRemoteAddr();
                     if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
@@ -131,9 +129,9 @@ public final class WebFramework {
                         return;
                     }
 
-                    boolean isVulnSeeking = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
-                    logger.logDebug(() -> "Is " + sw.getRemoteAddr() + " looking for a vulnerability? " + isVulnSeeking);
-                    if (isVulnSeeking && theBrig != null) {
+                    String suspiciousClues = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
+                    if (suspiciousClues.length() > 0 && theBrig != null) {
+                        logger.logDebug(() -> sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + suspiciousClues);
                         theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                         return;
                     }
@@ -220,7 +218,6 @@ public final class WebFramework {
                                 " is requesting HEAD for "+ finalClientRequest.startLine().getPathDetails().isolatedPath() +
                                 ".  Excluding body from response");
                     } else {
-                        logger.logTrace(() -> "Sending body back: " + StringUtils.byteArrayToString(finalResultingResponse.body()));
                         sw.send(resultingResponse.body());
                     }
                     logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));

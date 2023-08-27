@@ -5,7 +5,7 @@ import minum.Context;
 import minum.logging.ILogger;
 import minum.logging.Logger;
 import minum.logging.LoggingLevel;
-import minum.logging.TestLogger;
+import minum.security.ITheBrig;
 import minum.security.TheBrig;
 import minum.utils.*;
 
@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -31,7 +30,7 @@ public final class FullSystem implements AutoCloseable {
     private WebFramework webFramework;
     private Server sslServer;
     Thread shutdownHook;
-    private TheBrig theBrig;
+    private ITheBrig theBrig;
     final ExecutorService es;
     final InputStreamUtils inputStreamUtils;
     private WebEngine webEngine;
@@ -177,7 +176,7 @@ public final class FullSystem implements AutoCloseable {
         return webFramework;
     }
 
-    public TheBrig getTheBrig() {
+    public ITheBrig getTheBrig() {
         return theBrig;
     }
 

@@ -4,6 +4,7 @@ import minum.Constants;
 import minum.Context;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Looking for bad actors in our system
@@ -20,9 +21,9 @@ public final class UnderInvestigation {
      * Check for the kinds of error messages we usually see when an attacker is trying
      * their shenanigans on us.  Returns true if we recognize anything.
      */
-    public boolean isClientLookingForVulnerabilities(String exceptionMessage) {
+    public String isClientLookingForVulnerabilities(String exceptionMessage) {
         List<String> suspiciousErrors = constants.SUSPICIOUS_ERRORS;
-        return suspiciousErrors.stream().anyMatch(exceptionMessage::contains);
+        return suspiciousErrors.stream().filter(exceptionMessage::contains).collect(Collectors.joining(";"));
     }
 
 
@@ -31,7 +32,7 @@ public final class UnderInvestigation {
      * they are probably some low-effort script scouring the web.  In that case
      * the client is under control by a bad actor and we can safely block them.
      */
-    public boolean isLookingForSuspiciousPaths(String isolatedPath) {
-        return constants.SUSPICIOUS_PATHS.stream().anyMatch(isolatedPath::equals);
+    public String isLookingForSuspiciousPaths(String isolatedPath) {
+        return constants.SUSPICIOUS_PATHS.stream().filter(isolatedPath::equals).collect(Collectors.joining(";"));
     }
 }

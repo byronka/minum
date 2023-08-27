@@ -140,6 +140,11 @@ public final class FileUtils {
             return new byte[0];
         }
 
+        if (!Files.exists(Path.of(path))) {
+            logger.logDebug(() -> String.format("No file found at %s, returning an empty byte array", path));
+            return new byte[0];
+        }
+
         try (RandomAccessFile reader = new RandomAccessFile(path, "r");
              FileChannel channel = reader.getChannel();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -157,11 +162,11 @@ public final class FileUtils {
 
             byte[] bytes = out.toByteArray();
             if (bytes.length == 0) {
-                logger.logDebug(() -> path + " filesize was 0, returning empty byte array");
+                logger.logTrace(() -> path + " filesize was 0, returning empty byte array");
                 return new byte[0];
             } else {
                 String s = path + " filesize was " + bytes.length + " bytes.";
-                logger.logDebug(() -> s);
+                logger.logTrace(() -> s);
 
                 return bytes;
 

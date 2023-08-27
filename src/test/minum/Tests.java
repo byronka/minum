@@ -129,13 +129,13 @@ public class Tests {
 
   private void shutdownFunctionalTests(Context context) throws IOException {
     // delay a sec so our system has time to finish before we start deleting files
-    MyThread.sleep(500);
+    MyThread.sleep(300);
     context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
     var fs = context.getFullSystem();
     fs.close();
-    context.getExecutorService().shutdownNow();
     ((TestLogger)context.getLogger()).writeTestReport("functional_tests");
     context.getLogger().stop();
+    context.getExecutorService().shutdownNow();
   }
 
 }

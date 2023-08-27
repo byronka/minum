@@ -3,7 +3,7 @@ package minum.web;
 import minum.Constants;
 import minum.Context;
 import minum.logging.ILogger;
-import minum.security.TheBrig;
+import minum.security.ITheBrig;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -26,7 +26,7 @@ import java.util.concurrent.ExecutorService;
  */
 final class WebEngine {
 
-  private final TheBrig theBrig;
+  private final ITheBrig theBrig;
   private final Constants constants;
   private final Context context;
 

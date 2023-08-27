@@ -3,11 +3,14 @@ package minum.web;
 import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 import minum.logging.TestLogger;
+import minum.security.ITheBrig;
 
 import javax.net.ssl.SSLException;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.List;
+import java.util.Map;
 
 import static minum.testing.TestFramework.assertEquals;
 import static minum.testing.TestFramework.assertThrows;
@@ -51,12 +54,13 @@ public class ServerTests {
           as a form of attack.
          */
         logger.test("Handling SSLException - vulnerability attack"); {
-            Server server = new Server(null, context, "", null);
+            Server server = new Server(null, context, "", theBrigMock);
             var builtCore = server.buildExceptionHandlingInnerCore(x -> {
                 throw new SSLException("no cipher suites in common");
             }, new FakeSocketWrapper());
             builtCore.run();
-            assertEquals("is  looking for vulnerabilities? true", logger.findFirstMessageThatContains("looking for vulnerabilities?"));
+            String lookingForVulnerabilities = logger.findFirstMessageThatContains("looking for vulnerabilities");
+            assertEquals("is looking for vulnerabilities, for this: no cipher suites in common", lookingForVulnerabilities.trim());
         }
 
         /*
@@ -88,4 +92,32 @@ public class ServerTests {
 
 
     }
+
+    ITheBrig theBrigMock = new ITheBrig() {
+
+        @Override
+        public ITheBrig initialize() {
+            return null;
+        }
+
+        @Override
+        public void stop() {
+
+        }
+
+        @Override
+        public void sendToJail(String clientIdentifier, long sentenceDuration) {
+
+        }
+
+        @Override
+        public boolean isInJail(String clientIdentifier) {
+            return false;
+        }
+
+        @Override
+        public List<Map.Entry<String, Long>> getInmates() {
+            return null;
+        }
+    };
 }

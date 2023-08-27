@@ -33,7 +33,7 @@ import static minum.utils.SerializationUtils.serializeHelper;
  *     See also {@link UnderInvestigation}
  * </p>
  */
-public final class TheBrig {
+public final class TheBrig implements ITheBrig {
     private final ExecutorService es;
     private final Db<Inmate> db;
     private final ILogger logger;
@@ -136,8 +136,9 @@ public final class TheBrig {
 
     // Regarding the BusyWait - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
+    @Override
     @SuppressWarnings({"BusyWait"})
-    public TheBrig initialize() {
+    public ITheBrig initialize() {
         logger.logDebug(() -> "Initializing TheBrig main loop");
         Callable<Object> innerLoopThread = () -> {
             Thread.currentThread().setName("TheBrig");
@@ -191,6 +192,7 @@ public final class TheBrig {
     /**
      * Kills the infinite loop running inside this class.
      */
+    @Override
     public void stop() {
         logger.logDebug(() -> "TheBrig has been told to stop");
         for (int i = 0; i < 10; i++) {
@@ -211,6 +213,7 @@ public final class TheBrig {
      * @param clientIdentifier the client's address plus some feature identifier, like 1.2.3.4_too_freq_downloads
      * @param sentenceDuration length of stay, in milliseconds
      */
+    @Override
     public void sendToJail(String clientIdentifier, long sentenceDuration) {
         if (!constants.IS_THE_BRIG_ENABLED) {
             return;
@@ -235,6 +238,7 @@ public final class TheBrig {
      * Return true if a particular client ip address is found
      * in the list.
      */
+    @Override
     public boolean isInJail(String clientIdentifier) {
         if (!constants.IS_THE_BRIG_ENABLED) {
             return false;
@@ -246,6 +250,7 @@ public final class TheBrig {
      * Get the current list of ip addresses that have been
      * judged as having carried out attacks on the system.
      */
+    @Override
     public List<Map.Entry<String, Long>> getInmates() {
         return clientKeys.entrySet().stream().toList();
     }

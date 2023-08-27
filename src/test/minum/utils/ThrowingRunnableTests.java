@@ -31,7 +31,7 @@ public class ThrowingRunnableTests {
         context.getExecutorService().submit(runnable);
 
         MyThread.sleep(50);
-        String foundLog = logger.findFirstMessageThatContains(message);
+        String foundLog = logger.findFirstMessageThatContains(message, 6);
         assertTrue(foundLog.contains(message));
     }
 }

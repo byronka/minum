@@ -187,7 +187,7 @@ public class TestLogger extends Logger {
         var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
         int size = values.size();
         if (size == 0) {
-            throw new RuntimeException(value + " was not found in " + lineList);
+            throw new RuntimeException(value + " was not found in " + String.join(";", lineList));
         } else if (size == 1) {
             return values.get(0);
         } else if (size >= 2) {

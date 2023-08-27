@@ -4,7 +4,7 @@ import minum.Constants;
 import minum.Context;
 import minum.exceptions.ForbiddenUseException;
 import minum.logging.ILogger;
-import minum.security.TheBrig;
+import minum.security.ITheBrig;
 import minum.security.UnderInvestigation;
 import minum.utils.ConcurrentSet;
 import minum.utils.StacktraceUtils;
@@ -31,7 +31,7 @@ final class Server implements AutoCloseable {
     private final SetOfSws setOfSWs;
     private final ILogger logger;
     private final String serverName;
-    private final TheBrig theBrig;
+    private final ITheBrig theBrig;
     private final Constants constants;
     private final UnderInvestigation underInvestigation;
 
@@ -41,7 +41,7 @@ final class Server implements AutoCloseable {
      */
     private Future<?> centralLoopFuture;
 
-    Server(ServerSocket ss, Context context, String serverName, TheBrig theBrig) {
+    Server(ServerSocket ss, Context context, String serverName, ITheBrig theBrig) {
         this.serverSocket = ss;
         this.logger = context.getLogger();
         this.constants = context.getConstants();
@@ -131,11 +131,13 @@ final class Server implements AutoCloseable {
                 logger.logDebug(ex::getMessage);
             } catch (SSLException ex) {
                 logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
-                boolean isLookingForVulnerabilities = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
-                logger.logDebug(() -> "is " + sw.getRemoteAddr() + " looking for vulnerabilities? " + isLookingForVulnerabilities);
-                if (isLookingForVulnerabilities) {
-                    if (theBrig != null)
+                String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
+
+                if (suspiciousClues.length() > 0) {
+                    if (theBrig != null) {
+                        logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
                         theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                    }
                 }
             }
         };
