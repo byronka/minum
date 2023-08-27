@@ -35,10 +35,7 @@ public class Tests {
     }
   }
 
-  private final Constants constants;
-
   public Tests() {
-    constants = new Constants();
   }
 
   private void indicateTestsFinished() {
@@ -112,7 +109,7 @@ public class Tests {
   private void handleShutdown(Context context) throws IOException {
     var logger = (TestLogger) context.getLogger();
     logger.writeTestReport("unit_tests");
-    context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(constants.DB_DIRECTORY), logger);
+    context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), logger);
     new ActionQueueKiller(context).killAllQueues();
     context.getExecutorService().shutdownNow();
     context.getLogger().stop();
