@@ -1,6 +1,13 @@
 package minum.testing;
 
+import minum.Constants;
+import minum.Context;
+import minum.logging.TestLogger;
+import minum.utils.ExtendedExecutor;
+import minum.utils.FileUtils;
 import minum.utils.ThrowingRunnable;
+import minum.web.FullSystem;
+import minum.web.InputStreamUtils;
 
 import java.util.List;
 
@@ -203,6 +210,32 @@ public final class TestFramework {
         // if the text is nothing but whitespace, show that
         text = text.isBlank() ? "(BLANK)" : text;
         return text;
+    }
+
+
+    /**
+     * This builds a context very similarly to {@link FullSystem#buildContext()},
+     * except that it uses {@link TestLogger} instead of {@link minum.logging.Logger}
+     * @param loggerName this will assign a human-readable name to the logger's
+     *                   {@link minum.logging.LoggingActionQueue} so we can distinguish it
+     *                   when reviewing the threads
+     */
+    public static Context buildTestingContext(String loggerName) {
+        var constants = new Constants();
+        var executorService = ExtendedExecutor.makeExecutorService(constants);
+        var logger = new TestLogger(constants, executorService, loggerName);
+        var fileUtils = new FileUtils(logger, constants);
+        var inputStreamUtils = new InputStreamUtils(logger, constants);
+
+        var context = new Context();
+
+        context.setConstants(constants);
+        context.setExecutorService(executorService);
+        context.setLogger(logger);
+        context.setFileUtils(fileUtils);
+        context.setInputStreamUtils(inputStreamUtils);
+
+        return context;
     }
 
 }
