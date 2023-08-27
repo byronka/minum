@@ -90,7 +90,12 @@ public final class FullSystem implements AutoCloseable {
         context.setInputStreamUtils(inputStreamUtils);
 
         return context;
+    }
 
+    public static FullSystem initialize() throws IOException {
+        var context = initializeContext();
+        var fullSystem = new FullSystem(context);
+        return fullSystem.start();
     }
 
     /**
