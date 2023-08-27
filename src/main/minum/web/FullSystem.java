@@ -46,20 +46,6 @@ public final class FullSystem implements AutoCloseable {
 
     private final Context context;
 
-    /**
-     * This constructor will also build a logger for you, or you
-     * can provide a logger.
-     * <p>
-     *     There may be some redundancy here, but the logger is special.
-     *     It's meant to be adjustable and lives before and after most
-     *     of the classes, including the FullSystem class.
-     * </p>
-     * <p>
-     *     For that reason, it's good to think of the logger as needing
-     *     its own set of special objects, separate from the rest of the system.
-     *     Its own executor service, its own constants. What have you.
-     * </p>
-     */
     public FullSystem(Context context) {
         this.logger = context.getLogger();
         this.constants = context.getConstants();
@@ -68,7 +54,6 @@ public final class FullSystem implements AutoCloseable {
         this.context = context;
         context.setFullSystem(this);
     }
-
 
     /**
      * Builds a context object that is appropriate as a
@@ -92,6 +77,9 @@ public final class FullSystem implements AutoCloseable {
         return context;
     }
 
+    /**
+     * Expected entry point for typical system instantiation
+     */
     public static FullSystem initialize() {
         var context = initializeContext();
         var fullSystem = new FullSystem(context);
