@@ -92,10 +92,14 @@ public final class FullSystem implements AutoCloseable {
         return context;
     }
 
-    public static FullSystem initialize() throws IOException {
+    public static FullSystem initialize() {
         var context = initializeContext();
         var fullSystem = new FullSystem(context);
-        return fullSystem.start();
+        try {
+            return fullSystem.start();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     /**
