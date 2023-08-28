@@ -5,6 +5,7 @@ import minum.exceptions.ForbiddenUseException;
 import minum.htmlparsing.ParsingException;
 import minum.logging.TestLogger;
 import minum.utils.InvariantException;
+import minum.utils.MyThread;
 import minum.utils.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -39,6 +40,15 @@ public class WebTests {
     private final Context context;
     private final TestLogger logger;
 
+    /**
+     * The length of time, in milliseconds, we will wait for the server to close
+     * before letting computation continue.
+     *
+     * Otherwise, for some operating systems (Windows), there will be a conflict when the
+     * next server bind occurs.
+     */
+    private final int SERVER_CLOSE_WAIT_TIME = 10;
+
     public WebTests(Context context) {
         this.context = context;
         this.logger = (TestLogger) context.getLogger();
@@ -54,7 +64,12 @@ public class WebTests {
     | $$$$_  $$$$| $$$$$$$$| $$  \ $$        | $$    | $$$$$$$$|  $$$$$$   | $$   |  $$$$$$
     | $$$/ \  $$$| $$_____/| $$  | $$        | $$ /$$| $$_____/ \____  $$  | $$ /$$\____  $$
     | $$/   \  $$|  $$$$$$$| $$$$$$$/        |  $$$$/|  $$$$$$$ /$$$$$$$/  |  $$$$//$$$$$$$/
-    |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |______*/
+    |__/     \__/ \_______/|_______/          \___/   \_______/|_______/    \___/ |_______/
+
+    In these tests, we have to include a sleep after each test that starts a server, so
+    that the next server won't conflict - it goes down to operating system code, and some
+    OS code has conflicts with servers restarting that fast. (Windows)
+    */
     public void tests() throws IOException {
 
         WebEngine webEngine = new WebEngine(context);
@@ -72,6 +87,8 @@ public class WebTests {
                 }
             }
         }
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
         logger.test("client / server with more conversation");{
             String msg1 = "hello foo!";
@@ -100,6 +117,8 @@ public class WebTests {
             }
         }
 
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+
         logger.test("What happens if we throw an exception in a thread");{
             es.submit(() -> {
                 try {
@@ -123,6 +142,8 @@ public class WebTests {
                 }
             }
         }
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
         /*
           If we provide some code to handle things on the server
@@ -151,6 +172,8 @@ public class WebTests {
                 }
             }
         }
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
         /*
          * This class belongs to the test below, "starting server with a handler part 2"
@@ -199,6 +222,8 @@ public class WebTests {
                 }
             }
         }
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
         // test while controlling the fake socket wrapper
         logger.test("TDD of a handler");{
@@ -331,6 +356,8 @@ public class WebTests {
             }
         }
 
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+
         logger.test("when the requested endpoint does not exist, we get a 404 response"); {
             var wf = new WebFramework(context, default_zdt);
             try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
@@ -347,6 +374,8 @@ public class WebTests {
                 }
             }
         }
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
         /*
         If a client is POSTing data to our server, there are two allowed ways of doing it
@@ -461,6 +490,8 @@ public class WebTests {
             }
         }
 
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+
         logger.test("Headers test - multiple headers"); {
             Headers headers = new Headers(List.of("foo: a", "foo: b"), context);
             assertEqualsDisregardOrder(headers.valueByKey("foo"), List.of("a","b"));
@@ -546,6 +577,8 @@ public class WebTests {
                 }
             }
 
+            MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+
             try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
                 try (var client = webEngine.startClient(primaryServer)) {
                     InputStream is = client.getInputStream();
@@ -564,6 +597,8 @@ public class WebTests {
                 }
             }
         }
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
         /*
         Noticed a failure in this code, adjusting to be more robust
