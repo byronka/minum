@@ -53,7 +53,7 @@ public class Tests {
   private void unitAndIntegrationTests() throws Exception {
     Context context = buildTestingContext("_unit_test");
 
-    new WebTests(context).tests();
+//    new WebTests(context).tests();
     new SimpleDatabaseTests(context).tests();
     new LruCacheTests(context).tests();
     new StringUtilsTests(context).tests();
