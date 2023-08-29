@@ -762,87 +762,101 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
         webFramework.registerPartialPath(GET, "m", helloHandler);
 
-        var startLine = new StartLine(POST, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
+    /**
+     * if pathDetails is null, we'll get an empty hashmap
+     */
+    @Test
+    public void test_QueryString_NullPathdetails() {
+        var startLine = new StartLine(GET, null, ONE_DOT_ONE, "", context);
+        assertEquals(startLine.queryString(), new HashMap<>());
+    }
 
-//
-//        logger.test("Make the queryString method more robust"); {
-//            // if pathDetails is null, we'll get an empty hashmap
-//            var startLine1 = new StartLine(GET, null, ONE_DOT_ONE, "", context);
-//            assertEquals(startLine1.queryString(), new HashMap<>());
-//
-//            // if the querystring in pathdetails is null, we'll get an empty hashmap
-//            var startLine2 = new StartLine(GET, new StartLine.PathDetails("mypath", "", null), ONE_DOT_ONE, "", context);
-//            assertEquals(startLine2.queryString(), new HashMap<>());
-//
-//            // if the querystring in pathdetails is empty, we'll get an empty hashmap
-//            var startLine3 = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
-//            assertEquals(startLine3.queryString(), new HashMap<>());
-//        }
-//
-//        /**
-//         * The hash function we generated ought to get some use.
-//         * We'll pop StartLine in a hashmap to test it.
-//         */
-//        logger.test("Make sure we can enter startlines as keys in a hash map"); {
-//            var startLines = Map.of(
-//                    new StartLine(GET, new StartLine.PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", context),   "foo",
-//                    new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context),   "bar",
-//                    new StartLine(GET, new StartLine.PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", context),   "baz"
-//            );
-//            assertEquals(startLines.get(new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context)), "bar");
-//        }
-//
-//        logger.test("Make the extractMapFromQueryString method more robust"); {
-//            // test when there's more query string key-value pairs than allowed by MAX_QUERY_STRING_KEYS_COUNT
-//            StringBuilder sb = new StringBuilder();
-//            for (int i = 0; i < context.getConstants().MAX_QUERY_STRING_KEYS_COUNT + 2; i++) {
-//                    sb.append(String.format("foo%d=bar%d&", i, i));
-//            }
-//            StartLine startLine = StartLine.EMPTY(context);
-//            assertThrows(ForbiddenUseException.class, () -> startLine.extractMapFromQueryString(sb.toString()));
-//
-//            // if there is no equals sign in the query string
-//            var result = startLine.extractMapFromQueryString("foo");
-//            assertEquals(result, Map.of());
-//        }
-//
-//        /*
-//         *  When we run the redirection handler, it will redirect all traffic
-//         * on the socket to the HTTPS endpoint.
-//         *
-//         *  Sometimes a client will connect to TCP but then close their
-//         * connection, in which case when we readline it will return as null,
-//         * and we'll return early from the handler, returning nothing.
-//         */
-//        logger.test("Typical happy path - a user makes an HTTP request to the insecure endpoint"); {
-//            var webFramework = new WebFramework(context);
-//            var redirectHandler = webFramework.makeRedirectHandler();
-//            FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
-//            fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
-//            redirectHandler.accept(fakeSocketWrapper);
-//            String result = fakeSocketWrapper.baos.toString();
-//            assertTrue(result.contains("303 SEE OTHER"), "result was: " + result);
-//        }
-//
-//        /*
-//         * Sometimes a client will connect to TCP but then close their
-//         * connection, in which case when we readline it will return as null,
-//         * and we'll return early from the handler, returning nothing.
-//         */
-//        logger.test("If the redirect handler receives no start line, return nothing"); {
-//            var webFramework = new WebFramework(context);
-//            var redirectHandler = webFramework.makeRedirectHandler();
-//            FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
-//            redirectHandler.accept(fakeSocketWrapper);
-//            assertEquals(fakeSocketWrapper.baos.toString(), "");
-//        }
-//
-//
-//    }
-//
+    @Test
+    public void test_QueryString_NullQueryString() {
+        var startLine = new StartLine(GET, new StartLine.PathDetails("mypath", "", null), ONE_DOT_ONE, "", context);
+        assertEquals(startLine.queryString(), new HashMap<>());
+    }
+
+    @Test
+    public void test_QueryString_EmptyQueryString() {
+        var startLIne = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        assertEquals(startLIne.queryString(), new HashMap<>());
+    }
+
+    /**
+     * The hash function we generated ought to get some use.
+     * We'll pop StartLine in a hashmap to test it.
+     */
+    @Test
+    public void test_StartLine_Hashing() {
+        var startLines = Map.of(
+                new StartLine(GET, new StartLine.PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", context),   "foo",
+                new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context),   "bar",
+                new StartLine(GET, new StartLine.PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", context),   "baz"
+        );
+        assertEquals(startLines.get(new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context)), "bar");
+    }
+
+    /**
+     * test when there's more query string key-value pairs than allowed by MAX_QUERY_STRING_KEYS_COUNT
+     */
+    @Test
+    public void test_ExtractMapFromQueryString_TooManyPairs() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < context.getConstants().MAX_QUERY_STRING_KEYS_COUNT + 2; i++) {
+                sb.append(String.format("foo%d=bar%d&", i, i));
+        }
+        StartLine startLine = StartLine.EMPTY(context);
+        assertThrows(ForbiddenUseException.class, () -> startLine.extractMapFromQueryString(sb.toString()));
+    }
+
+    /**
+     * if there is no equals sign in the query string
+     */
+    @Test
+    public void test_ExtractMapFromQueryString_NoEqualsSign() {
+        StartLine startLine = StartLine.EMPTY(context);
+        var result = startLine.extractMapFromQueryString("foo");
+        assertEquals(result, Map.of());
+    }
+
+    /**
+     *  When we run the redirection handler, it will redirect all traffic
+     * on the socket to the HTTPS endpoint.
+     *  Sometimes a client will connect to TCP but then close their
+     * connection, in which case when we readline it will return as null,
+     * and we'll return early from the handler, returning nothing.
+     */
+    @Test
+    public void test_RedirectHandler_HappyPath() throws IOException {
+        var webFramework = new WebFramework(context);
+        var redirectHandler = webFramework.makeRedirectHandler();
+        FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+        fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
+        redirectHandler.accept(fakeSocketWrapper);
+        String result = fakeSocketWrapper.baos.toString();
+        assertTrue(result.contains("303 SEE OTHER"), "result was: " + result);
+    }
+
+    /**
+     * Sometimes a client will connect to TCP but then close their
+     * connection, in which case when we readline it will return as null,
+     * and we'll return early from the handler, returning nothing.
+     */
+    @Test
+    public void test_RedirectHandler_NoStartLine() throws IOException {
+        var webFramework = new WebFramework(context);
+        var redirectHandler = webFramework.makeRedirectHandler();
+        FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+        redirectHandler.accept(fakeSocketWrapper);
+        assertEquals(fakeSocketWrapper.baos.toString(), "");
+    }
+
+
     private static byte[] makeTestMultiPartData() {
         try {
         /*
