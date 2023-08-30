@@ -30,9 +30,9 @@ public class SampleDomain {
         this.db = diskData;
         this.auth = auth;
         this.fileUtils = context.getFileUtils();
-        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTextFile("out/templates/sampledomain/name_entry.html"));
-        authHomepage = fileUtils.readTextFile("out/templates/sampledomain/auth_homepage.html");
-        unauthHomepage = fileUtils.readTextFile("out/templates/sampledomain/unauth_homepage.html");
+        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/resources/templates/sampledomain/name_entry.html"));
+        authHomepage = fileUtils.readTextFile("src/test/resources/templates/sampledomain/auth_homepage.html");
+        unauthHomepage = fileUtils.readTextFile("src/test/resources/templates/sampledomain/unauth_homepage.html");
     }
 
     public Response formEntry(Request r) {

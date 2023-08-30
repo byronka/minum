@@ -42,7 +42,7 @@ public class ListPhotos {
         this.fileUtils = context.getFileUtils();
         this.constants = context.getConstants();
         this.dbDir = Path.of(constants.DB_DIRECTORY);
-        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("out/templates/listphotos/list_photos_template.html"));
+        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/resources/templates/listphotos/list_photos_template.html"));
         this.up = up;
         this.auth = auth;
         this.lruCache = LRUCache.getLruCache();

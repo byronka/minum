@@ -3,17 +3,22 @@ package com.renomad.minum;
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.HtmlParser;
 import com.renomad.minum.htmlparsing.TagName;
+import com.renomad.minum.web.FullSystem;
 import com.renomad.minum.web.FunctionalTesting;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.MyThread;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import static com.renomad.minum.testing.RegexUtils.find;
-import static com.renomad.minum.testing.TestFramework.assertEquals;
-import static com.renomad.minum.testing.TestFramework.assertTrue;
+import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 
 /**
@@ -22,19 +27,33 @@ import static com.renomad.minum.web.StatusLine.StatusCode.*;
  */
 public class FunctionalTests {
 
-    private final TestLogger logger;
-    private final Context context;
-    private final HtmlParser htmlParser;
-    private final FunctionalTesting ft;
+    private static TestLogger logger;
+    private static Context context;
+    private static FunctionalTesting ft;
 
-    public FunctionalTests(Context context) {
-        this.logger = (TestLogger) context.getLogger();
-        this.context = context;
-        this.htmlParser = new HtmlParser();
-        this.ft = new FunctionalTesting(context);
+    @BeforeClass
+    public static void init() throws IOException {
+        context = buildTestingContext("_integration_test");
+        new FullSystem(context).start();
+        new TheRegister(context).registerDomains();
+        logger = (TestLogger) context.getLogger();
+        context = context;
+        ft = new FunctionalTesting(context);
         logger.testSuite("FunctionalTests");
     }
 
+    @AfterClass
+    public static void cleanup() throws IOException {
+        // delay a sec so our system has time to finish before we start deleting files
+        MyThread.sleep(500);
+        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), context.getLogger());
+        var fs = context.getFullSystem();
+        fs.close();
+        context.getLogger().stop();
+        context.getExecutorService().shutdownNow();
+    }
+
+    @Test
     public void test() throws Exception {
         context.getFullSystem().getWebFramework().addMimeForSuffix("png", "image/png");
 

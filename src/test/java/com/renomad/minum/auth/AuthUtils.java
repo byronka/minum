@@ -54,7 +54,7 @@ public class AuthUtils {
         this.logger = context.getLogger();
         this.fileUtils = context.getFileUtils();
 
-        loginPageTemplate = fileUtils.readTextFile("out/templates/auth/login_page_template.html");
+        loginPageTemplate = fileUtils.readTextFile("src/test/resources/templates/auth/login_page_template.html");
         registerPageTemplate = fileUtils.readTextFile("auth/register_page_template.html");
     }
 
