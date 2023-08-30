@@ -23,7 +23,6 @@ public class Tests {
 
   private void start() {
     try {
-      unitAndIntegrationTests();
       testFullSystem_Soup_To_Nuts();
       indicateTestsFinished();
     } catch (Exception ex) {
@@ -46,23 +45,6 @@ public class Tests {
   }
 
   /**
-   * These tests range in size from focusing on very small elements (unit tests)
-   * to larger combinations of methods and classes (integration tests) but
-   * stop short of running {@link FullSystem}.
-   */
-  private void unitAndIntegrationTests() throws Exception {
-    Context context = buildTestingContext("_unit_test");
-
-    new BodyProcessorTests(context).tests();
-    new ActionQueueTests(context).tests();
-    new ThrowingRunnableTests(context).tests();
-    new RegexUtilsTests(context).tests();
-    new SearchUtilsTests(context).tests();
-
-    handleShutdown(context);
-  }
-
-  /**
    * Run a test of the entire system.  In particular, runs code
    * from {@link FullSystem}
    */
@@ -70,15 +52,6 @@ public class Tests {
     Context context = buildContextFunctionalTests();
     new FunctionalTests(context).test();
     shutdownFunctionalTests(context);
-  }
-
-  private void handleShutdown(Context context) throws IOException {
-    var logger = (TestLogger) context.getLogger();
-    logger.writeTestReport("unit_tests");
-    context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), logger);
-    new ActionQueueKiller(context).killAllQueues();
-    context.getExecutorService().shutdownNow();
-    context.getLogger().stop();
   }
 
   private Context buildContextFunctionalTests() throws IOException {

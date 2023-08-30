@@ -2,27 +2,30 @@ package com.renomad.minum.utils;
 
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import static com.renomad.minum.testing.TestFramework.assertTrue;
+import static com.renomad.minum.testing.TestFramework.buildTestingContext;
 
 public class ThrowingRunnableTests {
 
-    private final Context context;
-    private final TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    public ThrowingRunnableTests(Context context) {
-        this.context = context;
-        this.logger = (TestLogger)context.getLogger();
-        logger.testSuite("ThrowingRunnableTests");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("unit_tests");
+        logger = (TestLogger) context.getLogger();
     }
 
-    public void tests() {
-        /*
-        Trying to handle exceptions well in a multi-threaded system is a matter
-        of compromises.  The purpose here is to at least have the opportunity to
-        log the exception.
-         */
-        logger.test("Confirm that wrapping a Runnable with throwingRunnableWrapper captures exceptions");
+    /**
+     * Trying to handle exceptions well in a multi-threaded system is a matter
+     * of compromises.  The purpose here is to at least have the opportunity to
+     * log the exception.
+     */
+    @Test
+    public void testThrowingRunnable() {
         String message = "testing throwingRunnableWrapper";
         Runnable runnable = ThrowingRunnable.throwingRunnableWrapper(() -> {
             throw new RuntimeException(message);

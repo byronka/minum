@@ -17,6 +17,6 @@ public class StackTraceUtilsTests {
     @Test
     public void test_StackTraceElementsToString() {
         String result = StacktraceUtils.stackTraceToString(new RuntimeException("foo").getStackTrace());
-        assertTrue(result.contains("minum.utils.StackTraceUtilsTests.tests(StackTraceUtilsTests.java:25);"));
+        assertTrue(result.contains("com.renomad.minum.utils.StackTraceUtilsTests.test_StackTraceElementsToString(StackTraceUtilsTests.java"));
     }
 }
