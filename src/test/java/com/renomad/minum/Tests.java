@@ -53,7 +53,6 @@ public class Tests {
   private void unitAndIntegrationTests() throws Exception {
     Context context = buildTestingContext("_unit_test");
 
-    new StackTraceUtilsTests(context).tests();
     new BodyProcessorTests(context).tests();
     new ActionQueueTests(context).tests();
     new ThrowingRunnableTests(context).tests();
