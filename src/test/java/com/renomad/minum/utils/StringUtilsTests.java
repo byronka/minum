@@ -13,11 +13,6 @@ import static com.renomad.minum.testing.TestFramework.assertEquals;
 
 public class StringUtilsTests {
 
-
-    public StringUtilsTests() {
-
-    }
-
     /**
      * See that our code to clean html does its work
      */

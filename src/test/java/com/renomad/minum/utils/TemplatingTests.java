@@ -17,10 +17,6 @@ public class TemplatingTests {
 
     private static FileUtils fileUtils;
 
-    public TemplatingTests() {
-    }
-
-
     @BeforeClass
     public static void setUpClass() {
         var context = buildTestingContext("unit_tests");

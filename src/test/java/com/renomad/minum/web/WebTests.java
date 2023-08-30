@@ -74,9 +74,6 @@ public class WebTests {
      */
     static int SERVER_CLOSE_WAIT_TIME = 10;
 
-    public WebTests() {
-    }
-
     @BeforeClass
     public static void setUpClass() {
         context = buildTestingContext("unit_tests");

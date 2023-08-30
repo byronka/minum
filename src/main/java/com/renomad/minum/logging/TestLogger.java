@@ -183,7 +183,9 @@ public class TestLogger extends Logger {
      *              up to {@link #MAX_CACHE_SIZE}
      */
     public String findFirstMessageThatContains(String value, int lines) {
-        var lineList = recentLogLines.stream().skip(MAX_CACHE_SIZE-lines).toList();
+        if (lines > MAX_CACHE_SIZE) throw new RuntimeException(String.format("Can only get up to %s lines from the log", MAX_CACHE_SIZE));
+        var fromIndex = recentLogLines.size() - lines < 0 ? 0 : recentLogLines.size() - lines;
+        var lineList = recentLogLines.stream().toList().subList(fromIndex, recentLogLines.size());
         var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
         int size = values.size();
         if (size == 0) {

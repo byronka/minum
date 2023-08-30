@@ -19,10 +19,6 @@ import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 public class FileUtilsTests {
     private static FileUtils fileUtils;
 
-    public FileUtilsTests() {
-
-    }
-
     @BeforeClass
     public static void init() {
         var context = buildTestingContext("unit_tests");
