@@ -19,8 +19,6 @@ import static java.nio.file.Files.writeString;
  */
 public class TestLogger extends Logger {
 
-    private StopwatchUtils stopWatch;
-    private String previousTestName;
     private Queue<String> recentLogLines;
     private final int MAX_CACHE_SIZE = 20;
     private final ReentrantLock logDebugLock;
@@ -34,7 +32,6 @@ public class TestLogger extends Logger {
      */
     public TestLogger(Constants constants, ExecutorService executorService, String name) {
         super(constants, executorService, name);
-        this.stopWatch = new StopwatchUtils();
         this.recentLogLines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
         this.logDebugLock = new ReentrantLock();
         this.logTraceLock = new ReentrantLock();
@@ -157,7 +154,6 @@ public class TestLogger extends Logger {
      * Also collects data about the previously-run test
      */
     public void test(String msg) {
-        previousTestName = msg;
         // put together some pretty-looking text graphics to show the suiteName of our test in log
         final var baseLength = 11;
         final var dashes = "-".repeat(msg.length() + baseLength);
