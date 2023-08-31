@@ -178,6 +178,15 @@ A series of HOWTO's for essential capabilities:
 * [How to add a new endpoint](howto/add_a_new_endpoint.md)
 * [How to create a new test class](howto/create_a_new_test_class.md)
 
+Mutation Testing
+----------------
+
+Be patient - this takes about 10 minutes.
+
+```shell
+mvn test-compile org.pitest:pitest-maven:mutationCoverage
+```
+
 To test the web server with Telnet
 ----------------------------------
 It is possible to use the "telnet" tool to have a more immediate conversation with the 
