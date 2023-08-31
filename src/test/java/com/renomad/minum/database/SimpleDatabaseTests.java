@@ -1,13 +1,11 @@
 package com.renomad.minum.database;
 
 import com.renomad.minum.Context;
-import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.web.InputStreamUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -17,7 +15,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 
 import static java.util.stream.IntStream.range;
 import static com.renomad.minum.database.SimpleDatabaseTests.Foo.INSTANCE;

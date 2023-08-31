@@ -1,13 +1,11 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.RunnableWithDescription;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.utils.TimeUtils;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 

@@ -1,7 +1,6 @@
 package com.renomad.minum;
 
 import com.renomad.minum.htmlparsing.HtmlParseNode;
-import com.renomad.minum.htmlparsing.HtmlParser;
 import com.renomad.minum.htmlparsing.TagName;
 import com.renomad.minum.web.FullSystem;
 import com.renomad.minum.web.FunctionalTesting;
@@ -17,7 +16,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static com.renomad.minum.testing.RegexUtils.find;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 

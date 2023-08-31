@@ -1,10 +1,8 @@
 package com.renomad.minum.web;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

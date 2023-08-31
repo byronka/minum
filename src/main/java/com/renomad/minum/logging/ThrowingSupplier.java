@@ -1,9 +1,5 @@
 package com.renomad.minum.logging;
 
-import com.renomad.minum.logging.ILogger;
-
-import java.util.function.Supplier;
-
 /**
  * This exists so that we are able to slightly better manage
  * exceptions in a highly threaded system.  Here's the thing:

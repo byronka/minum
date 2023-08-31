@@ -1,10 +1,7 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.logging.TestLogger;
 import org.junit.Test;
 
-import static com.renomad.minum.testing.TestFramework.assertEquals;
 import static com.renomad.minum.testing.TestFramework.assertTrue;
 
 public class StackTraceUtilsTests {

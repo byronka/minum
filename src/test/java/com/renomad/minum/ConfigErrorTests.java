@@ -1,13 +1,6 @@
 package com.renomad.minum;
 
-import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.web.InputStreamUtils;
-import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 
 import static com.renomad.minum.testing.TestFramework.*;
 

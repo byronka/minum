@@ -5,7 +5,6 @@ import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.HtmlParser;
 import com.renomad.minum.htmlparsing.TagName;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.MyThread;
 
 import java.io.IOException;
 import java.io.InputStream;

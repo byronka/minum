@@ -1,7 +1,5 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.database.DbData;
-
 import java.util.ArrayList;
 import java.util.List;
 

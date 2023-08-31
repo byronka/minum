@@ -3,9 +3,7 @@ package com.renomad.minum.web;
 import com.renomad.minum.Context;
 import com.renomad.minum.utils.StringUtils;
 
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * This class represents the body of an HTML message.

@@ -1,15 +1,11 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.web.Response;
 import com.renomad.minum.web.StatusLine;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static com.renomad.minum.testing.TestFramework.*;

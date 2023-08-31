@@ -1,7 +1,5 @@
 package com.renomad.minum.sampledomain;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.LRUCache;
 import org.junit.Test;
 

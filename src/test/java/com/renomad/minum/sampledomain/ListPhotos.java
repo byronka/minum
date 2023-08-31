@@ -10,7 +10,6 @@ import com.renomad.minum.utils.StacktraceUtils;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.web.Request;
 import com.renomad.minum.web.Response;
-import com.renomad.minum.web.WebFramework;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,7 +18,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 

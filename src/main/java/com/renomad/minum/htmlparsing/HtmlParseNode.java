@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
-
 /**
  * These nodes represent the types of things we may encounter when parsing an HTML string, which
  * for our purposes is just the types in {@link ParseNodeType}.  Depending on the type,

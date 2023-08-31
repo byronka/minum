@@ -1,10 +1,5 @@
 package com.renomad.minum.database;
 
-import com.renomad.minum.utils.StringUtils;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Extend from this class to create a data value that is
  * intended to be stored in the database.

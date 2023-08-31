@@ -2,7 +2,6 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.Context;
 import com.renomad.minum.htmlparsing.ParsingException;
-import com.renomad.minum.logging.TestLogger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

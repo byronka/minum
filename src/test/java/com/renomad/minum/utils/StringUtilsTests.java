@@ -1,7 +1,5 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.logging.TestLogger;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;

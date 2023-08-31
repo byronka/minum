@@ -11,14 +11,12 @@ import com.renomad.minum.utils.StringUtils;
 import com.renomad.minum.web.Request;
 import com.renomad.minum.web.Response;
 
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.renomad.minum.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;

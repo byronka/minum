@@ -1,7 +1,6 @@
 package com.renomad.minum.utils;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.web.Response;
 import com.renomad.minum.web.StatusLine;

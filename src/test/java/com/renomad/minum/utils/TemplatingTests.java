@@ -1,13 +1,11 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.templating.TemplateRenderException;
 import com.renomad.minum.logging.TestLogger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.nio.file.Path;
 import java.util.Map;
 
 import static com.renomad.minum.templating.TemplateProcessor.buildProcessor;

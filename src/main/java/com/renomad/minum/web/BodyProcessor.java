@@ -1,11 +1,9 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.htmlparsing.ParsingException;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.ByteUtils;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StringUtils;
 
@@ -16,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 

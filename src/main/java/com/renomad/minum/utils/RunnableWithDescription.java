@@ -1,7 +1,5 @@
 package com.renomad.minum.utils;
 
-import java.util.concurrent.Callable;
-
 /**
  * This class is to improve maintainability in the system.  It makes
  * possible reviewing the queue of actions and more easily understanding

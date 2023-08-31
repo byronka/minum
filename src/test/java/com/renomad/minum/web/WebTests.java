@@ -4,14 +4,11 @@ import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.htmlparsing.ParsingException;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.logging.Logger;
-import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.ActionQueueKiller;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.StringUtils;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

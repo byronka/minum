@@ -1,9 +1,6 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
-import com.renomad.minum.utils.ExtendedExecutor;
-import com.renomad.minum.utils.FileUtils;
 
 import java.util.EnumMap;
 import java.util.List;
