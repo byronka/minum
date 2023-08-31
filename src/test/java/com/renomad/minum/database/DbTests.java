@@ -17,12 +17,12 @@ import java.util.Collection;
 import java.util.Objects;
 
 import static java.util.stream.IntStream.range;
-import static com.renomad.minum.database.SimpleDatabaseTests.Foo.INSTANCE;
+import static com.renomad.minum.database.DbTests.Foo.INSTANCE;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
 
-public class SimpleDatabaseTests {
+public class DbTests {
     static private Context context;
     static private TestLogger logger;
     static private FileUtils fileUtils;
@@ -36,7 +36,7 @@ public class SimpleDatabaseTests {
         fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    public SimpleDatabaseTests() {
+    public DbTests() {
     }
 
     /**
