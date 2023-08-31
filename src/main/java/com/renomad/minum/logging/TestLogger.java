@@ -20,9 +20,7 @@ import static java.nio.file.Files.writeString;
 public class TestLogger extends Logger {
 
     private StopwatchUtils stopWatch;
-    private final List<TestSuite> testSuites;
     private String previousTestName;
-    private TestSuite currentTestSuite;
     private Queue<String> recentLogLines;
     private final int MAX_CACHE_SIZE = 20;
     private final ReentrantLock logDebugLock;
@@ -32,67 +30,10 @@ public class TestLogger extends Logger {
     private int testCount = 1;
 
     /**
-     * Writes a Junit-style xml file to out/reports/tests/YOUR_FILENAME_HERE.xml
-     * @param filename the name of the test report.  Since this is
-     *                 an XML file, it will receive a suffix of .xml
-     */
-    public void writeTestReport(String filename) throws IOException {
-        if (currentTestSuite != null) {
-            includeTimingForPreviousTest();
-        }
-        StringBuilder sb = new StringBuilder();
-        long totalTime = 0;
-        long totalCountTests = 0;
-        for (TestSuite ts : testSuites) {
-            List<String> testCaseStrings = ts.testCases().stream().map(x -> String.format("\t\t<testcase classname=\"%s\" name=\"%s\" time=\"%.3f\" />", ts.className(), x.name, x.duration() / 1000.0)).toList();
-            long sumOfTestCaseDurations = ts.testCases.stream().mapToLong(x -> x.duration).sum();
-            totalTime += sumOfTestCaseDurations;
-            totalCountTests += testCaseStrings.size();
-            String testSuiteString = String.format("\t<testsuite name=\"%s\" time=\"%.2f\" tests=\"%d\">", ts.className(), sumOfTestCaseDurations / 1000.0, testCaseStrings.size());
-            sb.append(String.format("%n" + testSuiteString + "%n" + String.join("\n", testCaseStrings) + "%n" + "\t</testsuite>" + "%n"));
-        }
-        String innerXmlReport = """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <testsuites time="%.2f" tests="%d">
-                """.formatted(totalTime / 1000.0, totalCountTests) + sb + """
-                </testsuites>
-                """;
-        Files.createDirectories(Path.of("out/reports/tests"));
-        writeString(Path.of("out/reports/tests/"+filename+".xml"), innerXmlReport);
-    }
-
-    /**
-     * An organizational tool - indicates in the test report that the following
-     * tests are within this testing suite
-     * @param className copy the name of the testing class for this parameter
-     */
-    public void testSuite(String className) {
-        // if there is an existing test suite, we need to add the timing for the
-        // last test here in that previous suite.
-        if (currentTestSuite != null) {
-            includeTimingForPreviousTest();
-        }
-        currentTestSuite = new TestSuite(className, new ArrayList<>());
-        testSuites.add(currentTestSuite);
-    }
-
-    /**
-     * Represents a particular test case
-     */
-    record TestCase(String name, long duration) {}
-
-    /**
-     * Represents a suite of tests, typically the set
-     * of tests in a particular class
-     */
-    record TestSuite(String className, List<TestCase> testCases) {}
-
-    /**
      * See {@link TestLogger}
      */
     public TestLogger(Constants constants, ExecutorService executorService, String name) {
         super(constants, executorService, name);
-        this.testSuites = new ArrayList<>();
         this.stopWatch = new StopwatchUtils();
         this.recentLogLines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
         this.logDebugLock = new ReentrantLock();
@@ -216,9 +157,6 @@ public class TestLogger extends Logger {
      * Also collects data about the previously-run test
      */
     public void test(String msg) {
-        currentTestSuite.testCases().add(new TestCase(msg, 0));
-
-        includeTimingForPreviousTest();
         previousTestName = msg;
         // put together some pretty-looking text graphics to show the suiteName of our test in log
         final var baseLength = 11;
@@ -228,30 +166,6 @@ public class TestLogger extends Logger {
             Object[] args = new Object[]{testCount++, msg};
             System.out.printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", args);
         });
-    }
-
-    /**
-     * Code for calculating how long the previous test took, replaces
-     * the data from that previous test with new data that includes the timing.
-     */
-    private void includeTimingForPreviousTest() {
-        // enter information for previous test
-        if (stopWatch != null && previousTestName != null) {
-             // The time taken for the previous test to complete.
-            long previousTestMillis = stopWatch.stopTimer();
-            TestCase testCase = currentTestSuite.testCases().stream()
-                    .filter(x -> x.name().equals(previousTestName))
-                    .findFirst()
-                    .orElse(null);
-            if (testCase != null) {
-                var testCaseWithTiming = new TestCase(testCase.name(), previousTestMillis);
-                currentTestSuite.testCases().remove(testCase);
-                currentTestSuite.testCases.add(testCaseWithTiming);
-            }
-        }
-
-        // reset for next test.
-        stopWatch = stopWatch == null ? new StopwatchUtils() : stopWatch.startTimer();
     }
 
 }
