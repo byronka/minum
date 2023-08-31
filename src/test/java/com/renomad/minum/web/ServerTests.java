@@ -83,7 +83,7 @@ public class ServerTests {
      * exception
      */
     @Test
-    public void test_Server_OtherException() throws Exception  {
+    public void test_Server_OtherException() {
         Server server = new Server(null, context, "", null);
         var builtCore = server.buildExceptionHandlingInnerCore(x -> {
             throw new IOException();
