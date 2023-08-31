@@ -11,6 +11,8 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  */
 public record StatusLine(StatusCode status, HttpVersion version, String rawValue) {
 
+    static StatusLine EMPTY = new StatusLine(StatusCode.NULL, HttpVersion.NONE, "");
+
     /**
      * This is the regex used to analyze a status line sent by the server and
      * read by the client.  Servers will send messages like: "HTTP/1.1 200 OK" or "HTTP/1.1 500 Internal Server Error"
@@ -101,7 +103,7 @@ public record StatusLine(StatusCode status, HttpVersion version, String rawValue
      */
     public static StatusLine extractStatusLine(String value) {
         if (value == null || value.isBlank()) {
-            return new StatusLine(StatusCode.NULL, HttpVersion.NONE, "");
+            return StatusLine.EMPTY;
         }
         Matcher mr = StatusLine.statusLineRegex.matcher(value);
         mustBeTrue(mr.matches(), String.format("%s must match the statusLinePattern: %s", value, statusLinePattern));

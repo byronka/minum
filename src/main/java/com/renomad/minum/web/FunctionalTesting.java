@@ -172,7 +172,7 @@ public final class FunctionalTesting {
     public TestResponse send(StartLine.Verb verb, String path, byte[] payload, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY(context);
         Headers headers = null;
-        StatusLine statusLine = null;
+        StatusLine statusLine = StatusLine.EMPTY;
         try (var client = webEngine.startClient(primaryServer)) {
             InputStream is = client.getInputStream();
 
