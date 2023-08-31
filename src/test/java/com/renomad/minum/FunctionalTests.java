@@ -37,7 +37,6 @@ public class FunctionalTests {
         logger = (TestLogger) context.getLogger();
         context = context;
         ft = new FunctionalTesting(context);
-        logger.testSuite("FunctionalTests");
     }
 
     @AfterClass
