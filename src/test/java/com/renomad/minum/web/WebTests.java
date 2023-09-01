@@ -69,7 +69,7 @@ public class WebTests {
      * Otherwise, for some operating systems (Windows), there will be a conflict when the
      * next server bind occurs.
      */
-    static int SERVER_CLOSE_WAIT_TIME = 10;
+    static int SERVER_CLOSE_WAIT_TIME = 30;
 
     @BeforeClass
     public static void setUpClass() {
