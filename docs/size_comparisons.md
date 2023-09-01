@@ -6,10 +6,10 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 3,757 | 255,384 | 1,085,405   |
+| 3,757 | 141,048 | 1,085,405   |
 
 
-#### Our project is 70 times smaller than [Javalin](https://javalin.io/), which bills itself as
+#### Our project is 37 times smaller than [Javalin](https://javalin.io/), which bills itself as
 
 >"A simple web framework for Java and Kotlin"
 > 
@@ -45,14 +45,6 @@ Logging
 | 94    | 70,000 | 3,400 |
 
 
-Testing
--------
-
-| Minum | JUnit5 | TestNG  |
-|-------|--------|---------|
-| 240   | 40,000 | 100,000 |
-
-
 Web server
 ----------
 
@@ -68,13 +60,6 @@ HTML Parser
 |-------|--------|
 | 304   | 14,337 |
 
-
-Authentication and Security
----------------------------
-
-| Minum | Spring Security |
-|-------|-----------------|
-| 600   | 12,531          |
 
 Appendix
 --------
@@ -135,16 +120,4 @@ much technology - therefore, it is a valid apples-to-apples comparison_
 | gson                    | 9,042   |
 | ***subtotal***          | 86,078  |
 |                         |         |
-| test dependencies:      |         |
-| junit-jupiter-api       | 5,810   |
-| assertj-core            | 48,153  |
-| mockito-core            | 21,080  |
-| unirest-java            | 6,720   |
-| Java-Websocket          | 6,899   |
-| okhttp                  | 19,814  |
-| moshi                   | 5,311   |
-| moshi-kotlin            | 264     |
-| jetty-unixdomain-server | 285     |
-| ***subtotal***          | 114,336 |
-|                         |         |
-| ***total***             | 255,384 |
+| ***total***             | 141,048 |
