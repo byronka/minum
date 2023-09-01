@@ -4,6 +4,7 @@ import com.renomad.minum.Context;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
 import org.junit.BeforeClass;
@@ -235,6 +236,128 @@ public class DbTests {
         var ex = assertThrows(RuntimeException.class, () -> new Db<Foo>(foosDirectory, context, INSTANCE));
         // because the error message includes a path that varies depending on which OS, using regex to search.
         assertTrue(RegexUtils.isFound("Exception while reading out.simple_db.foos.index.ddps in Db constructor",ex.getMessage()));
+    }
+
+    /**
+     * Test read and write.
+     * <p>
+     *      The database is mainly focused on in-memory, with eventual
+     *      disk persistence.  With that in mind, the files are only
+     *      read from disk once - the first time they are needed.  From
+     *      there, all disk operations are writes.
+     * </p>
+     * <p>
+     *      This test will try writing and reading in various ways to exercise
+     *      many of the ways the database can be used.
+     * </p>
+     * <p>
+     *     Namely, the first load of data for any particular {@link Db} class
+     *     can occur when the database is asked to analyze data, or to
+     *     write, update, or delete.
+     * </p>
+     */
+    @Test
+    public void test_Db_Write_and_Read() throws IOException {
+        // in this test, we're stopping and starting our database
+        // over and over - a very unnatural activity.  We need to
+        // provide sleep time for the actions to finish before
+        // moving to the next step.
+        int stepDelay = 30;
+
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        var db = new Db<Foo>(foosDirectory, context, INSTANCE);
+        MyThread.sleep(stepDelay);
+        Foo foo1 = new Foo(1, 2, "a");
+        Foo foo2 = new Foo(2, 3, "b");
+
+        // first round - adding to an empty database
+        db.write(foo1);
+        var foos = db.values().stream().toList();
+        assertEquals(foos.size(), 1);
+        assertEquals(foos.get(0), foo1);
+        db.stop();
+        MyThread.sleep(stepDelay);
+
+        // second round - adding to a database that has stuff on disk
+        var db2 = new Db<Foo>(foosDirectory, context, INSTANCE);
+        db2.write(foo2);
+        MyThread.sleep(stepDelay);
+
+        var foos2 = db2.values().stream().toList();
+        assertEquals(foos2.size(), 2);
+        assertEquals(foos2.get(0), foo1);
+        assertEquals(foos2.get(1), foo2);
+        db2.stop();
+        MyThread.sleep(stepDelay);
+
+        // third round - reading from a database that has yet to read from disk
+        var db3 = new Db<Foo>(foosDirectory, context, INSTANCE);
+        var foos3 = db3.values().stream().toList();
+        assertEquals(foos3.size(), 2);
+        assertEquals(foos3.get(0), foo1);
+        assertEquals(foos3.get(1), foo2);
+        db3.stop();
+        MyThread.sleep(stepDelay);
+
+        // fourth round - deleting from a database that has yet to read from disk
+        var db4 = new Db<Foo>(foosDirectory, context, INSTANCE);
+        db4.delete(foo2);
+        var foos4 = db4.values().stream().toList();
+        assertEquals(foos4.size(), 1);
+        assertEquals(foos4.get(0), foo1);
+        db4.stop();
+        MyThread.sleep(stepDelay);
+
+        // fifth round - updating an item in a database that has not yet read from disk
+        var db5 = new Db<Foo>(foosDirectory, context, INSTANCE);
+        var updatedFoo1 = new Foo(1, 42, "update");
+        db5.update(updatedFoo1);
+        var foos5 = db5.values().stream().toList();
+        assertEquals(foos5.size(), 1);
+        assertEquals(foos5.get(0), updatedFoo1);
+        db5.stop();
+        MyThread.sleep(stepDelay);
+
+        // sixth round - if we delete, it will reset the next index to 1
+        var db6 = new Db<Foo>(foosDirectory, context, INSTANCE);
+        db6.delete(updatedFoo1);
+        var foos6 = db6.values().stream().toList();
+        assertEquals(foos6.size(), 0);
+        db6.stop();
+        MyThread.sleep(stepDelay);
+
+        // at this point, we should receive a new index of 1
+        var db7 = new Db<Foo>(foosDirectory, context, INSTANCE);
+        db7.write(foo1);
+        var foos7 = db7.values().stream().toList();
+        assertEquals(foos7.size(), 1);
+        assertEquals(foos7.get(0), foo1);
+        db7.stop();
+        MyThread.sleep(stepDelay);
+    }
+
+    /**
+     * If we command the database to delete a file that does
+     * not exist, it should throw an exception
+     */
+    @Test
+    public void test_Db_Delete_EdgeCase_DoesNotExist() throws IOException {
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        var db = new Db<Foo>(foosDirectory, context, INSTANCE);
+        var ex = assertThrows(RuntimeException.class, () -> db.delete(new Foo(1, 2, "a")));
+        assertEquals(ex.getMessage(), "no data was found with id of 1");
+    }
+
+    /**
+     * If we command the database to update a file that does
+     * not exist, it should throw an exception
+     */
+    @Test
+    public void test_Db_Update_EdgeCase_DoesNotExist() throws IOException {
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        var db = new Db<Foo>(foosDirectory, context, INSTANCE);
+        var ex = assertThrows(RuntimeException.class, () -> db.update(new Foo(1, 2, "a")));
+        assertEquals(ex.getMessage(), "no data was found with id of 1");
     }
 
 
