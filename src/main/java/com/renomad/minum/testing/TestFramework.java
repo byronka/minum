@@ -215,9 +215,9 @@ public final class TestFramework {
 
     /**
      * This builds a context very similarly to {@link FullSystem#buildContext()},
-     * except that it uses {@link TestLogger} instead of {@link minum.logging.Logger}
+     * except that it uses {@link TestLogger} instead of {@link com.renomad.minum.logging.Logger}
      * @param loggerName this will assign a human-readable name to the logger's
-     *                   {@link minum.logging.LoggingActionQueue} so we can distinguish it
+     *                   {@link com.renomad.minum.logging.LoggingActionQueue} so we can distinguish it
      *                   when reviewing the threads
      */
     public static Context buildTestingContext(String loggerName) {

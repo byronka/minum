@@ -10,7 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * This class is very similar to {@link minum.utils.ActionQueue} but is
+ * This class is very similar to {@link com.renomad.minum.utils.ActionQueue} but is
  * focused on Logging.
  * <p>
  *     The only reason it was necessary to create a wholly separate stack for logging

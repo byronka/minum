@@ -1,16 +1,74 @@
 ##
+# Project name - used to set the jar's file name
+##
+PROJ_NAME := minum
+HOST_NAME := minum.com
+VERSION=0.1.0
+
+##
+# overall output directory
+##
+OUT_DIR := out
+
+##
+# output directory for main source files
+##
+OUT_DIR_MAIN := $(OUT_DIR)/main
+
+##
 # default target(s)
 ##
 all:: help
 
 #: test the whole system
 test::
-	 mvn test
+	 ./mvnw test
 
 #: run mutation testing using pitest
 mutation_test::
 	 @echo "be patient - this can take 10 minutes, for real"
-	 mvn test-compile org.pitest:pitest-maven:mutationCoverage
+	 ./mvnw test-compile org.pitest:pitest-maven:mutationCoverage
+
+#: build the javadoc documentation in the out/javadoc directory
+javadoc::
+	 mkdir -p $(OUT_DIR)
+	 javadoc -Xdoclint:none --source-path src/main/java -d out/javadoc -subpackages com.renomad.minum
+
+
+# this is used to bundle the javadocs into a jar, to prepare for Maven publishing
+jar_javadoc:: javadoc
+	 cd $(OUT_DIR)/javadoc && jar --create --file $(PROJ_NAME)-$(VERSION)-javadoc.jar * && mv $(PROJ_NAME)-$(VERSION)-javadoc.jar ../$(PROJ_NAME)-$(VERSION)-javadoc.jar
+
+# this is used to bundle the source code into a jar, to prepare for Maven publishing
+jar_sources::
+	 mkdir -p $(OUT_DIR)
+	 cd src/main && jar --create --file $(PROJ_NAME)-$(VERSION)-sources.jar * && mv $(PROJ_NAME)-$(VERSION)-sources.jar ../../$(OUT_DIR)/$(PROJ_NAME)-$(VERSION)-sources.jar
+
+#: Build a jar of the project for use as a library
+jar:: test
+	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
+	 $(eval GIT_SHA=$(shell git rev-parse --short HEAD))
+	 version=$(VERSION)_$(GIT_SHA) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
+	 cd $(OUT_DIR_MAIN) && jar --create --manifest META-INF/MANIFEST.MF --file $(PROJ_NAME)-$(VERSION).jar * && mv $(PROJ_NAME)-$(VERSION).jar ../$(PROJ_NAME)-$(VERSION).jar
+	 @echo
+	 @echo "*** Your new jar file is at out/$(PROJ_NAME)-$(VERSION).jar ***"
+
+#  see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
+#: add to the local Maven repository
+mvnlocalrepo:: clean set_pom_version jar jar_sources jar_javadoc
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION).jar         -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-sources.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=sources
+	 mvn org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=javadoc
+
+#: prepares the jars for sending to Maven central
+mvnprep:: clean set_pom_version jar jar_sources jar_javadoc
+	 for i in $$(ls out/minum-*); do gpg -ab $$i; done
+	 cd out && jar -cvf bundle.jar minum-*
+
+# copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
+set_pom_version::
+	 mkdir -p out
+	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/$(PROJ_NAME)-$(VERSION).pom
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the

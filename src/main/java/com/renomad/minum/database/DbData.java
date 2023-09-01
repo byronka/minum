@@ -13,13 +13,13 @@ public abstract class DbData<T>{
      * Serializes this object into a string representation.  It will be
      * the values of this object as strings, encoded with URL encoding,
      * separated by pipe symbols.
-     * @return this type serialized to a string - use {@link minum.utils.SerializationUtils#serializeHelper(Object[])}
+     * @return this type serialized to a string - use {@link com.renomad.minum.utils.SerializationUtils#serializeHelper(Object[])}
      */
     protected abstract String serialize();
 
     /**
      * deserializes the text back into an object.  See helper
-     * method {@link minum.utils.SerializationUtils#deserializeHelper(String)} to split a serialized
+     * method {@link com.renomad.minum.utils.SerializationUtils#deserializeHelper(String)} to split a serialized
      * string into tokens for rebuilding the object.  See
      * also {@link #serialize()}
      * @param serializedText the serialized string

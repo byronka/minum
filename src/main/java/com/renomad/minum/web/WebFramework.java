@@ -439,7 +439,7 @@ public final class WebFramework {
 
     /**
      * Add a new handler in the web application for a combination
-     * of a {@link minum.web.StartLine.Verb}, a path, and then provide
+     * of a {@link com.renomad.minum.web.StartLine.Verb}, a path, and then provide
      * the code to handle a request.
      * <br>
      * Note that the path text expected is *after* the first forward slash,
