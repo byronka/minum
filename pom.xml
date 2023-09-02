@@ -101,8 +101,14 @@
                 <configuration>
                     <source>20</source>
                     <target>20</target>
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
                     <compilerArgs>
-                        --enable-preview
+                        <!-- The output of Xlint is not shown by default, but we activate it for the QA bot
+                        to be able to get more warnings -->
+                        <arg>-Xlint:all</arg>
+                        <!-- Prevents recompilation due to missing package-info.class, see MCOMPILER-205 -->
+                        <arg>-Xpkginfo:always</arg>
+                        <arg>--enable-preview</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
