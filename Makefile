@@ -20,6 +20,10 @@ OUT_DIR_MAIN := $(OUT_DIR)/main
 ##
 all:: help
 
+#: clean up any output files
+clean::
+	 rm -fr $(OUT_DIR)
+
 #: test the whole system
 test::
 	 ./mvnw test
