@@ -54,6 +54,7 @@ jar_sources::
 #: Build a jar of the project for use as a library
 jar:: test
 	 mkdir -p $(OUT_DIR_MAIN)/META-INF/
+	 cp -r target/classes/* $(OUT_DIR_MAIN)
 	 $(eval GIT_SHA=$(shell git rev-parse --short HEAD))
 	 version=$(VERSION)_$(GIT_SHA) utils/build_manifest.sh > $(OUT_DIR_MAIN)/META-INF/MANIFEST.MF
 	 cd $(OUT_DIR_MAIN) && \
