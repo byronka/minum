@@ -199,7 +199,7 @@ public final class Constants {
      * Whether we will use caching for the static files.
      * <p>
      *     When a user requests a path we don't recognize, we
-     *     go looking for it using {@link FileUtils#readStaticFile()}.
+     *     go looking for it using {@link com.renomad.minum.utils.FileUtils#readStaticFile(String)}.
      *     If we have already found it for someone else, it will
      *     be in a cache.
      * </p>
