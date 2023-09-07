@@ -240,42 +240,7 @@ use it.
 Testing
 -------
 
-High-quality programs require good testing.  Given that the overarching theme
-of this project is choosing the simplest thing that could work, the testing framework
-is almost embarrassingly basic, but gets the job done.
-
-The tests start from a plain old-fashioned main() method, which then calls to a
-tree of tests in a procedural fashion.  See main() in the Tests class.
-
-There's really not much magic here - the trick is to follow the conventions.  The TestLogger
-class has a method that we use to document each test.  For example, here's a test:
-
-```java
-logger.test("client / server");{
-    try (Server primaryServer = webEngine.startServer(es)) {
-        try (SocketWrapper client = webEngine.startClient(primaryServer)) {
-            try (SocketWrapper server = primaryServer.getServer(client)) {
-                InputStream is = server.getInputStream();
-
-                client.send("hello foo!\n");
-                String result = readLine(is);
-                assertEquals("hello foo!", result);
-            }
-        }
-    }
-}
-```
-
-Notice that the first line has a semicolon and a curly brace at the end.  The reason for
-this is that IDE's will allow us to fold the code between braces, and so this just comes out
-looking great:
-
-```java
-    + ---   logger.test("client / server");{...}
-```
-No magic, just tidy.
-
-The assertions are similarly minimalistic.  Here's assertEquals:
+The assertions are minimalistic.  Here's assertEquals:
 
 ```java
 public static <T> void assertEquals(T left, T right) {
@@ -287,10 +252,6 @@ public static <T> void assertEquals(T left, T right) {
 
 The rest of the testing framework is about the same.  It's never simple,
 but we can choose to work with fewer tools.
-
-There is some rudimentary test reporting (see out/reports/test/tests.xml after running tests,
-and see writeTestReport in TestLogger), but in most regards it is unimportant.  Reporting is not
-the point of tests.  Instead, the point is to give the developer confidence that the recent changes aren't breaking anything.
 
 Instead of using a mocking framework, we just create a
 "Fake" version of a class (e.g. FakeSocketWrapper).  This is
