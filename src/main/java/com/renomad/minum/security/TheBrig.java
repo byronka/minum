@@ -22,6 +22,9 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
 
+/**
+ * See {@link ITheBrig}
+ */
 public final class TheBrig implements ITheBrig {
     private final ExecutorService es;
     private final Db<Inmate> db;

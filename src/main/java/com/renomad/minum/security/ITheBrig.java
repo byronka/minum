@@ -4,12 +4,23 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * A security program.
+ * <p>
+ *     Look, it was hard to come up with a name for this class.
+ *     What would you name a class whose purpose is to maintain
+ *     a list of client ip addresses that have been judged as
+ *     suspicious / attackers, and who will be prevented from
+ *     accessing the system for varying durations, depending on
+ *     the severity of the attack?
+ * </p>
+ * <p>
  * This class is responsible for monitoring the inmates who have
  * misbehaved in our system.  It's relatively simple - a client who
  * needs addressing will be stored in a map in this class for as
  * long as required.  After they have served their time, they
  * are released, but in certain cases (like when we deem them to
  * have no redeeming value to us) we may set their time extremely high.
+ * </p>
  * <p>
  *     See also {@link UnderInvestigation}
  * </p>
