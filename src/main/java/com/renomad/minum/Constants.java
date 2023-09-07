@@ -45,6 +45,7 @@ public final class Constants {
         START_TIME = System.currentTimeMillis();
         EXTRA_MIME_MAPPINGS = getProp("EXTRA_MIME_MAPPINGS", "");
         STATIC_FILE_CACHE_TIME = getProp("STATIC_FILE_CACHE_TIME", 60 * 5);
+        USE_CACHE_FOR_STATIC_FILES = getProp("USE_CACHE_FOR_STATIC_FILES", true);
     }
 
     /**
@@ -193,6 +194,21 @@ public final class Constants {
      * </pre>
      */
     public final long STATIC_FILE_CACHE_TIME;
+
+    /**
+     * Whether we will use caching for the static files.
+     * <p>
+     *     When a user requests a path we don't recognize, we
+     *     go looking for it using {@link FileUtils#readStaticFile()}.
+     *     If we have already found it for someone else, it will
+     *     be in a cache.
+     * </p>
+     * <p>
+     *     However, if we are doing development, it helps to
+     *     not have caching enabled - it can confuse.
+     * </p>
+     */
+    public final boolean USE_CACHE_FOR_STATIC_FILES;
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing

@@ -35,6 +35,7 @@ public final class FileUtils {
     private final ILogger logger;
     private final Constants constants;
     private final Map<String, String> fileSuffixToMime;
+    private final Map<String, byte[]> lruCache;
 
     public FileUtils(ILogger logger, Constants constants) {
         this.logger = logger;
@@ -42,6 +43,7 @@ public final class FileUtils {
         fileSuffixToMime = new HashMap<>();
         addDefaultValuesForMimeMap();
         readExtraMappings(constants.EXTRA_MIME_MAPPINGS);
+        lruCache = LRUCache.getLruCache(1000);
     }
 
     /**
@@ -134,6 +136,10 @@ public final class FileUtils {
     }
 
     private byte[] readFile(String path) throws IOException {
+        if (constants.USE_CACHE_FOR_STATIC_FILES && lruCache.containsKey(path)) {
+            return lruCache.get(path);
+        }
+
         if (badFilePathPatterns.matcher(path).find()) {
             logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", path.toString()));
             return new byte[0];
@@ -167,6 +173,9 @@ public final class FileUtils {
                 String s = path + " filesize was " + bytes.length + " bytes.";
                 logger.logTrace(() -> s);
 
+                if (constants.USE_CACHE_FOR_STATIC_FILES) {
+                    lruCache.put(path, bytes);
+                }
                 return bytes;
 
             }
