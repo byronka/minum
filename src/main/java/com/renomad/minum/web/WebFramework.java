@@ -19,6 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
+import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static com.renomad.minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
@@ -187,27 +188,29 @@ public final class WebFramework {
                     Now, on the other hand, if they are looking for vulnerabilities, it's ok to dump them.
                      */
                     Function<Request, Response> endpoint = handlerFinder.apply(sl);
-
-                    var handlerStopwatch = new StopwatchUtils().startTimer();
-                    try {
-                        clientRequest = new Request(hi, sl, body, sw.getRemoteAddr());
-                        resultingResponse = endpoint.apply(clientRequest);
-                    } catch (Exception ex) {
-                        // if an error happens while running an endpoint's code, this is the
-                        // last-chance handling of that error where we return a 500 and a
-                        // random code to the client, so a developer can find the detailed
-                        // information in the logs, which have that same value.
-                        int randomNumber = random.nextInt();
-                        logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                        resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
+                    if (endpoint == null) {
+                        resultingResponse = new Response(_404_NOT_FOUND);
+                    } else {
+                        var handlerStopwatch = new StopwatchUtils().startTimer();
+                        try {
+                            clientRequest = new Request(hi, sl, body, sw.getRemoteAddr());
+                            resultingResponse = endpoint.apply(clientRequest);
+                        } catch (Exception ex) {
+                            // if an error happens while running an endpoint's code, this is the
+                            // last-chance handling of that error where we return a 500 and a
+                            // random code to the client, so a developer can find the detailed
+                            // information in the logs, which have that same value.
+                            int randomNumber = random.nextInt();
+                            logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
+                            resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
+                        }
+                        logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
                     }
-                    logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
 
                     String statusLineAndHeaders = convertResponseToString(clientRequest, resultingResponse, isKeepAlive);
 
                     // Here is where the bytes actually go out on the socket
                     String response = statusLineAndHeaders + HTTP_CRLF;
-                    Response finalResultingResponse = resultingResponse;
 
                     logger.logTrace(() -> "Sending headers back: " + response);
                     sw.send(response);
