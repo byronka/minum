@@ -13,6 +13,8 @@ Table of contents
 - [Step-by-step guide to installing Java on Windows](#step-by-step-guide-for-installing-java-on-windows)
 - [Java on Mac](#java-on-mac)
 - [HOWTO](#howto)
+- [Versioning](#versioning)
+- [Mutation Testing](#mutation-testing)
 - [To test the web server with Telnet](#to-test-the-web-server-with-telnet)
 - [To test with Chrome on localhost with invalid certificates](#to-test-with-chrome-on-localhost-with-invalid-certificates)
 - [TDD](#TDD)
@@ -177,6 +179,12 @@ A series of HOWTO's for essential capabilities:
 
 * [How to add a new endpoint](howto/add_a_new_endpoint.md)
 * [How to create a new test class](howto/create_a_new_test_class.md)
+
+
+Versioning
+----------
+
+The version of the project is set in the Makefile, with a property name of VERSION
 
 Mutation Testing
 ----------------
