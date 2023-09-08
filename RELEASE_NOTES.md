@@ -1,4 +1,4 @@
-v1.0.0 - TDB - Git commit hash: TBD
+v1.0.0 - September 7, 2023 - Git commit hash: TBD
 -----------------------------------
 
 * Remove StaticFileCache - see 25763cfe
