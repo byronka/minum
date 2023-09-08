@@ -1,4 +1,4 @@
-v1.0.0 - September 7, 2023 - Git commit hash: TBD
+v1.0.0 - September 10, 2023
 -----------------------------------
 
 * Remove StaticFileCache - see 25763cfe
@@ -8,6 +8,7 @@ v1.0.0 - September 7, 2023 - Git commit hash: TBD
 * Adjust to allow testing virtual threads on Windows
 * Rename app.config to minum.config
 * Make most classes "final"
+
 
 v0.1.0 - August 21, 2023 - Git commit hash: 385d47e566
 ------------------------------------------------------
