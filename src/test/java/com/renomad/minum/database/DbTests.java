@@ -4,7 +4,6 @@ import com.renomad.minum.Context;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
 import org.junit.BeforeClass;
@@ -29,15 +28,17 @@ public class DbTests {
     static private FileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db/foos");
 
+    /**
+     * The time we will wait for the asynchronous actions
+     * to finish before moving to the next test.
+     */
+    static private int FINISH_TIME = 50;
 
     @BeforeClass
     public static void setUpClass() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
-    }
-
-    public DbTests() {
     }
 
     /**
@@ -88,7 +89,7 @@ public class DbTests {
         // check that the files are now there.
         // note that since our minum.database is *eventually* synced to disk, we need to wait a
         // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(100);
+        MyThread.sleep(FINISH_TIME);
         for (var foo : foos) {
             assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.databaseFileSuffix)));
         }
@@ -96,7 +97,7 @@ public class DbTests {
         // rebuild some objects from what was written to disk
         // note that since our minum.database is *eventually* synced to disk, we need to wait a
         // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(20);
+        MyThread.sleep(FINISH_TIME);
         assertEqualsDisregardOrder(
                 db.values().stream().map(Foo::toString).toList(),
                 foos.stream().map(Foo::toString).toList());
@@ -112,7 +113,7 @@ public class DbTests {
         // rebuild some objects from what was written to disk
         // note that since our minum.database is *eventually* synced to disk, we need to wait a
         // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(40);
+        MyThread.sleep(FINISH_TIME);
         assertEqualsDisregardOrder(
                 db.values().stream().map(Foo::toString).toList(),
                 updatedFoos.stream().map(Foo::toString).toList());
@@ -125,7 +126,7 @@ public class DbTests {
         // check that all the files are now gone
         // note that since our minum.database is *eventually* synced to disk, we need to wait a
         // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(50);
+        MyThread.sleep(FINISH_TIME);
         for (var foo : foos) {
             assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.databaseFileSuffix)));
         }
@@ -134,6 +135,7 @@ public class DbTests {
         // then shut down.
         db.stop();
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -147,6 +149,7 @@ public class DbTests {
         assertEquals(ex.getMessage(), "no data was found with id of 123");
 
         db_throwaway.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
@@ -179,6 +182,7 @@ public class DbTests {
         String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing, adding nothing").replace('\\', '/');
         assertTrue(directoryMissingMessage.contains("foos directory missing, adding nothing to the data list"));
         db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -236,6 +240,7 @@ public class DbTests {
         var ex = assertThrows(RuntimeException.class, () -> new Db<Foo>(foosDirectory, context, INSTANCE));
         // because the error message includes a path that varies depending on which OS, using regex to search.
         assertTrue(RegexUtils.isFound("Exception while reading out.simple_db.foos.index.ddps in Db constructor",ex.getMessage()));
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -346,6 +351,7 @@ public class DbTests {
         var db = new Db<Foo>(foosDirectory, context, INSTANCE);
         var ex = assertThrows(RuntimeException.class, () -> db.delete(new Foo(1, 2, "a")));
         assertEquals(ex.getMessage(), "no data was found with id of 1");
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -358,6 +364,7 @@ public class DbTests {
         var db = new Db<Foo>(foosDirectory, context, INSTANCE);
         var ex = assertThrows(RuntimeException.class, () -> db.update(new Foo(1, 2, "a")));
         assertEquals(ex.getMessage(), "no data was found with id of 1");
+        MyThread.sleep(FINISH_TIME);
     }
 
 
