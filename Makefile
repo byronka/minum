@@ -25,6 +25,7 @@ all:: help
 #: clean up any output files
 clean::
 	 @rm -fr $(OUT_DIR)
+	 @rm -fr target
 
 #: test the whole system
 test::
@@ -73,7 +74,7 @@ mvnlocalrepo:: clean set_pom_version jar jar_sources jar_javadoc
 	 ./mvnw org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=javadoc
 
 #: prepares the jars for sending to Maven central
-mvnprep:: clean set_version_of_published_pom jar jar_sources jar_javadoc
+mvnprep:: clean set_primary_pom_version set_version_of_published_pom jar jar_sources jar_javadoc
 	 for i in $$(ls out/minum-*); do gpg -ab $$i; done
 	 cd out && jar -cvf bundle.jar minum-*
 
@@ -82,8 +83,10 @@ set_version_of_published_pom::
 	 mkdir -p out
 	 sed 's/{{VERSION}}/${VERSION}/g' docs/maven/pom.xml > out/$(PROJ_NAME)-$(VERSION).pom
 
+# this will adjust the version in the primary pom.xml file to match what we have set here.
+# after running this, the changed pom.xml should be committed to source control.
 set_primary_pom_version::
-	sed -i 's:<version>.*</version>:<version>${VERSION}</version>:' pom.xml
+	sed -i '0,/<version>.*<\/version>/s/<version>.*<\/version>/<version>${VERSION}<\/version>/' pom.xml
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
