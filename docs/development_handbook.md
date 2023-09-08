@@ -179,6 +179,7 @@ A series of HOWTO's for essential capabilities:
 
 * [How to add a new endpoint](howto/add_a_new_endpoint.md)
 * [How to create a new test class](howto/create_a_new_test_class.md)
+* [How to test against the lobs](howto/testing_against_the_logs.md)
 
 
 Versioning

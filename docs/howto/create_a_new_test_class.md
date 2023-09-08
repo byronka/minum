@@ -1,5 +1,5 @@
-Creating a new test class
-=========================
+HOWTO - Creating a new test class
+=================================
 
 If you're following good practices, you are creating automated tests for your
 work.  Here are the practical necessities of what you need

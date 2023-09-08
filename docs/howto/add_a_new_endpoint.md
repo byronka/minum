@@ -1,5 +1,5 @@
-Adding a new endpoint
-=====================
+HOWTO - Adding a new endpoint
+=============================
 
 The anticipated pattern for this project is to split up the endpoints amongst the
 classes.  Since most web applications consist of a large number of endpoints, it
