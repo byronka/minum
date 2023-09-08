@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>${VERSION}</version>
+    <version>1.0.0</version>
 
     <name>minum</name>
 

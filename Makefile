@@ -5,7 +5,7 @@ PROJ_NAME := minum
 HOST_NAME := minum.com
 VERSION=1.0.0
 
-MAVEN := ./mvnw -DVERSION=${VERSION}
+MAVEN := ./mvnw
 
 ##
 # overall output directory
@@ -73,14 +73,17 @@ mvnlocalrepo:: clean set_pom_version jar jar_sources jar_javadoc
 	 ./mvnw org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=javadoc
 
 #: prepares the jars for sending to Maven central
-mvnprep:: clean set_pom_version jar jar_sources jar_javadoc
+mvnprep:: clean set_version_of_published_pom jar jar_sources jar_javadoc
 	 for i in $$(ls out/minum-*); do gpg -ab $$i; done
 	 cd out && jar -cvf bundle.jar minum-*
 
 # copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile
-set_pom_version::
+set_version_of_published_pom::
 	 mkdir -p out
-	 sed 's/VERSION/${VERSION}/g' docs/maven/pom.xml > out/$(PROJ_NAME)-$(VERSION).pom
+	 sed 's/{{VERSION}}/${VERSION}/g' docs/maven/pom.xml > out/$(PROJ_NAME)-$(VERSION).pom
+
+set_primary_pom_version::
+	sed -i 's:<version>.*</version>:<version>${VERSION}</version>:' pom.xml
 
 # a handy debugging tool.  If you want to see the value of any
 # variable in this file, run something like this from the
