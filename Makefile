@@ -51,8 +51,8 @@ jar_javadoc:: javadoc
 # this is used to bundle the source code into a jar, to prepare for Maven publishing
 jar_sources::
 	 @mkdir -p $(OUT_DIR)
-	 @cd src/main && jar --create --file $(PROJ_NAME)-$(VERSION)-sources.jar * && \
- 		mv $(PROJ_NAME)-$(VERSION)-sources.jar ../../$(OUT_DIR)/$(PROJ_NAME)-$(VERSION)-sources.jar
+	 @cd src/main/java && jar --create --file $(PROJ_NAME)-$(VERSION)-sources.jar * && \
+ 		mv $(PROJ_NAME)-$(VERSION)-sources.jar ../../../$(OUT_DIR)/$(PROJ_NAME)-$(VERSION)-sources.jar
 
 #: Build a jar of the project for use as a library
 jar:: test
