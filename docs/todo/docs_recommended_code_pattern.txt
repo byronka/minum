@@ -1,1 +1,0 @@
-How the code should be organized if you intend to follow the overarching patterns here.
