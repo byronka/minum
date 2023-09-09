@@ -57,17 +57,16 @@ Description
 ------------
 
 Minum is a framework with most of the components needed to build a web application,
-including a web server and a database.  The major paradigm is to stay simple, but high-quality, and avoid
+including a web server and a database.  The major paradigm is to stay simple and high-quality, avoiding
 third-party dependencies whenever possible.
 
 
 Why?
 ----
 
-To have a working example of the programming technique I offer to colleagues and clients.  This 
-was an experiment.  The hypothesis was: If I take all my [beliefs](#theme) about software development and 
-apply them in the most idealistic manner possible, I think it will enable productivity far 
-exceeding ordinary development practices.  
+To have a working example of the programming techniques I offer to colleagues and clients.  My hypothesis 
+was if I take all my [beliefs](#theme) about software development and 
+apply them in the most idealistic manner possible, I think it will enable incredible productivity.
 
 The experiment is still ongoing, but I have seen some interim benefits.
 
@@ -193,6 +192,11 @@ Mutation Testing
 Be patient - this takes about 10 minutes.
 
 ```shell
+make mutation_test
+```
+
+alternately:
+```shell
 mvn test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
@@ -203,7 +207,7 @@ web server.  Try this:
 
     telnet localhost 8080
 
-    GET /formentry HTTP/1.1
+    GET / HTTP/1.1
     HOST: localhost
     connection: keep-alive
 
@@ -331,7 +335,7 @@ See `TheRegister.java` in the tests folder for an example of how routing works. 
 first start the program, you are given a WebFramework class instance, which has a method
 called `registerPath()`.  
 
-The commonly used verbs GET and POST are available.  The function you provide must be
+Most verbs, like GET, PUT and POST are available.  The function you provide must be
 similar to this:
 
 ```java

@@ -16,6 +16,8 @@ import com.renomad.minum.web.WebFramework;
 
 import java.nio.file.Path;
 
+import static com.renomad.minum.web.StartLine.Verb.GET;
+
 /**
  * This class is where all code gets registered to work
  * with our web testing.
@@ -42,26 +44,26 @@ public class TheRegister {
         var sd = setupSampleDomain(auth);
 
         // homepage
-        webFramework.registerPath(StartLine.Verb.GET, "", r -> Response.redirectTo("index.html"));
-        webFramework.registerPath(StartLine.Verb.GET, "index", sd::sampleDomainIndex);
+        webFramework.registerPath(GET, "", r -> Response.redirectTo("index.html"));
+        webFramework.registerPath(GET, "index", sd::sampleDomainIndex);
 
         // sample domain stuff
-        webFramework.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
+        webFramework.registerPath(GET, "formentry", sd::formEntry);
         webFramework.registerPath(StartLine.Verb.POST, "testform", sd::testform);
 
         // photos stuff
-        webFramework.registerPath(StartLine.Verb.GET, "photos", lp::ListPhotosPage);
-        webFramework.registerPath(StartLine.Verb.GET, "upload", up::uploadPage);
+        webFramework.registerPath(GET, "photos", lp::ListPhotosPage);
+        webFramework.registerPath(GET, "upload", up::uploadPage);
         webFramework.registerPath(StartLine.Verb.POST, "upload", up::uploadPageReceivePost);
-        webFramework.registerPath(StartLine.Verb.GET, "photo", lp::grabPhoto);
+        webFramework.registerPath(GET, "photo", lp::grabPhoto);
 
         // minum.auth stuff
-        webFramework.registerPath(StartLine.Verb.GET, "login", auth::login);
-        webFramework.registerPath(StartLine.Verb.GET, "register", auth::register);
+        webFramework.registerPath(GET, "login", auth::login);
+        webFramework.registerPath(GET, "register", auth::register);
         webFramework.registerPath(StartLine.Verb.POST, "registeruser", auth::registerUser);
         webFramework.registerPath(StartLine.Verb.POST, "loginuser", auth::loginUser);
-        webFramework.registerPath(StartLine.Verb.GET, "logout", auth::logout);
-        webFramework.registerPath(StartLine.Verb.GET, "auth", auth::authPage);
+        webFramework.registerPath(GET, "logout", auth::logout);
+        webFramework.registerPath(GET, "auth", auth::authPage);
 
     }
 
