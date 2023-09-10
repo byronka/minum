@@ -78,17 +78,19 @@ public class SampleDomain {
     private final String authHomepage;
     private final String unauthHomepage;
 
+    private final FileUtils fileUtils;
+    private final ILogger logger;
+    
     /* ****************** */
     /* Constructor        */
     /* ****************** */
     
-    public SampleDomain(Db<PersonName> diskData, AuthUtils auth) {
-        
-        
+    public SampleDomain(Db<PersonName> diskData, AuthUtils auth, Context context) {
         this.db = diskData;
         this.auth = auth;
-        
-        nameEntryTemplate = TemplateProcessor.buildProcessor(FileUtils.readTemplate("sampledomain/name_entry.html"));
+        this.fileUtils = context.getFileUtils();
+        this.logger = context.getLogger();
+        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTemplate("sampledomain/name_entry.html"));
         authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
         unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
     }
