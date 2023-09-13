@@ -22,6 +22,10 @@ For more detail on intentions, purpose, and benefits, see the
 ## 🚀 [Quick start](docs/quick_start.md)
 
 
+Maven
+-----
+
+Published at [Maven Central Repository](https://central.sonatype.com/artifact/com.renomad/minum)
 
 Features:
 --------
@@ -42,6 +46,7 @@ _lines of production code (including required dependencies)_
 |-------|---------|-------------|
 | 3,757 | 255,384 | 1,085,405   |
 
+See [details](docs/size_comparisons.md)
 
 Documentation:
 --------------

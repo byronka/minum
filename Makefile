@@ -68,7 +68,7 @@ jar:: test
 
 #  see https://maven.apache.org/plugins/maven-deploy-plugin/examples/deploying-sources-javadoc.html
 #: add to the local Maven repository
-mvnlocalrepo:: clean set_pom_version jar jar_sources jar_javadoc
+mvnlocalrepo:: clean set_primary_pom_version set_version_of_published_pom jar jar_sources jar_javadoc
 	 ./mvnw org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION).jar         -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom
 	 ./mvnw org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-sources.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=sources
 	 ./mvnw org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=javadoc

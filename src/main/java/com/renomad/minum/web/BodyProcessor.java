@@ -89,7 +89,7 @@ final class BodyProcessor {
                 throw new ParsingException("Did not find a valid boundary value for the multipart input. Header was: " + contentType);
             } else {
                 logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
-                return new Body(Map.of(), bodyBytes, context);
+                return new Body(Map.of(), bodyBytes, Map.of(), context);
             }
         } catch (Throwable ex) {
             throw new ParsingException("Unable to parse this body", ex);
@@ -131,7 +131,7 @@ final class BodyProcessor {
             }
             throw new ParsingException("Unable to parse this body as application/x-www-form-urlencoded. Data: " + dataToReturn, ex);
         }
-        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), context);
+        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), Map.of(), context);
     }
 
     /**
@@ -175,6 +175,7 @@ final class BodyProcessor {
         // What we can bear in mind is that once we've read the headers, and gotten
         // past the single blank line, *everything else* is pure data.
         final var result = new HashMap<String, byte[]>();
+        final var partitionHeaders = new HashMap<String, Headers>();
         for (var df : partitions) {
             final var is = new ByteArrayInputStream(df);
 
@@ -205,6 +206,7 @@ final class BodyProcessor {
                     throw new RuntimeException(e);
                 }
                 result.put(name, data);
+                partitionHeaders.put(name, headers);
             }
             else {
                 String returnedData;
@@ -217,7 +219,7 @@ final class BodyProcessor {
             }
 
         }
-        return new Body(result, body, context);
+        return new Body(result, body, partitionHeaders, context);
     }
 
     /**

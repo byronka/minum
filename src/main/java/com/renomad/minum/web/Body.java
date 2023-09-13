@@ -34,9 +34,10 @@ public final class Body {
     private final Map<String, byte[]> bodyMap;
     private final byte[] raw;
     private final Context context;
+    private final Map<String, Headers> headers;
 
     public static Body EMPTY(Context context) {
-        return new Body(Map.of(), EMPTY_BYTES, context);
+        return new Body(Map.of(), EMPTY_BYTES, Map.of(), context);
     }
 
     /**
@@ -44,11 +45,14 @@ public final class Body {
      * @param bodyMap a map of key-value pairs, presumably extracted from form data.  Empty
      *                if our body isn't one of the form data protocols we understand.
      * @param raw the raw bytes of this body
+     * @param partitionHeaders if the body is of type form/multipart, each partition will have its own headers,
+     *                         including content length and content type, and possibly more.
      */
-    public Body(Map<String, byte[]> bodyMap, byte[] raw, Context context) {
+    public Body(Map<String, byte[]> bodyMap, byte[] raw, Map<String, Headers> partitionHeaders, Context context) {
         this.bodyMap = bodyMap;
         this.raw = raw;
         this.context = context;
+        this.headers = partitionHeaders;
     }
 
     /**
@@ -91,5 +95,35 @@ public final class Body {
      */
     public byte[] asBytes() {
         return this.raw;
+    }
+
+    /**
+     * If the body is of type form/multipart, return the headers
+     * for a particular partition.
+     * <p>
+     *     For example, given a partition with the name text1,
+     *     as seen in the following example, the headers
+     *     would be
+     * </p>
+     * <pre>
+     * Content-Type: text/plain
+     * Content-Disposition: form-data; name="text1"
+     * </pre>
+     * <pr>
+     *     Here is the multipart data:
+     * </pr>
+     * <pre>
+     * --i_am_a_boundary
+     *  Content-Type: text/plain
+     *  Content-Disposition: form-data; name="text1"
+     *
+     *  I am a value that is text
+     *  --i_am_a_boundary
+     *  Content-Type: application/octet-stream
+     *  Content-Disposition: form-data; name="image_uploads"; filename="photo_preview.jpg"
+     * </pre>
+     */
+    public Headers partitionHeaders(String partitionName) {
+        return this.headers.get(partitionName);
     }
 }

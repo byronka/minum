@@ -489,10 +489,30 @@ public class WebTests {
         byte[] multiPartData = makeTestMultiPartData();
         var bp = new BodyProcessor(context);
 
-        final var result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
+        Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
         assertEquals(result.asString("text1"), "I am a value that is text");
         assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
     }
+
+    /**
+     * Each part of the multipart data has its own headers. Let's
+     * make sure to convey this information to users.
+     * <p>
+     *     For example, it might include the mime type for the data.
+     * </p>
+     */
+    @Test
+    public void test_MultiPartForm_GetHeadersPerPartition() {
+        byte[] multiPartData = makeTestMultiPartData();
+        var bp = new BodyProcessor(context);
+
+        Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
+        assertEquals(result.asString("text1"), "I am a value that is text");
+        assertEquals(result.partitionHeaders("text1").valueByKey("content-type"), List.of("text/plain"));
+        assertEquals(result.partitionHeaders("text1").valueByKey("content-disposition"), List.of("form-data; name=\"text1\""));
+        assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
+    }
+
 
     /**
      * There are two primary ways to send data in requests and responses.
