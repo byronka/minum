@@ -174,7 +174,7 @@ public class DbTests {
         // create a corrupted file, to create that edge condition
         Files.write(pathToSampleFile, "invalid data".getBytes());
         final var ex = assertThrows(RuntimeException.class, () -> db.loadDataFromDisk());
-        assertEquals(ex.getMessage().replace('\\','/'), "Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\")");
+        assertTrue(ex.getMessage().replace('\\','/').startsWith("Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\"). Caused by: java.lang.NumberFormatException: For input string: \"invalid data\""));
 
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
         db.loadDataFromDisk();

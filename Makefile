@@ -31,6 +31,10 @@ clean::
 test::
 	 @${MAVEN} test
 
+#: run tests, and build a coverage report
+test_coverage::
+	 @${MAVEN} jacoco:prepare-agent test jacoco:report
+
 #: run mutation testing using pitest
 mutation_test::
 	 @echo "be patient - this can take 10 minutes, for real"

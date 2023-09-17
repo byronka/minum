@@ -287,7 +287,7 @@ public final class Db<T extends DbData<?>> {
                 // put the data into the in-memory data structure
                 data.put(deserializedData.getIndex(), deserializedData);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\")");
+                throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\"). Caused by: " + StacktraceUtils.stackTraceToString(e));
             }
         }
     }

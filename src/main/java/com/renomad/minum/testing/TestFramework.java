@@ -202,9 +202,9 @@ public final class TestFramework {
     private static String showWhiteSpace(String msg) {
         // if we have tabs, returns, newlines in the text, show them
         String text = msg
-                .replace("\t", "(TAB)")
-                .replace("\r", "(RETURN)")
-                .replace("\n", "(NEWLINE)");
+                .replace("\t", "\\t")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n");
         // if the text is an empty string, render that
         text = text.isEmpty() ? "(EMPTY)" : text;
         // if the text is nothing but whitespace, show that
