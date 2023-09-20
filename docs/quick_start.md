@@ -18,7 +18,7 @@ Let's make sure you can run java.  Quick test - run this in your shell:
 javac -version
 ```
 
-The result should be `javac 20.0.1` or higher.  If it not, check out [Step-by-step guide to installing Java on Windows](development_handbook.md#step-by-step-guide-for-installing-java-on-windows)
+The result should be `javac 21` or higher.  If it not, check out [Step-by-step guide to installing Java on Windows](development_handbook.md#step-by-step-guide-for-installing-java-on-windows)
 or [Java on Mac](development_handbook.md#java-on-mac)
 
 ***After changing environment variables, you must close and reopen your terminal to see the change***
