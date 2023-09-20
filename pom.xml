@@ -156,6 +156,11 @@
                     <outputDirectory>${basedir}/target/newsite</outputDirectory>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>3.3.0</version>
+            </plugin>
         </plugins>
     </reporting>
 </project>
