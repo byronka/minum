@@ -31,6 +31,10 @@ clean::
 test::
 	 @${MAVEN} test
 
+#: create the site report
+site::
+	 @${MAVEN} site
+
 #: run tests, and build a coverage report
 test_coverage::
 	 @${MAVEN} jacoco:prepare-agent test jacoco:report
