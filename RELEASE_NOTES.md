@@ -1,5 +1,5 @@
-v1.0.0 - September 10, 2023
------------------------------------
+v1.0.0 - September 19, 2023 - Git commit hash: 5bcf5802652a
+-----------------------------------------------------------
 
 * Remove StaticFileCache - see 25763cfe
 * Incorporate Maven
