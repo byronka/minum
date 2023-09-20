@@ -53,8 +53,8 @@ Documentation:
 
 * [Development handbook](docs/development_handbook.md)
 * [Javadocs](https://byronka.github.io/javadoc/)
-* [Test coverage](https://byronka.github.io/coveragereport/)
-* [Test summary](https://byronka.github.io/minum_tests.html)
+* [Site report](https://byronka.github.io/site/)
+* [Mutation test report](https://byronka.github.io/pit-reports)
 
 
 Example projects demonstrating usage:
