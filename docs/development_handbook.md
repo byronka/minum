@@ -581,6 +581,13 @@ See the [parable of two programmers](parable_two_programmers.md)
 >
 > -- _Tony Hoare, 1980 ACM Turing award lecture_
 
+
+>It is better to do a simple thing today and pay a little more tomorrow to change it
+>if it needs it, than to do a more [complicated](docs/simplify_then_add_lightness.md) thing today
+>that may never be used anyway.
+>
+> -- _Kent Beck Extreme Programming Explained_
+
 >Keep it simple, stupid
 >
 > -- _Kelly Johnson, Lockheed Skunk Works_

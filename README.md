@@ -1,19 +1,7 @@
 Minum Framework
 ===============
 
-A web framework demonstrating [_"less is more"_](http://mcfunley.com/choose-boring-technology)
-
-> It is better to do a simple thing today and pay a little more tomorrow to change it
-> if it needs it, than to do a more [complicated](docs/simplify_then_add_lightness.md) thing today 
-> that may never be used anyway.
-> 
-> -- Kent Beck, _Extreme Programming Explained_
-
-Minum is a framework that provides solely those components
-necessary to create a web-based application, including a web server, pared-down database,
-template processor, and other necessary features. It differs from a library in
-that it does not merely cater for a motley assortment of needs, but instead,
-covers every core need of a web application, minimalistically.
+Minum is a minimalistic experimental web framework demonstrating [_less is more_](http://mcfunley.com/choose-boring-technology)
 
 For more detail on intentions, purpose, and benefits, see the
 [development handbook](docs/development_handbook.md).
