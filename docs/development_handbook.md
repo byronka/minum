@@ -49,9 +49,7 @@ Features:
 Quick start:
 ------------
 
-* To test: `make test`
-* To create a library jar: `make jar`
-* For help: `make`
+[Quick start](docs/quick_start.md)
 
 Description
 ------------
