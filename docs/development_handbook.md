@@ -49,7 +49,7 @@ Features:
 Quick start:
 ------------
 
-[Quick start](docs/quick_start.md)
+[Quick start](quick_start.md)
 
 Description
 ------------
