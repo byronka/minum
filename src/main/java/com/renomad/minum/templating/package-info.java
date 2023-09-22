@@ -5,7 +5,7 @@
  *     Performance is excellent.
  * </p>
  * <p>
- *     Here is a slightly simplified example extracted from SampleDomain.java
+ *     Here is a slightly simplified example extracted from SampleDomain.java in the tests directory
  * </p>
  *
  * <pre>

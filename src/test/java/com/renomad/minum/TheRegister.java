@@ -68,7 +68,7 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        var sampleDomainDb = new Db<>(Path.of(context.getConstants().DB_DIRECTORY, "names"), context, PersonName.EMPTY);
+        Db<PersonName> sampleDomainDb = context.getDb("names", PersonName.EMPTY);
         return new SampleDomain(sampleDomainDb, auth, context);
     }
 

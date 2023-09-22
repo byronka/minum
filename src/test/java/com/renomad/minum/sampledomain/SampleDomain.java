@@ -25,8 +25,8 @@ public class SampleDomain {
     private final String unauthHomepage;
     private final FileUtils fileUtils;
 
-    public SampleDomain(Db<PersonName> diskData, AuthUtils auth, Context context) {
-        this.db = diskData;
+    public SampleDomain(Db<PersonName> db, AuthUtils auth, Context context) {
+        this.db = db;
         this.auth = auth;
         this.fileUtils = context.getFileUtils();
         String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
