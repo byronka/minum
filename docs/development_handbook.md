@@ -92,7 +92,7 @@ The experiment is still ongoing, but I have seen some interim benefits.
   the [response speed test](perf_data/response_speed_test.md), the [database speed test](perf_data/database_speed_test.md), and 
   the [templating engine speed test](perf_data/templateRenderTest.md).
 
-- Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/436).
+- Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/444).
   This allows it to manage [thousands of concurrent requests](perf_data/loom_perf.md) on resource-constrained
   hardware.
 
@@ -113,7 +113,7 @@ System requirements:
 --------------------
 
 [JDK version 21](https://jdk.java.net/21/) is _required_, since it
-provides us the [virtual threads](https://openjdk.org/jeps/436) we need.
+provides us the [virtual threads](https://openjdk.org/jeps/444) we need.
 
 Developed in two environments:
 * MacBook Pro with OS 12.0.1, with OpenJDK 21, GNU Make 3.81 and Rsync 2.6.9

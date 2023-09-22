@@ -21,7 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 final class LoggingActionQueue {
     private final String name;
     private final ExecutorService executorService;
-    private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;
+    private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private boolean stop = false;
     private Thread queueThread;
     private final Constants constants;
@@ -42,23 +42,24 @@ final class LoggingActionQueue {
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    RunnableWithDescription<?> action = queue.take();
+                    RunnableWithDescription action = queue.take();
                     try {
                         action.run();
-                    } catch (Throwable ex) {
+                    } catch (Exception ex) {
                         System.out.println(ex);
                     }
                 }
             } catch (InterruptedException ex) {
-            /*
-            this is what we expect to happen.
-            once this happens, we just continue on.
-            this only gets called when we are trying to shut everything
-            down cleanly
-             */
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoggingActionQueue for %s is stopped.%n", name);
+                /*
+                this is what we expect to happen.
+                once this happens, we just continue on.
+                this only gets called when we are trying to shut everything
+                down cleanly
+                 */
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s LoggingActionQueue for %s is stopped.%n", TimeUtils.getTimestampIsoInstant(), name);
+                Thread.currentThread().interrupt();
             } catch (Exception ex) {
-                System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: LoggingActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
+                System.out.printf("%s ERROR: LoggingActionQueue for %s has stopped unexpectedly. error: %s%n", TimeUtils.getTimestampIsoInstant(), name, ex);
                 throw ex;
             }
         };
@@ -70,9 +71,9 @@ final class LoggingActionQueue {
      * Adds something to the queue to be processed.
      * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
      */
-    void enqueue(String description, ThrowingRunnable<?> action) {
+    void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {
-            queue.add(new RunnableWithDescription<>(action, description));
+            queue.add(new RunnableWithDescription(action, description));
         }
     }
 
@@ -82,15 +83,14 @@ final class LoggingActionQueue {
      * @param sleepTime how long to wait in milliseconds between loops
      */
     void stop(int count, int sleepTime) {
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping queue " + this);
+        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s Stopping queue %s%n", TimeUtils.getTimestampIsoInstant(), this);
         stop = true;
         for (int i = 0; i < count; i++) {
-            int size = queue.size();
-            if (!(size > 0)) return;
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue not yet empty, has %d elements. waiting...%n", size);
+            if (queue.isEmpty()) return;
+            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s Queue not yet empty, has %d elements. waiting...%n", TimeUtils.getTimestampIsoInstant(), queue.size());
             MyThread.sleep(sleepTime);
         }
-        System.out.printf(TimeUtils.getTimestampIsoInstant() + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
+        System.out.printf("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s",TimeUtils.getTimestampIsoInstant(), this, queue.size(), queue);
     }
 
     /**

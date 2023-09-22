@@ -12,11 +12,11 @@ import com.renomad.minum.logging.ILogger;
  * alleviate that situation.
  */
 @FunctionalInterface
-public interface ThrowingRunnable<E extends Throwable>{
+public interface ThrowingRunnable {
 
-    void run() throws E;
+    void run();
 
-    static Runnable throwingRunnableWrapper(ThrowingRunnable<Exception> throwingRunnable, ILogger logger) {
+    static Runnable throwingRunnableWrapper(ThrowingRunnable throwingRunnable, ILogger logger) {
         return () -> {
             try {
                 throwingRunnable.run();

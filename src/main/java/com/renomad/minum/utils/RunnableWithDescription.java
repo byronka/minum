@@ -5,17 +5,17 @@ package com.renomad.minum.utils;
  * possible reviewing the queue of actions and more easily understanding
  * the purpose of each Callable.
  */
-public final class RunnableWithDescription<E extends Throwable> implements ThrowingRunnable<E> {
+public final class RunnableWithDescription implements ThrowingRunnable {
 
     private final String description;
-    private final ThrowingRunnable<E> r;
+    private final ThrowingRunnable r;
 
     /**
      * By constructing a {@link ThrowingRunnable} here, you can
      * provide a description of the runnable that will be reviewable
      * during debugging.
      */
-    public RunnableWithDescription(ThrowingRunnable<E> r, String description) {
+    public RunnableWithDescription(ThrowingRunnable r, String description) {
         this.description = description;
         this.r = r;
     }
@@ -30,7 +30,7 @@ public final class RunnableWithDescription<E extends Throwable> implements Throw
     }
 
     @Override
-    public void run() throws E {
+    public void run() {
         r.run();
     }
 }

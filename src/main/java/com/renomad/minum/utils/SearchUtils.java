@@ -37,8 +37,8 @@ public final class SearchUtils {
      */
     public static <T> T findExactlyOne(Stream<T> streamOfSomething, Predicate<? super T> searchPredicate, Callable<T> alternate) {
         List<T> listOfThings = streamOfSomething.filter(searchPredicate).toList();
-        mustBeTrue(listOfThings.size() == 0 || listOfThings.size() == 1, "Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
-        if (listOfThings.size() == 0) {
+        mustBeTrue(listOfThings.isEmpty() || listOfThings.size() == 1, "Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
+        if (listOfThings.isEmpty()) {
             T returnValue;
             try {
                 returnValue = alternate.call();
@@ -51,5 +51,3 @@ public final class SearchUtils {
         }
     }
 }
-
-//   Stream<T> filter(Predicate<? super T> predicate);

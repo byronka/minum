@@ -52,7 +52,7 @@ record SetOfSws(
         for (int loopCount = 0; loopCount < maxLoops; loopCount++ ) {
             List<ISocketWrapper> servers = data()
                     .asStream()
-                    .filter((x) -> x.getRemoteAddrWithPort().equals(new InetSocketAddress(address, port)))
+                    .filter(x -> x.getRemoteAddrWithPort().equals(new InetSocketAddress(address, port)))
                     .toList();
             mustBeFalse(servers.size() > 1, "Too many sockets found with that address");
             if (servers.size() == 1) {

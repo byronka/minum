@@ -91,7 +91,7 @@ public class DbTests {
         // (milli)second or two here for them to get onto the disk before we check for them.
         MyThread.sleep(FINISH_TIME);
         for (var foo : foos) {
-            assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.databaseFileSuffix)));
+            assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
         }
 
         // rebuild some objects from what was written to disk
@@ -128,7 +128,7 @@ public class DbTests {
         // (milli)second or two here for them to get onto the disk before we check for them.
         MyThread.sleep(FINISH_TIME);
         for (var foo : foos) {
-            assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.databaseFileSuffix)));
+            assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
         }
 
         // give the action queue time to save files to disk

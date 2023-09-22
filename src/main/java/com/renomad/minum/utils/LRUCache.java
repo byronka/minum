@@ -18,6 +18,7 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
     private static final int DEFAULT_MAX_ENTRIES = 100;
     private final int maxSize;
 
+    @Override
     protected boolean removeEldestEntry(Map.Entry<String, T> eldest) {
         return size() > maxSize;
     }
@@ -56,4 +57,6 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
     public static <T> Map<String, T> getLruCache(int maxSize) {
         return Collections.synchronizedMap(new LRUCache<>(maxSize));
     }
+
+
 }

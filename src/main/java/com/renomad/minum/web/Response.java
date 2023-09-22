@@ -100,4 +100,28 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
     public static Response htmlOk(String body) {
         return htmlOk(body, Map.of());
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Response response = (Response) o;
+        return statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Arrays.equals(body, response.body);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(statusCode, extraHeaders);
+        result = 31 * result + Arrays.hashCode(body);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Response{" +
+                "statusCode=" + statusCode +
+                ", extraHeaders=" + extraHeaders +
+                ", body=" + Arrays.toString(body) +
+                '}';
+    }
 }

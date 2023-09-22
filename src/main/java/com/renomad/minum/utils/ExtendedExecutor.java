@@ -11,10 +11,17 @@ import java.util.concurrent.*;
  */
 public final class ExtendedExecutor extends ThreadPoolExecutor {
 
-    public ExtendedExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
+    public ExtendedExecutor(
+            int corePoolSize,
+            int maximumPoolSize,
+            long keepAliveTime,
+            TimeUnit unit,
+            BlockingQueue<Runnable> workQueue,
+            ThreadFactory threadFactory) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
     }
 
+    @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
         if (t == null
@@ -32,7 +39,7 @@ public final class ExtendedExecutor extends ThreadPoolExecutor {
             }
         }
         if (t != null)
-            t.printStackTrace();
+            System.out.println(t);
     }
 
     public static ExecutorService makeExecutorService(Constants constants) {

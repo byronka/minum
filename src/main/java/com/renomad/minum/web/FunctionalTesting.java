@@ -8,6 +8,7 @@ import com.renomad.minum.logging.ILogger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -54,8 +55,8 @@ public final class FunctionalTesting {
             var htmlParser = new HtmlParser();
             var nodes = htmlParser.parse(body.asString());
             var searchResults = htmlParser.search(nodes, tagName, attributes);
-            mustBeTrue(searchResults.size() == 0 || searchResults.size() == 1, "More than 1 node found.  Here they are:" + searchResults);
-            if (searchResults.size() == 0) {
+            mustBeTrue(searchResults.isEmpty() || searchResults.size() == 1, "More than 1 node found.  Here they are:" + searchResults);
+            if (searchResults.isEmpty()) {
                 return HtmlParseNode.EMPTY;
             } else {
                 return searchResults.get(0);
@@ -71,8 +72,7 @@ public final class FunctionalTesting {
         public List<HtmlParseNode> search(TagName tagName, Map<String, String> attributes) {
             var htmlParser = new HtmlParser();
             var nodes = htmlParser.parse(body.asString());
-            var searchResults = htmlParser.search(nodes, tagName, attributes);
-            return searchResults;
+            return htmlParser.search(nodes, tagName, attributes);
         }
     }
 
@@ -172,43 +172,45 @@ public final class FunctionalTesting {
         Body body = Body.EMPTY(context);
         Headers headers = null;
         StatusLine statusLine = StatusLine.EMPTY;
-        try (var client = webEngine.startClient(primaryServer)) {
-            InputStream is = client.getInputStream();
+        try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+            try (var client = webEngine.startClient(socket)) {
+                InputStream is = client.getInputStream();
 
-            // send a POST request
-            client.sendHttpLine(verb + " /"+path+" HTTP/1.1");
-            client.sendHttpLine("Host: localhost:8080");
-            client.sendHttpLine("Content-Length: " + payload.length);
-            for (String header : extraHeaders) {
-                client.sendHttpLine(header);
-            }
-            client.sendHttpLine("");
-            client.send(payload);
+                // send a POST request
+                client.sendHttpLine(verb + " /" + path + " HTTP/1.1");
+                client.sendHttpLine("Host: localhost:8080");
+                client.sendHttpLine("Content-Length: " + payload.length);
+                for (String header : extraHeaders) {
+                    client.sendHttpLine(header);
+                }
+                client.sendHttpLine("");
+                client.send(payload);
 
-            statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
 
-            headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
+                headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
 
-            BodyProcessor bodyProcessor = new BodyProcessor(context);
+                BodyProcessor bodyProcessor = new BodyProcessor(context);
 
 
-            if (webFramework.isThereIsABody(headers)) {
-                Headers finalHeaders = headers;
-                logger.logTrace(() -> "There is a body. Content-type is " + finalHeaders.contentType());
-                body = bodyProcessor.extractData(is, headers);
-            }
+                if (webFramework.isThereIsABody(headers)) {
+                    Headers finalHeaders = headers;
+                    logger.logTrace(() -> "There is a body. Content-type is " + finalHeaders.contentType());
+                    body = bodyProcessor.extractData(is, headers);
+                }
 
-        } catch (SocketException ex) {
-            if (ex.getMessage().equals("An established connection was aborted by the software in your host machine") ||
-                    ex.getMessage().equals("Connection reset")) {
+            } catch (SocketException ex) {
+                if (ex.getMessage().equals("An established connection was aborted by the software in your host machine") ||
+                        ex.getMessage().equals("Connection reset")) {
                 /*
                 When the server is done communicating with us, it will close
                 the socket on its side, which will cause a SocketException on our side.
                 If the message matches what we have here, it's just that happening, no
                 need to pass it up further, it's expected and ok.
                  */
-            } else {
-                throw ex;
+                } else {
+                    throw ex;
+                }
             }
         }
 

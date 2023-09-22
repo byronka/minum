@@ -20,7 +20,8 @@ public final class MyThread {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            System.out.println(e);
+            Thread.currentThread().interrupt();
         }
 
     }

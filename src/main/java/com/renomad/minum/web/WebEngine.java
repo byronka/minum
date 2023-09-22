@@ -58,7 +58,7 @@ final class WebEngine {
     /*
      * If we find the keystore and pass in the system properties
      */
-    final var useExternalKeystore = checkSystemPropertiesForKeystore();
+    final var useExternalKeystore = Boolean.TRUE.equals(checkSystemPropertiesForKeystore());
 
     ServerSocket ss;
 
@@ -159,8 +159,7 @@ final class WebEngine {
   /**
    * Create a client {@link ISocketWrapper} connected to the running host server
    */
-  ISocketWrapper startClient(Server server) throws IOException {
-    Socket socket = new Socket(server.getHost(), server.getPort());
+  ISocketWrapper startClient(Socket socket) throws IOException {
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
     return new SocketWrapper(socket, logger, constants.SOCKET_TIMEOUT_MILLIS);
   }

@@ -1,17 +1,11 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.testing.StopwatchUtils;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static java.nio.file.Files.writeString;
 
 /**
  * This implementation of {@link Logger} has a few
@@ -20,7 +14,7 @@ import static java.nio.file.Files.writeString;
 public class TestLogger extends Logger {
 
     private Queue<String> recentLogLines;
-    private final int MAX_CACHE_SIZE = 20;
+    private static final int MAX_CACHE_SIZE = 20;
     private final ReentrantLock logDebugLock;
     private final ReentrantLock logAuditLock;
     private final ReentrantLock logTraceLock;
@@ -159,8 +153,8 @@ public class TestLogger extends Logger {
         final var dashes = "-".repeat(msg.length() + baseLength);
 
         loggingActionQueue.enqueue("Testlogger#test("+msg+")", () -> {
-            Object[] args = new Object[]{testCount++, msg};
-            System.out.printf("%n+"  + dashes + "+%n| TEST %d: %s |%n+"+ dashes + "+%n%n", args);
+            testCount += 1;
+            System.out.printf("%n+%s+%n| TEST %d: %s |%n+%s+%n%n", dashes, testCount, msg, dashes);
         });
     }
 

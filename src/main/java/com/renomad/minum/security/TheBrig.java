@@ -137,28 +137,7 @@ public final class TheBrig implements ITheBrig {
             myThread = Thread.currentThread();
             while (true) {
                 try {
-                    int size = clientKeys.size();
-                    if (size > 0) {
-                        logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + size);
-                    }
-                    var now = System.currentTimeMillis();
-                    List<String> keysToRemove = new ArrayList<>();
-                    // figure out which clients have paid their dues
-                    for (var e : clientKeys.entrySet()) {
-                        if (e.getValue() < now) {
-                            logger.logTrace(() -> "UnderInvestigation: " + e.getKey() + " has paid its dues and is getting released");
-                            keysToRemove.add(e.getKey());
-                        }
-                    }
-                    for (var k : keysToRemove) {
-                        logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-                        List<Inmate> inmates1 = db.values().stream().filter(x -> x.clientId.equals(k)).toList();
-                        mustBeTrue(inmates1.size() == 1, "There must be exactly one inmate found or there's a bug");
-                        Inmate inmateToRemove = inmates1.get(0);
-                        clientKeys.remove(k);
-                        db.delete(inmateToRemove);
-                    }
-                    Thread.sleep(sleepTime);
+                    reviewCurrentInmates();
                 } catch (InterruptedException ex) {
 
                     /*
@@ -168,16 +147,48 @@ public final class TheBrig implements ITheBrig {
                     down cleanly
                      */
 
-                    if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " TheBrig is stopped.%n");
+                    if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
+                        System.out.printf("%s TheBrig is stopped.%n", TimeUtils.getTimestampIsoInstant());
+                    }
+                    Thread.currentThread().interrupt();
                     return null;
                 } catch (Exception ex) {
-                    System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: TheBrig has stopped unexpectedly. error: %s%n", ex);
+                    System.out.printf("%s ERROR: TheBrig has stopped unexpectedly. error: %s%n",TimeUtils.getTimestampIsoInstant(), ex);
                     throw ex;
                 }
             }
         };
         es.submit(innerLoopThread);
         return this;
+    }
+
+    private void reviewCurrentInmates() throws InterruptedException {
+        int size = clientKeys.size();
+        if (size > 0) {
+            logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + size);
+        }
+        var now = System.currentTimeMillis();
+        List<String> keysToRemove = new ArrayList<>();
+        // figure out which clients have paid their dues
+        for (var e : clientKeys.entrySet()) {
+            reviewForParole(now, keysToRemove, e);
+        }
+        for (var k : keysToRemove) {
+            logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
+            List<Inmate> inmates1 = db.values().stream().filter(x -> x.clientId.equals(k)).toList();
+            mustBeTrue(inmates1.size() == 1, "There must be exactly one inmate found or there's a bug");
+            Inmate inmateToRemove = inmates1.get(0);
+            clientKeys.remove(k);
+            db.delete(inmateToRemove);
+        }
+        Thread.sleep(sleepTime);
+    }
+
+    private void reviewForParole(long now, List<String> keysToRemove, Map.Entry<String, Long> e) {
+        if (e.getValue() < now) {
+            logger.logTrace(() -> "UnderInvestigation: " + e.getKey() + " has paid its dues and is getting released");
+            keysToRemove.add(e.getKey());
+        }
     }
 
     @Override

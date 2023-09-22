@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
  * This class is responsible for kicking off the entire system.
  * In particular, look at {@link #start()}
  */
-public final class FullSystem implements AutoCloseable {
+public final class FullSystem {
 
     final ILogger logger;
     private final Constants constants;
@@ -190,23 +190,27 @@ public final class FullSystem implements AutoCloseable {
         if (!hasShutdown) {
             logger.logTrace(() -> "close called on " + this);
             try {
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
                     System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
-
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                }
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
                     System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
+                }
                 if (server != null) server.close();
 
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
                     System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
+                }
                 if (sslServer != null) sslServer.close();
 
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
                     System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all the action queues: " + this.context.getActionQueueList());
+                }
                 new ActionQueueKiller(context).killAllQueues();
 
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG))
-                    System.out.printf(TimeUtils.getTimestampIsoInstant() + " %s says: Goodbye world!%n", this);
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
+                    System.out.printf("%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), this);
+                }
 
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
@@ -252,6 +256,8 @@ public final class FullSystem implements AutoCloseable {
         try {
             this.server.getCentralLoopFuture().get();
             this.sslServer.getCentralLoopFuture().get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }

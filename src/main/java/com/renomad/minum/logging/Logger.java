@@ -69,7 +69,7 @@ public class Logger implements ILogger {
      * A helper method to reduce duplication
      */
     private void logHelper(ThrowingSupplier<String, Exception> msg, LoggingLevel loggingLevel) {
-        if (activeLogLevels.get(loggingLevel)) {
+        if (Boolean.TRUE.equals(activeLogLevels.get(loggingLevel))) {
         String receivedMessage;
             try {
                 receivedMessage = msg.get();

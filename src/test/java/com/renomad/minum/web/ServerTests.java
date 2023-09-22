@@ -35,7 +35,7 @@ public class ServerTests {
      * our stack or some such nonsense.
      */
     @Test
-    public void test_Server_ForbiddenUse() throws Exception {
+    public void test_Server_ForbiddenUse() {
         Server server = new Server(null, context, "", null);
         var builtCore = server.buildExceptionHandlingInnerCore(x -> {
             throw new ForbiddenUseException("Forbidden!");
@@ -53,7 +53,7 @@ public class ServerTests {
      * as a form of attack.
      */
     @Test
-    public void test_Server_VulnerabilityAttack() throws Exception {
+    public void test_Server_VulnerabilityAttack() {
         Server server = new Server(null, context, "", theBrigMock);
         var builtCore = server.buildExceptionHandlingInnerCore(x -> {
             throw new SSLException("no cipher suites in common");
@@ -68,7 +68,7 @@ public class ServerTests {
      * but we don't do different things, we just log it.
      */
     @Test
-    public void test_Server_SocketException() throws Exception  {
+    public void test_Server_SocketException() {
         Server server = new Server(null, context, "", null);
         var builtCore = server.buildExceptionHandlingInnerCore(x -> {
             throw new SocketException("Foo foo is a foo");
@@ -86,10 +86,10 @@ public class ServerTests {
     public void test_Server_OtherException() {
         Server server = new Server(null, context, "", null);
         var builtCore = server.buildExceptionHandlingInnerCore(x -> {
-            throw new IOException();
+            throw new RuntimeException();
         }, new FakeSocketWrapper());
 
-        assertThrows(IOException.class, () -> builtCore.run());
+        assertThrows(RuntimeException.class, () -> builtCore.run());
     }
 
 

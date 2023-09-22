@@ -58,9 +58,9 @@ public final class StartLine{
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
      */
-    static final String startLinePattern = "^([A-Z]{3,8}) /(.*) HTTP/(1.1|1.0)$";
+    static final String START_LINE_PATTERN = "^([A-Z]{3,8}) /(.*) HTTP/(1.1|1.0)$";
 
-    static final Pattern startLineRegex = Pattern.compile(startLinePattern);
+    static final Pattern startLineRegex = Pattern.compile(START_LINE_PATTERN);
 
     public static StartLine EMPTY(Context context) {
         return new StartLine(Verb.NONE, PathDetails.empty, HttpVersion.NONE, "", context);
@@ -82,7 +82,7 @@ public final class StartLine{
 
     /**
      * These are the HTTP Verbs we handle.
-     * @see #startLinePattern
+     * @see #START_LINE_PATTERN
      */
     public enum Verb {
         GET,
@@ -112,12 +112,12 @@ public final class StartLine{
         if (!doesMatch) {
             return StartLine.EMPTY(context);
         }
-        mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, startLinePattern));
-        Verb verb = extractVerb(m.group(1));
+        mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, START_LINE_PATTERN));
+        Verb myVerb = extractVerb(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
         HttpVersion httpVersion = getHttpVersion(m.group(3));
 
-        return new StartLine(verb, pd, httpVersion, value, context);
+        return new StartLine(myVerb, pd, httpVersion, value, context);
     }
 
     private Verb extractVerb(String verbString) {

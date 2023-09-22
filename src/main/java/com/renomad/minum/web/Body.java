@@ -30,7 +30,7 @@ import java.util.Map;
  */
 public final class Body {
 
-    public static byte[] EMPTY_BYTES = new byte[0];
+    public static final byte[] EMPTY_BYTES = new byte[0];
     private final Map<String, byte[]> bodyMap;
     private final byte[] raw;
     private final Context context;

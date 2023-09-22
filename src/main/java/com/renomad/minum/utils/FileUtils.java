@@ -141,7 +141,7 @@ public final class FileUtils {
         }
 
         if (badFilePathPatterns.matcher(path).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", path.toString()));
+            logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", path));
             return new byte[0];
         }
 
@@ -179,8 +179,6 @@ public final class FileUtils {
                 return bytes;
 
             }
-        } catch (IOException e){
-            throw e;
         }
     }
 

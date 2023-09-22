@@ -34,7 +34,7 @@ final class BodyProcessor {
      * we would rather not include all that data in the logs.
      * So we will cap out at this value.
      */
-    final static int MAX_SIZE_DATA_RETURNED_IN_EXCEPTION = 1024;
+    static final int MAX_SIZE_DATA_RETURNED_IN_EXCEPTION = 1024;
 
     BodyProcessor(Context context) {
         this.context = context;
@@ -91,7 +91,7 @@ final class BodyProcessor {
                 logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
                 return new Body(Map.of(), bodyBytes, Map.of(), context);
             }
-        } catch (Throwable ex) {
+        } catch (Exception ex) {
             throw new ParsingException("Unable to parse this body", ex);
         }
     }
@@ -124,7 +124,7 @@ final class BodyProcessor {
                     throw new InvariantException(pair[0] + " was duplicated in the post body - had values of " + StringUtils.byteArrayToString(result) + " and " + pair[1]);
                 }
             }
-        } catch (Throwable ex) {
+        } catch (Exception ex) {
             String dataToReturn = input;
             if (input.length() > MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) {
                 dataToReturn = input.substring(0, MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) + " ... (remainder of data trimmed)";

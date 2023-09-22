@@ -20,7 +20,7 @@ package com.renomad.minum.testing;
  */
 public final class StopwatchUtils {
 
-    private long startTime = 0;
+    private long startTime;
 
     public StopwatchUtils startTimer() {
         this.startTime = System.currentTimeMillis();
@@ -28,7 +28,7 @@ public final class StopwatchUtils {
     }
 
     public StopwatchUtils() {
-
+        startTime = 0;
     }
 
 

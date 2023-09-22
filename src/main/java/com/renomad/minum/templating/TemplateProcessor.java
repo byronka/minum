@@ -49,7 +49,7 @@ import java.util.Map;
  */
 public final class TemplateProcessor {
 
-    final private List<TemplateSection> templateSections;
+    private final List<TemplateSection> templateSections;
 
     /**
      * Instantiate a new object with a list of {@link TemplateSection}.

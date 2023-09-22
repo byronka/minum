@@ -240,17 +240,17 @@ public final class Constants {
      * properties file should be shown when it's read.
      */
     private Properties getConfiguredProperties() {
-        var properties = new Properties();
+        var props = new Properties();
         String fileName = "minum.config";
         try (FileInputStream fis = new FileInputStream(fileName)) {
             System.out.println(TimeUtils.getTimestampIsoInstant() +
                     " found properties file at ./minum.config.  Loading properties");
-            properties.load(fis);
+            props.load(fis);
         } catch (Exception ex) {
             System.out.println(ConfigErrorMessage.getConfigErrorMessage());
             System.exit(1);
         }
-        return properties;
+        return props;
     }
 
 

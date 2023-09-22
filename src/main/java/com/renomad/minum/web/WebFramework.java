@@ -38,7 +38,12 @@ public final class WebFramework {
     private final InputStreamUtils inputStreamUtils;
     private final StopwatchUtils stopWatchUtils;
     private final BodyProcessor bodyProcessor;
-    private final Random random;
+    /**
+     * This is a variable storing a pseudo-random (non-secure) number
+     * that is shown to users when a serious error occurs, which
+     * will also be put in the logs, to make finding it easier.
+     */
+    private final Random randomErrorCorrelationId;
     private final FileUtils fileUtils;
 
     /**
@@ -82,7 +87,7 @@ public final class WebFramework {
 
         // build the handler
 
-        return (sw) -> {
+        return sw -> {
             try (sw) {
 
                 // if we recognize this client as an attacker, dump them.
@@ -92,7 +97,6 @@ public final class WebFramework {
                     if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
                         // if this client is a vulnerability seeker, just dump them unceremoniously
                         logger.logDebug(() -> "closing the socket on " + remoteClient);
-                        sw.close();
                         return;
                     }
                 }
@@ -200,7 +204,7 @@ public final class WebFramework {
                             // last-chance handling of that error where we return a 500 and a
                             // random code to the client, so a developer can find the detailed
                             // information in the logs, which have that same value.
-                            int randomNumber = random.nextInt();
+                            int randomNumber = randomErrorCorrelationId.nextInt();
                             logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
                             resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
                         }
@@ -239,7 +243,7 @@ public final class WebFramework {
      * body, we'll just read the start line and then stop reading from them.
      */
     ThrowingConsumer<ISocketWrapper, IOException> makeRedirectHandler() {
-        return (sw) -> {
+        return sw -> {
             try (sw) {
                 try (InputStream is = sw.getInputStream()) {
 
@@ -437,7 +441,9 @@ public final class WebFramework {
         this.fileUtils = context.getFileUtils();
         this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);
-        this.random = new Random();
+        // This random value is purely to help provide correlation betwee
+        // error messages in the UI and error logs.  There are no security concerns.
+        this.randomErrorCorrelationId = new Random();
     }
 
     /**

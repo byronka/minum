@@ -29,7 +29,7 @@ public final class Db<T extends DbData<?>> {
     /**
      * The suffix we will apply to each database file
      */
-    static final String databaseFileSuffix = ".ddps";
+    static final String DATABASE_FILE_SUFFIX = ".ddps";
     private final T emptyInstance;
 
     // some locks we use for certain operations
@@ -68,7 +68,7 @@ public final class Db<T extends DbData<?>> {
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
         this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
-        this.fullPathForIndexFile = dbDirectory.resolve("index" + databaseFileSuffix);
+        this.fullPathForIndexFile = dbDirectory.resolve("index" + DATABASE_FILE_SUFFIX);
         this.emptyInstance = instance;
         this.fileUtils = context.getFileUtils();
 
@@ -138,7 +138,7 @@ public final class Db<T extends DbData<?>> {
             data.put(newData.getIndex(), newData);
 
             // now handle the disk portion
-            final Path fullPath = dbDirectory.resolve(newData.getIndex() + databaseFileSuffix);
+            final Path fullPath = dbDirectory.resolve(newData.getIndex() + DATABASE_FILE_SUFFIX);
             actionQueue.enqueue("persist data to disk", () -> {
                 mustBeTrue(!fullPath.toFile().exists(), fullPath + " must not already exist before persisting");
                 String serializedData = newData.serialize();
@@ -188,7 +188,7 @@ public final class Db<T extends DbData<?>> {
 
             // now handle the disk portion
             actionQueue.enqueue("delete data from disk", () -> {
-                final Path fullPath = dbDirectory.resolve(dataIndex + databaseFileSuffix);
+                final Path fullPath = dbDirectory.resolve(dataIndex + DATABASE_FILE_SUFFIX);
                 try {
                     mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist before deletion");
                     Files.delete(fullPath);
@@ -225,7 +225,7 @@ public final class Db<T extends DbData<?>> {
 
             // now handle the disk portion
             actionQueue.enqueue("update data on disk", () -> {
-                final Path fullPath = dbDirectory.resolve(dataIndex + databaseFileSuffix);
+                final Path fullPath = dbDirectory.resolve(dataIndex + DATABASE_FILE_SUFFIX);
                 // if the file isn't already there, throw an exception
                 mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist during updates");
                 fileUtils.writeString(fullPath, dataUpdate.serialize());
@@ -248,11 +248,11 @@ public final class Db<T extends DbData<?>> {
         // walk through all the files in this directory, collecting
         // all regular files (non-subdirectories) except for index.ddps
         try (final var pathStream = Files.walk(dbDirectory)) {
-            final var listOfFiles = pathStream.filter(path -> {
-                return Files.exists(path) &&
+            final var listOfFiles = pathStream.filter(path ->
+                Files.exists(path) &&
                         Files.isRegularFile(path) &&
-                        !path.getFileName().toString().startsWith("index");
-            }).toList();
+                        !path.getFileName().toString().startsWith("index")
+            ).toList();
             for (Path p : listOfFiles) {
                 readAndDeserialize(p);
             }

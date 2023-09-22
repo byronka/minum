@@ -10,7 +10,6 @@ import com.renomad.minum.utils.ConcurrentSet;
 import com.renomad.minum.utils.StacktraceUtils;
 import com.renomad.minum.utils.ThrowingRunnable;
 
-import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +57,7 @@ final class Server implements AutoCloseable {
      * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
      */
     void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
-        ThrowingRunnable<Exception> serverCode = buildMainServerLoop(es, handler);
+        ThrowingRunnable serverCode = buildMainServerLoop(es, handler);
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(serverCode, logger);
         this.centralLoopFuture = es.submit(t);
     }
@@ -70,8 +69,8 @@ final class Server implements AutoCloseable {
      * @param handler the handler that will take charge immediately after
      *                a client makes a connection.
      */
-    private ThrowingRunnable<Exception> buildMainServerLoop(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
-        ThrowingRunnable<Exception> serverCode = () -> {
+    private ThrowingRunnable buildMainServerLoop(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
+        ThrowingRunnable serverCode = () -> {
             Thread.currentThread().setName("Main Server");
             try {
                 // yes, this infinite loop can only exit by an exception.  But this is
@@ -86,11 +85,11 @@ final class Server implements AutoCloseable {
                     logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
                     setOfSWs.add(sw);
                     if (handler != null) {
-                        ThrowingRunnable<Exception> innerServerCode = buildExceptionHandlingInnerCore(handler, sw);
+                        ThrowingRunnable innerServerCode = buildExceptionHandlingInnerCore(handler, sw);
                         es.submit(ThrowingRunnable.throwingRunnableWrapper(innerServerCode, logger));
                     }
                 }
-            } catch (SocketException ex) {
+            } catch (IOException ex) {
                 if (!(ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
                     logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
                 }
@@ -108,8 +107,8 @@ final class Server implements AutoCloseable {
      * </p>
      *
      */
-    ThrowingRunnable<Exception> buildExceptionHandlingInnerCore(ThrowingConsumer<ISocketWrapper, IOException> handler, ISocketWrapper sw) {
-        ThrowingRunnable<Exception> innerServerCode = () -> {
+    ThrowingRunnable buildExceptionHandlingInnerCore(ThrowingConsumer<ISocketWrapper, IOException> handler, ISocketWrapper sw) {
+        ThrowingRunnable innerServerCode = () -> {
             Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
             try {
                 handler.accept(sw);
@@ -129,15 +128,13 @@ final class Server implements AutoCloseable {
 
             } catch (ForbiddenUseException ex) {
                 logger.logDebug(ex::getMessage);
-            } catch (SSLException ex) {
+            } catch (IOException ex) {
                 logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
                 String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
 
-                if (suspiciousClues.length() > 0) {
-                    if (theBrig != null) {
-                        logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
-                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                    }
+                if (suspiciousClues.length() > 0 && theBrig != null) {
+                    logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
+                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                 }
             }
         };

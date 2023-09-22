@@ -22,7 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public final class ActionQueue {
     private final String name;
     private final ExecutorService queueExecutor;
-    private final LinkedBlockingQueue<RunnableWithDescription<?>> queue;
+    private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private final ILogger logger;
     private boolean stop = false;
     private Thread queueThread;
@@ -47,32 +47,33 @@ public final class ActionQueue {
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings("InfiniteLoopStatement")
     public ActionQueue initialize() {
-        Runnable queueThread = () -> {
+        Runnable centralLoop = () -> {
             Thread.currentThread().setName(name);
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    ThrowingRunnable<?> action = queue.take();
+                    ThrowingRunnable action = queue.take();
                     try {
                         action.run();
-                    } catch (Throwable e) {
+                    } catch (Exception e) {
                         logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
                     }
                 }
             } catch (InterruptedException ex) {
-            /*
-            this is what we expect to happen.
-            once this happens, we just continue on.
-            this only gets called when we are trying to shut everything
-            down cleanly
-             */
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " ActionQueue for %s is stopped.%n", name);
+                /*
+                this is what we expect to happen.
+                once this happens, we just continue on.
+                this only gets called when we are trying to shut everything
+                down cleanly
+                 */
+                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s ActionQueue for %s is stopped.%n", TimeUtils.getTimestampIsoInstant(), name);
+                Thread.currentThread().interrupt();
             } catch (Exception ex) {
-                System.out.printf(TimeUtils.getTimestampIsoInstant() + " ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", name, ex);
+                System.out.printf("%s ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", TimeUtils.getTimestampIsoInstant(), name, ex);
                 throw ex;
             }
         };
-        queueExecutor.submit(queueThread);
+        queueExecutor.submit(centralLoop);
         return this;
     }
 
@@ -95,9 +96,9 @@ public final class ActionQueue {
      *               to "return null" at the end of the action.
 
      */
-    public void enqueue(String description, ThrowingRunnable<?> action) {
+    public void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {
-            queue.add(new RunnableWithDescription<>(action, description));
+            queue.add(new RunnableWithDescription(action, description));
         }
     }
 
@@ -111,14 +112,13 @@ public final class ActionQueue {
         if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(timestamp + " Stopping queue " + this);
         stop = true;
         for (int i = 0; i < count; i++) {
-            int size = queue.size();
-            if (!(size > 0)) return;
+            if (queue.isEmpty()) return;
             if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                System.out.printf(timestamp + " Queue not yet empty, has %d elements. waiting...%n", size);
+                System.out.printf("%s Queue not yet empty, has %d elements. waiting...%n",timestamp, queue.size());
             }
             MyThread.sleep(sleepTime);
         }
-        System.out.printf(timestamp + " Queue %s has %d elements left but we're done waiting.  Queue toString: %s", this, queue.size(), queue);
+        System.out.printf("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s", timestamp, this, queue.size(), queue);
     }
 
     /**
@@ -141,7 +141,7 @@ public final class ActionQueue {
         return queueThread;
     }
 
-    LinkedBlockingQueue<RunnableWithDescription<?>> getQueue() {
+    LinkedBlockingQueue<RunnableWithDescription> getQueue() {
         return queue;
     }
 }
