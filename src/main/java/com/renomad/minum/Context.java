@@ -105,7 +105,7 @@ public final class Context {
      * Since this is a generic method, a bit of care is required when
      * calling.  Try to use a pattern like this:
      * <pre>
-     * {@code Db<Photograph> photoDb = wf.getDb("photos");}
+     * {@code Db<Photograph> photoDb = context.getDb("photos");}
      * </pre>
      * @param name the name of this data.  Note that this will be used
      *             as the directory for the data, so use characters your

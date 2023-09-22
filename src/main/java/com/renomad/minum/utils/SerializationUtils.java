@@ -11,7 +11,7 @@ public final class SerializationUtils {
 
     /**
      * This is a helper that will encode the values you give it
-     * in preparation for storage in a dataase file.
+     * in preparation for storage in a database file.
      * <p>
      *     <em>Please note</em>: There is minimal help here.  You
      *     need to keep track of which values will be encoded here.

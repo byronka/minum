@@ -2,7 +2,7 @@ Database Speed Test
 ===================
 
 The distinction of our database is that the data values are of a particular type,
-SimpleDataTypeImpl, which provide support for disk persistence.  Otherwise, they
+DbData, which provide support for disk persistence.  Otherwise, they
 are treated just like any ordinary data and can be arranged in any collection
 shape you could wish - trees, lists, whatever.
 
@@ -23,7 +23,7 @@ use cases.
 logger.test("Just how fast is our minum.database?");{
     // clear out the directory to start
     FileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-    final var db = new DatabaseDiskPersistenceSimpler<Foo>(foosDirectory, context);
+    final var db = new Db<Foo>(foosDirectory, context);
     MyThread.sleep(10);
 
     final var foos = new ArrayList<Foo>();
