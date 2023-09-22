@@ -44,7 +44,7 @@ See [details](docs/size_comparisons.md)
 Performance:
 ------------
 
-* 19,000 http responses per second by web server. [detail](docs/perf_data/framework_perf_comparison.md)
+* 19,000 http responses per second by web server. [detail](docs/perf_data/response_speed_test.md)
 * 2,000,000 updates per second to database. [detail](docs/perf_data/database_speed_test.md)
 * 27,000 templates per second rendered. [detail](docs/perf_data/templateRenderTest.md)
 
