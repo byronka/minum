@@ -154,10 +154,10 @@ public class HtmlParserTests {
 
     @Test
     public void test_HtmlParser_Edge_LargerFile() {
-        String htmlText = fileUtils.readTextFile("src/test/resources/templates/templatebenchmarks/expected_stock_output.html");
+        String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
         List<List<String>> myList = htmlRoots.stream().map(x -> x.print()).filter(x -> ! x.isEmpty()).toList();
-        var expected = fileUtils.readTextFile("src/test/resources/templates/templatebenchmarks/expected_stock_output_parsed.txt");
+        var expected = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output_parsed.txt");
         assertEquals(myList.toString(), expected);
     }
 

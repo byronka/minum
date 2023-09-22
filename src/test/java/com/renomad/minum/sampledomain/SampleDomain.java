@@ -29,9 +29,9 @@ public class SampleDomain {
         this.db = diskData;
         this.auth = auth;
         this.fileUtils = context.getFileUtils();
-        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/resources/templates/sampledomain/name_entry.html"));
-        authHomepage = fileUtils.readTextFile("src/test/resources/templates/sampledomain/auth_homepage.html");
-        unauthHomepage = fileUtils.readTextFile("src/test/resources/templates/sampledomain/unauth_homepage.html");
+        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html"));
+        authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
+        unauthHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/unauth_homepage.html");
     }
 
     public Response formEntry(Request r) {

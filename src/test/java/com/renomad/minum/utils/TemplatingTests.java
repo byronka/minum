@@ -97,9 +97,9 @@ public class TemplatingTests {
      */
     @Test
     public void test_Template_Realistic() {
-        var individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/resources/templates/templatebenchmarks/individual_stock.html"));
-        var stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/resources/templates/templatebenchmarks/stock_prices.html"));
-        var expectedOutput = fileUtils.readTextFile("src/test/resources/templates/templatebenchmarks/expected_stock_output.html");
+        var individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/individual_stock.html"));
+        var stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/stock_prices.html"));
+        var expectedOutput = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < Stock.dummyItems().size(); i++) {
