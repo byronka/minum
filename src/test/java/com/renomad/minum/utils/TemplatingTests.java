@@ -64,6 +64,26 @@ public class TemplatingTests {
         assertThrows(TemplateRenderException.class, "Missing a value for key {missing_key}", () -> tp.renderTemplate(myMap));
     }
 
+    /**
+     * template rendering - whitespace around key
+     *
+     * <p>
+     *     If there is whitespace around a key, like {{ foo }}, it
+     *     should work similarly to when there is no whitespace, like {{foo}}
+     * </p>
+     *
+     */
+    @Test
+    public void test_Template_Whitespace() {
+        String template = "Hello {{ name }}, I'm {{animal}}";
+        var myMap = Map.of("name", "byron", "animal", "cat");
+        TemplateProcessor tp = buildProcessor(template);
+
+        String renderedTemplate = tp.renderTemplate(myMap);
+
+        assertEquals(renderedTemplate, "Hello byron, I'm cat");
+    }
+
     /*
     This test is based on a benchmark comparison project I found at https://github.com/mbosecke/template-benchmark
 

@@ -72,7 +72,7 @@ public final class TemplateProcessor {
     /**
      * Builds a {@link TemplateProcessor} from a string
      * containing a proper template.  Templated values
-     * are surrounded by double-curly-braces, i.e. {{foo}}
+     * are surrounded by double-curly-braces, i.e. {{foo}} or {{ foo }}
      */
     public static TemplateProcessor buildProcessor(String template) {
         var tSections = new ArrayList<TemplateSection>();
@@ -93,7 +93,7 @@ public final class TemplateProcessor {
             if (charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}') {
                 i += 1;
                 if (builder.length() > 0) {
-                    tSections.add(new TemplateSection(builder.toString(), null));
+                    tSections.add(new TemplateSection(builder.toString().trim(), null));
                     builder = new StringBuilder();
                 }
                 continue;
