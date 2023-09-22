@@ -1,3 +1,11 @@
+v.1.1.0 - September 21, 2023
+----------------------------
+
+* Improved documentation
+* Improved templating - less strict with whitespace around keys
+* Adjust default time for use in TheBrig
+* Use webapp for static and template files
+
 v1.0.0 - September 19, 2023 - Git commit hash: 5bcf5802652a
 -----------------------------------------------------------
 
