@@ -15,6 +15,7 @@ Maven
 
 Published at [Maven Central Repository](https://central.sonatype.com/artifact/com.renomad/minum)
 
+
 Features:
 --------
 
@@ -25,8 +26,11 @@ Features:
 - Testing framework
 - HTML parsing
 
+
 Size Comparison:
 ----------------
+
+Compiled size: 150 kilobytes.
 
 _lines of production code (including required dependencies)_
 
@@ -35,6 +39,17 @@ _lines of production code (including required dependencies)_
 | 3,757 | 255,384 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
+
+
+Performance:
+------------
+
+* 19,000 http responses per second by web server. [detail](docs/perf_data/framework_perf_comparison.md)
+* 2,000,000 updates per second to database. [detail](docs/perf_data/database_speed_test.md)
+* 27,000 templates per second rendered. [detail](docs/perf_data/templateRenderTest.md)
+
+See [framework performance comparison](docs/perf_data/framework_perf_comparison.md)
+
 
 Documentation:
 --------------
