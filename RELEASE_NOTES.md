@@ -1,4 +1,9 @@
-v.1.1.0 - September 21, 2023
+v1.1.1 - September 22, 2023
+---------------------------
+
+* Linter suggestions
+
+v1.1.0 - September 21, 2023
 ----------------------------
 
 * Improved documentation
