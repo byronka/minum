@@ -19,12 +19,12 @@ Published at [Maven Central Repository](https://central.sonatype.com/artifact/co
 Features:
 --------
 
-- Secure TLS 1.3 HTTP/1.1 web server
-- In-memory database with disk persistence
-- Server-side templating
-- Logging framework
-- Testing framework
-- HTML parsing
+- [Secure TLS 1.3 HTTP/1.1 web server](src/main/java/com/renomad/minum/web)
+- [In-memory database with disk persistence](src/main/java/com/renomad/minum/database)
+- [Server-side templating](src/main/java/com/renomad/minum/templating)
+- [Logging framework](src/main/java/com/renomad/minum/logging)
+- [Testing framework](src/main/java/com/renomad/minum/testing)
+- [HTML parsing](src/main/java/com/renomad/minum/htmlparsing) 
 
 
 Size Comparison:

@@ -10,13 +10,11 @@ import com.renomad.minum.sampledomain.PersonName;
 import com.renomad.minum.sampledomain.SampleDomain;
 import com.renomad.minum.sampledomain.UploadPhoto;
 import com.renomad.minum.sampledomain.photo.Photograph;
+import com.renomad.minum.web.RequestLine;
 import com.renomad.minum.web.Response;
-import com.renomad.minum.web.StartLine;
 import com.renomad.minum.web.WebFramework;
 
-import java.nio.file.Path;
-
-import static com.renomad.minum.web.StartLine.Verb.GET;
+import static com.renomad.minum.web.RequestLine.Method.GET;
 
 /**
  * This class is where all code gets registered to work
@@ -24,7 +22,7 @@ import static com.renomad.minum.web.StartLine.Verb.GET;
  * <br><br>
  * example:
  * <pre>{@code
- *     wf.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
+ *     wf.registerPath(StartLine.Method.GET, "formentry", sd::formEntry);
  * }</pre>
  */
 public class TheRegister {
@@ -49,19 +47,19 @@ public class TheRegister {
 
         // sample domain stuff
         webFramework.registerPath(GET, "formentry", sd::formEntry);
-        webFramework.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        webFramework.registerPath(RequestLine.Method.POST, "testform", sd::testform);
 
         // photos stuff
         webFramework.registerPath(GET, "photos", lp::ListPhotosPage);
         webFramework.registerPath(GET, "upload", up::uploadPage);
-        webFramework.registerPath(StartLine.Verb.POST, "upload", up::uploadPageReceivePost);
+        webFramework.registerPath(RequestLine.Method.POST, "upload", up::uploadPageReceivePost);
         webFramework.registerPath(GET, "photo", lp::grabPhoto);
 
         // minum.auth stuff
         webFramework.registerPath(GET, "login", auth::login);
         webFramework.registerPath(GET, "register", auth::register);
-        webFramework.registerPath(StartLine.Verb.POST, "registeruser", auth::registerUser);
-        webFramework.registerPath(StartLine.Verb.POST, "loginuser", auth::loginUser);
+        webFramework.registerPath(RequestLine.Method.POST, "registeruser", auth::registerUser);
+        webFramework.registerPath(RequestLine.Method.POST, "loginuser", auth::loginUser);
         webFramework.registerPath(GET, "logout", auth::logout);
         webFramework.registerPath(GET, "auth", auth::authPage);
 

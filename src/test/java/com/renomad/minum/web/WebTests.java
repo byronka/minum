@@ -32,9 +32,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 
 import static com.renomad.minum.testing.TestFramework.*;
-import static com.renomad.minum.web.StartLine.Verb.GET;
-import static com.renomad.minum.web.StartLine.Verb.POST;
-import static com.renomad.minum.web.StartLine.startLineRegex;
+import static com.renomad.minum.web.RequestLine.Method.GET;
+import static com.renomad.minum.web.RequestLine.Method.POST;
+import static com.renomad.minum.web.RequestLine.startLineRegex;
 import static com.renomad.minum.web.StatusLine.StatusCode._200_OK;
 import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
@@ -216,8 +216,8 @@ public class WebTests {
      */
     class Summation {
         static Response addTwoNumbers(Request r) {
-            int aValue = Integer.parseInt(r.startLine().queryString().get("a"));
-            int bValue = Integer.parseInt(r.startLine().getPathDetails().queryString().get("b"));
+            int aValue = Integer.parseInt(r.requestLine().queryString().get("a"));
+            int bValue = Integer.parseInt(r.requestLine().getPathDetails().queryString().get("b"));
             int sum = aValue + bValue;
             String sumString = String.valueOf(sum);
             return Response.htmlOk(sumString);
@@ -285,20 +285,20 @@ public class WebTests {
 
     @Test
     public void test_StartLine_Post() {
-        StartLine sl = StartLine.EMPTY(context).extractStartLine("POST /something HTTP/1.0");
-        assertEquals(sl.getVerb(), POST);
+        RequestLine sl = RequestLine.EMPTY(context).extractStartLine("POST /something HTTP/1.0");
+        assertEquals(sl.getMethod(), POST);
     }
 
     @Test
     public void test_StartLine_EmptyPath() {
-        StartLine sl = StartLine.EMPTY(context).extractStartLine("GET / HTTP/1.1");
-        assertEquals(sl.getVerb(), GET);
+        RequestLine sl = RequestLine.EMPTY(context).extractStartLine("GET / HTTP/1.1");
+        assertEquals(sl.getMethod(), GET);
         assertEquals(sl.getPathDetails().isolatedPath(), "");
     }
 
     @Test
-    public void test_StartLine_MissingVerb() {
-            // missing verb
+    public void test_StartLine_MissingMethod() {
+            // missing method
             List<String> badStartLines = List.of(
                     "/something HTTP/1.1",
                     "GET HTTP/1.1",
@@ -308,9 +308,9 @@ public class WebTests {
                     ""
             );
             for (String s : badStartLines) {
-                assertEquals(StartLine.EMPTY(context).extractStartLine(s), StartLine.EMPTY(context));
+                assertEquals(RequestLine.EMPTY(context).extractStartLine(s), RequestLine.EMPTY(context));
             }
-            assertThrows(InvariantException.class, () -> StartLine.EMPTY(context).extractStartLine(null));
+            assertThrows(InvariantException.class, () -> RequestLine.EMPTY(context).extractStartLine(null));
     }
 
     @Test
@@ -560,7 +560,7 @@ public class WebTests {
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
+        final Function<RequestLine, Function<Request, Response>> testHandler = (sl -> r -> {
             if (r.body().asString("text1").equals("I am a value that is text") &&
                     (r.body().asBytes("image_uploads"))[0] == 1 &&
                     (r.body().asBytes("image_uploads"))[1] == 2 &&
@@ -612,7 +612,7 @@ public class WebTests {
         String startLineString = "GET /.well-known/acme-challenge/foobar HTTP/1.1";
 
         // Convert it to a typed value
-        var startLine = StartLine.EMPTY(context).extractStartLine(startLineString);
+        var startLine = RequestLine.EMPTY(context).extractStartLine(startLineString);
 
         // instantiate a web framework to do the processing.  We're TDD'ing some new
         // code inside this.
@@ -620,7 +620,7 @@ public class WebTests {
 
         // register a path to handle this pattern.  Wishful-thinking for the win.
         webFramework.registerPartialPath(GET, ".well-known/acme-challenge", request -> {
-            String path = request.startLine().getPathDetails().isolatedPath();
+            String path = request.requestLine().getPathDetails().isolatedPath();
             return Response.htmlOk("value was " + path);
         });
 
@@ -647,7 +647,7 @@ public class WebTests {
     @Test
     public void test_KeepAlive_Http_1_0() throws IOException {
 
-        final Function<StartLine, Function<Request, Response>> testHandler = (sl -> r -> {
+        final Function<RequestLine, Function<Request, Response>> testHandler = (sl -> r -> {
            return Response.htmlOk("looking good!");
         });
 
@@ -748,7 +748,7 @@ public class WebTests {
         var webFramework = new WebFramework(context, default_zdt);
 
         //
-        var startLine = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
@@ -762,7 +762,7 @@ public class WebTests {
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
@@ -773,18 +773,18 @@ public class WebTests {
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new StartLine(GET, new StartLine.PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", context);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
     @Test
-    public void test_PartialMatch_DifferentVerb() {
+    public void test_PartialMatch_DifferentMethod() {
         var webFramework = new WebFramework(context, default_zdt);
         Function<Request, Response> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new StartLine(POST, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(POST, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
@@ -796,7 +796,7 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
         webFramework.registerPartialPath(GET, "m", helloHandler);
 
-        var startLine = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
@@ -805,19 +805,19 @@ public class WebTests {
      */
     @Test
     public void test_QueryString_NullPathdetails() {
-        var startLine = new StartLine(GET, null, ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, null, ONE_DOT_ONE, "", context);
         assertEquals(startLine.queryString(), new HashMap<>());
     }
 
     @Test
     public void test_QueryString_NullQueryString() {
-        var startLine = new StartLine(GET, new StartLine.PathDetails("mypath", "", null), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", null), ONE_DOT_ONE, "", context);
         assertEquals(startLine.queryString(), new HashMap<>());
     }
 
     @Test
     public void test_QueryString_EmptyQueryString() {
-        var startLIne = new StartLine(GET, new StartLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLIne = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertEquals(startLIne.queryString(), new HashMap<>());
     }
 
@@ -828,11 +828,11 @@ public class WebTests {
     @Test
     public void test_StartLine_Hashing() {
         var startLines = Map.of(
-                new StartLine(GET, new StartLine.PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", context),   "foo",
-                new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context),   "bar",
-                new StartLine(GET, new StartLine.PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", context),   "baz"
+                new RequestLine(GET, new RequestLine.PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", context),   "foo",
+                new RequestLine(GET, new RequestLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context),   "bar",
+                new RequestLine(GET, new RequestLine.PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", context),   "baz"
         );
-        assertEquals(startLines.get(new StartLine(GET, new StartLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context)), "bar");
+        assertEquals(startLines.get(new RequestLine(GET, new RequestLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context)), "bar");
     }
 
     /**
@@ -844,8 +844,8 @@ public class WebTests {
         for (int i = 0; i < context.getConstants().MAX_QUERY_STRING_KEYS_COUNT + 2; i++) {
                 sb.append(String.format("foo%d=bar%d&", i, i));
         }
-        StartLine startLine = StartLine.EMPTY(context);
-        assertThrows(ForbiddenUseException.class, () -> startLine.extractMapFromQueryString(sb.toString()));
+        RequestLine requestLine = RequestLine.EMPTY(context);
+        assertThrows(ForbiddenUseException.class, () -> requestLine.extractMapFromQueryString(sb.toString()));
     }
 
     /**
@@ -853,8 +853,8 @@ public class WebTests {
      */
     @Test
     public void test_ExtractMapFromQueryString_NoEqualsSign() {
-        StartLine startLine = StartLine.EMPTY(context);
-        var result = startLine.extractMapFromQueryString("foo");
+        RequestLine requestLine = RequestLine.EMPTY(context);
+        var result = requestLine.extractMapFromQueryString("foo");
         assertEquals(result, Map.of());
     }
 

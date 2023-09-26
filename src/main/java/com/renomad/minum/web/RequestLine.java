@@ -18,9 +18,9 @@ import static com.renomad.minum.utils.Invariants.mustNotBeNull;
  * "start line" in an HTTP request.  For example,
  * GET /foo HTTP/1.1
  */
-public final class StartLine{
+public final class RequestLine {
 
-    private final Verb verb;
+    private final Method method;
     private final PathDetails pathDetails;
     private final HttpVersion version;
     private final String rawValue;
@@ -29,19 +29,19 @@ public final class StartLine{
     private final ILogger logger;
 
     /**
-     * @param verb GET, POST, etc.
+     * @param method GET, POST, etc.
      * @param pathDetails See {@link PathDetails}
      * @param version the version of HTTP (1.0 or 1.1) we're receiving
      * @param rawValue the entire raw string of the start line
      */
-    public StartLine(
-            Verb verb,
+    public RequestLine(
+            Method method,
             PathDetails pathDetails,
             HttpVersion version,
             String rawValue,
             Context context
     ) {
-        this.verb = verb;
+        this.method = method;
         this.pathDetails = pathDetails;
         this.version = version;
         this.rawValue = rawValue;
@@ -58,12 +58,12 @@ public final class StartLine{
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
      */
-    static final String START_LINE_PATTERN = "^([A-Z]{3,8}) /(.*) HTTP/(1.1|1.0)$";
+    static final String REQUEST_LINE_PATTERN = "^([A-Z]{3,8}) /(.*) HTTP/(1.1|1.0)$";
 
-    static final Pattern startLineRegex = Pattern.compile(START_LINE_PATTERN);
+    static final Pattern startLineRegex = Pattern.compile(REQUEST_LINE_PATTERN);
 
-    public static StartLine EMPTY(Context context) {
-        return new StartLine(Verb.NONE, PathDetails.empty, HttpVersion.NONE, "", context);
+    public static RequestLine EMPTY(Context context) {
+        return new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", context);
     }
 
     /**
@@ -81,10 +81,10 @@ public final class StartLine{
     }
 
     /**
-     * These are the HTTP Verbs we handle.
-     * @see #START_LINE_PATTERN
+     * These are the HTTP methods we handle.
+     * @see #REQUEST_LINE_PATTERN
      */
-    public enum Verb {
+    public enum Method {
         GET,
         POST,
         PUT,
@@ -95,7 +95,7 @@ public final class StartLine{
         HEAD,
 
         /**
-         * Represents the null value of Verb
+         * Represents the null value of Method
          */
         NONE
     }
@@ -104,28 +104,28 @@ public final class StartLine{
      * Given the string value of a startline (like GET /hello HTTP/1.1)
      * validate and extract the values for our use.
      */
-    public StartLine extractStartLine(String value) {
+    public RequestLine extractStartLine(String value) {
         mustNotBeNull(value);
-        Matcher m = StartLine.startLineRegex.matcher(value);
+        Matcher m = RequestLine.startLineRegex.matcher(value);
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return StartLine.EMPTY(context);
+            return RequestLine.EMPTY(context);
         }
-        mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, START_LINE_PATTERN));
-        Verb myVerb = extractVerb(m.group(1));
+        mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, REQUEST_LINE_PATTERN));
+        Method myMethod = extractMethod(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
         HttpVersion httpVersion = getHttpVersion(m.group(3));
 
-        return new StartLine(myVerb, pd, httpVersion, value, context);
+        return new RequestLine(myMethod, pd, httpVersion, value, context);
     }
 
-    private Verb extractVerb(String verbString) {
+    private Method extractMethod(String methodString) {
         try {
-            return Verb.valueOf(verbString.toUpperCase(Locale.ROOT));
+            return Method.valueOf(methodString.toUpperCase(Locale.ROOT));
         } catch (Exception ex) {
-            logger.logDebug(() -> "Unable to convert verb to enum: " + verbString);
-            return Verb.NONE;
+            logger.logDebug(() -> "Unable to convert method to enum: " + methodString);
+            return Method.NONE;
         }
     }
 
@@ -194,8 +194,8 @@ public final class StartLine{
         }
     }
 
-    public Verb getVerb() {
-        return verb;
+    public Method getMethod() {
+        return method;
     }
 
     public PathDetails getPathDetails() {
@@ -214,19 +214,19 @@ public final class StartLine{
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        StartLine startLine = (StartLine) o;
-        return verb == startLine.verb && Objects.equals(pathDetails, startLine.pathDetails) && version == startLine.version && Objects.equals(rawValue, startLine.rawValue);
+        RequestLine requestLine = (RequestLine) o;
+        return method == requestLine.method && Objects.equals(pathDetails, requestLine.pathDetails) && version == requestLine.version && Objects.equals(rawValue, requestLine.rawValue);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(verb, pathDetails, version, rawValue);
+        return Objects.hash(method, pathDetails, version, rawValue);
     }
 
     @Override
     public String toString() {
         return "StartLine{" +
-                "verb=" + verb +
+                "method=" + method +
                 ", pathDetails=" + pathDetails +
                 ", version=" + version +
                 ", rawValue='" + rawValue + '\'' +

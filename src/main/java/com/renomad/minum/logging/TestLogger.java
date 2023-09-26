@@ -19,7 +19,7 @@ public class TestLogger extends Logger {
     private final ReentrantLock logAuditLock;
     private final ReentrantLock logTraceLock;
     private final ReentrantLock logAsyncErrorLock;
-    private int testCount = 1;
+    private int testCount = 0;
 
     /**
      * See {@link TestLogger}

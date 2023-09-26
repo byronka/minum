@@ -1,3 +1,9 @@
+v2.0.0
+------
+
+* Renamings to better align with HTTP specification
+* Better correctness of database code, prevent some race conditions through locking
+
 v1.1.1 - September 22, 2023
 ---------------------------
 

@@ -70,7 +70,7 @@ public class ListPhotos {
      * Like you would think - a way to read a photo from disk to put on the wire
      */
     public Response grabPhoto(Request r) {
-        String filename = r.startLine().queryString().get("name");
+        String filename = r.requestLine().queryString().get("name");
         logger.logAudit(() -> r.remoteRequester() + " is looking for a photo named " + filename);
 
         // if the name query is null or blank, return 404

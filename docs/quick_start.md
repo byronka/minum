@@ -86,7 +86,7 @@ public class Main {
 
         // Register some endpoints
         fs.getWebFramework().registerPath(
-                StartLine.Verb.GET,
+                StartLine.Method.GET,
                 "",
                 request -> Response.htmlOk("<p>Hi there world!</p>"));
 
@@ -107,11 +107,11 @@ public class Main {
 
         // Register some endpoints
         fs.getWebFramework().registerPath(
-                StartLine.Verb.GET,
+                StartLine.Method.GET,
                 "",
                 request -> Response.htmlOk("<p>Hi there world!</p>"));
         fs.getWebFramework().registerPath(
-                StartLine.Verb.GET,
+                StartLine.Method.GET,
                 "hello",
                 request -> Response.htmlOk("<p>Hi there world!</p>"));
 
@@ -131,14 +131,14 @@ public class Main {
 
         // Register some endpoints
         fs.getWebFramework().registerPath(
-                StartLine.Verb.GET,
+                StartLine.Method.GET,
                 "",
                 request -> Response.htmlOk("<p>Hi there world!</p>"));
         fs.getWebFramework().registerPath(
-                StartLine.Verb.GET,
+                StartLine.Method.GET,
                 "hello",
                 request -> {
-                    String name = request.startLine().queryString().get("name");
+                    String name = request.requestLine().queryString().get("name");
                     return Response.htmlOk(String.format("<p>Hi there %s!</p>", name));
                 });
 

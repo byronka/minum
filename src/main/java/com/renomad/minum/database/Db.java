@@ -14,7 +14,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.utils.Invariants.*;
@@ -33,10 +35,17 @@ public final class Db<T extends DbData<?>> {
     private final T emptyInstance;
 
     // some locks we use for certain operations
-    private final ReentrantLock loadDataLock = new ReentrantLock();
-    private final ReentrantLock writeLock = new ReentrantLock();
-    private final ReentrantLock updateLock = new ReentrantLock();
-    private final ReentrantLock deleteLock = new ReentrantLock();
+    private final Lock loadDataLock = new ReentrantLock();
+    private final Lock writeLock = new ReentrantLock();
+    private final Lock updateLock = new ReentrantLock();
+    private final Lock deleteLock = new ReentrantLock();
+
+    /**
+     * This is a lock that goes around the code that modifies data in the
+     * map, so that it is not possible for two different modifications to
+     * interleave (that is, cause race conditions).
+     */
+    private final Lock modificationLock = new ReentrantLock();
 
     /**
      * The full path to the file that contains the most-recent index
@@ -64,7 +73,7 @@ public final class Db<T extends DbData<?>> {
      */
     public Db(Path dbDirectory, Context context, T instance) {
         this.hasLoadedData = false;
-        data = new HashMap<>();
+        data = new ConcurrentHashMap<>();
         actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
         this.logger = context.getLogger();
         this.dbDirectory = dbDirectory;
@@ -133,13 +142,20 @@ public final class Db<T extends DbData<?>> {
             // load data if needed
             if (!hasLoadedData) loadData();
 
-            // deal with the in-memory portion
-            newData.setIndex(index.getAndIncrement());
-            data.put(newData.getIndex(), newData);
+            modificationLock.lock();
+            try {
+                // deal with the in-memory portion
+                newData.setIndex(index.getAndIncrement());
+                logger.logTrace(() -> String.format("in thread %s, writing data %s", Thread.currentThread().getName(), newData));
+                data.put(newData.getIndex(), newData);
+            } finally {
+                modificationLock.unlock();
+            }
 
             // now handle the disk portion
-            final Path fullPath = dbDirectory.resolve(newData.getIndex() + DATABASE_FILE_SUFFIX);
             actionQueue.enqueue("persist data to disk", () -> {
+                final Path fullPath = dbDirectory.resolve(newData.getIndex() + DATABASE_FILE_SUFFIX);
+                logger.logTrace(() -> String.format("writing new data to %s", fullPath));
                 mustBeTrue(!fullPath.toFile().exists(), fullPath + " must not already exist before persisting");
                 String serializedData = newData.serialize();
                 mustBeFalse(serializedData == null || serializedData.isBlank(),
@@ -169,26 +185,36 @@ public final class Db<T extends DbData<?>> {
             // load data if needed
             if (!hasLoadedData) loadData();
 
-            // deal with the in-memory portion
-            long dataIndex = dataToDelete.getIndex();
-            if (!data.containsKey(dataIndex)) {
-                throw new RuntimeException("no data was found with id of " + dataIndex);
-            }
-            data.remove(dataIndex);
-
-            // if all the data was just now deleted, we need to
-            // reset the index back to 1
             boolean hasResetIndex;
-            if (data.isEmpty()) {
-                index.set(1);
-                hasResetIndex = true;
-            } else {
-                hasResetIndex = false;
+            long dataIndex;
+
+            // deal with the in-memory portion
+            modificationLock.lock();
+            try {
+                dataIndex = dataToDelete.getIndex();
+                if (!data.containsKey(dataIndex)) {
+                    throw new RuntimeException("no data was found with index of " + dataIndex);
+                }
+                logger.logTrace(() -> String.format("in thread %s, deleting data with index %d", Thread.currentThread().getName(), dataIndex));
+                data.remove(dataIndex);
+
+                // if all the data was just now deleted, we need to
+                // reset the index back to 1
+
+                if (data.isEmpty()) {
+                    index.set(1);
+                    hasResetIndex = true;
+                } else {
+                    hasResetIndex = false;
+                }
+            } finally {
+                modificationLock.unlock();
             }
 
             // now handle the disk portion
             actionQueue.enqueue("delete data from disk", () -> {
                 final Path fullPath = dbDirectory.resolve(dataIndex + DATABASE_FILE_SUFFIX);
+                logger.logTrace(() -> String.format("deleting data at %s", fullPath));
                 try {
                     mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist before deletion");
                     Files.delete(fullPath);
@@ -216,16 +242,25 @@ public final class Db<T extends DbData<?>> {
             // load data if needed
             if (!hasLoadedData) loadData();
 
+            long dataIndex;
+
             // deal with the in-memory portion
-            long dataIndex = dataUpdate.getIndex();
-            if (!data.containsKey(dataIndex)) {
-                throw new RuntimeException("no data was found with id of " + dataIndex);
+            modificationLock.lock();
+            try {
+                dataIndex = dataUpdate.getIndex();
+                if (!data.containsKey(dataIndex)) {
+                    throw new RuntimeException("no data was found with id of " + dataIndex);
+                }
+                logger.logTrace(() -> String.format("in thread %s, updating data with index %d with value %s", Thread.currentThread().getName(), dataIndex, dataUpdate));
+                data.put(dataIndex, dataUpdate);
+            } finally {
+                modificationLock.unlock();
             }
-            data.put(dataIndex, dataUpdate);
 
             // now handle the disk portion
             actionQueue.enqueue("update data on disk", () -> {
                 final Path fullPath = dbDirectory.resolve(dataIndex + DATABASE_FILE_SUFFIX);
+                logger.logTrace(() -> String.format("updating data at %s", fullPath));
                 // if the file isn't already there, throw an exception
                 mustBeTrue(fullPath.toFile().exists(), fullPath + " must already exist during updates");
                 fileUtils.writeString(fullPath, dataUpdate.serialize());

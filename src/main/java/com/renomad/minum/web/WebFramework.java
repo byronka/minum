@@ -49,19 +49,19 @@ public final class WebFramework {
     /**
      * This is used as a key when registering endpoints
      */
-    record VerbPath(StartLine.Verb verb, String path) { }
+    record MethodPath(RequestLine.Method method, String path) { }
 
     /**
      * The list of paths that our system is registered to handle.
      */
-    private final Map<VerbPath, Function<Request, Response>> registeredDynamicPaths;
+    private final Map<MethodPath, Function<Request, Response>> registeredDynamicPaths;
 
     /**
      * These are registrations for paths that partially match, for example,
      * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
      * and we want to match ".well-known/acme-challenge"
      */
-    private final Map<VerbPath, Function<Request, Response>> registeredPartialPaths;
+    private final Map<MethodPath, Function<Request, Response>> registeredPartialPaths;
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
@@ -74,16 +74,16 @@ public final class WebFramework {
      * code lives here will be inserted into a slot within the server code.
      * See {@link Server#start(ExecutorService, ThrowingConsumer)}
      *
-     * @param handlerFinder bear with me...  This is a function, that takes a {@link StartLine}, and
+     * @param handlerFinder bear with me...  This is a function, that takes a {@link RequestLine}, and
      *                      returns a {@link Function} that handles the {@link Request} -> {@link Response}.
      *                      Normally, you would just use {@link #makePrimaryHttpHandler()} and the default code at
-     *                      {@link #findEndpointForThisStartline(StartLine)} would be called.  However, you can provide
+     *                      {@link #findEndpointForThisStartline(RequestLine)} would be called.  However, you can provide
      *                      a handler here if you want to override that behavior, for example in tests when
      *                      you want a bit more control.
      *                      <br>
      *                      The common case definition of this is found at {@link #findEndpointForThisStartline}
      */
-    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler(Function<StartLine, Function<Request, Response>> handlerFinder) {
+    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler(Function<RequestLine, Function<Request, Response>> handlerFinder) {
 
         // build the handler
 
@@ -123,7 +123,7 @@ public final class WebFramework {
                     }
 
                     logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
-                    var sl = StartLine.EMPTY(context).extractStartLine(rawStartLine);
+                    var sl = RequestLine.EMPTY(context).extractStartLine(rawStartLine);
                     logger.logTrace(() -> sw + ": StartLine received: " + sl.toString());
                     if (sl.getRawValue().isBlank()) {
                         /*
@@ -219,10 +219,10 @@ public final class WebFramework {
                     logger.logTrace(() -> "Sending headers back: " + response);
                     sw.send(response);
 
-                    if (clientRequest.startLine().getVerb() == StartLine.Verb.HEAD) {
+                    if (clientRequest.requestLine().getMethod() == RequestLine.Method.HEAD) {
                         Request finalClientRequest = clientRequest;
                         logger.logDebug(() -> "client " + finalClientRequest.remoteRequester() +
-                                " is requesting HEAD for "+ finalClientRequest.startLine().getPathDetails().isolatedPath() +
+                                " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().isolatedPath() +
                                 ".  Excluding body from response");
                     } else {
                         sw.send(resultingResponse.body());
@@ -256,7 +256,7 @@ public final class WebFramework {
                         return;
                     }
 
-                    var sl = StartLine.EMPTY(context).extractStartLine(rawStartLine);
+                    var sl = RequestLine.EMPTY(context).extractStartLine(rawStartLine);
 
                     // just ignore all the rest of the incoming lines.  TCP is duplex -
                     // we'll just start talking back the moment we understand the first line.
@@ -351,11 +351,11 @@ public final class WebFramework {
     }
 
     /**
-     * Looks through the mappings of {@link VerbPath} and path to registered endpoints
+     * Looks through the mappings of {@link MethodPath} and path to registered endpoints
      * or the static cache and returns the appropriate one (If we
      * do not find anything, return null)
      */
-    Function<Request, Response> findEndpointForThisStartline(StartLine sl) {
+    Function<Request, Response> findEndpointForThisStartline(RequestLine sl) {
         Function<Request, Response> handler;
         logger.logTrace(() -> "Seeking a handler for " + sl);
 
@@ -364,9 +364,9 @@ public final class WebFramework {
 
         // if the user is asking for a HEAD request, they want to run a GET command
         // but don't want the body.  We'll simply exclude sending the body, later on, when returning the data
-        StartLine.Verb verb = sl.getVerb() == StartLine.Verb.HEAD ? StartLine.Verb.GET : sl.getVerb();
+        RequestLine.Method method = sl.getMethod() == RequestLine.Method.HEAD ? RequestLine.Method.GET : sl.getMethod();
 
-        VerbPath key = new VerbPath(verb, requestedPath);
+        MethodPath key = new MethodPath(method, requestedPath);
         handler = registeredDynamicPaths.get(key);
 
         if (handler == null) {
@@ -387,8 +387,8 @@ public final class WebFramework {
      * last ditch effort - look on disk.  This response will either
      * be the file to return, or null if we didn't find anything.
      */
-    private Function<Request, Response> findHandlerByFilesOnDisk(StartLine sl) {
-        if (sl.getVerb() != StartLine.Verb.GET) {
+    private Function<Request, Response> findHandlerByFilesOnDisk(RequestLine sl) {
+        if (sl.getMethod() != RequestLine.Method.GET) {
             return null;
         }
         String requestedPath = sl.getPathDetails().isolatedPath();
@@ -403,14 +403,14 @@ public final class WebFramework {
     /**
      * let's see if we can match the registered paths against a **portion** of the startline
      */
-    Function<Request, Response> findHandlerByPartialMatch(StartLine sl) {
+    Function<Request, Response> findHandlerByPartialMatch(RequestLine sl) {
         String requestedPath = sl.getPathDetails().isolatedPath();
-        var verbPathFunctionEntry = registeredPartialPaths.entrySet().stream()
+        var methodPathFunctionEntry = registeredPartialPaths.entrySet().stream()
                 .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
-                        x.getKey().verb().equals(sl.getVerb()))
+                        x.getKey().method().equals(sl.getMethod()))
                 .findFirst().orElse(null);
-        if (verbPathFunctionEntry != null) {
-            return verbPathFunctionEntry.getValue();
+        if (methodPathFunctionEntry != null) {
+            return methodPathFunctionEntry.getValue();
         } else {
             return null;
         }
@@ -448,19 +448,19 @@ public final class WebFramework {
 
     /**
      * Add a new handler in the web application for a combination
-     * of a {@link com.renomad.minum.web.StartLine.Verb}, a path, and then provide
+     * of a {@link RequestLine.Method}, a path, and then provide
      * the code to handle a request.
      * <br>
      * Note that the path text expected is *after* the first forward slash,
      * so for example with {@code http://foo.com/mypath}, you provide us "mypath"
      * here.
      */
-    public void registerPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
-        registeredDynamicPaths.put(new VerbPath(verb, pathName), webHandler);
+    public void registerPath(RequestLine.Method method, String pathName, Function<Request, Response> webHandler) {
+        registeredDynamicPaths.put(new MethodPath(method, pathName), webHandler);
     }
 
     /**
-     * Similar to {@link #registerPath(StartLine.Verb, String, Function)} except that the paths
+     * Similar to {@link #registerPath(RequestLine.Method, String, Function)} except that the paths
      * registered here may be partially matched.
      * <p>
      *     For example, if you register <pre>.well-known/acme-challenge</pre> then it
@@ -469,7 +469,7 @@ public final class WebFramework {
      * <p>
      *     What if I didn't have the ability to match partial paths? In
      * that case, if I tried <pre>GET .well-known/acme-challenge/sadoifpiefewsfae</pre>
-     * I would get an {@link StartLine.PathDetails#isolatedPath()} of
+     * I would get an {@link RequestLine.PathDetails#isolatedPath()} of
      * <pre>.well-known/acme-challenge/sadoifpiefewsfae</pre> which wouldn't
      * match anything I could statically register.
      * </p>
@@ -477,8 +477,8 @@ public final class WebFramework {
      *     Be careful here, be thoughtful - partial paths will
      * </p>
      */
-    public void registerPartialPath(StartLine.Verb verb, String pathName, Function<Request, Response> webHandler) {
-        registeredPartialPaths.put(new VerbPath(verb, pathName), webHandler);
+    public void registerPartialPath(RequestLine.Method method, String pathName, Function<Request, Response> webHandler) {
+        registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
     }
 
     /**

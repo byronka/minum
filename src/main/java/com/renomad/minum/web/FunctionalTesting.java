@@ -79,30 +79,30 @@ public final class FunctionalTesting {
     /**
      * Send a GET request (as a client to the server)
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      */
     public TestResponse get(String path) throws IOException {
         ArrayList<String> headers = new ArrayList<>();
-        return send(StartLine.Verb.GET, path, new byte[0], headers);
+        return send(RequestLine.Method.GET, path, new byte[0], headers);
     }
 
     /**
      * Send a GET request (as a client to the server)
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      * @param extraHeaders a list containing extra headers you need the client to send, for
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
     public TestResponse get(String path, List<String> extraHeaders) throws IOException {
-        return send(StartLine.Verb.GET, path, new byte[0], extraHeaders);
+        return send(RequestLine.Method.GET, path, new byte[0], extraHeaders);
     }
 
     /**
      * Send a POST request (as a client to the server) using url encoding
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      * @param payload a body payload in string form
      */
@@ -114,7 +114,7 @@ public final class FunctionalTesting {
     /**
      * Send a POST request (as a client to the server) using url encoding
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      * @param payload a body payload in string form
      * @param extraHeaders a list containing extra headers you need the client to send, for
@@ -124,51 +124,51 @@ public final class FunctionalTesting {
         var headers = new ArrayList<String>();
         headers.add("Content-Type: application/x-www-form-urlencoded");
         headers.addAll(extraHeaders);
-        return send(StartLine.Verb.POST, path, payload.getBytes(StandardCharsets.UTF_8), headers);
+        return send(RequestLine.Method.POST, path, payload.getBytes(StandardCharsets.UTF_8), headers);
     }
 
     /**
      * Send a request as a client to the server
      *
      * <p>
-     *     This helper method is the same as {@link #send(StartLine.Verb, String, byte[], List)} except
+     *     This helper method is the same as {@link #send(RequestLine.Method, String, byte[], List)} except
      *     that it will automatically set the body as empty
      * </p>
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      * @param extraHeaders a list containing extra headers you need the client to send, for
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
-    public TestResponse send(StartLine.Verb verb, String path, List<String> extraHeaders) throws IOException {
-        return send(verb, path, new byte[0], extraHeaders);
+    public TestResponse send(RequestLine.Method method, String path, List<String> extraHeaders) throws IOException {
+        return send(method, path, new byte[0], extraHeaders);
     }
 
     /**
      * Send a request as a client to the server
      * <p>
-     *     This helper method is the same as {@link #send(StartLine.Verb, String, byte[], List)} except
+     *     This helper method is the same as {@link #send(RequestLine.Method, String, byte[], List)} except
      *     it will set the body as empty and does not require any extra headers to be set. In this
      *     case, the headers sent are very minimal.  See the source.
      * </p>
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      */
-    public TestResponse send(StartLine.Verb verb, String path) throws IOException {
-        return send(verb, path, new byte[0], List.of());
+    public TestResponse send(RequestLine.Method method, String path) throws IOException {
+        return send(method, path, new byte[0], List.of());
     }
 
     /**
      * Send a request as a client to the server
      * @param path the path to an endpoint, that is, the value for path
-     *            that is entered in {@link WebFramework#registerPath(StartLine.Verb, String, Function)}
+     *            that is entered in {@link WebFramework#registerPath(RequestLine.Method, String, Function)}
      *             for pathname
      * @param payload a body payload in byte array form
      * @param extraHeaders a list containing extra headers you need the client to send, for
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
-    public TestResponse send(StartLine.Verb verb, String path, byte[] payload, List<String> extraHeaders) throws IOException {
+    public TestResponse send(RequestLine.Method method, String path, byte[] payload, List<String> extraHeaders) throws IOException {
         Body body = Body.EMPTY(context);
         Headers headers = null;
         StatusLine statusLine = StatusLine.EMPTY;
@@ -177,7 +177,7 @@ public final class FunctionalTesting {
                 InputStream is = client.getInputStream();
 
                 // send a POST request
-                client.sendHttpLine(verb + " /" + path + " HTTP/1.1");
+                client.sendHttpLine(method + " /" + path + " HTTP/1.1");
                 client.sendHttpLine("Host: localhost:8080");
                 client.sendHttpLine("Content-Length: " + payload.length);
                 for (String header : extraHeaders) {

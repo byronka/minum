@@ -50,14 +50,14 @@ import java.util.List;
  * maintain compatibility with HTTP clients before the HTTP/1.0 specification in RFC 1945.
  *</p>
  */
-public record Request(Headers headers, StartLine startLine, Body body,
+public record Request(Headers headers, RequestLine requestLine, Body body,
                       /*
                       This is the remote address making the request
                        */
                       String remoteRequester) {
 
     public static Request EMPTY(Context context) {
-        return new Request(new Headers(List.of(), context), StartLine.EMPTY(context), Body.EMPTY(context), "");
+        return new Request(new Headers(List.of(), context), RequestLine.EMPTY(context), Body.EMPTY(context), "");
     }
 
 }

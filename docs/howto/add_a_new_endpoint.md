@@ -166,8 +166,8 @@ public class TheRegister {
         var sd = setupSampleDomain(auth);
 
         // sample domain stuff
-        webFramework.registerPath(StartLine.Verb.GET, "formentry", sd::formEntry);
-        webFramework.registerPath(StartLine.Verb.POST, "testform", sd::testform);
+        webFramework.registerPath(StartLine.Method.GET, "formentry", sd::formEntry);
+        webFramework.registerPath(StartLine.Method.POST, "testform", sd::testform);
 
     }
 

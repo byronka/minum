@@ -1,11 +1,16 @@
 package com.renomad.minum.database;
 
+import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
+import com.renomad.minum.logging.Logger;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.utils.ExtendedExecutor;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.utils.ThrowingRunnable;
+import com.renomad.minum.web.InputStreamUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -14,7 +19,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static java.util.stream.IntStream.range;
 import static com.renomad.minum.database.DbTests.Foo.INSTANCE;
@@ -146,7 +156,7 @@ public class DbTests {
         final var db_throwaway = new Db<Foo>(foosDirectory, context, INSTANCE);
 
         var ex = assertThrows(RuntimeException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
-        assertEquals(ex.getMessage(), "no data was found with id of 123");
+        assertEquals(ex.getMessage(), "no data was found with index of 123");
 
         db_throwaway.stop();
         MyThread.sleep(FINISH_TIME);
@@ -193,15 +203,21 @@ public class DbTests {
      */
     @Test
     public void test_Performance() throws IOException {
+        int originalFooCount = 2;
+        int loopCount = 2;
+
         // clear out the directory to start
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-        final var db = new Db<Foo>(foosDirectory, context, INSTANCE);
+
+        // build a Context without testlogger - testlogger would impact perf here
+        Context contextWithRegularLogger = buildTestingContextWithRegularLogger("db_perf_testing");
+        final var db = new Db<Foo>(foosDirectory, contextWithRegularLogger, INSTANCE);
         MyThread.sleep(10);
 
         final var foos = new ArrayList<Foo>();
 
         // write the foos
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < originalFooCount; i++) {
             final var newFoo = new Foo(i, i + 1, "original");
             foos.add(newFoo);
             db.write(newFoo);
@@ -212,7 +228,7 @@ public class DbTests {
         final var innerTimer = new StopwatchUtils().startTimer();
 
         final var newFoos = new ArrayList<Foo>();
-        for (var i = 1; i < 10; i++) {
+        for (var i = 1; i < loopCount; i++) {
             newFoos.clear();
                 /*
                 loop through the old foos and update them to new values,
@@ -226,13 +242,13 @@ public class DbTests {
             }
         }
         logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
-        db.stop(10, 20);
+        db.stop(100, 50);
         logger.logDebug(() -> "It took " + outerTimer.stopTimer() + " milliseconds to finish writing everything to disk");
 
         final var db1 = new Db<Foo>(foosDirectory, context, INSTANCE);
         Collection<Foo> values = db1.values();
         assertTrue(newFoos.containsAll(values));
-        db1.stop(10, 20);
+        db1.stop(100, 50);
 
         final var pathToIndex = foosDirectory.resolve("index.ddps");
         // this file should not be empty, but we are making it empty
@@ -350,7 +366,7 @@ public class DbTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
         var db = new Db<Foo>(foosDirectory, context, INSTANCE);
         var ex = assertThrows(RuntimeException.class, () -> db.delete(new Foo(1, 2, "a")));
-        assertEquals(ex.getMessage(), "no data was found with id of 1");
+        assertEquals(ex.getMessage(), "no data was found with index of 1");
         MyThread.sleep(FINISH_TIME);
     }
 
@@ -367,6 +383,54 @@ public class DbTests {
         MyThread.sleep(FINISH_TIME);
     }
 
+    /**
+     * Investigate race conditions
+     * <p>
+     *     If two different threads are running, and end up calling
+     *     update and delete at the exact same time, there is a possibility
+     *     we could crash.
+     * </p>
+     * <p>
+     *     This code is a laboratory for examining how threads interact
+     *     inside the database code.  Use this in debugging mode.
+     * </p>
+     */
+    //@Test
+    public void test_Db_RaceConditionLaboratory() throws IOException, ExecutionException, InterruptedException {
+        // prepare a database instance
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        Db myDatabase = new Db<Foo>(foosDirectory, context, INSTANCE);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+
+        // create our "racers".  On your marks!
+
+        var foo = new Foo(1, 42, "hi I am foo");
+
+        Runnable racer1Writer = () -> {
+            Thread.currentThread().setName("racer1_writer");
+            myDatabase.write(foo);
+        };
+
+        Runnable racer2Updater = () -> {
+            Thread.currentThread().setName("racer2_updater");
+            myDatabase.update(foo);
+        };
+
+        Runnable racer3Deleter = () -> {
+            Thread.currentThread().setName("racer3_deleter");
+            myDatabase.delete(foo);
+        };
+
+
+        Future<?> racer1WriterFuture = executor.submit(racer1Writer);
+        Future<?> racer2UpdaterFuture = executor.submit(racer2Updater);
+        Future<?> racer3DeleterFuture = executor.submit(racer3Deleter);
+
+        racer1WriterFuture.get();
+        racer2UpdaterFuture.get();
+        racer3DeleterFuture.get();
+
+    }
 
     static class Foo extends DbData<Foo> implements Comparable<Foo> {
 
@@ -436,4 +500,22 @@ public class DbTests {
         }
     }
 
+
+    private Context buildTestingContextWithRegularLogger(String loggerName) {
+        var constants = new Constants();
+        var executorService = ExtendedExecutor.makeExecutorService(constants);
+        var logger = new Logger(constants, executorService, loggerName);
+        var fileUtils = new FileUtils(logger, constants);
+        var inputStreamUtils = new InputStreamUtils(logger, constants);
+
+        var context = new Context();
+
+        context.setConstants(constants);
+        context.setExecutorService(executorService);
+        context.setLogger(logger);
+        context.setFileUtils(fileUtils);
+        context.setInputStreamUtils(inputStreamUtils);
+
+        return context;
+    }
 }
