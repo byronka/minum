@@ -1,3 +1,26 @@
+v2.1.0
+------
+
+* Milder complaint if user lacks minum.config file.  Before, if the user did
+  not have a minum.config in the directory where they started Minum, it would
+  halt with an error message showing text for a configuration.  Now, the code
+  will continue on with a warning about the missing configuration and instead
+  use reasonable defaults.
+* fixing a bug in the configuration settings for extra mime types ("EXTRA_MIME_MAPPINGS"),
+  where a lack of value for that property would cause the system to fail on startup.
+* Updated the default value for MAX_READ_LINE_SIZE_BYTES from 500 to 1024, along with
+  an adjustment to the error message shown in the logs when the max was encountered.
+  To provide context: this property exists to set a reasonable limit to what a
+  maximum header size could be, to prevent certain security attacks, or to properly
+  handle broken user agents.  It was noticed that on localhost, testing against 
+  multiple servers could cause so many cookies to exist that it would exceed the
+  500 byte limit.  Now, it is clearer when this limit has been encountered, and
+  the value is adjustable in the configuration - see MAX_READ_LINE_SIZE_BYTES in
+  minum.config.
+* Extra documentation in methods, and added a tutorial "getting started"
+* Added a new constant to control the number of elements in the file LRU cache,
+  called MAX_ELEMENTS_LRU_CACHE_STATIC_FILES
+
 v2.0.0
 ------
 

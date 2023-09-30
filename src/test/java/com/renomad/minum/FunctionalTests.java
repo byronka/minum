@@ -154,7 +154,8 @@ public class FunctionalTests {
         // we have to wait for it to get through some processing before we check.
         MyThread.sleep(70);
         String failureMsg = logger.findFirstMessageThatContains("in readLine", 10);
-        assertEquals(failureMsg, "in readLine, client sent more bytes than allowed.  Current max: 500");
+        assertEquals(failureMsg.length(), 1105);
+        assertTrue(failureMsg.contains("in readLine, client sent more bytes than allowed.  Current max: 1024.  Contents: GET /aaaaaaaaaaaaaaaaaaaaaaa"));
 
         // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
         // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************

@@ -33,3 +33,4 @@ Deployment checklist
 - [ ] confirm quick start
 - [ ] confirm patterns in example project
 - [ ] review generated bundle.jar, particularly its pom and manifest
+- [ ] add Github release

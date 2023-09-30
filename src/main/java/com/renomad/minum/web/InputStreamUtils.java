@@ -90,7 +90,10 @@ public final class InputStreamUtils {
         final var result = new ByteArrayOutputStream(constants.MAX_READ_LINE_SIZE_BYTES / 3);
         for (int i = 0; i <= (constants.MAX_READ_LINE_SIZE_BYTES + 1); i++) {
             if (i == constants.MAX_READ_LINE_SIZE_BYTES) {
-                logger.logDebug(() -> "in readLine, client sent more bytes than allowed.  Current max: " + constants.MAX_READ_LINE_SIZE_BYTES);
+                logger.logDebug(() -> String.format(
+                        "in readLine, client sent more bytes than allowed.  Current max: %d.  Contents: %s",
+                        constants.MAX_READ_LINE_SIZE_BYTES,
+                        result.toString(StandardCharsets.UTF_8)));
                 inputStream.close();
                 return "";
             }

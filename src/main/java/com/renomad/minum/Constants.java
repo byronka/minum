@@ -31,7 +31,7 @@ public final class Constants {
         KEYSTORE_PASSWORD = properties.getProperty("KEYSTORE_PASSWORD",  "");
         REDIRECT_TO_SECURE = getProp("REDIRECT_TO_SECURE", false);
         MAX_READ_SIZE_BYTES = getProp("MAX_READ_SIZE_BYTES",  10 * 1024 * 1024);
-        MAX_READ_LINE_SIZE_BYTES = getProp("MAX_READ_LINE_SIZE_BYTES", 500);
+        MAX_READ_LINE_SIZE_BYTES = getProp("MAX_READ_LINE_SIZE_BYTES", 1024);
         MAX_QUERY_STRING_KEYS_COUNT = getProp("MAX_QUERY_STRING_KEYS_COUNT", 20);
         MOST_COOKIES_WELL_LOOK_THROUGH = getProp("MOST_COOKIES_WELL_LOOK_THROUGH", 5);
         MAX_HEADERS_COUNT = getProp("MAX_HEADERS_COUNT", 70);
@@ -46,6 +46,7 @@ public final class Constants {
         EXTRA_MIME_MAPPINGS = getProp("EXTRA_MIME_MAPPINGS", "");
         STATIC_FILE_CACHE_TIME = getProp("STATIC_FILE_CACHE_TIME", 60 * 5);
         USE_CACHE_FOR_STATIC_FILES = getProp("USE_CACHE_FOR_STATIC_FILES", true);
+        MAX_ELEMENTS_LRU_CACHE_STATIC_FILES = getProp("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", 1000);
     }
 
     /**
@@ -108,7 +109,10 @@ public final class Constants {
     public final int MAX_READ_SIZE_BYTES;
 
     /**
-     * The most bytes we'll read as a single line
+     * The most bytes we'll read as a single line.
+     * Could be pretty large, for example, I have seen cases where
+     * the cookies being sent, like on localhost, could
+     * be in excess of 500 bytes.
      */
     public final int MAX_READ_LINE_SIZE_BYTES;
 
@@ -211,6 +215,20 @@ public final class Constants {
     public final boolean USE_CACHE_FOR_STATIC_FILES;
 
     /**
+     * This constant controls the maximum number of elements for the {@link com.renomad.minum.utils.LRUCache}
+     * we create for use by {@link com.renomad.minum.utils.FileUtils}. As files are read
+     * by FileUtil's methods, they will be stored in this cache, to avoid reading from
+     * disk.  However, caching can certainly complicate things, so if you would prefer
+     * not to store these values in a cache, set {@link USE_CACHE_FOR_STATIC_FILES} to false.
+     * <p>
+     *     The unit here is the number of elements to store in the cache.  Be aware: elements
+     *     can be of any size, so two caches each having a max size of 1000 elements could be
+     *     drastically different sizes.
+     * </p>
+     */
+    public final int MAX_ELEMENTS_LRU_CACHE_STATIC_FILES;
+
+    /**
      * A helper method to remove some redundant boilerplate code for grabbing
      * configuration values from minum.config
      */
@@ -231,7 +249,16 @@ public final class Constants {
      * configuration values from minum.config
      */
     private List<String> getProp(String propName, String propDefault) {
-        return Arrays.asList(properties.getProperty(propName, propDefault).split(","));
+        String propValue = properties.getProperty(propName);
+        if (propValue == null) {
+            if (propDefault.isBlank()) {
+                return List.of();
+            } else {
+                return Arrays.asList(propDefault.split(","));
+            }
+        } else {
+            return Arrays.asList(propValue.split(","));
+        }
     }
 
 
@@ -248,7 +275,6 @@ public final class Constants {
             props.load(fis);
         } catch (Exception ex) {
             System.out.println(ConfigErrorMessage.getConfigErrorMessage());
-            System.exit(1);
         }
         return props;
     }

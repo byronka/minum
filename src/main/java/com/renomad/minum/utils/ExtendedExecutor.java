@@ -47,7 +47,7 @@ public final class ExtendedExecutor extends ThreadPoolExecutor {
         if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
         if (useVirtualThreads) {
             // the following line is only usable with the virtual threads API, which
-            // is available on OpenJDK 19/20 in preview mode.
+            // is available on JDK 19/20 in preview mode, or JDK 21 without preview.
             return Executors.newVirtualThreadPerTaskExecutor();
         } else {
             return new ExtendedExecutor(0, Integer.MAX_VALUE,

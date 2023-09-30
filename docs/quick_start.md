@@ -46,6 +46,8 @@ This is why your `PATH` environment variable should include something like this:
 $JAVA_HOME/bin
 ```
 
+optionally, and recommended, install [Maven](https://maven.apache.org/download.cgi)
+
 Step 2 - download the "small" example
 -------------------------------------
 
@@ -147,9 +149,12 @@ public class Main {
 }
 ```
 
-Step 5 - review the larger example
------------------------------------
+Next steps
+----------
 
-Now you are ready for the [larger code example](https://github.com/byronka/minum_usage_example_mvn)
+Now you are ready to go further.  If you want a step-by-step tutorial on building a
+project with Minum from the ground up, check out the [getting started tutorial](getting_started/getting_started.md).
+
+Or, you may want to pore through the code of a [larger example](https://github.com/byronka/minum_usage_example_mvn)
 
 Have fun!

@@ -399,7 +399,7 @@ public class DbTests {
     public void test_Db_RaceConditionLaboratory() throws IOException, ExecutionException, InterruptedException {
         // prepare a database instance
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-        Db myDatabase = new Db<Foo>(foosDirectory, context, INSTANCE);
+        var myDatabase = new Db<Foo>(foosDirectory, context, INSTANCE);
         ExecutorService executor = Executors.newFixedThreadPool(4);
 
         // create our "racers".  On your marks!

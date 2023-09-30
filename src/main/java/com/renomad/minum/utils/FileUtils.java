@@ -42,8 +42,8 @@ public final class FileUtils {
         this.constants = constants;
         fileSuffixToMime = new HashMap<>();
         addDefaultValuesForMimeMap();
-        readExtraMappings(constants.EXTRA_MIME_MAPPINGS);
-        lruCache = LRUCache.getLruCache(1000);
+        readExtraMimeMappings(constants.EXTRA_MIME_MAPPINGS);
+        lruCache = LRUCache.getLruCache(constants.MAX_ELEMENTS_LRU_CACHE_STATIC_FILES);
     }
 
     /**
@@ -198,7 +198,14 @@ public final class FileUtils {
     }
 
     /**
-     * Read a text file, return as a string.
+     * Read a text file from the given path, return as a string.
+     *
+     * <p>
+     *     Access is prevented to data in parent directories or using alternate
+     *     drives.  If the data is read, it will be added to a cache, if
+     *     the property {@link Constants#USE_CACHE_FOR_STATIC_FILES} is set to true. The maximum
+     *     size of the cache is controlled by
+     * </p>
      * <p>
      *     If there is an error, this will return an empty string.
      * </p>
@@ -274,7 +281,8 @@ public final class FileUtils {
                 fileContents);
     }
 
-    void readExtraMappings(List<String> input) {
+    void readExtraMimeMappings(List<String> input) {
+        if (input == null || input.isEmpty()) return;
         mustBeTrue(input.size() % 2 == 0, "input must be even (key + value = 2 items). Your input: " + input);
 
         for (int i = 0; i < input.size(); i += 2) {

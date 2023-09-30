@@ -119,7 +119,7 @@ public class FileUtilsTests {
     @Test
     public void test_FileUtils_ExtraMimeMappings() {
         var input = List.of("png","image/png","wav","audio/wav");
-        fileUtils.readExtraMappings(input);
+        fileUtils.readExtraMimeMappings(input);
         var mappings = fileUtils.getSuffixToMime();
         assertEquals(mappings.get("png"), "image/png");
         assertEquals(mappings.get("wav"), "audio/wav");
@@ -131,7 +131,7 @@ public class FileUtilsTests {
     @Test
     public void test_FileUtils_ExtraMimeMappings_BadSyntax() {
         var input = List.of("png","image/png","EXTRA_WORD_HERE","wav","audio/wav");
-        var ex = assertThrows(InvariantException.class, () -> fileUtils.readExtraMappings(input));
+        var ex = assertThrows(InvariantException.class, () -> fileUtils.readExtraMimeMappings(input));
         assertEquals(ex.getMessage(), "input must be even (key + value = 2 items). Your input: [png, image/png, EXTRA_WORD_HERE, wav, audio/wav]");
     }
 
@@ -144,7 +144,7 @@ public class FileUtilsTests {
         int before = mappings.size();
         List<String> input = List.of();
 
-        fileUtils.readExtraMappings(input);
+        fileUtils.readExtraMimeMappings(input);
 
         int after = mappings.size();
         assertEquals(before,after);

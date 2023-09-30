@@ -17,8 +17,6 @@ public class ConfigErrorTests {
     public void testConfigurationMissing() {
         String configErrorMessage = ConfigErrorMessage.getConfigErrorMessage();
         assertTrue(configErrorMessage.contains("No properties file found at ./minum.config"));
-        assertTrue(configErrorMessage.contains("****   Copy after this line -v    ****"));
-        assertTrue(configErrorMessage.contains("The log levels are:"));
     }
 
 }
