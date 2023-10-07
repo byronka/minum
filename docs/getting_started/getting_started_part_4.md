@@ -1,7 +1,7 @@
 Getting Started, Part 4
 =======================
 
-This document is the third part of the getting started
+This document is the fourth and final part of the getting started
 tutorial, after [part 3](getting_started_part_3.md).
 
 We are going to incorporate templating, database, and more sophisticated
@@ -45,45 +45,102 @@ Adjusting the Test
 Let's add a new test method to the file at `src/test/java/org/example/myproject/MainTests.java`
 
 ```java
-/**
- * Test the book entry functionality.
- * <p>
- * A general vision is laid out for functionality.  This test should work for
- * situations whether there are any books listed, or none, just to kick us off.
- * </p>
- * <pre>
- * Enter a Book:
- * -------------
- * Title:   [ Dandelion Wine     ]
- * Author:  [ Ray Bradbury       ]
- * Year:    [ 1999 ]
- * Notes:   [ paperback version  ]
- *
- * [Enter]
- *
- * Current Books:
- * --------------
- * Extreme Programming Explained, by Kent Beck, published 2000
- * The Art of Software Testing, by Glenford J. Myers, published 1979
- * </pre>
- */
-@Test
-public void testBookEntry() throws Exception {
-    // send a GET request for the "book" endpoint
-    var response = ft.get("book");
+package org.example.myproject;
 
-    // check that we got a 200 OK status in response
-    assertEquals(response.statusLine().status(), _200_OK);
+import com.renomad.minum.Context;
+import com.renomad.minum.htmlparsing.TagName;
+import com.renomad.minum.web.FullSystem;
+import com.renomad.minum.web.FunctionalTesting;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-    // Confirm that we find the expected input fields
-    assertEquals(response.searchOne(TagName.H1, Map.of("id", "book_entry_header")).innerText(), "Enter a Book:");
-    assertEquals(response.searchOne(TagName.LABEL, Map.of("for","title_input")).innerText(), "Title:");
-    assertEquals(response.searchOne(TagName.LABEL, Map.of("for","author_input")).innerText(), "Author:");
-    assertEquals(response.searchOne(TagName.LABEL, Map.of("for","year_input")).innerText(), "Year:");
-    assertEquals(response.searchOne(TagName.LABEL, Map.of("for","notes_input")).innerText(), "Notes:");
+import java.util.Map;
 
-    // confirm we find the expected output table
-    assertEquals(response.searchOne(TagName.H1, Map.of("id","book_list_header")).innerText(), "Current Books:");
+import static com.renomad.minum.testing.TestFramework.assertEquals;
+import static com.renomad.minum.testing.TestFramework.buildTestingContext;
+import static com.renomad.minum.web.StatusLine.StatusCode._200_OK;
+
+public class MainTests {
+
+    private static Context context;
+    private static FunctionalTesting ft;
+
+    @BeforeClass
+    public static void init() throws Exception {
+        context = buildTestingContext("_integration_test");
+        FullSystem fullSystem = new FullSystem(context).start();
+        new Endpoints(fullSystem).registerEndpoints();
+        ft = new FunctionalTesting(context);
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        var fs = context.getFullSystem();
+        fs.close();
+        context.getLogger().stop();
+        context.getExecutorService().shutdownNow();
+    }
+
+
+    /**
+     * A user should see "hi there world" when running
+     * the program.
+     */
+    @Test
+    public void testHomepage() throws Exception {
+        // send a GET request to the server
+        var testResponse = ft.get("");
+
+        // check that we got a 200 OK status in response
+        assertEquals(testResponse.statusLine().status(), _200_OK);
+
+        // Confirm that the response body, parsed as HTML, yields a paragraph with the expected content
+        assertEquals(testResponse.searchOne(TagName.P, Map.of()).innerText(), "Hi there world!");
+    }
+
+
+    /**
+     * Test the book entry functionality.
+     * <p>
+     * A general vision is laid out for functionality.  This test should work for
+     * situations whether there are any books listed, or none, just to kick us off.
+     * </p>
+     * <pre>
+     * Enter a Book:
+     * -------------
+     * Title:   [ Dandelion Wine     ]
+     * Author:  [ Ray Bradbury       ]
+     * Year:    [ 1999 ]
+     * Notes:   [ paperback version  ]
+     *
+     * [Enter]
+     *
+     * Current Books:
+     * --------------
+     * Extreme Programming Explained, by Kent Beck, published 2000
+     * The Art of Software Testing, by Glenford J. Myers, published 1979
+     * </pre>
+     */
+    @Test
+    public void testBookEntry() throws Exception {
+        // send a GET request for the "book" endpoint
+        var response = ft.get("book");
+
+        // check that we got a 200 OK status in response
+        assertEquals(response.statusLine().status(), _200_OK);
+
+        // Confirm that we find the expected input fields
+        assertEquals(response.searchOne(TagName.H1, Map.of("id", "book_entry_header")).innerText(), "Enter a Book:");
+        assertEquals(response.searchOne(TagName.LABEL, Map.of("for","title_input")).innerText(), "Title:");
+        assertEquals(response.searchOne(TagName.LABEL, Map.of("for","author_input")).innerText(), "Author:");
+        assertEquals(response.searchOne(TagName.LABEL, Map.of("for","year_input")).innerText(), "Year:");
+        assertEquals(response.searchOne(TagName.LABEL, Map.of("for","notes_input")).innerText(), "Notes:");
+
+        // confirm we find the expected output table
+        assertEquals(response.searchOne(TagName.H1, Map.of("id","book_list_header")).innerText(), "Current Books:");
+    }
+
 }
 ```
 
@@ -98,13 +155,10 @@ Command line:
 mvn -Dtest=#testBookEntry test
 ```
 
-The error will look like this:
+There _will_ be an error - it will output a lot of text, but should include a few
+lines that will look like this:
 
-```shell
-com.renomad.minum.testing.TestFailureException: Not equal! 
-left:  _404_NOT_FOUND 
-right: _200_OK
-```
+<img src="test_error.png">
 
 No surprise there.  Now that we have a test, we'll start building the system to pass
 that test.
@@ -147,6 +201,12 @@ Notice how this class gets constructed with everything it will need during its l
 into the Context object to see its logger, constants, and information about the server.
 
 The request object given to `getBookPage` will have everything received in the HTTP request.
+
+Now we need to add a directory for our templates:
+
+```shell
+mkdir -p src/main/webapp/templates
+```
 
 Let's add an HTML template, at `src/main/webapp/templates/bookentry.html`:
 
@@ -250,7 +310,7 @@ Let us add the database code so received data will be stored.
 There needs to be a new data class.  If you have any experience with SQL or relational
 databases, you might be familiar with designing a data table.  This simplistic database
 uses something similar to describe its schema, which is a particular implementation
-of the `DbData` class.  Here is the implementation you will need:
+of the `DbData` class.  Add this at `src/main/java/org/example/myproject/BookDbData.java`:
 
 ```java
 package org.example.myproject;
@@ -335,7 +395,8 @@ public class BookDbData extends DbData<BookDbData> {
 ```
 
 Here is the adjustment to the Book class, where we add a new endpoint for receiving
-data from the user as a POST request, and also now show the current values in the database:
+data from the user as a POST request, and also now show the current values in the database.
+This is at `src/main/java/org/example/myproject/Book.java`:
 
 ```java
 package org.example.myproject;
@@ -411,7 +472,7 @@ public class Book {
 
 Here is the revised Endpoints class, where we register a route for the POST request,
 and also adjust the code for instantiating a Book class, so that it receives a
-database instance:
+database instance. This is at `src/main/java/org/example/myproject/Endpoints.java`:
 
 ```java
 package org.example.myproject;
@@ -447,7 +508,7 @@ public class Endpoints {
 ```
 
 And finally, here is the updated bookentry.html, where we point the form at the 
-proper path for a POST request:
+proper path for a POST request. This file is at `src/main/webapp/templates/bookentry.html`:
 
 ```html
 <!DOCTYPE html>
@@ -459,20 +520,20 @@ proper path for a POST request:
         <h1 id="book_entry_header">Enter a Book:</h1>
         <form action="book" method="POST">
             <label for="title_input">Title:</label>
-            <input type="text" id="title_input" name="title_input">
-
+            <input required type="text" id="title_input" name="title_input">
+        
             <label for="author_input">Author:</label>
-            <input type="text" id="author_input" name="author_input">
-
+            <input required type="text" id="author_input" name="author_input">
+        
             <label for="year_input">Year:</label>
-            <input type="number" id="year_input" name="year_input">
-
+            <input required type="number" min="0" max="9999" id="year_input" name="year_input">
+        
             <label for="notes_input">Notes:</label>
             <textarea id="notes_input" name="notes_input"></textarea>
-
+        
             <button>Enter</button>
         </form>
-
+        
         <div id="current_books">
             <h1 id="book_list_header">Current Books:</h1>
             <ul>

@@ -86,6 +86,13 @@ specify which files should not be recorded:
 .idea/
 # ignore Maven's build directory, as it gets rebuilt during compilation
 target/
+
+# the database directory
+db/
+
+# a file that is created when the system is running, and deleted
+# when the system has stopped
+SYSTEM_RUNNING
 ```
 
 Now we can initialize a repo and commit our work.

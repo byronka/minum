@@ -29,23 +29,53 @@ mkdir -p src/test/java/org/example/myproject/
 Add Junit as a dependency in the file at `pom.xml`:
 
 ```xml
-  <dependencies>
+<project>
+    <!-- Basic stuff that is required for a Maven project -->
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.example</groupId>
+    <artifactId>myproject</artifactId>
+    <version>1.0</version>
 
-    <dependency>
-      <groupId>com.renomad</groupId>
-      <artifactId>minum</artifactId>
-      <version>2.0.1</version>
-    </dependency>
-    
-    <!-- JUnit is a testing framework -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.2</version>
-      <scope>test</scope>
-    </dependency>
-    
-  </dependencies>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+    </properties>
+
+    <!-- Software our project needs to run -->
+    <dependencies>
+        <!-- The Minum web framework -->
+        <dependency>
+            <groupId>com.renomad</groupId>
+            <artifactId>minum</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+
+        <!-- JUnit is a testing framework -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>org.example.myproject.Main</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
 ```
 
 Create a new file at `src/test/java/org/example/myproject/MainTests.java`, with 

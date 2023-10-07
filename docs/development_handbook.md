@@ -175,7 +175,7 @@ A series of HOWTO's for essential capabilities:
 
 * [How to add a new endpoint](howto/add_a_new_endpoint.md)
 * [How to create a new test class](howto/create_a_new_test_class.md)
-* [How to test against the lobs](howto/testing_against_the_logs.md)
+* [How to test against the logs](howto/testing_against_the_logs.md)
 
 
 Versioning
@@ -407,7 +407,7 @@ but in its own sub-directory.
 
 The steps to this are:
 1. Get the configured root directory for the database: `var dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir"));`
-2. Create the path for a sub-directory: `photoDirectory = dbDir.resolve("photo_files");
+2. Create the path for a sub-directory: `photoDirectory = dbDir.resolve("photo_files");`
 3. Make a directory:
 
 ```java
