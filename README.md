@@ -7,8 +7,11 @@ For more detail on intentions, purpose, and benefits, see the
 [development handbook](docs/development_handbook.md).
 
 
-## 🚀 [Quick start](docs/quick_start.md)
+Getting Started
+---------------
 
+There is a 🚀 [Quick start](docs/quick_start.md), or if you have
+a bit more time, consider trying the [tutorial](docs/getting_started/getting_started.md)
 
 Maven
 -----
@@ -75,7 +78,3 @@ shows many of the typical use cases of the Minum framework.
 This project is valuable to see the minimal-possible application that can
 be made.  This might be a good starting point for use of Minum on a new project.
 
-Step-by-Step tutorial
----------------------
-
-Try the [getting started tutorial](docs/getting_started/getting_started.md)
