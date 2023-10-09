@@ -1,3 +1,9 @@
+v2.1.1
+------
+
+* Fix to bug in output encoding for HTML attributes, in StringUtils.encodeAttr().
+  There were a couple extra characters that needed encoding.
+
 v2.1.0
 ------
 

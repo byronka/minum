@@ -64,7 +64,8 @@ public final class StringUtils {
         if (input == null) {
             return "";
         }
-        return input
+        return input.replace("&", "&amp;")
+            .replace("<", "&lt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;");
     }
