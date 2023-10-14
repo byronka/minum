@@ -24,7 +24,7 @@ public enum TagName {
     RT(false), RUBY(false), S(false), SAMP(false), SCRIPT(false),
     SECTION(false), SELECT(false), SMALL(false), SOURCE(true),
     SPAN(false), STRONG(false), STYLE(false), SUB(false), SUMMARY(false),
-    SUP(false), TABLE(false), TBODY(false), TD(false), TEXTAREA(false),
+    SUP(false), TABLE(false), TBODY(false), TD(false), TEMPLATE(false), TEXTAREA(false),
     TFOOT(false), TH(false), THEAD(false), TIME(false), TITLE(false),
     TR(false), TRACK(true), U(false), UL(false), VAR(false), VIDEO(false),
     WBR(true),

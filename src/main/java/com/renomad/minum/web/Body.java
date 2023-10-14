@@ -4,6 +4,7 @@ import com.renomad.minum.Context;
 import com.renomad.minum.utils.StringUtils;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class represents the body of an HTML message.
@@ -30,12 +31,16 @@ import java.util.Map;
  */
 public final class Body {
 
-    public static final byte[] EMPTY_BYTES = new byte[0];
+    private static final byte[] EMPTY_BYTES = new byte[0];
     private final Map<String, byte[]> bodyMap;
     private final byte[] raw;
     private final Context context;
     private final Map<String, Headers> headers;
 
+    /**
+     * An empty body instance, useful when you
+     * need an instantiated body.
+     */
     public static Body EMPTY(Context context) {
         return new Body(Map.of(), EMPTY_BYTES, Map.of(), context);
     }
@@ -59,6 +64,16 @@ public final class Body {
      * Return the body as a string, presuming
      * that the Request body data is organized
      * as key-value pairs.
+     * <p>
+     *     If there is no value found for the
+     *     provided key, an empty string will be
+     *     returned.
+     * </p>
+     * <p>
+     *     Otherwise, the value found will be converted
+     *     to a string, and trimmed.
+     * </p>
+     *
      */
     public String asString(String key) {
         byte[] byteArray = bodyMap.get(key);
@@ -125,5 +140,12 @@ public final class Body {
      */
     public Headers partitionHeaders(String partitionName) {
         return this.headers.get(partitionName);
+    }
+
+    /**
+     * Get all the keys for the key-value pairs in the body
+     */
+    public Set<String> getKeys() {
+        return bodyMap.keySet();
     }
 }

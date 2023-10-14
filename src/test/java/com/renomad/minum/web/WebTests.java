@@ -383,6 +383,37 @@ public class WebTests {
         assertEquals(result2.asString("mykey"), "");
     }
 
+    /**
+     * What happens if we are dealing with a form having many values?
+     * By the way, the maximum allowed is set by {@link com.renomad.minum.Constants#MAX_TOKENIZER_PARTITIONS}
+     */
+    @Test
+    public void test_ParseForm_EdgeCase_ManyFormValues() {
+        final var result2 = new BodyProcessor(context)
+                .parseUrlEncodedForm("foo0=&" +
+                        "foo1=&" +
+                        "foo2=bar&" +
+                        "foo3=&" +
+                        "foo4=&" +
+                        "foo5=&" +
+                        "foo6=&" +
+                        "foo7=&" +
+                        "foo8=&" +
+                        "foo9=&" +
+                        "foo10=&" +
+                        "foo11=3&" +
+                        "foo12=wedding+date&" +
+                        "foo13=date&" +
+                        "foo14=2006-9-18&" +
+                        "foo15=graduation+date&" +
+                        "foo16=date&" +
+                        "foo17=1998-04-04&" +
+                        "foo18=birthplace+-+city&" +
+                        "foo19=string&" +
+                        "foo20=Encino");
+        assertEquals(result2.asString("foo18"), "birthplace - city");
+    }
+
     @Test
     public void test_ParseForm_MoreRealisticCase() throws IOException {
         var wf = new WebFramework(context, default_zdt);

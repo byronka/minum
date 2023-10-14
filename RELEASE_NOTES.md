@@ -1,3 +1,16 @@
+v2.2.0
+------
+
+* Provide ability to get all the keys returned in the key-value pairs
+  of a Response body: body.getKeys().  Useful for some situations where you are dealing
+  with dynamic fields.
+* Documentation improvements.
+* Increased default for maximum tokens allowed to 1000. This basically
+  corresponds to how many fields you can have on a page.  It is customizable
+  in the configuration at MAX_TOKENIZER_PARTITIONS
+* Update version numbers for some Maven plugins, allowing nicer reports, etc.
+* Add Template HTML element
+
 v2.1.2
 ------
 
