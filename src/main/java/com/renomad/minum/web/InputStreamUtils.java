@@ -51,7 +51,8 @@ public final class InputStreamUtils {
      */
     public byte[] readChunkedEncoding(InputStream inputStream) throws IOException {
         final var result = new ByteArrayOutputStream( );
-        for (int countRead = 0; countRead <= (constants.MAX_READ_SIZE_BYTES + 1); )  {
+        int countRead = 0;
+        while (countRead <= (constants.MAX_READ_SIZE_BYTES + 1))  {
             if (countRead == constants.MAX_READ_SIZE_BYTES) {
                 logger.logDebug(() -> "client sent more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES);
                 inputStream.close();

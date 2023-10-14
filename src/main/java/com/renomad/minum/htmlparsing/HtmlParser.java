@@ -64,7 +64,7 @@ public final class HtmlParser {
             try {
                 value = stringReader.read();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new ParsingException(e);
             }
             // if the value is -1, there's nothing left to read
             if (value < 0) return nodes;
@@ -455,7 +455,7 @@ public final class HtmlParser {
          * not in the midst of reading an attribute value, then
          * we expect the next character to be a greater-than symbol.
          */
-        public boolean isHalfClosedTag;
+        boolean isHalfClosedTag;
         /**
          * total number of chars read of this HTML file
          */

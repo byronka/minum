@@ -113,19 +113,21 @@ public class TestLogger extends Logger {
      *              up to {@link #MAX_CACHE_SIZE}
      */
     public String findFirstMessageThatContains(String value, int lines) {
-        if (lines > MAX_CACHE_SIZE) throw new RuntimeException(String.format("Can only get up to %s lines from the log", MAX_CACHE_SIZE));
+        if (lines > MAX_CACHE_SIZE) {
+            throw new TestLoggerException(String.format("Can only get up to %s lines from the log", MAX_CACHE_SIZE));
+        }
         var fromIndex = recentLogLines.size() - lines < 0 ? 0 : recentLogLines.size() - lines;
         var lineList = recentLogLines.stream().toList().subList(fromIndex, recentLogLines.size());
         var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
         int size = values.size();
         if (size == 0) {
-            throw new RuntimeException(value + " was not found in " + String.join(";", lineList));
+            throw new TestLoggerException(value + " was not found in " + String.join(";", lineList));
         } else if (size == 1) {
             return values.get(0);
         } else if (size >= 2) {
-            throw new RuntimeException("multiple values found: " + values);
+            throw new TestLoggerException("multiple values found: " + values);
         }
-        throw new RuntimeException("Shouldn't be possible to get here.");
+        throw new TestLoggerException("Shouldn't be possible to get here.");
     }
 
     /**

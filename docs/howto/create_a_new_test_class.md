@@ -1,6 +1,12 @@
 HOWTO - Creating a new test class
 =================================
 
+_Disclaimer to this section_: if you want to use one of the common test drivers like JUnit
+or TestNG, this section is not meant for you. This HOWTO is for using the built-in testing 
+capabilities if you decide you want to stay as bare-bones as possible.
+
+---
+
 If you're following good practices, you are creating automated tests for your
 work.  Here are the practical necessities of what you need
 to do if you are adding a new test class.

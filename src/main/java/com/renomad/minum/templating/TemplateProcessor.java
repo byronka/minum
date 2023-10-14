@@ -77,11 +77,17 @@ public final class TemplateProcessor {
     public static TemplateProcessor buildProcessor(String template) {
         var tSections = new ArrayList<TemplateSection>();
         StringBuilder builder = new StringBuilder();
+        // this flag is to help us understand whether we are currently reading the
+        // name of a template literal.
+        // e.g. in the case of hello {{ name }}, "name" is the literal.
+        boolean isInsideTemplateKeyLiteral = false;
         for (int i = 0; i < template.length(); i++) {
 
             char charAtCursor = template.charAt(i);
 
             if (charAtCursor == '{' && (i + 1) < template.length() && template.charAt(i + 1) == '{') {
+                // we were outside, now we're inside.
+                isInsideTemplateKeyLiteral = true;
                 i += 1;
                 if (builder.length() > 0) {
                     tSections.add(new TemplateSection(null, builder.toString()));
@@ -90,7 +96,9 @@ public final class TemplateProcessor {
                 continue;
             }
 
-            if (charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}') {
+            if (charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}' && isInsideTemplateKeyLiteral) {
+                // we were inside, now we're outside.
+                isInsideTemplateKeyLiteral = false;
                 i += 1;
                 if (builder.length() > 0) {
                     tSections.add(new TemplateSection(builder.toString().trim(), null));
@@ -108,6 +116,13 @@ public final class TemplateProcessor {
              template.
              */
             if (i == template.length() - 1) {
+                if (isInsideTemplateKeyLiteral) {
+                    // if we're exiting this string while inside a template literal, then
+                    // we're reading a corrupted input, and we should make that clear
+                    // to our caller.
+                    String templateSample = template.length() > 10 ? template.substring(0, 10) : template;
+                    throw new TemplateParseException("parsing failed for string starting with " + templateSample);
+                }
                 tSections.add(new TemplateSection(null, builder.toString()));
             }
         }

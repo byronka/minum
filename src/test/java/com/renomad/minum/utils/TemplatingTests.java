@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.templating.TemplateParseException;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.templating.TemplateRenderException;
 import com.renomad.minum.logging.TestLogger;
@@ -82,6 +83,37 @@ public class TemplatingTests {
         String renderedTemplate = tp.renderTemplate(myMap);
 
         assertEquals(renderedTemplate, "Hello byron, I'm cat");
+    }
+
+    /**
+     * A bug that was found in some production code.
+     * Renamed values to protect the guilty.
+     *
+     * This *should* only require a key of "name" in the map, but
+     * due to a bug in the code, I was getting this exception:
+     * <pre>
+     * {@code com.renomad.minum.templating.TemplateRenderException: Missing a value for key {foo}}
+     * </pre>
+     */
+    @Test
+    public void test_Template_Complex1() {
+        String template = "{{ name }} foo }}";
+        var tp = buildProcessor(template);
+        Map<String, String> name = Map.of("name", "test1");
+
+        String result = tp.renderTemplate(name);
+
+        assertEquals(result, "test1 foo }}");
+    }
+
+    /**
+     * What should happen if the brackets aren't closed?
+     */
+    @Test
+    public void test_Template_EdgeCase_NoClosingBrackets() {
+        String template = "{{ foo";
+        var ex = assertThrows(TemplateParseException.class, () -> buildProcessor(template));
+        assertEquals(ex.getMessage(), "parsing failed for string starting with {{ foo");
     }
 
     /*

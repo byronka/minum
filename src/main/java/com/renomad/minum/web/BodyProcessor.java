@@ -164,7 +164,7 @@ final class BodyProcessor {
      * }
      * </pre>
      */
-    private final static Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
+    private static final Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
 
     /**
      * Extract multipart/form data from a body.  See docs/http_protocol/returning_values_from_multipart_rfc_7578.txt
@@ -185,7 +185,7 @@ final class BodyProcessor {
             } catch (IOException e) {
                 // This is an InputStream we built ourselves from local data.
                 // there's no reason why it should fail.
-                throw new RuntimeException(e);
+                throw new WebServerException(e);
             }
 
             List<String> cds = headers.valueByKey("Content-Disposition");
@@ -203,7 +203,7 @@ final class BodyProcessor {
                 } catch (IOException e) {
                     // This is an InputStream we built ourselves from local data.
                     // there's no reason why it should fail.
-                    throw new RuntimeException(e);
+                    throw new WebServerException(e);
                 }
                 result.put(name, data);
                 partitionHeaders.put(name, headers);

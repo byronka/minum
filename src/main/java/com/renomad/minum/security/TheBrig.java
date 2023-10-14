@@ -203,7 +203,7 @@ public final class TheBrig implements ITheBrig {
                 MyThread.sleep(20);
             }
         }
-        throw new RuntimeException("TheBrig: Leaving without successfully stopping thread");
+        throw new SecurityException("TheBrig: Leaving without successfully stopping thread");
     }
 
 

@@ -12,21 +12,30 @@ public final class ParsingException extends RuntimeException {
     private static final long serialVersionUID = 9158387443482452528L;
 
     /**
-     * This constructor allows you to provide a text message
-     * for insight into what exceptional situation took place.
+     * A {@link RuntimeException} scoped to
+     * the Minum htmlparsing package.  See {@link RuntimeException#RuntimeException(String)}
      */
-    public ParsingException(String msg) {
-        super(msg);
+    public ParsingException(String message) {
+        super(message);
 
     }
 
     /**
+     * A {@link RuntimeException} scoped to
+     * the Minum htmlparsing package.  See {@link RuntimeException#RuntimeException(String, Throwable)}
      * This constructor allows you to provide a text message
      * for insight into what exceptional situation took place.
      * @param cause - the inner cause of the exception
      */
-    public ParsingException(String msg, Throwable cause) {
-        super(msg, cause);
+    public ParsingException(String message, Throwable cause) {
+        super(message, cause);
     }
 
+    /**
+     * A {@link RuntimeException} scoped to
+     * the Minum htmlparsing package.  See {@link RuntimeException#RuntimeException(Throwable)}
+     */
+    public ParsingException(Throwable cause) {
+        super(cause);
+    }
 }

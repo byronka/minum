@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -90,7 +89,7 @@ public final class Db<T extends DbData<?>> {
                 String trim = s.trim();
                 indexValue = Long.parseLong(trim);
             } catch (Exception e) {
-                throw new RuntimeException("Exception while reading "+fullPathForIndexFile+" in Db constructor", e);
+                throw new DbException("Exception while reading "+fullPathForIndexFile+" in Db constructor", e);
             }
 
             this.index = new AtomicLong(indexValue);
@@ -193,7 +192,7 @@ public final class Db<T extends DbData<?>> {
             try {
                 dataIndex = dataToDelete.getIndex();
                 if (!data.containsKey(dataIndex)) {
-                    throw new RuntimeException("no data was found with index of " + dataIndex);
+                    throw new DbException("no data was found with index of " + dataIndex);
                 }
                 logger.logTrace(() -> String.format("in thread %s, deleting data with index %d", Thread.currentThread().getName(), dataIndex));
                 data.remove(dataIndex);
@@ -249,7 +248,7 @@ public final class Db<T extends DbData<?>> {
             try {
                 dataIndex = dataUpdate.getIndex();
                 if (!data.containsKey(dataIndex)) {
-                    throw new RuntimeException("no data was found with id of " + dataIndex);
+                    throw new DbException("no data was found with id of " + dataIndex);
                 }
                 logger.logTrace(() -> String.format("in thread %s, updating data with index %d with value %s", Thread.currentThread().getName(), dataIndex, dataUpdate));
                 data.put(dataIndex, dataUpdate);
@@ -292,7 +291,7 @@ public final class Db<T extends DbData<?>> {
                 readAndDeserialize(p);
             }
         } catch (IOException e) { // if we fail to walk() the dbDirectory.  I don't even know how to test this.
-            throw new RuntimeException(e);
+            throw new DbException(e);
         }
     }
 
@@ -322,7 +321,7 @@ public final class Db<T extends DbData<?>> {
                 // put the data into the in-memory data structure
                 data.put(deserializedData.getIndex(), deserializedData);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to deserialize "+ p +" with data (\""+fileContents+"\"). Caused by: " + StacktraceUtils.stackTraceToString(e));
+                throw new DbException("Failed to deserialize "+ p +" with data (\""+fileContents+"\"). Caused by: " + StacktraceUtils.stackTraceToString(e));
             }
         }
     }

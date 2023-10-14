@@ -16,3 +16,4 @@ Here is an example:
 ```java
 ... attack the server ...
 assertFalse(logger.findFirstMessageThatContains("looking for a vulnerability").isBlank());
+```

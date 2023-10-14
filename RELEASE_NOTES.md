@@ -1,3 +1,11 @@
+v2.1.2
+------
+
+* Fix to bug in templating code.  It was not handling an unmatched 
+  double-closing-bracket properly.  Also adjusting so if there is a
+  double-opening-bracket without a closing set, it will throw a new
+  custom exception.
+
 v2.1.1
 ------
 

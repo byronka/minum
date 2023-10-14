@@ -86,7 +86,7 @@ public final class FullSystem {
         try {
             return fullSystem.start();
         } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new WebServerException(ex);
         }
     }
 
@@ -213,7 +213,7 @@ public final class FullSystem {
                 }
 
             } catch (Exception ex) {
-                throw new RuntimeException(ex);
+                throw new WebServerException(ex);
             } finally {
                 hasShutdown = true;
             }
@@ -259,7 +259,7 @@ public final class FullSystem {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new WebServerException(ex);
         }
     }
 }

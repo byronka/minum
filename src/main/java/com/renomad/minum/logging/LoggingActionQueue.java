@@ -23,7 +23,6 @@ final class LoggingActionQueue {
     private final ExecutorService executorService;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private boolean stop = false;
-    private Thread queueThread;
     private final Constants constants;
 
     LoggingActionQueue(String name, ExecutorService executorService, Constants constants) {
@@ -39,15 +38,9 @@ final class LoggingActionQueue {
     LoggingActionQueue initialize() {
         Runnable queueThread = () -> {
             Thread.currentThread().setName(name);
-            this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    RunnableWithDescription action = queue.take();
-                    try {
-                        action.run();
-                    } catch (Exception ex) {
-                        System.out.println(ex);
-                    }
+                    runAction();
                 }
             } catch (InterruptedException ex) {
                 /*
@@ -65,6 +58,15 @@ final class LoggingActionQueue {
         };
         executorService.submit(queueThread);
         return this;
+    }
+
+    private void runAction() throws InterruptedException {
+        RunnableWithDescription action = queue.take();
+        try {
+            action.run();
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
     }
 
     /**

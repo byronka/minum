@@ -52,12 +52,7 @@ public final class ActionQueue {
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    ThrowingRunnable action = queue.take();
-                    try {
-                        action.run();
-                    } catch (Exception e) {
-                        logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-                    }
+                    runAction();
                 }
             } catch (InterruptedException ex) {
                 /*
@@ -75,6 +70,15 @@ public final class ActionQueue {
         };
         queueExecutor.submit(centralLoop);
         return this;
+    }
+
+    private void runAction() throws InterruptedException {
+        ThrowingRunnable action = queue.take();
+        try {
+            action.run();
+        } catch (Exception e) {
+            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
+        }
     }
 
     /**

@@ -22,15 +22,11 @@ Staging Upload in the Build Promotion menu on the left.
 
 Deployment checklist
 --------------------
-- [ ] review logs
-- [ ] directory review
-- [ ] documentation review
-- [ ] spot-check code
-- [ ] generate reports: site page, pitest report, javadoc
-- [ ] generate and review javadocs
-- [ ] add tests
+- [ ] local testing with new version number
+- [ ] spot-check test logs
 - [ ] confirm howtos
-- [ ] confirm quick start
-- [ ] confirm patterns in example project
 - [ ] review generated bundle.jar, particularly its pom and manifest
+- [ ] update versions in quick start, tutorial, and example projects
+- [ ] squash the changes to a single commit
+- [ ] generate reports: site page, pitest report, javadoc
 - [ ] add Github release
