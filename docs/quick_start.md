@@ -1,18 +1,13 @@
 Quick Start
 ===========
 
-First off, slow down! This project breaks some conventions, so
-barging through the docs might cost you understanding.
-
 This software will enable you to create web applications in Java.  It provides
 the bare minimum of what is necessary for that task, plainly and simply.
-
-Let's get started.
 
 Step 1 - Java
 -------------
 
-Let's make sure you can run java.  Quick test - run this in your shell:
+Try this in your shell:
 
 ```shell
 javac -version
@@ -46,8 +41,6 @@ This is why your `PATH` environment variable should include something like this:
 $JAVA_HOME/bin
 ```
 
-optionally, and recommended, install [Maven](https://maven.apache.org/download.cgi)
-
 Step 2 - download the "small" example
 -------------------------------------
 
@@ -60,7 +53,7 @@ https://github.com/byronka/minum_usage_example_smaller
 Step 3 - run the example
 ------------------------
 
-Once you have downloaded it, run this command in its directory:
+Run this command in its directory:
 
 ```shell
 ./mvnw compile exec:java
@@ -72,10 +65,9 @@ It will compile and you will be able to view it at http://localhost:8080
 Step 4 - modify the example
 ---------------------------
 
-In its source, go to Main.java and take a moment to review. Take your time
-to understand what you are looking at, and then try some of the following
-recommended changes, to acclimate.  To see your changes, cancel the running
-program and run `./mvnw compile exec:java` to start it again.  
+Hit `Main.java` and take a moment to review. Try some of the following
+recommended changes.  To see your changes, cancel the running
+program by pressing ctrl+c and run `./mvnw compile exec:java` to start it again.  
 
 For ease of reference, here is the code you will see:
 
@@ -98,7 +90,7 @@ public class Main {
 ```
 
 * Add a new path - have it serve content from /hello
-* (After making this change, stop the running server and rerun the startup command)
+* (After making this change, stop the running server with ctrl+c and rerun `./mvnw compile exec:java`)
 
 ```java
 public class Main {
@@ -122,7 +114,8 @@ public class Main {
 }
 ```
 
-* Adjust to say hello to a query string parameter
+* Adjust to say hello to a query string parameter. (After making this change, stop 
+  the running server with ctrl+c and rerun `./mvnw compile exec:java`)
 
 ```java
 public class Main {
@@ -149,12 +142,14 @@ public class Main {
 }
 ```
 
+Press ctrl+c to stop the running server.
+
 Next steps
 ----------
 
 Now you are ready to go further.  If you want a step-by-step tutorial on building a
 project with Minum from the ground up, check out the [getting started tutorial](getting_started/getting_started.md).
 
-Or, you may want to pore through the code of a [larger example](https://github.com/byronka/minum_usage_example_mvn)
+Or, you may want to pore through a [larger example](https://github.com/byronka/minum_usage_example_mvn)
 
 Have fun!
