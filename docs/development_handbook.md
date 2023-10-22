@@ -628,7 +628,7 @@ even if they wouldn't have necessarily written to the same file.
 With this context in mind, let's talk about ActionQueue.
 
 With ActionQueue, if there is some file you wish to write, you can enqueue that work to be done later.  The 
-enqueue call immediately returns.  For example, looking at this code, here's an example usage from DatabaseDiskPersistenceSimpler:
+enqueue call immediately returns.  For example, looking at this code, here's an example usage from `Db.java`:
 
 ```Java
         actionQueue.enqueue("update data on disk", () -> {
