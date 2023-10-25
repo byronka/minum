@@ -250,14 +250,25 @@ public final class Constants {
      */
     private List<String> getProp(String propName, String propDefault) {
         String propValue = properties.getProperty(propName);
+        return extractList(propValue, propDefault);
+    }
+
+    /**
+     * Extract a list out of a comma-delimited string.
+     * <br>
+     * Example: a,b, c, d -> List.of("a","b","c","d")
+     * @param propValue the value of a property
+     * @param propDefault the default value to use, if the propValue is null
+     */
+    static List<String> extractList(String propValue, String propDefault) {
         if (propValue == null) {
             if (propDefault.isBlank()) {
                 return List.of();
             } else {
-                return Arrays.asList(propDefault.split(","));
+                return Arrays.asList(propDefault.trim().split("\\s*,\\s*"));
             }
         } else {
-            return Arrays.asList(propValue.split(","));
+            return Arrays.asList(propValue.trim().split("\\s*,\\s*"));
         }
     }
 

@@ -24,8 +24,10 @@ For comparison, the referenced project shows this for other well-known Java temp
 Notes:
 ------
 
-* Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
-* Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
+* Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not including 
+  its required dependencies
+* Rocker: rocker has a very large and disparate code base, but looking at just java, it 
+  has 112 classes and 11,996 lines of core non-test code
 
 
 ```java

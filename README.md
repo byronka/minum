@@ -1,5 +1,5 @@
-Minum Framework
-===============
+Minum Web Framework
+===================
 
 Minum is a minimalistic experimental web framework demonstrating [_less is more_](http://mcfunley.com/choose-boring-technology)
 
@@ -12,6 +12,7 @@ Getting Started
 
 There is a 🚀 [Quick start](docs/quick_start.md), or if you have
 a bit more time, consider trying the [tutorial](docs/getting_started/getting_started.md)
+
 
 Maven
 -----
@@ -35,11 +36,11 @@ Size Comparison:
 
 Compiled size: 150 kilobytes.
 
-_lines of production code (including required dependencies)_
+_Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 3,819 | 255,384 | 1,085,405   |
+| 3,822 | 255,384 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 
