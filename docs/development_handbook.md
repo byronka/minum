@@ -369,9 +369,11 @@ Templates
 
 There's a few things to note when dealing with templates.
 
-First, files you intend to use as a template should be stored under src/resources/templates.
-They should then be placed inside a subdirectory there, to help organize them.  Inside
-a template, wherever you intend to substitute values, use a syntax like this:
+First, files you intend to use as a template should be stored under src/main/webapp/templates.
+They should then be placed inside a subdirectory there, to help organize them. It will be
+necessary to read the file using plain old Java file reading - see [an example](https://github.com/byronka/minum_usage_example_mvn/blob/03a34f32e9c79fdc4a00f16d85d62eb5b8173ae6/src/main/java/com/renomad/sampledomain/SampleDomain.java#L31C27-L31C27)
+
+Inside a template, wherever you intend to substitute values, use a syntax like this:
 
     this is some text {{template_key}} this is more text
 
