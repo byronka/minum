@@ -596,7 +596,7 @@ See the [parable of two programmers](parable_two_programmers.md)
 ActionQueue
 -----------
 
-[ActionQueue](../src/main/minum/utils/ActionQueue.java) lets you run thread-contended actions safely.  Let's unpack 
+[ActionQueue](../src/main/java/com/renomad/minum/utils/ActionQueue.java) lets you run thread-contended actions safely.  Let's unpack 
 that sentence a bit with an example: Because this program is multithreaded, there will be times when multiple threads
 want to write to the same file at the same time.
 
@@ -640,7 +640,13 @@ enqueue call immediately returns.  For example, looking at this code, here's an 
         });
 ```
 
+To instantiate an actionQueue, code something like this:
+
+```Java
+actionQueue = new ActionQueue("a unique name here for your actionqueue", context).initialize();
+```
+
 Any time it is important to put something to be done later, ActionQueue is ready to help.  But note it has some
 drawbacks.  For one, you won't get exceptions bubbling up from your call.  If you need to immediately return
 a 400 error to a user based on some calculation, it wouldn't make sense to use ActionQueue there.  And like I 
-mentioned, the other options - synchrnonized, Locks - are also good in many cases.
+mentioned, the other options - `synchronized`, Locks - are also good in many cases.
