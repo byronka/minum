@@ -1,3 +1,14 @@
+v2.3.0
+------
+
+* New ability to inject custom properties into Constants, which will provide
+  some better flexibility when testing.  For example, you may want to run
+  concurrent tests with different server ports, or different database folders.
+* TestFramework.buildTestingContext now allows injecting a properties file
+  to use when creating the Constants object.
+* Make Constants.getConfiguredProperties public to enable tests to more easily
+  use all the default properties, with programmatically-defined customizations
+
 v2.2.1
 --------
 

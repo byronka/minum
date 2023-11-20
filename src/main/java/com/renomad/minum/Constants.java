@@ -18,7 +18,15 @@ public final class Constants {
     private Properties properties;
 
     public Constants() {
-        properties = getConfiguredProperties();
+        this(null);
+    }
+
+    public Constants(Properties props) {
+        if (props == null) {
+            properties = getConfiguredProperties();
+        } else {
+            properties = props;
+        }
 
         SERVER_PORT = getProp("SERVER_PORT",  8080);
         SECURE_SERVER_PORT = getProp("SSL_SERVER_PORT",  8443);
@@ -274,10 +282,9 @@ public final class Constants {
 
 
     /**
-     * This overload allows you to specify that the contents of the
-     * properties file should be shown when it's read.
+     * Reads property files from minum.config
      */
-    private Properties getConfiguredProperties() {
+    public static Properties getConfiguredProperties() {
         var props = new Properties();
         String fileName = "minum.config";
         try (FileInputStream fis = new FileInputStream(fileName)) {

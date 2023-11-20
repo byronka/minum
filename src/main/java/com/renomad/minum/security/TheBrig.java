@@ -49,7 +49,7 @@ public final class TheBrig implements ITheBrig {
     /**
      * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
      */
-    private static class Inmate extends DbData<Inmate> {
+    public static class Inmate extends DbData<Inmate> {
 
         /**
          * Builds an empty version of this class, except

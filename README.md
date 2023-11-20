@@ -71,7 +71,7 @@ Documentation:
 
 * [Development handbook](docs/development_handbook.md)
 * [Javadocs](https://byronka.github.io/javadoc/)
-* [Site report](https://byronka.github.io/site/)
+* [Site report](https://byronka.github.io/site/project-info.html) 
 * [Mutation test report](https://byronka.github.io/pit-reports)
 
 

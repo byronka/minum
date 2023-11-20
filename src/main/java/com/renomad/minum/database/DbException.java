@@ -1,9 +1,14 @@
 package com.renomad.minum.database;
 
+import java.io.Serial;
+
 /**
  * Represents an exception that takes places in the {@link Db} code
  */
 public class DbException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = -9063971131447186027L;
 
     /**
      * A {@link RuntimeException} scoped to

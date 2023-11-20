@@ -35,4 +35,22 @@ public class ConstantsTests {
         List<String> extraMimeMappings = Constants.extractList(" a,b, c, d, foo bar   , biz", "");
         assertEquals(extraMimeMappings, List.of("a","b","c","d", "foo bar","biz"));
     }
+
+    /**
+     * In your testing, it may be necessary to inject your own choice
+     * of properties to the constants file.  In particular, it might be
+     * common to set the root of the database, or the port of the server.
+     */
+    @Test
+    public void testCustomProps() {
+        Properties properties = new Properties();
+        properties.setProperty("SERVER_PORT","1234");
+        properties.setProperty("DB_DIRECTORY","/some/directory/here");
+        var constants = new Constants(properties);
+        assertEquals(constants.SERVER_PORT, 1234);
+        assertEquals(constants.DB_DIRECTORY, "/some/directory/here");
+        // if a property does not exist, it will use defaults
+        assertEquals(constants.USE_VIRTUAL, false);
+
+    }
 }

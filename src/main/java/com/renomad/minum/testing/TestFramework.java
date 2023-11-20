@@ -10,6 +10,7 @@ import com.renomad.minum.web.FullSystem;
 import com.renomad.minum.web.InputStreamUtils;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  * These are utility functions for basic automated
@@ -212,6 +213,9 @@ public final class TestFramework {
         return text;
     }
 
+    public static Context buildTestingContext(String loggerName) {
+        return buildTestingContext(loggerName, null);
+    }
 
     /**
      * This builds a context very similarly to {@link FullSystem#buildContext()},
@@ -219,9 +223,12 @@ public final class TestFramework {
      * @param loggerName this will assign a human-readable name to the logger's
      *                   {@link com.renomad.minum.logging.LoggingActionQueue} so we can distinguish it
      *                   when reviewing the threads
+     * @param properties If you want, you can inject a properties object here, to have
+     *                   greater control over your test.  Using a parameter of null here
+     *                   will cause the system to obtain properties from the minum.config file
      */
-    public static Context buildTestingContext(String loggerName) {
-        var constants = new Constants();
+    public static Context buildTestingContext(String loggerName, Properties properties) {
+        var constants = new Constants(properties);
         var executorService = ExtendedExecutor.makeExecutorService(constants);
         var logger = new TestLogger(constants, executorService, loggerName);
         var fileUtils = new FileUtils(logger, constants);
