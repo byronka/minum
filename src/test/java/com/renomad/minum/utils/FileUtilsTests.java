@@ -97,7 +97,7 @@ public class FileUtilsTests {
     public void test_FileUtils_Edge_CurrentDirectory() {
         Response response = fileUtils.readStaticFile("./");
 
-        assertEquals(response.statusCode(), _400_BAD_REQUEST);
+        assertEquals(response.statusCode(), _404_NOT_FOUND);
     }
 
     /**

@@ -1,3 +1,10 @@
+v2.3.1
+------
+
+* It was found that when a client requested a directory, the system would
+  throw an IOException and log an async_error.  This fixes that, so that
+  it is merely "file not found".
+
 v2.3.0
 ------
 

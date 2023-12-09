@@ -239,8 +239,8 @@ public final class FileUtils {
         byte[] fileContents;
         try {
             Path staticFilePath = Path.of(constants.STATIC_FILES_DIRECTORY).resolve(path);
-            if (!Files.exists(staticFilePath)) {
-                logger.logDebug(() -> String.format("No file found at %s", path));
+            if (!Files.isRegularFile(staticFilePath)) {
+                logger.logDebug(() -> String.format("No readable file found at %s", path));
                 return new Response(_404_NOT_FOUND);
             }
             fileContents = readFile(staticFilePath.toString());
