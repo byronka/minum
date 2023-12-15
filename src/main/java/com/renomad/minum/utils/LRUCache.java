@@ -55,7 +55,7 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
      * what types to build.
      */
     public static <T> Map<String, T> getLruCache(int maxSize) {
-        return Collections.synchronizedMap(new LRUCache<>(maxSize));
+        return new LRUCache<>(maxSize);
     }
 
     @Override

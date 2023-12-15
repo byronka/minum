@@ -1,3 +1,11 @@
+v2.3.2
+------
+
+* cannot rely on synchronized code with virtual threads. The hope was that using the 
+  synchronizedMap method would provide thread-safe access to this data.
+  That has not proven out, and the guide to virtual threads in Java specifically warns against
+  use of the synchronized keyword.
+
 v2.3.1
 ------
 
