@@ -2,7 +2,6 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
-import com.renomad.minum.htmlparsing.ParsingException;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StringUtils;
@@ -86,13 +85,16 @@ final class BodyProcessor {
                     String boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
                     return parseMultiform(bodyBytes, boundaryValue);
                 }
-                throw new ParsingException("Did not find a valid boundary value for the multipart input. Header was: " + contentType);
+                String parsingError = "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
+                logger.logDebug(() -> parsingError);
+                return new Body(Map.of(), bodyBytes, Map.of(), context);
             } else {
                 logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
                 return new Body(Map.of(), bodyBytes, Map.of(), context);
             }
         } catch (Exception ex) {
-            throw new ParsingException("Unable to parse this body", ex);
+            logger.logDebug(() -> "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: " + ex.getMessage());
+            return new Body(Map.of(), bodyBytes, Map.of(), context);
         }
     }
 
@@ -129,7 +131,8 @@ final class BodyProcessor {
             if (input.length() > MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) {
                 dataToReturn = input.substring(0, MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) + " ... (remainder of data trimmed)";
             }
-            throw new ParsingException("Unable to parse this body as application/x-www-form-urlencoded. Data: " + dataToReturn, ex);
+            logger.logDebug(() -> "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: " + ex.getMessage());
+            return new Body(Map.of(), dataToReturn.getBytes(StandardCharsets.UTF_8), Map.of(), context);
         }
         return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), Map.of(), context);
     }
@@ -215,7 +218,8 @@ final class BodyProcessor {
                 } else {
                     returnedData = StringUtils.byteArrayToString(body);
                 }
-                throw new ParsingException("No name value found in the headers of a partition. Data: " + returnedData);
+                logger.logDebug(() -> "No name value found in the headers of a partition. Data: " + returnedData);
+                return new Body(Map.of(), body, Map.of(), context);
             }
 
         }

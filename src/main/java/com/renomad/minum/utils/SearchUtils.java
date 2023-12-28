@@ -1,6 +1,7 @@
 package com.renomad.minum.utils;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -32,11 +33,14 @@ public final class SearchUtils {
      * This is similar to {@link #findExactlyOne(Stream, Predicate)} except that you
      * can provide what gets returned in the alternate case - so instead of
      * returning null, it can return something else.
+     * <br>
+     * The values will be pre-filtered to skip any null values.
+     * <br>
      * @param alternate a {@link Callable} that will be run to calculate the alternate case.
      * @param searchPredicate a {@link Predicate} run to search for an element in the stream.
      */
     public static <T> T findExactlyOne(Stream<T> streamOfSomething, Predicate<? super T> searchPredicate, Callable<T> alternate) {
-        List<T> listOfThings = streamOfSomething.filter(searchPredicate).toList();
+        List<T> listOfThings = streamOfSomething.filter(Objects::nonNull).filter(searchPredicate).toList();
         mustBeTrue(listOfThings.isEmpty() || listOfThings.size() == 1, "Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
         if (listOfThings.isEmpty()) {
             T returnValue;

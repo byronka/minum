@@ -3,6 +3,7 @@ package com.renomad.minum.utils;
 import com.renomad.minum.auth.User;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -62,5 +63,49 @@ public class SearchUtilsTests {
                 () -> User.EMPTY);
 
         assertEquals(result, User.EMPTY);
+    }
+
+    /**
+     * What should happen if the only item in the list is a null value?
+     * Same as when it does not find anything.
+     */
+    @Test
+    public void test_SearchUtils_OnlyNullInList() {
+        List<String> items = new ArrayList<>();
+        items.add(null);
+
+        // if we find it, return it
+        String b = findExactlyOne(items.stream(), x -> x.equals("b"));
+        assertTrue(b == null);
+    }
+
+    /**
+     * What should happen if the only item in the list is a null value?
+     * Same as when it does not find anything. With alternate.
+     */
+    @Test
+    public void test_SearchUtils_OnlyNullInList_WithAlternate() {
+        List<String> items = new ArrayList<>();
+        items.add(null);
+
+        // if we find it, return it
+        String b = findExactlyOne(items.stream(), x -> x.equals("b"), () -> "foo");
+        assertEquals(b, "foo");
+    }
+
+    /**
+     * What should happen if there are nulls in the list, but also
+     * the item we want to find?
+     */
+    @Test
+    public void test_SearchUtils_NullInList() {
+        List<String> items = new ArrayList<>();
+        items.add("a");
+        items.add("b");
+        items.add(null);
+
+        // if we find it, return it
+        String b = findExactlyOne(items.stream(), x -> x.equals("b"));
+        assertEquals(b, "b");
     }
 }

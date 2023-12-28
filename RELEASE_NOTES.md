@@ -1,20 +1,30 @@
-v2.3.2
-------
+v2.3.3 - Dec 27, 2023
+---------------------
+
+* Added a pre-filter to avoid nulls in SearchUtils.findExactlyOne, which
+  helps avoid some null pointer exceptions.
+* Remove ParsingException from being thrown in the BodyProcessor.  If any
+  issues take place with parsing the body, it will be logged as a debug
+  issue and the body will continue with processing, just without having 
+  determined any key-value pairs.
+
+v2.3.2 - Dec 15, 2023
+---------------------
 
 * cannot rely on synchronized code with virtual threads. The hope was that using the 
   synchronizedMap method would provide thread-safe access to this data.
   That has not proven out, and the guide to virtual threads in Java specifically warns against
   use of the synchronized keyword.
 
-v2.3.1
-------
+v2.3.1 - Dec 9, 2023
+--------------------
 
 * It was found that when a client requested a directory, the system would
   throw an IOException and log an async_error.  This fixes that, so that
   it is merely "file not found".
 
-v2.3.0
-------
+v2.3.0 - Nov 19, 2023
+---------------------
 
 * New ability to inject custom properties into Constants, which will provide
   some better flexibility when testing.  For example, you may want to run
@@ -24,14 +34,14 @@ v2.3.0
 * Make Constants.getConfiguredProperties public to enable tests to more easily
   use all the default properties, with programmatically-defined customizations
 
-v2.2.1
---------
+v2.2.1 - Oct 24, 2023
+---------------------
 
 * Make code for converting comma-delimited strings to array more robust.
   Now, extra spaces are much less likely to confuse it.
 
-v2.2.0
-------
+v2.2.0 - Oct 14, 2023
+---------------------
 
 * Provide ability to get all the keys returned in the key-value pairs
   of a Response body: body.getKeys().  Useful for some situations where you are dealing
@@ -43,22 +53,22 @@ v2.2.0
 * Update version numbers for some Maven plugins, allowing nicer reports, etc.
 * Add Template HTML element
 
-v2.1.2
-------
+v2.1.2 - Oct 14, 2023
+---------------------
 
 * Fix to bug in templating code.  It was not handling an unmatched 
   double-closing-bracket properly.  Also adjusting so if there is a
   double-opening-bracket without a closing set, it will throw a new
   custom exception.
 
-v2.1.1
-------
+v2.1.1 - Oct 9, 2023
+--------------------
 
 * Fix to bug in output encoding for HTML attributes, in StringUtils.encodeAttr().
   There were a couple extra characters that needed encoding.
 
-v2.1.0
-------
+v2.1.0 - Sep 30, 2023
+---------------------
 
 * Milder complaint if user lacks minum.config file.  Before, if the user did
   not have a minum.config in the directory where they started Minum, it would
@@ -80,19 +90,19 @@ v2.1.0
 * Added a new constant to control the number of elements in the file LRU cache,
   called MAX_ELEMENTS_LRU_CACHE_STATIC_FILES
 
-v2.0.0
-------
+v2.0.0 - Sep 26, 2023
+---------------------
 
 * Renamings to better align with HTTP specification
 * Better correctness of database code, prevent some race conditions through locking
 
-v1.1.1 - September 22, 2023
----------------------------
+v1.1.1 - Sep 22, 2023
+---------------------
 
 * Linter suggestions
 
-v1.1.0 - September 21, 2023
-----------------------------
+v1.1.0 - Sep 21, 2023
+---------------------
 
 * Improved documentation
 * Improved templating - less strict with whitespace around keys

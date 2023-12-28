@@ -4,6 +4,7 @@ import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.htmlparsing.ParsingException;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.ActionQueueKiller;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
@@ -61,7 +62,7 @@ public class WebTests {
     static private InputStreamUtils inputStreamUtils;
     static private Context context;
     static private WebEngine webEngine;
-    static private ILogger logger;
+    static private TestLogger logger;
 
     /**
      * The length of time, in milliseconds, we will wait for the server to close
@@ -78,7 +79,7 @@ public class WebTests {
         webEngine = new WebEngine(context);
         es = context.getExecutorService();
         inputStreamUtils = context.getInputStreamUtils();
-        logger = context.getLogger();
+        logger = (TestLogger)context.getLogger();
     }
 
 
@@ -361,14 +362,16 @@ public class WebTests {
 
     @Test
     public void test_ParseForm_EdgeCase_BlankKey() {
-        final var ex2 = assertThrows(ParsingException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("=123"));
-        assertEquals(ex2.getCause().getMessage(), "The key must not be blank");
+        new BodyProcessor(context).parseUrlEncodedForm("=123");
+        var logs = logger.findFirstMessageThatContains("The key must not be blank");
+        assertTrue(!logs.isBlank());
     }
 
     @Test
     public void test_ParseForm_EdgeCase_DuplicateKey() {
-        final var ex3 = assertThrows(ParsingException.class, () -> new BodyProcessor(context).parseUrlEncodedForm("a=123&a=123"));
-        assertEquals(ex3.getCause().getMessage(), "a was duplicated in the post body - had values of 123 and 123");
+        new BodyProcessor(context).parseUrlEncodedForm("a=123&a=123");
+        var logs = logger.findFirstMessageThatContains("a was duplicated in the post body - had values of 123 and 123");
+        assertTrue(!logs.isBlank());
     }
 
     @Test

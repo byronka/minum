@@ -1,21 +1,26 @@
 package com.renomad.minum.web;
 
 import com.renomad.minum.Context;
-import com.renomad.minum.htmlparsing.ParsingException;
+import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.logging.TestLogger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Set;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class BodyProcessorTests {
 
     private static Context context;
+    private static TestLogger logger;
 
     @BeforeClass
     public static void init() {
         context = buildTestingContext("unit_tests");
+        logger = (TestLogger) context.getLogger();
     }
 
     /**
@@ -33,14 +38,15 @@ public class BodyProcessorTests {
                 """.stripIndent();
         var bodyProcessor = new BodyProcessor(context);
 
-        var exception = assertThrows(ParsingException.class, () -> bodyProcessor.extractBodyFromBytes(
+        var bodyResult = bodyProcessor.extractBodyFromBytes(
                 body.length(),
                 "content-type: multipart/form-data; boundary=i_am_a_boundary",
                 body.getBytes(StandardCharsets.UTF_8)
-                ));
+                );
 
-        assertEquals(exception.getMessage(), "Unable to parse this body");
-        assertEquals(exception.getCause().getMessage(), "No name value found in the headers of a partition. Data: --i_am_a_boundary\nContent-Type: text/plain\nContent-Disposition: form-data; NO_NAME=\"text1\"\n\nI am a value that is text\n--i_am_a_boundary\n");
+        String unableToParseThisBody = logger.findFirstMessageThatContains("No name value found");
+        assertTrue(unableToParseThisBody.contains("No name value found in the headers of a partition. Data: --i_am_a_boundary\nContent-Type: text"));
+        assertEquals(bodyResult.getKeys(), Set.of());
     }
 
     /**
@@ -54,14 +60,17 @@ public class BodyProcessorTests {
                 """.strip();
         var bodyProcessor = new BodyProcessor(context);
 
-        ParsingException parsingException = assertThrows(ParsingException.class, () -> bodyProcessor.extractBodyFromBytes(
+        Body bodyResult = bodyProcessor.extractBodyFromBytes(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
                 body.getBytes(StandardCharsets.UTF_8)
-        ));
+        );
 
-        assertEquals(parsingException.getMessage(), "Unable to parse this body");
-        assertEquals(parsingException.getCause().getMessage(), "Unable to parse this body as application/x-www-form-urlencoded. Data: Foo");
+        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body");
+        assertEquals(unableToParseThisBody, "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: Range [0, -1) out of bounds for length 3");
+        assertEquals(bodyResult.getKeys(), Set.of());
+        assertEquals(bodyResult.asString(), "Foo");
+
     }
 
     /**
@@ -73,14 +82,16 @@ public class BodyProcessorTests {
         String body = "a".repeat(BodyProcessor.MAX_SIZE_DATA_RETURNED_IN_EXCEPTION + 1);
         var bodyProcessor = new BodyProcessor(context);
 
-        ParsingException parsingException = assertThrows(ParsingException.class, () -> bodyProcessor.extractBodyFromBytes(
+        var bodyResult = bodyProcessor.extractBodyFromBytes(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
                 body.getBytes(StandardCharsets.UTF_8)
-        ));
+        );
 
-        assertEquals(parsingException.getMessage(), "Unable to parse this body");
-        assertTrue(parsingException.getCause().getMessage().contains("aaaaaaaaaa ... (remainder of data trimmed)"));
+        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body");
+        assertEquals(unableToParseThisBody, "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: Range [0, -1) out of bounds for length 1025");
+        assertEquals(bodyResult.getKeys(), Set.of());
+        assertTrue(bodyResult.asString().contains("aaaaaaaaaa ... (remainder of data trimmed)"));
     }
 
 
@@ -104,13 +115,17 @@ public class BodyProcessorTests {
                 """.stripIndent();
         var bodyProcessor = new BodyProcessor(context);
 
-        var exception = assertThrows(ParsingException.class, () -> bodyProcessor.extractBodyFromBytes(
+        var bodyResult = bodyProcessor.extractBodyFromBytes(
                 body.length(),
                 "content-type: multipart/form-data; boundary=i_am_a_boundary",
                 body.getBytes(StandardCharsets.UTF_8)
-        ));
+        );
 
-        assertEquals(exception.getMessage(), "Unable to parse this body");
-        assertTrue(exception.getCause().getMessage().contains("aaaaaaaaaaaaaa ... (remainder of data trimmed)"));
+        String unableToParseThisBody = logger.findFirstMessageThatContains("No name value found in the headers", 1);
+        assertTrue(unableToParseThisBody.contains("No name value found in the headers of a partition"));
+        assertTrue(unableToParseThisBody.contains("Data: --i_am_a_boundary\r\nContent-Type:"));
+        assertTrue(unableToParseThisBody.contains("text/plain\r\nContent-Disposition: form-data; NO_NAME=\"text1\"\r\n\r\nI am a value that"));
+        assertTrue(unableToParseThisBody.contains("aaaaaaaaaa ... (remainder of data trimmed)"));
+        assertEquals(bodyResult.getKeys(), Set.of());
     }
 }
