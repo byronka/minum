@@ -71,7 +71,6 @@ final class LoggingActionQueue {
 
     /**
      * Adds something to the queue to be processed.
-     * @param action an action to take with no return value.  (this uses callable so we can collect exceptions)
      */
     void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {

@@ -51,7 +51,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 3,822 | 255,384 | 1,085,405   |
+| 3,851 | 255,384 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 
@@ -70,9 +70,9 @@ Documentation:
 --------------
 
 * [Development handbook](docs/development_handbook.md)
-* [Javadocs](https://byronka.github.io/javadoc/)
-* [Site report](https://byronka.github.io/site/project-info.html) 
-* [Mutation test report](https://byronka.github.io/pit-reports)
+* [Javadocs](https://renomad.com/javadoc/)
+* [Various reports](https://renomad.com/site/project-reports.html) 
+* [Mutation test report](https://renomad.com/pit-reports)
 
 
 Example projects demonstrating usage:

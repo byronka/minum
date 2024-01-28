@@ -82,6 +82,14 @@ public final class TestFramework {
         }
     }
 
+    public static void assertEqualByteArray(byte[] left, byte[] right, String failureMessage) {
+        try {
+            assertEqualByteArray(left, right);
+        } catch (TestFailureException ex) {
+            throw new TestFailureException(ex.getMessage() + ". " + failureMessage);
+        }
+    }
+
     /**
      * asserts two lists are equal, ignoring the order.
      * For example, (a, b) is equal to (b, a)
@@ -106,6 +114,14 @@ public final class TestFramework {
                                 String.join("\n", showWhiteSpace(left.toString())),
                                 String.join("\n", showWhiteSpace(right.toString()))));
             }
+        }
+    }
+
+    public static void assertEqualsDisregardOrder(List<? extends CharSequence> left, List<? extends CharSequence> right, String failureMessage) {
+        try {
+            assertEqualsDisregardOrder(left, right);
+        } catch (TestFailureException ex) {
+            throw new TestFailureException(ex.getMessage() + ". " + failureMessage);
         }
     }
 
@@ -173,13 +189,19 @@ public final class TestFramework {
      */
     public static void assertTrue(boolean value, String failureMessage) {
         if (!value) {
-            throw new TestFailureException("value was unexpectedly false. " + failureMessage);
+            throw new TestFailureException(failureMessage);
         }
     }
 
     public static void assertFalse(boolean value) {
         if (value) {
             throw new TestFailureException("value was unexpectedly true");
+        }
+    }
+
+    public static void assertFalse(boolean value, String failureMessage) {
+        if (value) {
+            throw new TestFailureException(failureMessage);
         }
     }
 

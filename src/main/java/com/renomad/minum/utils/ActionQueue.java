@@ -5,7 +5,6 @@ import com.renomad.minum.Context;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.LoggingLevel;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -90,15 +89,9 @@ public final class ActionQueue {
      * <pre>
      * {@code   actionQueue.enqueue("Write person file to disk at " + filePath, () -> {
      *             Files.writeString(filePath, pf.serialize());
-     *             return null;
      *         });}
      * </pre>
      * </p>
-     * @param action an action to take with no return value.  (this
-     *               uses {@link Callable} so we can collect exceptions). Note
-     *               that because we are using Callable, it is necessary
-     *               to "return null" at the end of the action.
-
      */
     public void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {

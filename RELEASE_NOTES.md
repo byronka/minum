@@ -1,3 +1,11 @@
+v2.4.0 - Jan 31, 2024
+---------------------
+
+* Adjust documentation for ActionQueue.enqueue. The documentation was
+  incorrectly suggesting it was necessary to return null.
+* Add failure message option for all assertions.  This way it is possible
+  to include better help when a test fails, across all assertion types.
+
 v2.3.3 - Dec 27, 2023
 ---------------------
 
