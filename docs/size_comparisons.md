@@ -6,7 +6,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 3,851 | 141,048 | 1,085,405   |
+| 3,870 | 141,048 | 1,085,405   |
 
 
 #### Our project is 37 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -20,13 +20,19 @@ Web frameworks
 We'll see that, and raise you ***a web framework with zero dependencies*** 
 
 
+Web server
+----------
+
+| Minum | Nginx   | Tomcat  |
+|-------|---------|---------|
+| 1563  | 163,000 | 242,000 |
+
 Templating
 ----------
 
 | Minum | Mustache | Pebble | Rocker |
 |-------|----------|--------|--------|
-| 73    | 11,346   | 16,876 | 11,996 |
-
+| 91    | 11,346   | 16,876 | 11,996 |
 
 
 Database
@@ -34,7 +40,7 @@ Database
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 152   | 1,300,000  | 1,500,000 | 116,000 |
+| 251   | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -42,15 +48,7 @@ Logging
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
-| 94    | 70,000 | 3,400 |
-
-
-Web server
-----------
-
-| Minum | Nginx   | Tomcat  |
-|-------|---------|---------|
-| 1456  | 163,000 | 242,000 |
+| 277   | 70,000 | 3,400 |
 
 
 HTML Parser
@@ -58,12 +56,19 @@ HTML Parser
 
 | Minum | JSoup  |
 |-------|--------|
-| 304   | 14,337 |
+| 397   | 14,337 |
+
+
+Testing
+-------
+
+| Minum | JUnit4 |
+|-------|--------|
+| 185   | 10,834 |
 
 
 Appendix
 --------
-
 
 
 _(all measurements of lines of code are for production code - that is, non-test-code)_
