@@ -2,21 +2,13 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
-import com.renomad.minum.htmlparsing.ParsingException;
-import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.utils.ActionQueueKiller;
-import com.renomad.minum.utils.InvariantException;
-import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.StringUtils;
+import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -39,6 +31,7 @@ import static com.renomad.minum.web.RequestLine.startLineRegex;
 import static com.renomad.minum.web.StatusLine.StatusCode._200_OK;
 import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
+import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
 /**
  <pre>
@@ -960,4 +953,66 @@ public class WebTests {
         return StringUtils.byteArrayToString(inputStreamUtils.read(length, is));
     }
 
+    /**
+     * A client may request for data to be compressed, using the Accept-Encoding
+     * header.  For example, "Accept-Encoding: gzip" will tell us that the client
+     * will be able to decompress gzip.
+     */
+    @Test
+    public void testCompression() {
+        var stringBuilder = new StringBuilder();
+
+        byte[] compressedBody = WebFramework.compressBodyIfRequested(
+                gettysburgAddress.getBytes(StandardCharsets.UTF_8),
+                List.of("gzip"),
+                stringBuilder, 0);
+
+        byte[] bytes = CompressionUtils.gzipDecompress(compressedBody);
+        String body = new String(bytes, StandardCharsets.UTF_8);
+        assertEquals(body, gettysburgAddress);
+        assertEquals(stringBuilder.toString(), "Content-Encoding: gzip"  + HTTP_CRLF);
+    }
+
+    /**
+     * If the user sends us an Accept-Encoding with anything else besides
+     * gzip, we won't compress.
+     */
+    @Test
+    public void testCompression_EdgeCase_NoGzip() {
+        var stringBuilder = new StringBuilder();
+
+        byte[] bytes = WebFramework.compressBodyIfRequested(
+                gettysburgAddress.getBytes(StandardCharsets.UTF_8), List.of("deflate"), stringBuilder, 0);
+
+        String body = new String(bytes, StandardCharsets.UTF_8);
+        assertEquals(body, gettysburgAddress);
+        assertEquals(stringBuilder.toString(), "");
+    }
+
+
+    String gettysburgAddress = """
+                Four score and seven years ago our fathers brought forth on this continent, a 
+                new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+                                
+                Now we are engaged in a great civil war, testing whether that nation, or any nation so 
+                conceived and so dedicated, can long endure. We are met on a great battle-field of that 
+                war. We have come to dedicate a portion of that field, as a final resting place for 
+                those who here gave their lives that that nation might live. It is altogether fitting 
+                and proper that we should do this.
+                                
+                But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not 
+                hallow -- this ground. The brave men, living and dead, who struggled here, have 
+                consecrated it, far above our poor power to add or detract. The world will little 
+                note, nor long remember what we say here, but it can never forget what they did here. 
+                It is for us the living, rather, to be dedicated here to the unfinished work which 
+                they who fought here have thus far so nobly advanced. It is rather for us to be here 
+                dedicated to the great task remaining before us -- that from these honored dead we 
+                take increased devotion to that cause for which they gave the last full measure of 
+                devotion -- that we here highly resolve that these dead shall not have died in 
+                vain -- that this nation, under God, shall have a new birth of freedom -- and that 
+                government of the people, by the people, for the people, shall not perish from the earth.
+                                
+                Abraham Lincoln
+                November 19, 1863
+                """;
 }

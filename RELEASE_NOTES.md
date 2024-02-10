@@ -1,3 +1,12 @@
+v2.5.0 - Feb 10, 2024
+---------------------
+
+* Add GZIP compression.  This does not require any modifications by
+  users - but now the Minum web server will reply with GZIP compression
+  if the client browser sends a request that includes an accept-encoding
+  header with a value that includes "gzip".  This will only apply to 
+  text data.
+
 v2.4.0 - Jan 31, 2024
 ---------------------
 

@@ -16,8 +16,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.renomad.minum.utils.CompressionUtils.gzipCompress;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static com.renomad.minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
@@ -68,6 +71,18 @@ public final class WebFramework {
     private final FullSystem fs;
     private final ILogger logger;
     private final Context context;
+
+    /**
+     * This type is used to contain the results of modifications
+     * applied to the outgoing data just before sending
+     * @param statusLineAndHeaders string values separated by CRLF, per HTTP spec
+     * @param body the body of the message, as bytes.  May be compressed.
+     */
+    private record PreparedResponse(String statusLineAndHeaders, byte[] body){}
+
+    // A regular expression to be used to check whether a client is allowing gzip compression.
+    // Look up "accept-encoding" on the internet.
+    private static final Pattern gzipAcceptEncodingPattern = Pattern.compile("\\b(gzip)\\b", Pattern.CASE_INSENSITIVE);
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -211,10 +226,10 @@ public final class WebFramework {
                         logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
                     }
 
-                    String statusLineAndHeaders = convertResponseToString(clientRequest, resultingResponse, isKeepAlive);
+                    PreparedResponse preparedResponse = finalPreparation(clientRequest, resultingResponse, isKeepAlive);
 
                     // Here is where the bytes actually go out on the socket
-                    String response = statusLineAndHeaders + HTTP_CRLF;
+                    String response = preparedResponse.statusLineAndHeaders() + HTTP_CRLF;
 
                     logger.logTrace(() -> "Sending headers back: " + response);
                     sw.send(response);
@@ -225,7 +240,7 @@ public final class WebFramework {
                                 " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().isolatedPath() +
                                 ".  Excluding body from response");
                     } else {
-                        sw.send(resultingResponse.body());
+                        sw.send(preparedResponse.body());
                     }
                     logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
 
@@ -296,7 +311,7 @@ public final class WebFramework {
      * This is where our strongly-typed {@link Response} gets converted
      * to a string and sent on the socket.
      */
-    private String convertResponseToString(Request request, Response response, boolean isKeepAlive) {
+    private PreparedResponse finalPreparation(Request request, Response response, boolean isKeepAlive) {
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
         StringBuilder stringBuilder = new StringBuilder();
@@ -304,12 +319,35 @@ public final class WebFramework {
         // add the status line
         stringBuilder.append( "HTTP/1.1 " + response.statusCode().code + " " + response.statusCode().shortDescription + HTTP_CRLF );
 
-        // add the headers
-        stringBuilder
-                .append( "Date: " + date + HTTP_CRLF )
-                .append( "Server: minum" + HTTP_CRLF )
-                .append(  response.extraHeaders().entrySet().stream().map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF).collect(Collectors.joining()));
+        // add a date-timestamp
+        stringBuilder.append("Date: " + date + HTTP_CRLF);
 
+        // add the server name
+        stringBuilder.append( "Server: minum" + HTTP_CRLF );
+
+        addExtraHeaders(response, stringBuilder);
+        confirmBodyHasContentType(request, response);
+        byte[] bodyBytes = potentiallyCompress(request, response, stringBuilder);
+        applyContentLength(stringBuilder, bodyBytes);
+        addKeepAliveTimeout(isKeepAlive, stringBuilder);
+
+        return new PreparedResponse(stringBuilder.toString(), bodyBytes);
+    }
+
+    /**
+     * Add extra headers specified by the business logic
+     */
+    private static void addExtraHeaders(Response response, StringBuilder stringBuilder) {
+        stringBuilder.append(
+                response.extraHeaders().entrySet().stream()
+                .map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF)
+                .collect(Collectors.joining()));
+    }
+
+    /**
+     * If a response body exists, it needs to have a content-type specified, or throw an exception.
+     */
+    private static void confirmBodyHasContentType(Request request, Response response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
         boolean hasContentType = response.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
 
@@ -317,27 +355,89 @@ public final class WebFramework {
         if (response.body().length > 0) {
             mustBeTrue(hasContentType, "a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
         }
+    }
 
-        /*
-        The rules regarding the content-length header are byzantine.  Even in the cases
-        where you aren't returning anything, servers can use this header to determine when the
-        response is finished.
-
-        There are a few rules when you MUST include it, MUST NOT, blah blah blah, but I'm
-        not following that stuff too closely because this code skips a lot of the spec.
-        For example, we don't handle OPTIONS or return any 1xx response types.
-
-        See https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length
-         */
-        stringBuilder.append("Content-Length: " + response.body().length + HTTP_CRLF );
-
+    /**
+     * If this is a keep-alive communication, add a header specifying the
+     * socket timeout for the browser.
+     */
+    private void addKeepAliveTimeout(boolean isKeepAlive, StringBuilder stringBuilder) {
         // if we're a keep-alive connection, reply with a keep-alive header
         if (isKeepAlive) {
             stringBuilder.append("Keep-Alive: timeout=" + constants.KEEP_ALIVE_TIMEOUT_SECONDS + HTTP_CRLF);
         }
-
-        return stringBuilder.toString();
     }
+
+    /**
+     * The rules regarding the content-length header are byzantine.  Even in the cases
+     * where you aren't returning anything, servers can use this header to determine when the
+     * response is finished.
+     *
+     * There are a few rules when you MUST include it, MUST NOT, blah blah blah, but I'm
+     * not following that stuff too closely because this code skips a lot of the spec.
+     * For example, we don't handle OPTIONS or return any 1xx response types.
+     *
+     * See https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length
+     */
+    private static void applyContentLength(StringBuilder stringBuilder, byte[] bodyBytes) {
+        stringBuilder.append("Content-Length: " + bodyBytes.length + HTTP_CRLF );
+    }
+
+    /**
+     * This method will examine the request headers and response content-type, and
+     * compress the outgoing data if necessary.
+     */
+    private static byte[] potentiallyCompress(Request request, Response response, StringBuilder stringBuilder) {
+        // we may make modifications to the response body at this point, specifically
+        // we may compress the data, if the client requested it.
+        // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
+        List<String> acceptEncoding = request.headers().valueByKey("accept-encoding");
+
+        // regardless of whether the client requests compression in their Accept-Encoding header,
+        // if the data we're sending back is not of an appropriate type, we won't bother
+        // compressing it.  Basically, we're going to compress plain text.
+        Map.Entry<String, String> contentTypeHeader = SearchUtils.findExactlyOne(
+                response.extraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
+        byte[] bodyBytes = response.body();
+        if (contentTypeHeader != null) {
+            String contentType = contentTypeHeader.getValue().toLowerCase();
+            if (contentType.contains("text/plain") ||
+                contentType.contains("text/css") ||
+                contentType.contains("text/html") ||
+                contentType.contains("application/javascript") ||
+                contentType.contains("text/javascript")) {
+                bodyBytes = compressBodyIfRequested(response.body(), acceptEncoding, stringBuilder, 2048);
+            }
+        }
+        return bodyBytes;
+    }
+
+    /**
+     * This method will examine the content-encoding headers, and if "gzip" is
+     * requested by the client, we will replace the body bytes with compressed
+     * bytes, using the GZIP compression algorithm, as long as the response body
+     * is greater than minNumberBytes bytes.
+     *
+     * @param bodyBytes      the incoming bytes, not yet compressed
+     * @param acceptEncoding headers sent by the client about what compression
+     *                       algorithms will be understood.
+     * @param stringBuilder  the string we are gradually building up to send back to
+     *                       the client for the status line and headers. We'll use it
+     *                       here if we need to append a content-encoding - that is,
+     *                       if we successfully compress data as gzip.
+     * @param minNumberBytes number of bytes must be larger than this to compress.
+     */
+    static byte[] compressBodyIfRequested(byte[] bodyBytes, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
+        String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
+        Matcher compressionMatcher = gzipAcceptEncodingPattern.matcher(allContentEncodingHeaders);
+        if (bodyBytes.length >= minNumberBytes && acceptEncoding != null && compressionMatcher.find()) {
+            stringBuilder.append("Content-Encoding: gzip" + HTTP_CRLF);
+            return gzipCompress(bodyBytes);
+        } else {
+            return bodyBytes;
+        }
+    }
+
 
     /**
      * This is the brains of how the server responds to web clients. Whatever

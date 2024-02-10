@@ -6,10 +6,10 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 3,870 | 141,048 | 1,085,405   |
+| 3,946 | 141,048 | 1,085,405   |
 
 
-#### Our project is 37 times smaller than [Javalin](https://javalin.io/), which bills itself as
+#### Our project is 35 times smaller than [Javalin](https://javalin.io/), which bills itself as
 
 >"A simple web framework for Java and Kotlin"
 > 
@@ -17,7 +17,11 @@ Web frameworks
 > performance is equivalent to raw Jetty code. Due to its size, it's very easy to 
 > reason about the source code.
 
-We'll see that, and raise you ***a web framework with zero dependencies*** 
+We'll see that, and raise you ***a web framework with zero dependencies***
+
+Minum does not require a separate web server, database, or HTML parsing.  It is
+all included.  It even includes a testing framework, although admittedly it is
+nicer to use conventional testing frameworks that tie-in better to IDE's.
 
 
 Web server
@@ -25,7 +29,7 @@ Web server
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 1563  | 163,000 | 242,000 |
+| 1610  | 163,000 | 242,000 |
 
 Templating
 ----------
@@ -66,6 +70,13 @@ Testing
 |-------|--------|
 | 185   | 10,834 |
 
+
+Various helpful utilities
+-------------------------
+
+| Minum | Apache Commons IO |
+|-------|-------------------|
+| 720   | 18,045            |
 
 Appendix
 --------
