@@ -1,6 +1,5 @@
 package com.renomad.minum.web;
 
-import java.io.IOException;
 import java.io.Serial;
 
 /**

@@ -41,7 +41,7 @@ public class ServerTests {
             throw new ForbiddenUseException("Forbidden!");
         }, new FakeSocketWrapper());
         builtCore.run();
-        assertEquals("Forbidden!", logger.findFirstMessageThatContains("Forbidden!"));
+        assertEquals(" is looking for vulnerabilities, for this: Forbidden!", logger.findFirstMessageThatContains("Forbidden!"));
     }
 
     /**

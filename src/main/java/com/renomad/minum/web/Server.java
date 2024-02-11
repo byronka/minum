@@ -127,7 +127,10 @@ final class Server implements AutoCloseable {
                 }
 
             } catch (ForbiddenUseException ex) {
-                logger.logDebug(ex::getMessage);
+                logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
+                if (theBrig != null) {
+                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
+                }
             } catch (IOException ex) {
                 logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
                 String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());

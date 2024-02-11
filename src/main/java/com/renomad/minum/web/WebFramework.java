@@ -188,7 +188,7 @@ public final class WebFramework {
                     boolean finalIsKeepAlive = isKeepAlive;
                     logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
 
-                    Body body = Body.EMPTY(context);
+                    Body body = Body.EMPTY;
                     // Determine whether there is a body (a block of data) in this request
                     if (isThereIsABody(hi)) {
                         logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());

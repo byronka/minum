@@ -140,7 +140,10 @@ public final class InputStreamUtils {
         }
         data = baos.toByteArray();
 
-        mustBeTrue(data.length == lengthToRead, String.format("lengthToRead of bytes read (%d) must be what we expected (%d)", data.length, lengthToRead));
+        if (data.length != lengthToRead) {
+            String message = String.format("length of bytes read (%d) must be what we expected (%d)", data.length, lengthToRead);
+            throw new ForbiddenUseException(message);
+        }
         return data;
     }
 }

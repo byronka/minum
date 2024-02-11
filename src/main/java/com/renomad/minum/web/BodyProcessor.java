@@ -87,14 +87,14 @@ final class BodyProcessor {
                 }
                 String parsingError = "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
                 logger.logDebug(() -> parsingError);
-                return new Body(Map.of(), bodyBytes, Map.of(), context);
+                return new Body(Map.of(), bodyBytes, Map.of());
             } else {
                 logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
-                return new Body(Map.of(), bodyBytes, Map.of(), context);
+                return new Body(Map.of(), bodyBytes, Map.of());
             }
         } catch (Exception ex) {
             logger.logDebug(() -> "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: " + ex.getMessage());
-            return new Body(Map.of(), bodyBytes, Map.of(), context);
+            return new Body(Map.of(), bodyBytes, Map.of());
         }
     }
 
@@ -108,7 +108,7 @@ final class BodyProcessor {
      * for example, {@code valuea=3&valueb=this+is+something}
      */
     Body parseUrlEncodedForm(String input) {
-        if (input.isEmpty()) return Body.EMPTY(context);
+        if (input.isEmpty()) return Body.EMPTY;
         final var postedPairs = new HashMap<String, byte[]>();
 
         try {
@@ -132,9 +132,9 @@ final class BodyProcessor {
                 dataToReturn = input.substring(0, MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) + " ... (remainder of data trimmed)";
             }
             logger.logDebug(() -> "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: " + ex.getMessage());
-            return new Body(Map.of(), dataToReturn.getBytes(StandardCharsets.UTF_8), Map.of(), context);
+            return new Body(Map.of(), dataToReturn.getBytes(StandardCharsets.UTF_8), Map.of());
         }
-        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), Map.of(), context);
+        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), Map.of());
     }
 
     /**
@@ -219,11 +219,11 @@ final class BodyProcessor {
                     returnedData = StringUtils.byteArrayToString(body);
                 }
                 logger.logDebug(() -> "No name value found in the headers of a partition. Data: " + returnedData);
-                return new Body(Map.of(), body, Map.of(), context);
+                return new Body(Map.of(), body, Map.of());
             }
 
         }
-        return new Body(result, body, partitionHeaders, context);
+        return new Body(result, body, partitionHeaders);
     }
 
     /**

@@ -169,7 +169,7 @@ public final class FunctionalTesting {
      *                     example, <pre>{@code List.of("cookie: id=foo")}</pre>
      */
     public TestResponse send(RequestLine.Method method, String path, byte[] payload, List<String> extraHeaders) throws IOException {
-        Body body = Body.EMPTY(context);
+        Body body = Body.EMPTY;
         Headers headers = null;
         StatusLine statusLine = StatusLine.EMPTY;
         try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {

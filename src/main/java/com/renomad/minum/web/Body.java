@@ -1,11 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
 import com.renomad.minum.utils.StringUtils;
 
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -36,29 +33,25 @@ public final class Body {
     private static final byte[] EMPTY_BYTES = new byte[0];
     private final Map<String, byte[]> bodyMap;
     private final byte[] raw;
-    private final Context context;
     private final Map<String, Headers> headers;
 
     /**
      * An empty body instance, useful when you
      * need an instantiated body.
      */
-    public static Body EMPTY(Context context) {
-        return new Body(Map.of(), EMPTY_BYTES, Map.of(), context);
-    }
+    public static final Body EMPTY = new Body(Map.of(), EMPTY_BYTES, Map.of());
 
     /**
-     * Make a hot bod
+     * Build a body for an HTTP message
      * @param bodyMap a map of key-value pairs, presumably extracted from form data.  Empty
      *                if our body isn't one of the form data protocols we understand.
      * @param raw the raw bytes of this body
      * @param partitionHeaders if the body is of type form/multipart, each partition will have its own headers,
      *                         including content length and content type, and possibly more.
      */
-    public Body(Map<String, byte[]> bodyMap, byte[] raw, Map<String, Headers> partitionHeaders, Context context) {
+    public Body(Map<String, byte[]> bodyMap, byte[] raw, Map<String, Headers> partitionHeaders) {
         this.bodyMap = bodyMap;
         this.raw = raw;
-        this.context = context;
         this.headers = partitionHeaders;
     }
 

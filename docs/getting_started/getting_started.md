@@ -50,7 +50,7 @@ Contents:
       <dependency>
           <groupId>com.renomad</groupId>
           <artifactId>minum</artifactId>
-          <version>2.5.0</version>
+          <version>2.5.1</version>
       </dependency>
     </dependencies>
 

@@ -1,3 +1,16 @@
+v2.5.1 - Feb 11, 2024
+---------------------
+
+* Edge case improvements. Refactorings.
+
+1) If the client sends us a message body that has a different length than 
+   the content-length header, we will handle it by just logging to debug level.
+2) If we have determined a client is trying to attack us again while already
+   in the brig, we will update their duration.
+3) If a ForbiddenUseException bubbles up to the top, we'll add that client to
+   the brig.
+4) Refactoring Body - does not use a Context object, so remove it.
+
 v2.5.0 - Feb 10, 2024
 ---------------------
 

@@ -7,6 +7,7 @@ import com.renomad.minum.database.DbData;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.utils.SearchUtils;
 import com.renomad.minum.utils.TimeUtils;
 
 import java.nio.file.Path;
@@ -18,7 +19,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
 
@@ -27,7 +27,7 @@ import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
  */
 public final class TheBrig implements ITheBrig {
     private final ExecutorService es;
-    private final Db<Inmate> db;
+    private final Db<Inmate> inmatesDb;
     private final ILogger logger;
     private final Constants constants;
     private final ReentrantLock lock = new ReentrantLock();
@@ -111,8 +111,8 @@ public final class TheBrig implements ITheBrig {
         this.constants = context.getConstants();
         this.logger = context.getLogger();
         Path dbDir = Path.of(constants.DB_DIRECTORY);
-        this.db = new Db<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
-        this.clientKeys = this.db.values().stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
+        this.inmatesDb = new Db<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
+        this.clientKeys = this.inmatesDb.values().stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
         this.sleepTime = sleepTime;
     }
 
@@ -175,11 +175,9 @@ public final class TheBrig implements ITheBrig {
         }
         for (var k : keysToRemove) {
             logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-            List<Inmate> inmates1 = db.values().stream().filter(x -> x.clientId.equals(k)).toList();
-            mustBeTrue(inmates1.size() == 1, "There must be exactly one inmate found or there's a bug");
-            Inmate inmateToRemove = inmates1.get(0);
+            Inmate inmateToRemove = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.clientId.equals(k));
             clientKeys.remove(k);
-            db.delete(inmateToRemove);
+            inmatesDb.delete(inmateToRemove);
         }
         Thread.sleep(sleepTime);
     }
@@ -215,12 +213,16 @@ public final class TheBrig implements ITheBrig {
         lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds");
-            clientKeys.put(clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-            var existingInmates = db.values().stream().filter(x -> x.clientId.equals(clientIdentifier)).count();
-            mustBeTrue(existingInmates < 2, "count of inmates must be either 0 or 1, anything else is a bug");
-            if (existingInmates == 0) {
-                Inmate newInmate = new Inmate(0L, clientIdentifier, System.currentTimeMillis() + sentenceDuration);
-                db.write(newInmate);
+            long newDuration = System.currentTimeMillis() + sentenceDuration;
+            clientKeys.put(clientIdentifier, newDuration);
+            Inmate existingInmate = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.clientId.equals(clientIdentifier));
+            if (existingInmate == null) {
+                // if this is a new inmate, add them
+                Inmate newInmate = new Inmate(0L, clientIdentifier, newDuration);
+                inmatesDb.write(newInmate);
+            } else {
+                // if this is an existing inmate continuing to attack us, just update their duration
+                inmatesDb.update(new Inmate(existingInmate.index, existingInmate.clientId, newDuration));
             }
         } finally {
             lock.unlock();
