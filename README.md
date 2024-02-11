@@ -80,13 +80,22 @@ Example projects demonstrating usage:
 
 See the following links for sample projects that use this framework.
 
-- [Example](https://github.com/byronka/minum_usage_example_mvn) 
+[Example](https://github.com/byronka/minum_usage_example_mvn) 
 
 This is a good example to see a basic project with various functionality. It
 shows many of the typical use cases of the Minum framework.
 
-- [Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
+<hr>
+
+[Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
 
 This project is valuable to see the minimal-possible application that can
 be made.  This might be a good starting point for use of Minum on a new project.
+
+<hr>
+
+[Large sample project](https://github.com/byronka/large_sample_project)
+
+This is a project which is far more than a toy.  It demonstrates the kind of
+approach this framework is meant to foster.
 
