@@ -1,8 +1,11 @@
 Minum Web Framework
 ===================
 
-When you want to write a web application that is fast and maintainable and (big-picture) less expensive.  For 
-when you prefer a stable foundation with minimal dependencies and not a [teetering tower](https://xkcd.com/2347/).
+[What sets Minum apart](https://renomad.com/blogposts/minum2.html)
+
+When you want to write a web application that is fast and maintainable
+and (big-picture) less expensive.  For when you prefer a stable
+foundation with minimal dependencies and not a [teetering tower](https://xkcd.com/2347/).
 
 If these speak to you:
 
@@ -11,8 +14,9 @@ If these speak to you:
 * https://www.teamten.com/lawrence/writings/java-for-everything.html
 * https://www.timr.co/server-side-rendering-is-a-thiel-truth/
 
-If you realize there is no silver bullet, there are no shortcuts, that hard work is the only way to create 
-value, then you might share my mindset about what makes this web framework valuable.
+If you realize there is no silver bullet, there are no shortcuts, that
+hard work is the only way to create value, then you might share my
+mindset about what makes this web framework valuable.
 
 For more detail on intentions, purpose, and benefits, see the
 [development handbook](docs/development_handbook.md).
