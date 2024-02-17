@@ -14,7 +14,7 @@ public final class RegexUtils {
     }
 
     /**
-     * Makes it a bit easier to find a value in a string using a
+     * Helper to find a value in a string using a
      * Regex. Note, this is not nearly as performant, since
      * each call to this method will compile the regular
      * expression.
@@ -40,10 +40,13 @@ public final class RegexUtils {
     }
 
     /**
-     * Makes it a bit easier to find a value in a string using a
-     * Regex. Note, this is not nearly as performant, since
-     * each call to this method will compile the regular
-     * expression.
+     * Find a value by regular expression, for testing
+     * <p>
+     * A helper method to make things it easier to find a value in a string using a
+     * Regex. <em>This method is slow, since
+     * each call will compile the regular
+     * expression.</em>
+     * </p>
      * <p>
      *     This version is similar to {@link #find(String, String)} except
      *     that it allows you to specify a match group by name.
@@ -60,7 +63,7 @@ public final class RegexUtils {
      * </p>
      * <p>
      *     <pre>
-     *         {@code find("\\bname\\b=\"(?<namevalue>.*?)\"", "namevalue", data)}
+     *         {@code find("\\bname\\b=\"(?<namevalue>.*?)\"", data, "namevalue")}
      *     </pre>
      * </p>
      * <p>
@@ -69,7 +72,7 @@ public final class RegexUtils {
      *     right after the opening parenthesis a question mark and
      *     then a string literal surrounded by angle brackets
      * </p>
-     * <p><b>Important!!!</b>: the name of the match group must be alphanumeric - do
+     * <p><b>Important</b>: the name of the match group must be alphanumeric - do
      * <b>not</b> use any special characters or punctuation</p>
      * @return returns the first match found, or an empty string
      */

@@ -3,7 +3,7 @@ package com.renomad.minum.htmlparsing;
 
 /**
  * Possible tag names per the W3C HTML spec.
- * Pulled mostly from https://www.w3.org/TR/2012/WD-html-markup-20121025/elements.html
+ * Pulled from https://www.w3.org/TR/2012/WD-html-markup-20121025/elements.html
  */
 public enum TagName {
     A(false), ABBR(false), ADDRESS(false), AREA(true), ARTICLE(false),
@@ -30,8 +30,12 @@ public enum TagName {
     WBR(true),
 
     /**
-     * This is a special one, maybe I need to handle this better,
-     * but it's mostly unimportant to me for now.
+     * In HTML, the doctype is the required preamble found at the top of
+     * all documents. Its sole purpose is to prevent a browser from
+     * switching into so-called "quirks mode" when rendering a document;
+     * that is, it ensures that the browser makes a best-effort attempt at
+     * following the relevant specifications, rather than using a
+     * different rendering mode that is incompatible with some specifications.
      */
      DOCTYPE(true),
 
@@ -42,6 +46,9 @@ public enum TagName {
     NULL(false)
     ;
 
+    /**
+     * Void elements are disallowed to have closing tags
+     */
     public final boolean isVoidElement;
 
     /**

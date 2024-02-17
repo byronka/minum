@@ -13,9 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * This class is very similar to {@link com.renomad.minum.utils.ActionQueue} but is
  * focused on Logging.
  * <p>
- *     The only reason it was necessary to create a wholly separate stack for logging
- *     is that logging has so many circular dependencies with the rest of the system,
- *     this was the only way to free ourselves during initialization / shutdown.
+ *     It is necessary to create independent classes for logging to avoid circular dependencies
  * </p>
  */
 final class LoggingActionQueue {
@@ -33,7 +31,7 @@ final class LoggingActionQueue {
     }
 
     // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
-    // below is an infinite loop unless there's an exception thrown, that's what it is.
+    // below is an infinite loop unless there's an exception thrown, that is what it is.
     @SuppressWarnings("InfiniteLoopStatement")
     LoggingActionQueue initialize() {
         Runnable queueThread = () -> {

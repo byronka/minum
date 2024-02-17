@@ -21,9 +21,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import static com.renomad.minum.utils.Invariants.*;
 
 /**
- * This allows us to run some disk-persistence operations more consistently
- * on any data that extends from {@link DbData}
- * @param <T> the type of data we'll be persisting
+ * a memory-based disk-persisted database class.
+ * @param <T> the type of data we'll be persisting (must extend from {@link DbData}
  */
 public final class Db<T extends DbData<?>> {
 
@@ -64,11 +63,10 @@ public final class Db<T extends DbData<?>> {
     private boolean hasLoadedData;
 
     /**
-     * Constructs a disk-persistence class well-suited for your data.
-     * @param dbDirectory the directory for a particular domain (*not* the top-level
-     *                     directory).  For example, if the top-level directory is
-     *                     "db", and we're building this for a domain "foo", we
-     *                     might expect to receive "db/foo" here.
+     * Constructs an in-memory disk-persisted database.
+     * @param dbDirectory this uniquely names your database, and also sets the directory
+     *                    name for this data.  The expected use case is to name this after
+     *                    the data in question.  For example, "users", or "accounts".
      */
     public Db(Path dbDirectory, Context context, T instance) {
         this.hasLoadedData = false;
@@ -130,9 +128,7 @@ public final class Db<T extends DbData<?>> {
     }
 
     /**
-     * writes new data to the in-memory data
-     * and persists it to disk
-     *
+     * Write new data
      * @param newData the data we are writing
      */
     public T write(T newData) {
@@ -173,8 +169,7 @@ public final class Db<T extends DbData<?>> {
     }
 
     /**
-     * Deletes a piece of data from the in-memory data structure
-     * and delete it from the disk
+     * Delete data
      *
      * @param dataToDelete the data we are serializing and writing
      */
@@ -230,10 +225,7 @@ public final class Db<T extends DbData<?>> {
     }
 
     /**
-     * updates an element in the in-memory data structure by
-     * replacing the element having the same id
-     * if the data to update is not found, throw an exception
-     * update the data on disk with this id.
+     * Update existing data
      */
     public void update(T dataUpdate) {
         updateLock.lock();
@@ -327,9 +319,7 @@ public final class Db<T extends DbData<?>> {
     }
 
     /**
-     * The primary way to analyze this data.
-     *
-     * @return a {@link Collection} view of the data
+     * Obtain a {@link Collection} view of the data
      */
     public Collection<T> values() {
         // load data if needed

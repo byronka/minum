@@ -9,14 +9,21 @@ import java.util.*;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
 /**
- * This class converts HTML strings to HTML
- * object trees.
+ * Converts HTML strings to object trees.
  * <p>
- *     Its main purpose is to support functional testing.  HTML
- *     parsing is intricate because of how flexible
- *     the specification is.  We have no need
+ *     Enables a developer to analyze an HTML document by its
+ *     structure.
+ * </p>
+ * <p>
+ *     Note: HTML parsing is difficult because
+ *     of its lenient specification.  See Postel's Law.
+ * </p>
+ * <p>
+ *     For our purposes, it is less important
  *     to perfectly meet the criteria of the spec, so
- *     this is understood to be a subset of the spec.
+ *     there will be numerous edge-cases unaccounted-for
+ *     by this implementation.  Nevertheless, this program
+ *     should suit many needs for ordinary web applications.
  * </p>
  */
 public final class HtmlParser {
@@ -39,10 +46,10 @@ public final class HtmlParser {
      * </p>
      * <pre>{@code <ELEMENT_NAME_AND_DETAILS>content<END_OF_ELEMENT>}</pre>
      * <p>
-     * Basically, we'll examine the first part, "ELEMENT_NAME_AND_DETAILS", and
-     * grab the element's name and any attributes.  Then we'll descend into the
-     * content section.  We'll know we've hit the end of the element by keeping
-     * track of how far we've descended/ascended and whether we are hitting
+     * We will examine the first part, "ELEMENT_NAME_AND_DETAILS", and
+     * grab the element's name and any attributes.  Then we will descend into the
+     * content section.  We know we have hit the end of the element by keeping
+     * track of how far we have descended/ascended and whether we are hitting
      * a closing HTML element.
      * </p>
      * <p>
@@ -556,8 +563,10 @@ public final class HtmlParser {
     }
 
     /**
-     * Searches the node tree. If zero nodes are found, returns HtmlParseNode.EMPTY.
-     * If one is found, it is returned.  If more than one is found, an exception is thrown.
+     * Search the node tree for matching elements.
+     * <p>
+     * If zero nodes are found, returns an empty list.
+     * </p>
      */
     public List<HtmlParseNode> search(List<HtmlParseNode> nodes, TagName tagName, Map<String, String> attributes) {
         List<HtmlParseNode> foundNodes = new ArrayList<>();

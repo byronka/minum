@@ -3,12 +3,7 @@ package com.renomad.minum.htmlparsing;
 import java.util.Map;
 
 /**
- * Represents a tag. It includes
- * everything inside the angle brackets - the
- * tagname, and the attributes.  for example,
- * <pre>
- *     {@code <p class="foo">}
- * </pre>
+ * tagname and attributes inside an HTML5 tag
  */
 public record TagInfo(
         TagName tagName,

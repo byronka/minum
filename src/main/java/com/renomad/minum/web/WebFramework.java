@@ -574,7 +574,8 @@ public final class WebFramework {
      * match anything I could statically register.
      * </p>
      * <p>
-     *     Be careful here, be thoughtful - partial paths will
+     *     Be careful here, be thoughtful - partial paths will match a lot, and may
+     *     overlap with other URL's for your app, such as endpoints and static files.
      * </p>
      */
     public void registerPartialPath(RequestLine.Method method, String pathName, Function<Request, Response> webHandler) {

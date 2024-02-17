@@ -3,7 +3,7 @@ package com.renomad.minum.security;
 import java.io.Serial;
 
 /**
- * Same as {@link RuntimeException} but scoped to the security package
+ * A {@link RuntimeException} scoped to the security package
  */
 public class SecurityException extends RuntimeException {
 

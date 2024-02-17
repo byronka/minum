@@ -3,9 +3,7 @@ package com.renomad.minum.templating;
 import java.io.Serial;
 
 /**
- * This exception is thrown when we try to convert a string
- * template into a list of {@link TemplateSection} and
- * fail to parse something.
+ * Thrown when failing to parse something in a template
  */
 public final class TemplateParseException extends RuntimeException {
 

@@ -22,6 +22,14 @@ public class Logger implements ILogger {
     private final ExecutorService executorService;
     private Map<LoggingLevel, Boolean> activeLogLevels;
 
+    /**
+     * Constructor
+     * @param constants used for determining enabled log levels
+     * @param executorService provides thread handling for the logs, used to
+     *                        build a {@link LoggingActionQueue}
+     * @param name sets a name on the {@link LoggingActionQueue} to aid debugging, to
+     *             help distinguish queues.
+     */
     public Logger(Constants constants, ExecutorService executorService, String name) {
         this.executorService = executorService;
         loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, executorService, constants).initialize();

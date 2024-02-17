@@ -1,11 +1,7 @@
 package com.renomad.minum.database;
 
 /**
- * Extend from this class to create a data value that is
- * intended to be stored in the database.
- * This datatype allows us to apply easy and simple (well, easier simpler) disk
- * serialization to a collection of data.
- * @param <T> the type of data
+ * An abstract data type meant to be used with {@link Db}
  */
 public abstract class DbData<T>{
 

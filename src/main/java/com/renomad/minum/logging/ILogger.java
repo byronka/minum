@@ -1,36 +1,45 @@
 package com.renomad.minum.logging;
 
 /**
- * The functions necessary for logging runtime information
+ * Logging code interface
  */
 public interface ILogger {
 
     /**
-     * For minum.logging data that is helpful to debugging a running
-     * system.
-     * @param msg example: () -> "Hello"
+     * Logs helpful debugging information
+     * @param msg a lambda for what is to be logged.  example: () -> "Hello"
      */
     void logDebug(ThrowingSupplier<String, Exception> msg);
 
     /**
-     * this is similar to {@link #logDebug(ThrowingSupplier)} except that it
-     * gets run *A LOT*, which can spam up the logs.  Not to mention, that can
-     * have performance impacts.  By default, we won't show trace information
-     * unless requested.
-     * @param msg example: () -> "Hello"
+     * Logs helpful debugging information
+     * <p>
+     *     Similar to {@link #logDebug(ThrowingSupplier)} but used
+     *     for code that runs very often, requires extra calculation, or has
+     *     data of large size.
+     * </p>
+     * <p>
+     *     It is possible to disable trace logs and thus avoid performance impacts unless
+     *     the data is needed for deeper investigation.
+     * </p>
+     * @param msg a lambda for what is to be logged.  example: () -> "Hello"
      */
     void logTrace(ThrowingSupplier<String, Exception> msg);
 
     /**
-     * Use this particularly for those cases where we want to log an error
-     * but we're stuck inside an asynchronous piece of code, for example,
-     * anything unexpectedly bad that happens in {@link com.renomad.minum.utils.ActionQueue}
-     * @param msg example: () -> "Hello"
+     * Logs helpful debugging information inside threads
+     * @param msg a lambda for what is to be logged.  example: () -> "Hello"
      */
     void logAsyncError(ThrowingSupplier<String, Exception> msg);
 
     /**
      * This is for logging business-related topics
+     * <p>
+     *     This log type is expected to be printed least-often, and should
+     *     directly relate to a user action.  An example would
+     *     be "New user created: alice"
+     * </p>
+     * msg a lambda for what is to be logged.  example: () -> "Hello"
      */
     void logAudit(ThrowingSupplier<String, Exception> msg);
 

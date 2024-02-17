@@ -3,7 +3,7 @@ package com.renomad.minum.database;
 import java.io.Serial;
 
 /**
- * Represents an exception that takes places in the {@link Db} code
+ * Exceptions that occur in the {@link Db}
  */
 public class DbException extends RuntimeException {
 
