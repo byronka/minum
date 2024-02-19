@@ -98,8 +98,8 @@ be made.  This might be a good starting point for use of Minum on a new project.
 
 <hr>
 
-[Large sample project](https://github.com/byronka/large_sample_project)
+[Memoria project](https://github.com/byronka/memoria_project)
 
-This is a project which is far more than a toy.  It demonstrates the kind of
+This is a family-tree project.  It demonstrates the kind of
 approach this framework is meant to foster.
 
