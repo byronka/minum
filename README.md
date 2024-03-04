@@ -1,7 +1,8 @@
 Minum Web Framework
 ===================
+_When you need the fewest moving parts_
 
-[What sets Minum apart](https://renomad.com/blogposts/minum2.html)
+[How Minum is different](https://renomad.com/blogposts/minum2.html)
 
 When you want to write a web application that is fast and maintainable
 and (big-picture) less expensive.  For when you prefer a stable
