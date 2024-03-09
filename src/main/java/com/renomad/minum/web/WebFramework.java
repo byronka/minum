@@ -15,6 +15,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -150,7 +151,7 @@ public final class WebFramework {
                     }
 
                     String suspiciousClues = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
-                    if (suspiciousClues.length() > 0 && theBrig != null) {
+                    if (!suspiciousClues.isEmpty() && theBrig != null) {
                         logger.logDebug(() -> sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + suspiciousClues);
                         theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
                         return;
@@ -160,7 +161,7 @@ public final class WebFramework {
                      *   Set up some important variables
                      ***************************************/
                     // The request we received from the client
-                    Request clientRequest = Request.EMPTY(context);
+                    Request clientRequest = null;
                     // The response we will send to the client
                     Response resultingResponse;
                     boolean isKeepAlive = false;
@@ -267,7 +268,7 @@ public final class WebFramework {
                   if the rawStartLine is null, that means the client stopped talking.
                   See ISocketWrapper.readLine()
                   */
-                    if (rawStartLine == null) {
+                    if (rawStartLine == null || rawStartLine.isBlank()) {
                         return;
                     }
 
@@ -442,7 +443,7 @@ public final class WebFramework {
     /**
      * This is the brains of how the server responds to web clients. Whatever
      * code lives here will be inserted into a slot within the server code
-     * This builds a handler {@link java.util.function.Consumer} that provides
+     * This builds a handler {@link Consumer} that provides
      * the code to be run in the web testing engine that selects which
      * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(Function)}
      */

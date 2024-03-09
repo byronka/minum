@@ -1,3 +1,12 @@
+v2.5.3 - Mar 9, 2024
+--------------------
+
+* Improve testing, refactoring
+  * Deeper testing on InputStreamUtils
+  * Rudimentary testing for FullSystem
+  * Improved configuration for mutation tests
+  * Adjust port in web tests to avoid conflicts with other tests
+
 v2.5.2 - Mar 7, 2024
 --------------------
 

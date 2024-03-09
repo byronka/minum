@@ -63,7 +63,7 @@ public record HtmlParseNode(ParseNodeType type,
      * Return the inner text
      * <p>
      * If this element has only one inner
-     * content item, and it's a {@link ParseNodeType.CHARACTERS} element, return its text content.
+     * content item, and it's a {@link ParseNodeType#CHARACTERS} element, return its text content.
      * </p>
      * <p>
      *     Otherwise, return an empty string.

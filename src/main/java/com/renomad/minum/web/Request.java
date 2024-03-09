@@ -56,8 +56,4 @@ public record Request(Headers headers, RequestLine requestLine, Body body,
                        */
                       String remoteRequester) {
 
-    public static Request EMPTY(Context context) {
-        return new Request(new Headers(List.of(), context), RequestLine.EMPTY(context), Body.EMPTY, "");
-    }
-
 }

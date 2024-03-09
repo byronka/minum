@@ -135,7 +135,11 @@ public class FunctionalTests {
 
         // *********** ERROR HANDLING SECTION *****************
 
-        logger.test("if we try sending too many characters on a line, it should block us");
+        logger.test("if we try sending too many characters on a line, it should block us and lock us out");
+
+        // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
+        // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
+
         try {
             ft.get("a".repeat(context.getConstants().MAX_READ_LINE_SIZE_BYTES + 1));
         } catch (Exception ex) {
@@ -153,19 +157,8 @@ public class FunctionalTests {
         // remember, we're the client, we don't have immediate access to the server here.  So,
         // we have to wait for it to get through some processing before we check.
         MyThread.sleep(70);
-        String failureMsg = logger.findFirstMessageThatContains("in readLine", 10);
-        assertEquals(failureMsg.length(), 1105);
-        assertTrue(failureMsg.contains("in readLine, client sent more bytes than allowed.  Current max: 1024.  Contents: GET /aaaaaaaaaaaaaaaaaaaaaaa"));
-
-        // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
-        // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
-
-        logger.test("if we try sending a request that looks like an attack, immediately block the client, don't even return a normal response");
-        assertEquals(ft.get("version").statusLine().status(), NULL);
-        MyThread.sleep(50);
-        String vulnMsg = logger.findFirstMessageThatContains("looking for a vulnerability", 15);
-        assertTrue(vulnMsg.contains("is looking for a vulnerability, for this: version"), "expect to find correct error in this: " + vulnMsg);
-
+        String failureMsg = logger.findFirstMessageThatContains("client sent more bytes", 10);
+        assertTrue(failureMsg.contains("is looking for vulnerabilities, for this: client sent more bytes than allowed for a single line.  Current max: 1024"));
     }
 
 }

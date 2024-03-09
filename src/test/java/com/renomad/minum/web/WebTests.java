@@ -16,10 +16,7 @@ import java.nio.file.Path;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -69,7 +66,9 @@ public class WebTests {
 
     @BeforeClass
     public static void setUpClass() throws IOException {
-        context = buildTestingContext("unit_tests");
+        var properties = new Properties();
+        properties.setProperty("SERVER_PORT", "7777");
+        context = buildTestingContext("unit_tests",properties);
         webEngine = new WebEngine(context);
         es = context.getExecutorService();
         inputStreamUtils = context.getInputStreamUtils();
@@ -907,7 +906,7 @@ public class WebTests {
 
     /**
      * Sometimes a client will connect to TCP but then close their
-     * connection, in which case when we readline it will return as null,
+     * connection, in which case when we read the line it will return as null,
      * and we'll return early from the handler, returning nothing.
      */
     @Test
@@ -951,7 +950,7 @@ public class WebTests {
         }
     }
 
-    private String readBody(InputStream is, int length) throws IOException {
+    private String readBody(InputStream is, int length) {
         return StringUtils.byteArrayToString(inputStreamUtils.read(length, is));
     }
 

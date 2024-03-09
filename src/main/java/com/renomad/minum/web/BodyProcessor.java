@@ -53,7 +53,7 @@ final class BodyProcessor {
      * can stop reading at precisely the right point.  There's simply no
      * other way to reasonably do this.
      */
-    Body extractData(InputStream is, Headers h) throws IOException {
+    Body extractData(InputStream is, Headers h) {
         final var contentType = h.contentType();
 
         byte[] bodyBytes = h.contentLength() > 0 ?
@@ -200,14 +200,7 @@ final class BodyProcessor {
                 String name = matcher.group("namevalue");
                 // at this point our inputstream pointer is at the beginning of the
                 // body data.  From here until the end it's pure data.
-                byte[] data;
-                try {
-                    data = inputStreamUtils.readUntilEOF(is);
-                } catch (IOException e) {
-                    // This is an InputStream we built ourselves from local data.
-                    // there's no reason why it should fail.
-                    throw new WebServerException(e);
-                }
+                var data = inputStreamUtils.readUntilEOF(is);
                 result.put(name, data);
                 partitionHeaders.put(name, headers);
             }
