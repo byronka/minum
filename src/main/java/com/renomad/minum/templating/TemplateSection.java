@@ -20,7 +20,6 @@ public record TemplateSection(String key, String subString) {
             mustBeTrue(key == null, "If this object has a substring, then it must not have a key");
             return subString;
         } else {
-            mustBeTrue(subString == null, "If this object has a key, then it must not have a substring");
             var value = myMap.get(key);
             if (value == null) throw new TemplateRenderException("Missing a value for key {"+key+"}");
             return value;

@@ -9,24 +9,6 @@ import static com.renomad.minum.testing.TestFramework.*;
 public class ResponseTests {
 
     /**
-     * Two {@link Response} should be considered equal
-     * if they have equal content.
-     */
-    @Test
-    public void testTwoResponsesEqual() {
-        Response response1 = Response.htmlOk("foo");
-        Response response2 = Response.htmlOk("foo");
-        assertEquals(response1, response2);
-    }
-
-    @Test
-    public void testTwoResponsesNotEqual() {
-        Response response1 = Response.htmlOk("foo");
-        Response response2 = Response.htmlOk("bar");
-        assertFalse(response1.equals(response2));
-    }
-
-    /**
      * If we use two different {@link Response} as keys in a
      * map, they will be treated as the same if they have
      * the same content.  That is why here, I can use
@@ -47,6 +29,22 @@ public class ResponseTests {
     @Test
     public void testToString() {
         Response response1 = Response.htmlOk("foo");
-        assertEquals(response1.toString(), "Response{statusCode=_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111]}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111]}");
+    }
+
+    @Test
+    public void testResponseConstructor1() {
+        Response response = new Response(StatusLine.StatusCode.CODE_200_OK, new byte[]{1, 2, 3});
+        assertTrue(response.extraHeaders().isEmpty());
+        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertEqualByteArray(response.body(), new byte[]{1, 2, 3});
+    }
+
+    @Test
+    public void testResponseConstructor2() {
+        Response response = new Response(StatusLine.StatusCode.CODE_200_OK, "testing");
+        assertTrue(response.extraHeaders().isEmpty());
+        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertEquals(new String(response.body()), "testing");
     }
 }

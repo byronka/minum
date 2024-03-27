@@ -1,6 +1,7 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Constants;
+import com.renomad.minum.utils.AbstractActionQueue;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -18,9 +19,9 @@ public class Logger implements ILogger {
      * our messages thread-safely by taking
      * them off the top of a queue.
      */
-    protected final LoggingActionQueue loggingActionQueue;
+    protected final AbstractActionQueue loggingActionQueue;
     private final ExecutorService executorService;
-    private Map<LoggingLevel, Boolean> activeLogLevels;
+    private final Map<LoggingLevel, Boolean> activeLogLevels;
 
     /**
      * Constructor
@@ -33,33 +34,33 @@ public class Logger implements ILogger {
     public Logger(Constants constants, ExecutorService executorService, String name) {
         this.executorService = executorService;
         loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, executorService, constants).initialize();
-        toggleDefaultLogging(constants.LOG_LEVELS);
+        activeLogLevels = convertToMap(constants.logLevels);
     }
 
     /**
-     * for the various kinds of minum.logging which can be enabled/disabled,
-     * turn on the expected types of minum.logging.
+     * Convert the list of enabled log levels to a map of enum -> boolean
      */
-    private void toggleDefaultLogging(List<LoggingLevel> enabledLoggingLevels) {
-        activeLogLevels = new EnumMap<>(LoggingLevel.class);
+    static Map<LoggingLevel, Boolean> convertToMap(List<LoggingLevel> enabledLoggingLevels) {
+        Map<LoggingLevel, Boolean> activeLogLevels = new EnumMap<>(LoggingLevel.class);
         for (LoggingLevel t : LoggingLevel.values()) {
             activeLogLevels.put(t, enabledLoggingLevels.contains(t));
         }
+        return activeLogLevels;
     }
 
     @Override
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, LoggingLevel.DEBUG);
+        logHelper(msg, LoggingLevel.DEBUG, activeLogLevels, loggingActionQueue);
     }
 
     @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, LoggingLevel.TRACE);
+        logHelper(msg, LoggingLevel.TRACE, activeLogLevels, loggingActionQueue);
     }
 
     @Override
     public void logAudit(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, LoggingLevel.AUDIT);
+        logHelper(msg, LoggingLevel.AUDIT, activeLogLevels, loggingActionQueue);
     }
 
     @Override
@@ -70,13 +71,18 @@ public class Logger implements ILogger {
 
     @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
-        logHelper(msg, LoggingLevel.ASYNC_ERROR);
+        logHelper(msg, LoggingLevel.ASYNC_ERROR, activeLogLevels, loggingActionQueue);
     }
 
     /**
      * A helper method to reduce duplication
      */
-    private void logHelper(ThrowingSupplier<String, Exception> msg, LoggingLevel loggingLevel) {
+    static void logHelper(
+            ThrowingSupplier<String, Exception> msg,
+            LoggingLevel loggingLevel,
+            Map<LoggingLevel, Boolean> activeLogLevels,
+            AbstractActionQueue loggingActionQueue
+            ) {
         if (Boolean.TRUE.equals(activeLogLevels.get(loggingLevel))) {
         String receivedMessage;
             try {
@@ -85,27 +91,32 @@ public class Logger implements ILogger {
                 receivedMessage = "EXCEPTION DURING GET: " + ex;
             }
             String finalReceivedMessage = receivedMessage;
-            loggingActionQueue.enqueue("Logger#logHelper("+receivedMessage+")", () -> {
+            if (loggingActionQueue == null || loggingActionQueue.isStopped()) {
                 Object[] args = new Object[]{getTimestampIsoInstant(), loggingLevel.name(), showWhiteSpace(finalReceivedMessage)};
                 System.out.printf("%s\t%s\t%s%n", args);
-            });
+            } else {
+                loggingActionQueue.enqueue("Logger#logHelper(" + receivedMessage + ")", () -> {
+                    Object[] args = new Object[]{getTimestampIsoInstant(), loggingLevel.name(), showWhiteSpace(finalReceivedMessage)};
+                    System.out.printf("%s\t%s\t%s%n", args);
+                });
+            }
         }
     }
 
     /**
      * Given a string that may have whitespace chars, render it in a way we can see
      */
-    private static String showWhiteSpace(String msg) {
+    static String showWhiteSpace(String msg) {
         if (msg == null) return "(NULL)";
+        if (msg.isEmpty()) return "(EMPTY)";
+
         // if we have tabs, returns, newlines in the text, show them
         String text = msg
                 .replace("\t", "\\t")
                 .replace("\r", "\\r")
                 .replace("\n", "\\n");
-        // if the text is an empty string, render that
-        text = text.isEmpty() ? "(EMPTY)" : text;
-        // if the text is nothing but whitespace, show that
-        text = text.isBlank() ? "(BLANK)" : text;
+
+        if (text.isBlank()) return "(BLANK)";
         return text;
     }
 

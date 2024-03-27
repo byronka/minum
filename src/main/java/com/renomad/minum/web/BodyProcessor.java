@@ -7,7 +7,6 @@ import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StringUtils;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -23,7 +22,7 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
 final class BodyProcessor {
 
     private final ILogger logger;
-    private final InputStreamUtils inputStreamUtils;
+    private final IInputStreamUtils inputStreamUtils;
     private final Context context;
 
     /**
@@ -74,26 +73,21 @@ final class BodyProcessor {
      * @param bodyBytes the full body of this HTTP message, as bytes.
      */
     Body extractBodyFromBytes(int contentLength, String contentType, byte[] bodyBytes) {
-        try {
-            if (contentLength > 0 && contentType.contains("application/x-www-form-urlencoded")) {
-                return parseUrlEncodedForm(StringUtils.byteArrayToString(bodyBytes));
-            } else if (contentType.contains("multipart/form-data")) {
-                String boundaryKey = "boundary=";
-                int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
-                if (indexOfBoundaryKey > 0) {
-                    // grab all the text after the key
-                    String boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
-                    return parseMultiform(bodyBytes, boundaryValue);
-                }
-                String parsingError = "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
-                logger.logDebug(() -> parsingError);
-                return new Body(Map.of(), bodyBytes, Map.of());
-            } else {
-                logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
-                return new Body(Map.of(), bodyBytes, Map.of());
+        if (contentLength > 0 && contentType.contains("application/x-www-form-urlencoded")) {
+            return parseUrlEncodedForm(StringUtils.byteArrayToString(bodyBytes));
+        } else if (contentType.contains("multipart/form-data")) {
+            String boundaryKey = "boundary=";
+            int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
+            if (indexOfBoundaryKey > 0) {
+                // grab all the text after the key
+                String boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
+                return parseMultiform(bodyBytes, boundaryValue);
             }
-        } catch (Exception ex) {
-            logger.logDebug(() -> "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: " + ex.getMessage());
+            String parsingError = "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
+            logger.logDebug(() -> parsingError);
+            return new Body(Map.of(), bodyBytes, Map.of());
+        } else {
+            logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
             return new Body(Map.of(), bodyBytes, Map.of());
         }
     }
@@ -112,11 +106,10 @@ final class BodyProcessor {
         final var postedPairs = new HashMap<String, byte[]>();
 
         try {
-            final var splitByAmpersand = tokenizer(input, '&');
+            final var splitByAmpersand = tokenizer(input, '&', context.getConstants().maxTokenizerPartitions);
 
             for (final var s : splitByAmpersand) {
                 final var pair = splitKeyAndValue(s);
-                mustBeTrue(pair.length == 2, "Splitting on = should return 2 values.  Input was " + s);
                 mustBeTrue(!pair[0].isBlank(), "The key must not be blank");
                 final var value = StringUtils.decode(pair[1]);
                 final var convertedValue = value == null ? "".getBytes(StandardCharsets.UTF_8) : value.getBytes(StandardCharsets.UTF_8);
@@ -182,14 +175,7 @@ final class BodyProcessor {
         for (var df : partitions) {
             final var is = new ByteArrayInputStream(df);
 
-            Headers headers;
-            try {
-                headers = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
-            } catch (IOException e) {
-                // This is an InputStream we built ourselves from local data.
-                // there's no reason why it should fail.
-                throw new WebServerException(e);
-            }
+            Headers headers = Headers.make(context).extractHeaderInformation(is);
 
             List<String> cds = headers.valueByKey("Content-Disposition");
             String contentDisposition = String.join(";", cds == null ? List.of("") : cds);
@@ -225,6 +211,20 @@ final class BodyProcessor {
      */
     List<byte[]> split(byte[] body, String boundaryValue) {
         List<byte[]> result = new ArrayList<>();
+        List<Integer> indexesOfEndsOfBoundaries = determineEndsOfBoundaries(body, boundaryValue);
+        // now we know where the boundaries are in this hunk of data.  Partition time!
+        int indexInBody = 0;
+        for (int endOfBoundaryIndex : indexesOfEndsOfBoundaries) {
+            // the minus one plus two silliness is to make clear that we're calculating for two extra chars after the boundary
+            if (indexInBody != endOfBoundaryIndex-(boundaryValue.length() + 2 - 1)) {
+                result.add(Arrays.copyOfRange(body, indexInBody, endOfBoundaryIndex-(boundaryValue.length() + 2 -1)));
+            }
+            indexInBody = endOfBoundaryIndex+1;
+        }
+        return result;
+    }
+
+    private static List<Integer> determineEndsOfBoundaries(byte[] body, String boundaryValue) {
         List<Integer> indexesOfEndsOfBoundaries = new ArrayList<>();
         byte[] boundaryValueBytes = boundaryValue.getBytes(StandardCharsets.UTF_8);
         int indexIntoBoundaryValue = 0;
@@ -241,16 +241,7 @@ final class BodyProcessor {
                 indexIntoBoundaryValue = 0;
             }
         }
-        // now we know where the boundaries are in this hunk of data.  Partition time!
-        int indexInBody = 0;
-        for (int endOfBoundaryIndex : indexesOfEndsOfBoundaries) {
-            // the minus one plus two silliness is to make clear that we're calculating for two extra chars after the boundary
-            if (indexInBody != endOfBoundaryIndex-(boundaryValue.length() + 2 - 1)) {
-                result.add(Arrays.copyOfRange(body, indexInBody, endOfBoundaryIndex-(boundaryValue.length() + 2 -1)));
-            }
-            indexInBody = endOfBoundaryIndex+1;
-        }
-        return result;
+        return indexesOfEndsOfBoundaries;
     }
 
 
@@ -258,22 +249,25 @@ final class BodyProcessor {
      * Splits up a string into tokens.
      * @param serializedText the string we are splitting up
      * @param delimiter the character acting as a boundary between sections
+     * @param maxTokenizerPartitions the maximum partitions of text we'll allow.  e.g. "a,b,c" might create 3 partitions.
      * @return a list of strings.  If the delimiter is not found, we will just return the whole string
      */
-    private List<String> tokenizer(String serializedText, char delimiter) {
+    static List<String> tokenizer(String serializedText, char delimiter, int maxTokenizerPartitions) {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
         // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
-        for(int i = 0; i <= context.getConstants().MAX_TOKENIZER_PARTITIONS; i++) {
-            if (i == context.getConstants().MAX_TOKENIZER_PARTITIONS) throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + context.getConstants().MAX_TOKENIZER_PARTITIONS);
-            final var nextPipeSymbolIndex = serializedText.indexOf(delimiter, currentPlace);
-            if (nextPipeSymbolIndex == -1) {
-                // if we don't see any pipe symbols ahead, grab the rest of the text from our current place
+        for(int i = 0;; i++) {
+            if (i >= maxTokenizerPartitions) {
+                throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + maxTokenizerPartitions);
+            }
+            final var nextDelimiterIndex = serializedText.indexOf(delimiter, currentPlace);
+            if (nextDelimiterIndex == -1) {
+                // if we don't see any delimiter symbols ahead, grab the rest of the text from our current place
                 resultList.add(serializedText.substring(currentPlace));
                 break;
             }
-            resultList.add(serializedText.substring(currentPlace, nextPipeSymbolIndex));
-            currentPlace = nextPipeSymbolIndex + 1;
+            resultList.add(serializedText.substring(currentPlace, nextDelimiterIndex));
+            currentPlace = nextDelimiterIndex + 1;
         }
 
         return resultList;

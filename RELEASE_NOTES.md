@@ -1,3 +1,57 @@
+v3.0.0
+------
+
+* Deeper testing - nearly 100% test coverage
+* Breaking changes (see [migration guide](docs/migration_to_v3.md)): 
+  * Spelling of constant values
+  * Name of the HTTP codes
+  * Removal of the `update` method in `Db`
+  * FunctionalTesting now requires the hostname and port
+  * `FunctionalTesting.send` now requires a byte array body parameter
+  * Methods in `FileUtils` now don't throw `IOException`
+  * `TheBrig.sendToJail` now returns true if succeeded
+  * `TheBrig.getInmates` now returns a list of `Inmate` instead of `List<Map.Entry<String, Long>>`
+  * `FullSystem.close` becomes `FullSystem.shutdown`
+* Refactorings / documentation improved all over
+* New helper methods in TestLogger for searching logs
+* In Logger, if the `ActionQueue` is stopped or null, will fall back to use `System.out.printf`
+* In TestLogger, new method `doesMessageExist` which handles the common usage better, that is:
+  
+  `assertTrue(logger.findFirstMessageThatContains("foo foo did a foo").length() > 0);`
+  
+  becomes
+  
+  `assertTrue(logger.doesMessageExist("foo foo did a foo"));`
+
+* Truncate timestamp in logging to microseconds
+* Modify the `ThrowingRunnable` and other functional interfaces to handle exceptions better
+* Raised the bar for testing throughout the system.  Methods
+  were adjusted to expose code for testing.  Linting tools recommended naming modifications.
+* Documentation was written to help users through migration - see docs/migration_to_v3.md.
+
+* The `update` and `write` methods in the database shared so much functionality, it made sense to 
+  combine them.  There are now only two methods in Db handling data modification.  If creating new data, 
+  set the index to 0 on the object extending DbData. 
+
+  This code creates a new item in the database:
+  
+      db.write(new Foo(0, 2, "a"));
+  
+  This code updates an item:
+  
+      db.write(new Foo(1, 2, "a"));
+  
+  Adding a new item with a positive index will fail - the database has to generate the index
+  for you.  The returned value from `write` will provide the new index.
+
+* ThrowingRunnable and other functional interfaces now properly handle exceptions.  It is
+  no longer necessary to try-catch a checked exception when using one - anything thrown will
+  be logged.  See ThrowingRunnable.
+* `FullSystem.close` renamed to `FullSystem.shutdown`
+* `Headers.make` now just requires one parameter, `Context`
+* `RequestLine.EMPTY` renamed to `RequestLine.empty`
+* Bug fixes
+
 v2.5.3 - Mar 9, 2024
 --------------------
 

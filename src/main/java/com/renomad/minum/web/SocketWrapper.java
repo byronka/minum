@@ -12,13 +12,13 @@ import java.nio.charset.Charset;
 /**
  * This wraps Sockets to make them more particular to our use case
  */
-final class SocketWrapper implements ISocketWrapper, AutoCloseable {
+final class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final InputStream inputStream;
     private final OutputStream writer;
     private final ILogger logger;
-    private final Server server;
+    private final IServer server;
 
     /**
      * Constructor
@@ -30,7 +30,7 @@ final class SocketWrapper implements ISocketWrapper, AutoCloseable {
         this(socket, null, logger, timeoutMillis);
     }
 
-    SocketWrapper(Socket socket, Server server, ILogger logger, int timeoutMillis) throws IOException {
+    SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis) throws IOException {
         this.socket = socket;
         this.socket.setSoTimeout(timeoutMillis);
         this.inputStream = socket.getInputStream();

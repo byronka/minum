@@ -10,7 +10,7 @@ package com.renomad.minum.web;
  * alleviate that situation.
  */
 @FunctionalInterface
-interface ThrowingConsumer<T, E extends Throwable> {
-    void accept(T t) throws E;
+public interface ThrowingConsumer<T> {
+    void accept(T t) throws Exception;
 
 }

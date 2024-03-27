@@ -1,7 +1,6 @@
 package com.renomad.minum.utils;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.logging.LoggingLevel;
 
 import java.util.concurrent.*;
 
@@ -24,9 +23,16 @@ public final class ExtendedExecutor extends ThreadPoolExecutor {
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
-        if (t == null
-                && r instanceof Future<?>
-                && ((Future<?>)r).isDone()) {
+        afterExecuteCode(r, t);
+    }
+
+    /**
+     * Extracting to a static method for easier testing
+     *
+     * @return the {@link Throwable} that may have been thrown
+     */
+    static Throwable afterExecuteCode(Runnable r, Throwable t) {
+        if (isDoneWithoutException(r, t)) {
             try {
                 ((Future<?>) r).get();
             } catch (CancellationException ce) {
@@ -38,13 +44,16 @@ public final class ExtendedExecutor extends ThreadPoolExecutor {
                 Thread.currentThread().interrupt();
             }
         }
-        if (t != null)
-            System.out.println(t);
+        return t;
+
+    }
+
+    static boolean isDoneWithoutException(Runnable r, Throwable t) {
+        return t == null && r instanceof Future<?> && ((Future<?>) r).isDone();
     }
 
     public static ExecutorService makeExecutorService(Constants constants) {
-        boolean useVirtualThreads = constants.USE_VIRTUAL;
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " use virtual threads? " + useVirtualThreads);
+        boolean useVirtualThreads = constants.useVirtual;
         if (useVirtualThreads) {
             // the following line is only usable with the virtual threads API, which
             // is available on JDK 19/20 in preview mode, or JDK 21 without preview.

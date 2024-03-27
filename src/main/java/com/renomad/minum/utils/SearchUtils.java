@@ -47,11 +47,11 @@ public final class SearchUtils {
             try {
                 returnValue = alternate.call();
             } catch (Exception ex) {
-                throw new RuntimeException(ex);
+                throw new UtilsException(ex);
             }
             return returnValue;
         } else {
-            return listOfThings.get(0);
+            return listOfThings.getFirst();
         }
     }
 }

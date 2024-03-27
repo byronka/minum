@@ -5,7 +5,7 @@ import java.io.Serial;
 /**
  * Exceptions that occur in the {@link Db}
  */
-public class DbException extends RuntimeException {
+public final class DbException extends RuntimeException {
 
     @Serial
     private static final long serialVersionUID = -9063971131447186027L;

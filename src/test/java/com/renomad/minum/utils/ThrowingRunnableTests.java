@@ -2,11 +2,11 @@ package com.renomad.minum.utils;
 
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static com.renomad.minum.testing.TestFramework.assertTrue;
-import static com.renomad.minum.testing.TestFramework.buildTestingContext;
+import static com.renomad.minum.testing.TestFramework.*;
 
 public class ThrowingRunnableTests {
 
@@ -17,6 +17,11 @@ public class ThrowingRunnableTests {
     public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger) context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
     }
 
     /**

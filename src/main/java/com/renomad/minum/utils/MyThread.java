@@ -20,9 +20,13 @@ public final class MyThread {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
-            System.out.println(e);
-            Thread.currentThread().interrupt();
+            handleInterrupted(e);
         }
 
+    }
+
+    static void handleInterrupted(InterruptedException e) {
+        System.out.println("Interruption during MyThread.sleep: " + e);
+        Thread.currentThread().interrupt();
     }
 }

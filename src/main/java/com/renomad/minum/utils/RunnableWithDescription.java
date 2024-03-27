@@ -20,17 +20,17 @@ public final class RunnableWithDescription implements ThrowingRunnable {
         this.r = r;
     }
 
-    public String getDescription() {
+    @Override
+    public String toString() {
         return description;
     }
 
     @Override
-    public String toString() {
-        return getDescription();
-    }
-
-    @Override
     public void run() {
-        r.run();
+        try {
+            r.run();
+        } catch (Exception e) {
+            throw new UtilsException(e);
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.renomad.minum.utils;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 public final class TimeUtils {
 
@@ -11,6 +12,11 @@ public final class TimeUtils {
     }
 
     public static String getTimestampIsoInstant() {
-        return ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_INSTANT);
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("UTC"));
+        return getTimestampIsoInstantInner(now);
+    }
+
+    static String getTimestampIsoInstantInner(ZonedDateTime now) {
+        return now.truncatedTo(ChronoUnit.MICROS).format(DateTimeFormatter.ISO_INSTANT);
     }
 }

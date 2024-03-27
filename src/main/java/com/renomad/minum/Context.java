@@ -3,15 +3,15 @@ package com.renomad.minum;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.database.DbData;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.ActionQueue;
+import com.renomad.minum.utils.AbstractActionQueue;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.web.FullSystem;
-import com.renomad.minum.web.InputStreamUtils;
+import com.renomad.minum.web.IInputStreamUtils;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -30,27 +30,28 @@ import java.util.concurrent.ExecutorService;
  */
 public final class Context {
 
-    private InputStreamUtils inputStreamUtils;
+    public static final Context EMPTY = new Context();
+    private IInputStreamUtils inputStreamUtils;
     private FileUtils fileUtils;
     private ILogger logger;
     private ExecutorService executorService;
     private Constants constants;
     private FullSystem fullSystem;
-    private final List<ActionQueue> actionQueueList;
+    private final Queue<AbstractActionQueue> aqQueue;
 
     /**
      * In order to avoid statics or singletons allow certain objects to be widely
      * available, we'll store them in this class.
      */
     public Context() {
-        this.actionQueueList = new ArrayList<>();
+        this.aqQueue = new LinkedBlockingQueue<>();
     }
 
-    public void setInputStreamUtils(InputStreamUtils inputStreamUtils) {
+    public void setInputStreamUtils(IInputStreamUtils inputStreamUtils) {
         this.inputStreamUtils = inputStreamUtils;
     }
 
-    public InputStreamUtils getInputStreamUtils() {
+    public IInputStreamUtils getInputStreamUtils() {
         return inputStreamUtils;
     }
 
@@ -93,15 +94,15 @@ public final class Context {
         return fullSystem;
     }
 
-    public List<ActionQueue> getActionQueueList() {
-        return actionQueueList;
+    public Queue<AbstractActionQueue> getAqQueue() {
+            return aqQueue;
     }
 
     /**
      * This is a helper method to instantiate a {@link Db} class,
      * avoiding the need for a user to provide the root database
      * directory and the context.
-     *
+     * <p>
      * Since this is a generic method, a bit of care is required when
      * calling.  Try to use a pattern like this:
      * <pre>
@@ -116,6 +117,6 @@ public final class Context {
      *                 to deserialize the data when reading.
      */
     public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
-        return new Db<>(Path.of(constants.DB_DIRECTORY, name), this, instance);
+        return new Db<>(Path.of(constants.dbDirectory, name), this, instance);
     }
 }

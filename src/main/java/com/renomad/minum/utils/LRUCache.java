@@ -56,15 +56,4 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
     public static <T> Map<String, T> getLruCache(int maxSize) {
         return new LRUCache<>(maxSize);
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
 }

@@ -77,7 +77,7 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
      * be handed to the browser.  This url may be relative or absolute.
      */
     public static Response redirectTo(String locationUrl) {
-        return new Response(StatusLine.StatusCode._303_SEE_OTHER, Map.of("location", locationUrl));
+        return new Response(StatusLine.StatusCode.CODE_303_SEE_OTHER, Map.of("location", locationUrl));
     }
 
     /**
@@ -90,7 +90,7 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
         var headers = new HashMap<String, String>();
         headers.put("Content-Type", "text/html; charset=UTF-8");
         headers.putAll(extraHeaders);
-        return new Response(StatusLine.StatusCode._200_OK, body, headers);
+        return new Response(StatusLine.StatusCode.CODE_200_OK, body, headers);
     }
 
     /**

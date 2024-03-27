@@ -9,10 +9,6 @@ import java.util.regex.Pattern;
  */
 public final class RegexUtils {
 
-    private RegexUtils() {
-        // making this private to be clearer it isn't supposed to be instantiated.
-    }
-
     /**
      * Helper to find a value in a string using a
      * Regex. Note, this is not nearly as performant, since
@@ -25,6 +21,8 @@ public final class RegexUtils {
         Matcher matcher = pattern.matcher(data);
         return matcher.find() ? matcher.group(0) : "";
     }
+
+    private RegexUtils() {}
 
     /**
      * Returns whether the regular expression matched the data

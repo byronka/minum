@@ -1,9 +1,5 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
-
-import java.util.List;
-
 /**
  * An HTTP request.
  * <p>

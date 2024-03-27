@@ -2,7 +2,9 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.utils.StringUtils;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -142,5 +144,20 @@ public final class Body {
      */
     public Set<String> getKeys() {
         return bodyMap.keySet();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Body body = (Body) o;
+        return Objects.equals(bodyMap, body.bodyMap) && Arrays.equals(raw, body.raw) && Objects.equals(headers, body.headers);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(bodyMap, headers);
+        result = 31 * result + Arrays.hashCode(raw);
+        return result;
     }
 }

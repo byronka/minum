@@ -6,10 +6,10 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 3,943 | 141,048 | 1,085,405   |
+| 4,396 | 141,048 | 1,085,405   |
 
 
-#### Our project is 35 times smaller than [Javalin](https://javalin.io/), which bills itself as
+#### Our project is 32 times smaller than [Javalin](https://javalin.io/), which bills itself as
 
 >"A simple web framework for Java and Kotlin"
 > 
@@ -19,9 +19,8 @@ Web frameworks
 
 We'll see that, and raise you ***a web framework with zero dependencies***
 
-Minum does not require a separate web server, database, or HTML parsing.  It is
-all included.  It even includes a testing framework, although admittedly it is
-nicer to use conventional testing frameworks that tie-in better to IDE's.
+Minum does not require a separate web server, database, or HTML parsing - it is
+all built-in.  It even includes a testing framework!
 
 
 Web server
@@ -29,14 +28,14 @@ Web server
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 1610  | 163,000 | 242,000 |
+| 1772  | 163,000 | 242,000 |
 
 Templating
 ----------
 
 | Minum | Mustache | Pebble | Rocker |
 |-------|----------|--------|--------|
-| 91    | 11,346   | 16,876 | 11,996 |
+| 99    | 11,346   | 16,876 | 11,996 |
 
 
 Database
@@ -44,7 +43,7 @@ Database
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 251   | 1,300,000  | 1,500,000 | 116,000 |
+| 237   | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -52,7 +51,7 @@ Logging
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
-| 277   | 70,000 | 3,400 |
+| 340   | 70,000 | 3,400 |
 
 
 HTML Parser
@@ -60,7 +59,7 @@ HTML Parser
 
 | Minum | JSoup  |
 |-------|--------|
-| 397   | 14,337 |
+| 492   | 14,337 |
 
 
 Testing
@@ -68,7 +67,7 @@ Testing
 
 | Minum | JUnit4 |
 |-------|--------|
-| 185   | 10,834 |
+| 192   | 10,834 |
 
 
 Various helpful utilities
@@ -76,7 +75,7 @@ Various helpful utilities
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 720   | 18,045            |
+| 836   | 18,045            |
 
 Appendix
 --------

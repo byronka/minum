@@ -1,9 +1,13 @@
 package com.renomad.minum.htmlparsing;
 
 
+import com.renomad.minum.utils.SearchUtils;
+
+import java.util.Arrays;
+
 /**
  * Possible tag names per the W3C HTML spec.
- * Pulled from https://www.w3.org/TR/2012/WD-html-markup-20121025/elements.html
+ * Pulled from <a href="https://www.w3.org/TR/2012/WD-html-markup-20121025/elements.html">The W3C spec</a>
  */
 public enum TagName {
     A(false), ABBR(false), ADDRESS(false), AREA(true), ARTICLE(false),
@@ -27,7 +31,7 @@ public enum TagName {
     SUP(false), TABLE(false), TBODY(false), TD(false), TEMPLATE(false), TEXTAREA(false),
     TFOOT(false), TH(false), THEAD(false), TIME(false), TITLE(false),
     TR(false), TRACK(true), U(false), UL(false), VAR(false), VIDEO(false),
-    WBR(true),
+    WBR(true),SVG(false),MATH(false),
 
     /**
      * In HTML, the doctype is the required preamble found at the top of
@@ -41,7 +45,13 @@ public enum TagName {
 
 
     /**
-     * Used to indicate that no tag was found, to avoid use of null
+     * A special tag, meant for cases where we are scanning through unfamiliar
+     * namespaces, like svg or math.
+     */
+    UNRECOGNIZED(false),
+
+    /**
+     * Used to indicate no tag
      */
     NULL(false)
     ;
@@ -54,9 +64,15 @@ public enum TagName {
     /**
      * If this is a void element, then it is disallowed to have
      * a closing tag.  (see <a href="https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#void-element">void elements</a>)
-     * @param isVoidElement
      */
     TagName(boolean isVoidElement) {
         this.isVoidElement = isVoidElement;
+    }
+
+    public static TagName findMatchingTagname(String tagNameString) {
+        return SearchUtils.findExactlyOne(
+                Arrays.stream(TagName.values()),
+                x -> x.toString().equalsIgnoreCase(tagNameString),
+                () -> UNRECOGNIZED);
     }
 }

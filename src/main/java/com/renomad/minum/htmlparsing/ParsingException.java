@@ -18,21 +18,4 @@ public final class ParsingException extends RuntimeException {
         super(message);
 
     }
-
-    /**
-     * Construct an exception during parsing
-     * @param cause the inner cause of the exception
-     * @param message an informative message for recipients
-     */
-    public ParsingException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    /**
-     * Construct an exception during parsing
-     * @param cause - the inner cause of the exception
-     */
-    public ParsingException(Throwable cause) {
-        super(cause);
-    }
 }

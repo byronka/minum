@@ -5,7 +5,7 @@ import java.io.Serial;
 /**
  * A {@link RuntimeException} scoped to the security package
  */
-public class SecurityException extends RuntimeException {
+public final class SecurityException extends RuntimeException {
 
 
     @Serial
@@ -15,6 +15,6 @@ public class SecurityException extends RuntimeException {
      * See {@link RuntimeException#RuntimeException(String)}
      */
     public SecurityException(String message) {
-
+        super(message);
     }
 }

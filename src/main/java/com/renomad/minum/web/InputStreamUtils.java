@@ -2,7 +2,7 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.Constants;
 import com.renomad.minum.exceptions.ForbiddenUseException;
-import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.utils.UtilsException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,28 +16,23 @@ import static com.renomad.minum.utils.ByteUtils.byteListToArray;
 /**
  * Handy helpful utilities for working with input streams.
  */
-public final class InputStreamUtils {
+public final class InputStreamUtils implements IInputStreamUtils {
 
-    private final ILogger logger;
     private final Constants constants;
 
 
-    public InputStreamUtils(ILogger logger, Constants constants) {
-        this.logger = logger;
+    public InputStreamUtils(Constants constants) {
         this.constants = constants;
     }
 
-    /**
-     * Read from the socket until it returns an EOF indicator (that is, -1)
-     * Note: this *will block* until it gets to that EOF.
-     */
+    @Override
     public byte[] readUntilEOF(InputStream inputStream) {
         final var result = new ArrayList<Byte>();
         try {
             for (int i = 0; ; i++) {
-                if (i >= constants.MAX_READ_SIZE_BYTES) {
+                if (i >= constants.maxReadSizeBytes) {
                     inputStream.close();
-                    throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES);
+                    throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.maxReadSizeBytes);
                 }
                 int a = inputStream.read();
                 if (a == -1) return byteListToArray(result);
@@ -45,14 +40,11 @@ public final class InputStreamUtils {
                 result.add((byte) a);
             }
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new UtilsException(ex);
         }
     }
 
-    /**
-     * reads following the algorithm for transfer-encoding: chunked.
-     * See <a href="https://en.wikipedia.org/wiki/Chunked_transfer_encoding">chunked transfer encoding</a>
-     */
+    @Override
     public byte[] readChunkedEncoding(InputStream inputStream) {
         final var result = new ByteArrayOutputStream( );
         try {
@@ -74,26 +66,21 @@ public final class InputStreamUtils {
 
             }
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new UtilsException(ex);
         }
         return result.toByteArray();
     }
 
-    /**
-     * Reads a line of text, stopping when reading a newline.
-     * Skips over carriage returns, so we read a HTTP_CRLF properly.
-     * <br>
-     * If the stream ends, return what we have so far.
-     */
+    @Override
     public String readLine(InputStream inputStream) throws IOException  {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
-        final var result = new ByteArrayOutputStream(constants.MAX_READ_LINE_SIZE_BYTES / 3);
+        final var result = new ByteArrayOutputStream(constants.maxReadLineSizeBytes / 3);
         for (int i = 0;; i++) {
-            if (i >= constants.MAX_READ_LINE_SIZE_BYTES) {
+            if (i >= constants.maxReadLineSizeBytes) {
                 inputStream.close();
-                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  Current max: " + constants.MAX_READ_LINE_SIZE_BYTES);
+                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  Current max: " + constants.maxReadLineSizeBytes);
             }
             int a = inputStream.read();
             if (a == -1) return result.toString(StandardCharsets.UTF_8);
@@ -104,13 +91,10 @@ public final class InputStreamUtils {
         return result.toString(StandardCharsets.UTF_8);
     }
 
-
-    /**
-     * Reads "lengthToRead" bytes from the input stream
-     */
+    @Override
     public byte[] read(int lengthToRead, InputStream inputStream) {
-        if (lengthToRead >= constants.MAX_READ_SIZE_BYTES) {
-            throw new ForbiddenUseException("client requested to send more bytes than allowed.  Current max: " + constants.MAX_READ_SIZE_BYTES + " asked to receive: " + lengthToRead);
+        if (lengthToRead >= constants.maxReadSizeBytes) {
+            throw new ForbiddenUseException("client requested to send more bytes than allowed.  Current max: " + constants.maxReadSizeBytes + " asked to receive: " + lengthToRead);
         }
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.
@@ -130,7 +114,7 @@ public final class InputStreamUtils {
                 }
             }
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new UtilsException(ex);
         }
         data = baos.toByteArray();
 

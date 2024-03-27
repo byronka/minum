@@ -67,7 +67,7 @@ public class LoopingSessionReviewing {
                     down cleanly
                      */
 
-                    if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoopingSessionReviewing is stopped.%n");
+                    if (constants.logLevels.contains(LoggingLevel.DEBUG)) System.out.printf(TimeUtils.getTimestampIsoInstant() + " LoopingSessionReviewing is stopped.%n");
                     Thread.currentThread().interrupt();
                     return null;
                 } catch (Exception ex) {

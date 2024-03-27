@@ -4,18 +4,16 @@ import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.Logger;
-import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.utils.*;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -26,18 +24,17 @@ public final class FullSystem {
 
     final ILogger logger;
     private final Constants constants;
-    private Server server;
+    private IServer server;
     private WebFramework webFramework;
-    private Server sslServer;
+    private IServer sslServer;
     Thread shutdownHook;
     private ITheBrig theBrig;
     final ExecutorService es;
-    final InputStreamUtils inputStreamUtils;
     private WebEngine webEngine;
 
     /**
      * This flag gives us some control if we need
-     * to call {@link #close()} manually, so close()
+     * to call {@link #shutdown()} manually, so close()
      * doesn't get run again when the shutdownHook
      * tries calling it.  This is primarily an issue just during
      * testing.
@@ -50,7 +47,6 @@ public final class FullSystem {
         this.logger = context.getLogger();
         this.constants = context.getConstants();
         this.es = context.getExecutorService();
-        this.inputStreamUtils = context.getInputStreamUtils();
         this.context = context;
         context.setFullSystem(this);
     }
@@ -64,7 +60,7 @@ public final class FullSystem {
         var executorService = ExtendedExecutor.makeExecutorService(constants);
         var logger = new Logger(constants, executorService, "primary logger");
         var fileUtils = new FileUtils(logger, constants);
-        var inputStreamUtils = new InputStreamUtils(logger, constants);
+        var inputStreamUtils = new InputStreamUtils(constants);
 
         var context = new Context();
 
@@ -83,11 +79,7 @@ public final class FullSystem {
     public static FullSystem initialize() {
         var context = buildContext();
         var fullSystem = new FullSystem(context);
-        try {
-            return fullSystem.start();
-        } catch (Exception ex) {
-            throw new WebServerException(ex);
-        }
+        return fullSystem.start();
     }
 
     /**
@@ -100,7 +92,7 @@ public final class FullSystem {
      * </p>
      * 
      */
-    public FullSystem start() throws IOException  {
+    public FullSystem start() {
         // create a file in our current working directory to indicate we are running
         createSystemRunningMarker();
 
@@ -108,8 +100,8 @@ public final class FullSystem {
         addShutdownHook();
         
         // Add useful startup info to the logs
-        String serverComment = "at http://" + constants.HOST_NAME + ":" + constants.SERVER_PORT + " and https://" + constants.HOST_NAME + ":" + constants.SECURE_SERVER_PORT;
-        System.out.println(TimeUtils.getTimestampIsoInstant() + " " + " *** Minum is starting "+serverComment+" ***");
+        String serverComment = "at http://" + constants.hostName + ":" + constants.serverPort + " and https://" + constants.hostName + ":" + constants.secureServerPort;
+        logger.logDebug(() -> " *** Minum is starting "+serverComment+" ***");
         
         // instantiate our security code
         theBrig = new TheBrig(context).initialize();
@@ -123,7 +115,7 @@ public final class FullSystem {
 
         // should we redirect all insecure traffic to https? If so,
         // then for port 80 all requests will cause a redirect to the secure TLS endpoint
-        boolean shouldRedirect = constants.REDIRECT_TO_SECURE;
+        boolean shouldRedirect = constants.redirectToSecure;
         var nonTlsWebHandler = shouldRedirect ? webFramework.makeRedirectHandler() : webHandler;
         
         // kick off the servers - low level internet handlers
@@ -133,10 +125,9 @@ public final class FullSystem {
 
         // document how long to start up the system
         var now = ZonedDateTime.now(ZoneId.of("UTC"));
-        var formattedNow = now.format(DateTimeFormatter.ISO_INSTANT);
         var nowMillis = now.toInstant().toEpochMilli();
-        var startupTime = nowMillis - constants.START_TIME;
-        System.out.println(formattedNow + " *** Minum has finished primary startup after " + startupTime + " milliseconds ***");
+        var startupTime = nowMillis - constants.startTime;
+        logger.logDebug(() -> " *** Minum has finished primary startup after " + startupTime + " milliseconds ***");
 
         return this;
     }
@@ -148,7 +139,7 @@ public final class FullSystem {
      * will log
      */
     private void addShutdownHook() {
-        shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::close, logger));
+        shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::shutdown, logger));
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
@@ -156,16 +147,16 @@ public final class FullSystem {
      * this saves a file to the home directory, SYSTEM_RUNNING,
      * that will indicate the system is active
      */
-    private void createSystemRunningMarker() throws IOException {
-        Files.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
+    private void createSystemRunningMarker() {
+        context.getFileUtils().writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
-    Server getServer() {
+    IServer getServer() {
         return server;
     }
 
-    Server getSslServer() {
+    IServer getSslServer() {
         return sslServer;
     }
 
@@ -185,38 +176,32 @@ public final class FullSystem {
         return webEngine;
     }
 
-    public void close() {
+    public void shutdown() {
 
         if (!hasShutdown) {
             logger.logTrace(() -> "close called on " + this);
-            try {
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Received shutdown command");
-                }
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the server: " + this.server);
-                }
-                if (server != null) server.close();
+            closeCore(logger, context, server, sslServer, this.toString());
+            hasShutdown = true;
+        }
+    }
 
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Stopping the SSL server: " + this.sslServer);
-                }
-                if (sslServer != null) sslServer.close();
-
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                    System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all the action queues: " + this.context.getActionQueueList());
-                }
-                new ActionQueueKiller(context).killAllQueues();
-
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                    System.out.printf("%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), this);
-                }
-
-            } catch (Exception ex) {
-                throw new WebServerException(ex);
-            } finally {
-                hasShutdown = true;
-            }
+    /**
+     * The core code for closing resources
+     * @param fullSystemName the name of this FullSystem, in cases where several are running concurrently
+     */
+    static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName) {
+        try {
+            logger.logDebug(() -> "Received shutdown command");
+            logger.logDebug(() -> " Stopping the server: " + server);
+            server.close();
+            logger.logDebug(() -> " Stopping the SSL server: " + server);
+            sslServer.close();
+            logger.logDebug(() -> "Killing all the action queues: " + context.getAqQueue());
+            new ActionQueueKiller(context).killAllQueues();
+            logger.logDebug(() -> String.format(
+                    "%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), fullSystemName));
+        } catch (Exception e) {
+            throw new WebServerException(e);
         }
     }
 
@@ -253,12 +238,15 @@ public final class FullSystem {
      * </p>
      */
     public void block() {
+        blockCore(this.server, this.sslServer);
+    }
+
+    static void blockCore(IServer server, IServer sslServer) {
         try {
-            this.server.getCentralLoopFuture().get();
-            this.sslServer.getCentralLoopFuture().get();
-        } catch (InterruptedException ex) {
+            server.getCentralLoopFuture().get();
+            sslServer.getCentralLoopFuture().get();
+        } catch (InterruptedException | ExecutionException | CancellationException ex) {
             Thread.currentThread().interrupt();
-        } catch (Exception ex) {
             throw new WebServerException(ex);
         }
     }

@@ -1,7 +1,7 @@
 /**
- * These are the utilties needed to enable a database for the application.
+ * These are the utilities needed to enable a database for the application.
  * <p>
- *     The performance is excellent.  The following simplified example is extracted from SampleDomina.java
+ *     The performance is excellent.  The following simplified example is extracted from SampleDomain.java
  *     and TheRegister.java, both in the tests directory.
  * </p>
  * <p>
@@ -36,7 +36,7 @@
  * public Response formEntry(Request r) {
  *     final var authResult = auth.processAuth(r);
  *     if (! authResult.isAuthenticated()) {
- *         return new Response(_401_UNAUTHORIZED);
+ *         return new Response(CODE_401_UNAUTHORIZED);
  *     }
  *     final String names = db
  *             .values().stream().sorted(Comparator.comparingLong(PersonName::getIndex))

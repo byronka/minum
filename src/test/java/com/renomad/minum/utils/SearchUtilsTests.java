@@ -94,6 +94,24 @@ public class SearchUtilsTests {
     }
 
     /**
+     * What if the alternate throws an exception?
+     */
+    @Test
+    public void test_SearchUtils_OnlyNullInList_WithAlternateException() {
+        List<String> items = new ArrayList<>();
+        items.add(null);
+
+        // if we find it, return it
+        var ex = assertThrows(RuntimeException.class, () -> {
+            findExactlyOne(items.stream(), x -> x.equals("b"), () -> {
+                throw new Exception("Just testing");
+            });
+        });
+
+        assertEquals(ex.getMessage(), "java.lang.Exception: Just testing");
+    }
+
+    /**
      * What should happen if there are nulls in the list, but also
      * the item we want to find?
      */

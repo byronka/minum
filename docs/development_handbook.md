@@ -54,10 +54,26 @@ Quick start:
 Description
 ------------
 
+[How Minum is different](https://renomad.com/blogposts/minum2.html)
+
 Minum is a framework with most of the components needed to build a web application,
 including a web server and a database.  The major paradigm is to stay simple and high-quality, avoiding
 third-party dependencies whenever possible.
 
+When you want to write a web application that is fast and maintainable
+and (big-picture) less expensive.  For when you prefer a stable
+foundation with minimal dependencies and not a [teetering tower](https://xkcd.com/2347/).
+
+If these speak to you:
+
+* https://renegadeotter.com/2023/09/10/death-by-a-thousand-microservices.html
+* http://mcfunley.com/choose-boring-technology
+* https://www.teamten.com/lawrence/writings/java-for-everything.html
+* https://www.timr.co/server-side-rendering-is-a-thiel-truth/
+
+If you realize there is no silver bullet, there are no shortcuts, that
+hard work is the only way to create value, then you might share my
+mindset about what makes this web framework valuable.
 
 Why?
 ----
@@ -541,13 +557,6 @@ See the [parable of two programmers](parable_two_programmers.md)
 >
 > -- _Navy Seals_
 
->It occurred to him almost instantly, with the instinctive correctness that self-preservation
->instills in the mind, that he mustn’t try to think about it, that if he did, the law of gravity
->would suddenly glance sharply in his direction and demand to know what the hell he thought
->he was doing up there, and all would suddenly be lost.
->
-> -- _Douglas Adams, Life, The Universe and Everything_
-
 >"I never knew words could be so confusing," Milo said to Tock as he bent down to scratch the
 >dog's ear. "Only when you use a lot to say a little," answered Tock. Milo thought this was
 >quite the wisest thing he'd heard all day.
@@ -587,6 +596,15 @@ See the [parable of two programmers](parable_two_programmers.md)
 >that may never be used anyway.
 >
 > -- _Kent Beck Extreme Programming Explained_
+
+> My experience is that the weird tests you end up having to write just to cause some 
+> obscure branch to go one way or another end up finding problems in totally unrelated 
+> parts of the system. One of the chief benefits of 100% MC/DC is not so much that every 
+> branch is tested, but rather that you have to write so many tests, and such strange, 
+> weird, convoluted, and stressful tests, that you randomly stumble across (and fix) 
+> lots of problems you would have never thought about otherwise.
+> 
+>  -- Dwayne Richard Hipp
 
 >Keep it simple, stupid
 >

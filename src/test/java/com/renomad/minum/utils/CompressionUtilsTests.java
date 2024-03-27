@@ -1,10 +1,13 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.StopwatchUtils;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,13 +27,19 @@ public class CompressionUtilsTests {
 
     private static TestLogger logger;
     private static String gettysburgAddress;
+    private static Context context;
 
 
     @BeforeClass
     public static void init() throws IOException {
-        var context = buildTestingContext("compression_utils_tests");
+        context = buildTestingContext("compression_utils_tests");
         logger = (TestLogger) context.getLogger();
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
     }
 
     /**
@@ -102,6 +111,54 @@ public class CompressionUtilsTests {
 
         long millis = stopwatchUtils1.stopTimer();
         logger.logDebug(() -> "Compression performance test took " + millis + " milliseconds");
+    }
+
+    @Test
+    public void test_compress_NullInput() {
+        assertThrows(InvariantException.class,
+                "value must not be null",
+                () -> CompressionUtils.gzipCompress(null));
+    }
+
+    @Test
+    public void test_decompress_NullInput() {
+        assertThrows(InvariantException.class,
+                "value must not be null",
+                () -> CompressionUtils.gzipDecompress(null));
+    }
+
+    @Test
+    public void test_compress_Exception() {
+        UtilsException ex = assertThrows(UtilsException.class, () -> CompressionUtils.compress(null, new MyAbstractByteArrayOutputStream() {
+            @Override
+            byte[] toByteArray() {
+                return new byte[0];
+            }
+
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("Testing IOException in CompressionUtils");
+            }
+        }));
+
+        assertEquals(ex.getMessage(), "java.io.IOException: Testing IOException in CompressionUtils");
+    }
+
+    @Test
+    public void test_decompress_Exception() {
+        UtilsException ex = assertThrows(UtilsException.class, () -> CompressionUtils.decompress(new MyAbstractByteArrayOutputStream() {
+            @Override
+            byte[] toByteArray() {
+                return new byte[0];
+            }
+
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("Testing IOException in CompressionUtils");
+            }
+        }, new ByteArrayInputStream(new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0, -1, 99, 100, 98, 6, 0, 29, -128, -68, 85, 3, 0, 0, 0})));
+
+        assertEquals(ex.getMessage(), "java.io.IOException: Testing IOException in CompressionUtils");
     }
 
 

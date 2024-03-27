@@ -2,11 +2,9 @@ package com.renomad.minum.htmlparsing;
 
 import com.renomad.minum.exceptions.ForbiddenUseException;
 
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
 /**
  * Converts HTML strings to object trees.
@@ -59,22 +57,17 @@ public final class HtmlParser {
      * </p>
      */
     public List<HtmlParseNode> parse(String input) {
-        if (input.length() > MAX_HTML_SIZE)
+        if (input.length() >= MAX_HTML_SIZE)
             throw new ForbiddenUseException("Input exceeds max allowed HTML text size, " + MAX_HTML_SIZE + " chars");
-        StringReader stringReader = new StringReader(input);
+        var is = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
 
         List<HtmlParseNode> nodes = new ArrayList<>();
         State state = State.buildNewState();
 
         while (true) {
-            int value;
-            try {
-                value = stringReader.read();
-            } catch (IOException e) {
-                throw new ParsingException(e);
-            }
+            int value = is.read();
             // if the value is -1, there's nothing left to read
-            if (value < 0) return nodes;
+            if (value == -1) return nodes;
 
             char currentChar = (char) value;
             processState(currentChar, state, nodes);
@@ -94,14 +87,19 @@ public final class HtmlParser {
      * </p>
      */
     private void processState(char currentChar, State state, List<HtmlParseNode> nodes) {
+        recordLocation(currentChar, state);
 
-        // handle basic recording of stats
-        state.charsRead += 1;
-        if (currentChar == '\n') {
-            state.lineRow += 1;
-            state.lineColumn = 0;
+        // keep track of previous twelve characters, to check if inside comments and scripts
+        addShift(state.previousCharacters, currentChar);
+        determineCommentState(state);
+        determineScriptState(state);
+        if (state.isInsideComment) {
+            return;
         }
-        state.lineColumn += 1;
+        if (state.isInsideScript) {
+            state.stringBuilder.append(currentChar);
+            return;
+        }
 
         if (currentChar == '<') {
             processLessThan(currentChar, state);
@@ -112,10 +110,43 @@ public final class HtmlParser {
         }
     }
 
+    /**
+     * handle basic recording of stats, like row and column,
+     * useful during error messages
+     */
+    private static void recordLocation(char currentChar, State state) {
+        state.charsRead += 1;
+        if (currentChar == '\n') {
+            state.lineRow += 1;
+            state.lineColumn = 0;
+        }
+        state.lineColumn += 1;
+    }
+
+    /**
+     * This method adds a new character to the end of the
+     * twelve-character array, shifting over characters to
+     * fit.  Characters overflow off the left side.
+     */
+    private void addShift(char[] previousCharacters, char newChar) {
+        previousCharacters[0] = previousCharacters[1];
+        previousCharacters[1] = previousCharacters[2];
+        previousCharacters[2] = previousCharacters[3];
+        previousCharacters[3] = previousCharacters[4];
+        previousCharacters[4] = previousCharacters[5];
+        previousCharacters[5] = previousCharacters[6];
+        previousCharacters[6] = previousCharacters[7];
+        previousCharacters[7] = previousCharacters[8];
+        previousCharacters[8] = previousCharacters[9];
+        previousCharacters[9] = previousCharacters[10];
+        previousCharacters[10] = previousCharacters[11];
+        previousCharacters[11] = newChar;
+    }
+
     private void processGreaterThan(char currentChar, State state, List<HtmlParseNode> nodes) {
         /* It's allowed to use greater-than signs in a lot of places */
         if (state.isInsideTag) {
-            handleInsideTag(currentChar, state, nodes);
+            handleExitingTag(currentChar, state, nodes);
         } else {
             /*
             This situation means we're looking at a
@@ -126,7 +157,10 @@ public final class HtmlParser {
         }
     }
 
-    private void handleInsideTag(char currentChar, State state, List<HtmlParseNode> nodes) {
+    /**
+     * As we leave the tag, we make some decisions about it.
+     */
+    private void handleExitingTag(char currentChar, State state, List<HtmlParseNode> nodes) {
         if (state.isInsideAttributeValueQuoted) {
             /*
             Here, we're looking at a greater-than
@@ -139,16 +173,15 @@ public final class HtmlParser {
     }
 
     private void handleTagComponents(State state, List<HtmlParseNode> nodes) {
-        if (state.hasEncounteredTagName && state.tagName.isEmpty() && state.stringBuilder.length() > 0) {
-            // We've just finished building the tagname
+        if (hasFinishedBuildingTagname(state.hasEncounteredTagName, state.tagName, state.stringBuilder)) {
             state.tagName = state.stringBuilder.toString();
-        } else if ( state.stringBuilder.length() > 0 && state.currentAttributeKey.isBlank() && state.isReadingAttributeKey) {
+        } else if (!state.stringBuilder.isEmpty() && state.currentAttributeKey.isBlank() && state.isReadingAttributeKey) {
             state.attributes.put(state.stringBuilder.toString(), "");
             state.stringBuilder = new StringBuilder();
             state.isReadingAttributeKey = false;
         } else if (!state.currentAttributeKey.isBlank()) {
             // if we were in the midst of reading attribute stuff when we hit the closing bracket...
-            if (state.stringBuilder.length() > 0) {
+            if (!state.stringBuilder.isEmpty()) {
                 state.attributes.put(state.currentAttributeKey, state.stringBuilder.toString());
             } else {
                 state.attributes.put(state.currentAttributeKey, "");
@@ -158,7 +191,11 @@ public final class HtmlParser {
             state.currentAttributeKey = "";
         }
 
-        exitingTag(state, nodes);
+        processTagAndResetState(state, nodes);
+    }
+
+    static boolean hasFinishedBuildingTagname(boolean hasEncounteredTagName, String tagName, StringBuilder sb) {
+        return hasEncounteredTagName && tagName.isEmpty() && !sb.isEmpty();
     }
 
     private void processLessThan(char currentChar, State state) {
@@ -178,15 +215,7 @@ public final class HtmlParser {
      * When we've read a less-than sign and are entering an HTML tag.
      */
     private void enteringTag(State state) {
-        if (state.stringBuilder.length() > 0) {
-
-            String textContent = state.stringBuilder.toString();
-
-            // This is where we add characters if we found any between tags.
-            if (! state.parseStack.isEmpty() && ! textContent.isBlank()) {
-                state.parseStack.peek().innerContent().add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), textContent));
-            }
-        }
+        addText(state);
 
         state.isInsideTag = true;
         /*
@@ -199,11 +228,23 @@ public final class HtmlParser {
         state.stringBuilder = new StringBuilder();
     }
 
+    private static void addText(State state) {
+        if (!state.stringBuilder.isEmpty()) {
+
+            String textContent = state.stringBuilder.toString();
+
+            // This is where we add characters if we found any between tags.
+            if (! state.parseStack.isEmpty() && ! textContent.isBlank()) {
+                state.parseStack.peek().innerContent().add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), textContent));
+            }
+        }
+    }
+
     /**
      * Called when we've just hit a greater-than sign and thus
      * exited an HTML tag.
      */
-    private void exitingTag(State state, List<HtmlParseNode> nodes) {
+    private void processTagAndResetState(State state, List<HtmlParseNode> nodes) {
         processTag(state, nodes);
 
         state.isHalfClosedTag = false;
@@ -223,34 +264,78 @@ public final class HtmlParser {
         var hasNotBegunReadingTagName = state.isInsideTag && !state.hasEncounteredTagName;
 
         if (hasNotBegunReadingTagName) {
-
             handleBeforeReadingTagName(state, currentChar);
         } else if (state.isReadingTagName) {
             handleReadingTagName(state, currentChar);
-        } else if (!state.tagName.isEmpty() && state.isInsideTag) {
-            handleAfterReadingTagName(state, currentChar);
+        } else if (isFinishedReadingTag(state.tagName, state.isInsideTag)) {
+                handleAfterReadingTagName(state, currentChar);
         } else {
             state.stringBuilder.append(currentChar);
         }
     }
 
-    private static void handleAfterReadingTagName(State state, char currentChar) {
-        // at this point we have a tagname for our tag, and we're still in the tag
+    static boolean isFinishedReadingTag(String tagName, boolean isInsideTag) {
+        return !tagName.isEmpty() && isInsideTag;
+    }
 
-            /*
-            the following logic looks crazy (sorry) but what it's trying to do
-            is to check whether we're in the whitespace between the tagname and
-            the start of the (potential) key.
-            */
+    /**
+     * Returns whether we are inside an HTML comment,
+     * that is {@code <!-- -->}
+     */
+    private void determineCommentState(State state) {
+        boolean atCommentStart = Arrays.equals(new char[]{'<','!','-','-'}, 0, 4, state.previousCharacters, 8, 12);
+        boolean atCommentEnd = Arrays.equals(new char[]{'-','-','>'}, 0, 3, state.previousCharacters, 8, 11);
+        boolean isInsideTag = state.isInsideTag;
+        boolean hasEncounteredTagName = state.hasEncounteredTagName;
+        if (isInsideTag && !hasEncounteredTagName && atCommentStart) {
+            state.isInsideComment = true;
+            state.isInsideTag = false;
+            state.hasEncounteredTagName = false;
+        } else if (state.isInsideComment && atCommentEnd) {
+            state.isInsideComment = false;
+        }
+    }
+
+    /**
+     * Determines whether we have hit the end of the script block
+     * by looking for the closing script tag.
+     */
+    private void determineScriptState(State state) {
+        boolean isScriptFinished = Arrays.equals(new char[]{'<','/','s','c','r','i','p','t','>'}, 0, 9, state.previousCharacters, 3, 12);
+        boolean wasInsideScript = state.isInsideScript;
+        state.isInsideScript = state.isInsideScript && !isScriptFinished;
+        boolean justClosedScriptTag = wasInsideScript && !state.isInsideScript;
+        if (justClosedScriptTag) {
+            state.tagName = "script";
+            state.isInsideTag = true;
+            state.isStartTag = false;
+            var innerTextLength = state.stringBuilder.length();
+            state.stringBuilder.delete(innerTextLength - 8, innerTextLength);
+            addText(state);
+        }
+
+    }
+
+    /**
+     * at this point we have a tagname for our tag, and we're still in the tag
+     */
+    private static void handleAfterReadingTagName(State state, char currentChar) {
+        /*
+        the following logic looks crazy (sorry) but what it's trying to do
+        is to check whether we're in the whitespace between the tagname and
+        the start of the (potential) key.
+        */
         boolean atYetAnotherWhitespaceBetweenTagAndAttributes =
                 state.currentAttributeKey.isEmpty() &&
-                state.stringBuilder.length() == 0
+                        state.stringBuilder.isEmpty()
                         && currentChar == ' ';
 
-        // once we cross the chasm between the tag and the potential key,
-        // there's a whole set of logic to run through. Yum. (but by the
-        // way, it's not uncommon to never see a key inside a tag, so none
-        // of this code would ever get run in that case)
+        /*
+        once we cross the chasm between the tag and the potential key,
+        there's a whole set of logic to run through. Yum. (but by the
+        way, it's not uncommon to never see a key inside a tag, so none
+        of this code would ever get run in that case)
+         */
         boolean isHandlingAttributes = !atYetAnotherWhitespaceBetweenTagAndAttributes;
         if (isHandlingAttributes) {
 
@@ -293,7 +378,7 @@ public final class HtmlParser {
                  */
                 state.isInsideAttributeValueQuoted = true;
                 state.quoteType = QuoteType.byLiteral(currentChar);
-            } else if (state.stringBuilder.length() > 0 && currentChar == ' ') {
+            } else if (!state.stringBuilder.isEmpty() && currentChar == ' ') {
                 /*
                 if we're not in a quoted area and encounter a space, then
                 we're done reading the attribute value and can add the key-value
@@ -313,11 +398,14 @@ public final class HtmlParser {
     private static void handleNotFullyReadAttributeKey(State state, char currentChar) {
         if (state.isHalfClosedTag) {
             /*
+            This situation occurs when we are in a void tag, like <link />,
+            and are closing the tag with a forward slash + closing bracket.
+
             if we got here, it means the previous char was
             a forward slash, so the current character *should*
-            be a closing angle, but it's not! So.. panic.
+            be a closing angle, but if it's not ...
              */
-            throw new ParsingException("char after forward slash must be angle bracket.  Char: " + currentChar);
+            throw new ParsingException(String.format("in closing a void tag (e.g. <link />), character after forward slash must be angle bracket.  Char: %s at line %d and at the %d character", currentChar, state.lineRow, state.lineColumn));
         } else if (currentChar == ' ' || currentChar == '=') {
             // if we hit whitespace or an equals sign, we're done reading the key
             state.currentAttributeKey = state.stringBuilder.toString();
@@ -338,7 +426,7 @@ public final class HtmlParser {
     private static void handleReadingTagName(State state, char currentChar) {
         if (Character.isWhitespace(currentChar)) {
             /*
-            At this point, we've been reading the tag name and we've encountered whitespace.
+            At this point, we've been reading the tag name, and we've encountered whitespace.
             That means we are done reading the tag name
              */
             state.hasEncounteredTagName = true;
@@ -356,6 +444,10 @@ public final class HtmlParser {
         }
     }
 
+    /**
+     * We're just past a starting angle bracket, so we're
+     * feeling our way around what this element is.
+     */
     private static void handleBeforeReadingTagName(State state, char currentChar) {
         if (currentChar == ' ') {
             /*
@@ -370,7 +462,7 @@ public final class HtmlParser {
             */
             state.isStartTag = false;
             state.stringBuilder = new StringBuilder();
-        } else if (Character.isLetter(currentChar) || Character.isDigit(currentChar)) {
+        } else if (Character.isAlphabetic(currentChar)) {
 
             /*
             Here, our input could definitely be the letters of a tag name
@@ -390,12 +482,9 @@ public final class HtmlParser {
     private void processTag(State state, List<HtmlParseNode> nodes) {
         String tagNameString = state.tagName;
         TagName tagName;
-        String upperCaseToken = tagNameString.toUpperCase(Locale.ROOT);
-        try {
-            tagName = TagName.valueOf(upperCaseToken);
-        } catch (IllegalArgumentException ex) {
-            throw new ParsingException("Invalid HTML element: " + upperCaseToken + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character");
-        }
+
+        tagName = TagName.findMatchingTagname(tagNameString);
+        if (tagName.equals(TagName.UNRECOGNIZED)) return;
         var tagInfo = new TagInfo(tagName, state.attributes);
         if (state.isStartTag) {
             HtmlParseNode newNode = new HtmlParseNode(ParseNodeType.ELEMENT, tagInfo, new ArrayList<>(), "");
@@ -413,10 +502,20 @@ public final class HtmlParser {
             } else if (!tagName.isVoidElement) {
                 state.parseStack.push(newNode);
             }
+
+            if (tagName.equals(TagName.SCRIPT)) {
+                state.isInsideScript = true;
+                state.stringBuilder = new StringBuilder();
+            }
         } else {
             // if we're leaving an end-tag, it means we have a
             // full element with potentially inner content
-            HtmlParseNode htmlParseNode = state.parseStack.pop();
+            HtmlParseNode htmlParseNode;
+            try {
+                htmlParseNode = state.parseStack.pop();
+            } catch (NoSuchElementException ex) {
+                throw new ParsingException("No starting tag found. At line " + state.lineRow + " and at the " + state.lineColumn + "th character");
+            }
 
              /*
             If the stack is a size of zero at this point, it means we're at the
@@ -428,12 +527,12 @@ public final class HtmlParser {
             }
             TagName expectedTagName = htmlParseNode.tagInfo().tagName();
             if (expectedTagName != tagName) {
-                throw new ParsingException("Did not find expected element. " + "Expected: " + expectedTagName + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character");
+                throw new ParsingException("Did not find expected closing-tag type. " + "Expected: " + expectedTagName + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character");
             }
         }
     }
 
-    private enum QuoteType {
+    enum QuoteType {
         SINGLE_QUOTED('\''), DOUBLE_QUOTED('"'), NONE(Character.MIN_VALUE);
 
         public final char literal;
@@ -443,7 +542,6 @@ public final class HtmlParser {
         }
 
         public static QuoteType byLiteral(char currentChar) {
-            mustBeTrue(currentChar == '\'' || currentChar == '"', "There are only two valid characters here.");
             if (currentChar == '\'') {
                 return QuoteType.SINGLE_QUOTED;
             } else  {
@@ -452,9 +550,31 @@ public final class HtmlParser {
         }
     }
 
-    private static class State {
+    static class State {
+
         static State buildNewState() {
-            return new State(0, false, new StringBuilder(), new ArrayDeque<>(), false, false, true, false, "", "", new HashMap<>(), QuoteType.NONE, false, false, 1, 0);
+            char[] previousCharacters = new char[12];
+            int lineColumn1 = 0;
+            int lineRow1 = 1;
+            boolean isHalfClosedTag1 = false;
+            boolean isInsideAttributeValueQuoted1 = false;
+            boolean isStartTag1 = true;
+            boolean isReadingTagName1 = false;
+            boolean hasEncounteredTagName1 = false;
+            ArrayDeque<HtmlParseNode> parseStack1 = new ArrayDeque<>();
+            StringBuilder stringBuilder1 = new StringBuilder();
+            boolean isInsideTag1 = false;
+            int charsRead1 = 0;
+            String tagName1 = "";
+            String currentAttributeKey1 = "";
+            HashMap<String, String> attributes1 = new HashMap<>();
+            boolean isReadingAttributeKey1 = false;
+            boolean isInsideComment1 = false;
+            boolean isInsideScript1 = false;
+            return new State(charsRead1, isInsideTag1, stringBuilder1, parseStack1, hasEncounteredTagName1,
+                    isReadingTagName1, isStartTag1, isInsideAttributeValueQuoted1,
+                    tagName1, currentAttributeKey1, attributes1, QuoteType.NONE, isReadingAttributeKey1,
+                    isHalfClosedTag1, lineRow1, lineColumn1, previousCharacters, isInsideComment1, isInsideScript1);
         }
 
         /**
@@ -478,7 +598,7 @@ public final class HtmlParser {
         /**
          * A stack of HtmlParseNodes, used to see how far deep in the tree we are
          */
-        Deque<HtmlParseNode> parseStack;
+        final Deque<HtmlParseNode> parseStack;
         /**
          * True if we have successfully encountered the first letter of the tag
          */
@@ -534,6 +654,19 @@ public final class HtmlParser {
         int lineColumn;
 
         /**
+         * This is used to check for comments. That is,
+         *     {@code <!-- -->}
+         */
+        final char[] previousCharacters;
+
+        /**
+         * Indicates whether we are inside a comment
+         */
+        boolean isInsideComment;
+
+        boolean isInsideScript;
+
+        /**
          * Holds the state so we can remember where we are as we examine the HTML
          * a character at a time.
          */
@@ -541,7 +674,8 @@ public final class HtmlParser {
                      Deque<HtmlParseNode> parseStack, boolean hasEncounteredTagName, boolean isReadingTagName,
                      boolean isStartTag, boolean isInsideAttributeValueQuoted, String tagName,
                      String currentAttributeKey, Map<String, String> attributes, QuoteType quoteType,
-                     boolean isReadingAttributeKey, boolean isHalfClosedTag, int lineRow, int lineColumn) {
+                     boolean isReadingAttributeKey, boolean isHalfClosedTag, int lineRow, int lineColumn,
+                     char[] previousCharacters, boolean isInsideComment, boolean isInsideScript) {
 
             this.charsRead = charsRead;
             this.isInsideTag = isInsideTag;
@@ -559,6 +693,9 @@ public final class HtmlParser {
             this.isHalfClosedTag = isHalfClosedTag;
             this.lineRow = lineRow;
             this.lineColumn = lineColumn;
+            this.previousCharacters = previousCharacters;
+            this.isInsideComment = isInsideComment;
+            this.isInsideScript = isInsideScript;
         }
     }
 

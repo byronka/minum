@@ -2,11 +2,14 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
+import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.UnderInvestigation;
 import com.renomad.minum.testing.StopwatchUtils;
-import com.renomad.minum.utils.*;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.SearchUtils;
+import com.renomad.minum.utils.StacktraceUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,14 +20,12 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.renomad.minum.utils.CompressionUtils.gzipCompress;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
-import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
-import static com.renomad.minum.web.StatusLine.StatusCode._500_INTERNAL_SERVER_ERROR;
+import static com.renomad.minum.web.StatusLine.StatusCode.CODE_404_NOT_FOUND;
+import static com.renomad.minum.web.StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
 /**
@@ -39,7 +40,7 @@ public final class WebFramework {
 
     private final Constants constants;
     private final UnderInvestigation underInvestigation;
-    private final InputStreamUtils inputStreamUtils;
+    private final IInputStreamUtils inputStreamUtils;
     private final StopwatchUtils stopWatchUtils;
     private final BodyProcessor bodyProcessor;
     /**
@@ -49,6 +50,7 @@ public final class WebFramework {
      */
     private final Random randomErrorCorrelationId;
     private final FileUtils fileUtils;
+    private final RequestLine emptyRequestLine;
 
     /**
      * This is used as a key when registering endpoints
@@ -58,32 +60,20 @@ public final class WebFramework {
     /**
      * The list of paths that our system is registered to handle.
      */
-    private final Map<MethodPath, Function<Request, Response>> registeredDynamicPaths;
+    private final Map<MethodPath, ThrowingFunction<Request, Response>> registeredDynamicPaths;
 
     /**
      * These are registrations for paths that partially match, for example,
      * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
      * and we want to match ".well-known/acme-challenge"
      */
-    private final Map<MethodPath, Function<Request, Response>> registeredPartialPaths;
+    private final Map<MethodPath, ThrowingFunction<Request, Response>> registeredPartialPaths;
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
     private final FullSystem fs;
     private final ILogger logger;
     private final Context context;
-
-    /**
-     * This type is used to contain the results of modifications
-     * applied to the outgoing data just before sending
-     * @param statusLineAndHeaders string values separated by CRLF, per HTTP spec
-     * @param body the body of the message, as bytes.  May be compressed.
-     */
-    private record PreparedResponse(String statusLineAndHeaders, byte[] body){}
-
-    // A regular expression to be used to check whether a client is allowing gzip compression.
-    // Look up "accept-encoding" on the internet.
-    private static final Pattern gzipAcceptEncodingPattern = Pattern.compile("\\b(gzip)\\b", Pattern.CASE_INSENSITIVE);
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -99,156 +89,181 @@ public final class WebFramework {
      *                      <br>
      *                      The common case definition of this is found at {@link #findEndpointForThisStartline}
      */
-    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler(Function<RequestLine, Function<Request, Response>> handlerFinder) {
+    ThrowingConsumer<ISocketWrapper> makePrimaryHttpHandler(ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> handlerFinder) {
 
         // build the handler
-
         return sw -> {
-            try (sw) {
+            dumpIfAttacker(sw, fs);
+            var fullStopwatch = stopWatchUtils.startTimer();
+            final var is = sw.getInputStream();
 
-                // if we recognize this client as an attacker, dump them.
-                ITheBrig theBrig = (fs != null && fs.getTheBrig() != null) ? fs.getTheBrig() : null;
-                if (theBrig != null) {
-                    String remoteClient = sw.getRemoteAddr();
-                    if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
-                        // if this client is a vulnerability seeker, just dump them unceremoniously
-                        logger.logDebug(() -> "closing the socket on " + remoteClient);
-                        return;
-                    }
+            // By default, browsers expect the server to run in keep-alive mode.
+            // We'll break out later if we find that the browser doesn't do keep-alive
+            while (true) {
+                final String rawStartLine = inputStreamUtils.readLine(is);
+                if (rawStartLine.isEmpty()) {
+                    // here, the client connected, sent nothing, and closed.
+                    // nothing to do but return.
+                    logger.logTrace(() -> "rawStartLine was empty.  Returning.");
+                    break;
                 }
+                final RequestLine sl = getProcessedRequestLine(sw, rawStartLine);
 
-                var fullStopwatch = stopWatchUtils.startTimer();
-                final var is = sw.getInputStream();
-
-                /*
-                By default, browsers expect the server to run in keep-alive mode.
-                We'll break out later if we find that the browser doesn't do keep-alive
-                 */
-                while(true) {
-
-                    // first grab the start line (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#start_line)
-                    // e.g. GET /foo HTTP/1.1
-                    final var rawStartLine = inputStreamUtils.readLine(is);
-                     /*
-                      if the rawStartLine is null, that means the client stopped talking.
-                      See ISocketWrapper.readLine()
-                      */
-                    if (rawStartLine == null) {
-                        // no need to do any further work, just bail
-                        return;
-                    }
-
-                    logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
-                    var sl = RequestLine.EMPTY(context).extractStartLine(rawStartLine);
-                    logger.logTrace(() -> sw + ": StartLine received: " + sl.toString());
-                    if (sl.getRawValue().isBlank()) {
-                        /*
-                        if we get in here, it means the client sent nothing in the spot
-                        where the Start Line should have been - therefore, we're not
-                        dealing with a kosher request at all. Bail.
-                         */
-                        return;
-                    }
-
-                    String suspiciousClues = underInvestigation.isLookingForSuspiciousPaths(sl.getPathDetails().isolatedPath());
-                    if (!suspiciousClues.isEmpty() && theBrig != null) {
-                        logger.logDebug(() -> sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + suspiciousClues);
-                        theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                        return;
-                    }
-
-                    /****************************************
-                     *   Set up some important variables
-                     ***************************************/
-                    // The request we received from the client
-                    Request clientRequest = null;
-                    // The response we will send to the client
-                    Response resultingResponse;
-                    boolean isKeepAlive = false;
-
-                    /*
-                       next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
-
-                       by the way, the headers will tell us vital information about the
-                       body.  If, for example, we're getting a POST and receiving a
-                       www form url encoded, there will be a header of "content-length"
-                       that will mention how many bytes to read.  On the other hand, if
-                       we're receiving a multipart, there will be no content-length, but
-                       the content-type will include the boundary string.
-                    */
-                    var headers = Headers.make(context, inputStreamUtils);
-                    Headers hi = headers.extractHeaderInformation(sw.getInputStream());
-                    logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
-
-                    // determine if we are in a keep-alive connection
-                    if (sl.getVersion() == HttpVersion.ONE_DOT_ZERO) {
-                        isKeepAlive = hi.hasKeepAlive();
-                    } else if (sl.getVersion() == HttpVersion.ONE_DOT_ONE) {
-                        isKeepAlive = ! hi.hasConnectionClose();
-                    }
-                    boolean finalIsKeepAlive = isKeepAlive;
-                    logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
-
-                    Body body = Body.EMPTY;
-                    // Determine whether there is a body (a block of data) in this request
-                    if (isThereIsABody(hi)) {
-                        logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
-                        body = bodyProcessor.extractData(sw.getInputStream(), hi);
-                        Body finalBody = body;
-                        logger.logTrace(() -> "The body is: " + finalBody.asString());
-                    }
-
-                    /*
-                    Need to postpone processing until here, even though the request may be a 404 not found,
-                    because this way we can review the headers and other aspects of the body and maybe
-                    keep the keep-alive socket open.  For example, if the user is having an entire
-                    conversation with us and asks for a favicon and we're missing it, we shouldn't
-                    abruptly close the socket for merely that.
-
-                    Now, on the other hand, if they are looking for vulnerabilities, it's ok to dump them.
-                     */
-                    Function<Request, Response> endpoint = handlerFinder.apply(sl);
-                    if (endpoint == null) {
-                        resultingResponse = new Response(_404_NOT_FOUND);
-                    } else {
-                        var handlerStopwatch = new StopwatchUtils().startTimer();
-                        try {
-                            clientRequest = new Request(hi, sl, body, sw.getRemoteAddr());
-                            resultingResponse = endpoint.apply(clientRequest);
-                        } catch (Exception ex) {
-                            // if an error happens while running an endpoint's code, this is the
-                            // last-chance handling of that error where we return a 500 and a
-                            // random code to the client, so a developer can find the detailed
-                            // information in the logs, which have that same value.
-                            int randomNumber = randomErrorCorrelationId.nextInt();
-                            logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                            resultingResponse = new Response(_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
-                        }
-                        logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, sl, handlerStopwatch.stopTimer()));
-                    }
-
-                    PreparedResponse preparedResponse = finalPreparation(clientRequest, resultingResponse, isKeepAlive);
-
-                    // Here is where the bytes actually go out on the socket
-                    String response = preparedResponse.statusLineAndHeaders() + HTTP_CRLF;
-
-                    logger.logTrace(() -> "Sending headers back: " + response);
-                    sw.send(response);
-
-                    if (clientRequest.requestLine().getMethod() == RequestLine.Method.HEAD) {
-                        Request finalClientRequest = clientRequest;
-                        logger.logDebug(() -> "client " + finalClientRequest.remoteRequester() +
-                                " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().isolatedPath() +
-                                ".  Excluding body from response");
-                    } else {
-                        sw.send(preparedResponse.body());
-                    }
-                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
-
-                    if (! isKeepAlive) break;
+                if (sl.equals(emptyRequestLine)) {
+                    // here, the client sent something we cannot parse.
+                    // nothing to do but return.
+                    logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
+                    break;
                 }
+                checkIfSuspiciousPath(sw, sl);
+                Headers hi = getHeaders(sw);
+                boolean isKeepAlive = determineIfKeepAlive(sl, hi, logger);
+                Body body = determineIfBody(sw, hi);
+                ProcessingResult result = processRequest(handlerFinder, sw, sl, hi, body);
+                PreparedResponse preparedResponse = prepareResponseData(result.clientRequest(), result.resultingResponse(), isKeepAlive);
+                sendResponse(sw, preparedResponse, result);
+                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
+                if (!isKeepAlive) break;
             }
         };
+    }
+
+    void sendResponse(ISocketWrapper sw, PreparedResponse preparedResponse, ProcessingResult result) throws IOException {
+        // Here is where the bytes actually go out on the socket
+        String statusLineAndHeaders = preparedResponse.statusLineAndHeaders() + HTTP_CRLF;
+
+        logger.logTrace(() -> "Sending headers back: " + statusLineAndHeaders);
+        sw.send(statusLineAndHeaders);
+
+        if (result.clientRequest().requestLine().getMethod().equals(RequestLine.Method.HEAD)) {
+            Request finalClientRequest = result.clientRequest();
+            logger.logDebug(() -> "client " + finalClientRequest.remoteRequester() +
+                    " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().isolatedPath() +
+                    ".  Excluding body from response");
+        } else {
+            sw.send(preparedResponse.body());
+        }
+    }
+
+    ProcessingResult processRequest(
+            ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> handlerFinder,
+            ISocketWrapper sw,
+            RequestLine requestLine,
+            Headers hi,
+            Body body) {
+        Request clientRequest = new Request(hi, requestLine, body, sw.getRemoteAddr());
+        Response resultingResponse;
+        // Unless this is an unusual test, the definition for handlerFinder is at findEndpointForThisStartline
+        ThrowingFunction<Request, Response> endpoint = handlerFinder.apply(requestLine);
+        if (endpoint == null) {
+            resultingResponse = new Response(CODE_404_NOT_FOUND);
+        } else {
+            var handlerStopwatch = new StopwatchUtils().startTimer();
+            try {
+                resultingResponse = endpoint.apply(clientRequest);
+            } catch (Exception ex) {
+                // if an error happens while running an endpoint's code, this is the
+                // last-chance handling of that error where we return a 500 and a
+                // random code to the client, so a developer can find the detailed
+                // information in the logs, which have that same value.
+                int randomNumber = randomErrorCorrelationId.nextInt();
+                logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
+                resultingResponse = new Response(CODE_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
+            }
+            logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, handlerStopwatch.stopTimer()));
+        }
+        return new ProcessingResult(clientRequest, resultingResponse);
+    }
+
+    record ProcessingResult(Request clientRequest, Response resultingResponse) { }
+
+    private Headers getHeaders(ISocketWrapper sw) {
+    /*
+       next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
+
+       the headers tell us vital information about the
+       body.  If, for example, we're getting a POST and receiving a
+       www form url encoded, there will be a header of "content-length"
+       that will mention how many bytes to read.  On the other hand, if
+       we're receiving a multipart, there will be no content-length, but
+       the content-type will include the boundary string.
+    */
+        var headers = Headers.make(context);
+        Headers hi = headers.extractHeaderInformation(sw.getInputStream());
+        logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
+        return hi;
+    }
+
+    /**
+     * Determine whether there is a body (a block of data) in this request
+     */
+    private Body determineIfBody(ISocketWrapper sw, Headers hi) {
+        Body body = Body.EMPTY;
+        if (isThereIsABody(hi)) {
+            logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
+            body = bodyProcessor.extractData(sw.getInputStream(), hi);
+            Body finalBody = body;
+            logger.logTrace(() -> "The body is: " + finalBody.asString());
+        }
+        return body;
+    }
+
+    /**
+     * determine if we are in a keep-alive connection
+     */
+    static boolean determineIfKeepAlive(RequestLine sl, Headers hi, ILogger logger) {
+        boolean isKeepAlive = false;
+        if (sl.getVersion() == HttpVersion.ONE_DOT_ZERO) {
+            isKeepAlive = hi.hasKeepAlive();
+        } else if (sl.getVersion() == HttpVersion.ONE_DOT_ONE) {
+            isKeepAlive = ! hi.hasConnectionClose();
+        }
+        boolean finalIsKeepAlive = isKeepAlive;
+        logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
+        return isKeepAlive;
+    }
+
+    RequestLine getProcessedRequestLine(ISocketWrapper sw, String rawStartLine) {
+        logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
+        RequestLine sl = RequestLine.empty(context).extractRequestLine(rawStartLine);
+        logger.logTrace(() -> sw + ": StartLine received: " + sl);
+        return sl;
+    }
+
+    void checkIfSuspiciousPath(ISocketWrapper sw, RequestLine requestLine) {
+        String suspiciousClues = underInvestigation.isLookingForSuspiciousPaths(
+                requestLine.getPathDetails().isolatedPath());
+        if (!suspiciousClues.isEmpty()) {
+            String msg = sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + suspiciousClues;
+            throw new ForbiddenUseException(msg);
+        }
+    }
+
+    /**
+     * This code confirms our objects are valid before calling
+     * to {@link #dumpIfAttacker(ISocketWrapper, ITheBrig)}.
+     * @return true if successfully called to subsequent method, false otherwise.
+     */
+    boolean dumpIfAttacker(ISocketWrapper sw, FullSystem fs) {
+        if (fs == null) {
+            return false;
+        } else if (fs.getTheBrig() == null) {
+            return false;
+        } else {
+            dumpIfAttacker(sw, fs.getTheBrig());
+            return true;
+        }
+    }
+
+    void dumpIfAttacker(ISocketWrapper sw, ITheBrig theBrig) {
+        String remoteClient = sw.getRemoteAddr();
+        if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
+            // if this client is a vulnerability seeker, throw an exception,
+            // causing them to get dumped unceremoniously
+            String message = "closing the socket on " + remoteClient + " due to being found in the brig";
+            logger.logDebug(() -> message);
+            throw new ForbiddenUseException(message);
+        }
     }
 
     /**
@@ -258,43 +273,54 @@ public final class WebFramework {
      * the help we'll give.  We're not going to extract headers or
      * body, we'll just read the start line and then stop reading from them.
      */
-    ThrowingConsumer<ISocketWrapper, IOException> makeRedirectHandler() {
-        return sw -> {
-            try (sw) {
-                try (InputStream is = sw.getInputStream()) {
+    ThrowingConsumer<ISocketWrapper> makeRedirectHandler() {
+        return sw -> redirectHandlerCore(sw, inputStreamUtils, context, constants.hostName, logger);
+    }
 
-                    String rawStartLine = inputStreamUtils.readLine(is);
-                 /*
-                  if the rawStartLine is null, that means the client stopped talking.
-                  See ISocketWrapper.readLine()
-                  */
-                    if (rawStartLine == null || rawStartLine.isBlank()) {
-                        return;
-                    }
+    static void redirectHandlerCore(ISocketWrapper sw,
+                                    IInputStreamUtils inputStreamUtils,
+                                    Context context,
+                                    String hostname,
+                                    ILogger logger) {
+        String rawStartLine;
+        try (InputStream is = sw.getInputStream()) {
+                rawStartLine = inputStreamUtils.readLine(is);
+        } catch (IOException e) {
+            logger.logDebug(() -> "Error in redirect handler: " + e.getMessage());
+            throw new WebServerException(e);
+        }
+        /*
+        if the rawStartLine is blank, that means the client stopped talking.
+        See ISocketWrapper.readLine()
+        */
+        if (rawStartLine.isBlank()) {
+            return;
+        }
 
-                    var sl = RequestLine.EMPTY(context).extractStartLine(rawStartLine);
+        var sl = RequestLine.empty(context).extractRequestLine(rawStartLine);
 
-                    // just ignore all the rest of the incoming lines.  TCP is duplex -
-                    // we'll just start talking back the moment we understand the first line.
-                    String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
-                    String hostname = constants.HOST_NAME;
-                    sw.send(
-                            "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
-                                    "Date: " + date + HTTP_CRLF +
-                                    "Server: minum" + HTTP_CRLF +
-                                    "Location: https://" + hostname + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
-                                    HTTP_CRLF
-                    );
-                }
-            }
-        };
+        // just ignore all the rest of the incoming lines.  TCP is duplex -
+        // we'll just start talking back the moment we understand the first line.
+        String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        try {
+            sw.send(
+                    "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
+                            "Date: " + date + HTTP_CRLF +
+                            "Server: minum" + HTTP_CRLF +
+                            "Location: https://" + hostname + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
+                            HTTP_CRLF
+            );
+        } catch (IOException ex) {
+            logger.logDebug(() -> "Error in redirect handler: " + ex.getMessage());
+            throw new WebServerException(ex);
+        }
     }
 
     /**
      * Determine whether the headers in this HTTP message indicate that
      * a body is available to read
      */
-    boolean isThereIsABody(Headers hi) {
+    static boolean isThereIsABody(Headers hi) {
         // if the client sent us a content-type header at all...
         if (!hi.contentType().isBlank()) {
             // if the content-length is greater than 0, we've got a body
@@ -302,7 +328,7 @@ public final class WebFramework {
 
             // if the transfer-encoding header is set to chunked, we have a body
             List<String> transferEncodingHeaders = hi.valueByKey("transfer-encoding");
-            if (transferEncodingHeaders != null && transferEncodingHeaders.stream().anyMatch(x -> x.equalsIgnoreCase("chunked"))) return true;
+            return transferEncodingHeaders != null && transferEncodingHeaders.stream().anyMatch(x -> x.equalsIgnoreCase("chunked"));
         }
         // otherwise, no body we recognize
         return false;
@@ -312,33 +338,39 @@ public final class WebFramework {
      * This is where our strongly-typed {@link Response} gets converted
      * to a string and sent on the socket.
      */
-    private PreparedResponse finalPreparation(Request request, Response response, boolean isKeepAlive) {
+    private PreparedResponse prepareResponseData(Request request, Response response, boolean isKeepAlive) {
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
-        StringBuilder stringBuilder = new StringBuilder();
+        // we'll store the status line and headers in this
+        StringBuilder headerStringBuilder = new StringBuilder();
+        VaryHeader varyHeader = new VaryHeader();
 
         // add the status line
-        stringBuilder.append( "HTTP/1.1 " + response.statusCode().code + " " + response.statusCode().shortDescription + HTTP_CRLF );
+        headerStringBuilder.append("HTTP/1.1 ").append(response.statusCode().code).append(" ").append(response.statusCode().shortDescription).append(HTTP_CRLF);
 
         // add a date-timestamp
-        stringBuilder.append("Date: " + date + HTTP_CRLF);
+        headerStringBuilder.append("Date: ").append(date).append(HTTP_CRLF);
 
         // add the server name
-        stringBuilder.append( "Server: minum" + HTTP_CRLF );
+        headerStringBuilder.append("Server: minum").append(HTTP_CRLF);
 
-        addExtraHeaders(response, stringBuilder);
+        addOptionalExtraHeaders(response, headerStringBuilder);
+
+        addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
+
+        // body stuff
         confirmBodyHasContentType(request, response);
-        byte[] bodyBytes = potentiallyCompress(request, response, stringBuilder);
-        applyContentLength(stringBuilder, bodyBytes);
-        addKeepAliveTimeout(isKeepAlive, stringBuilder);
+        byte[] bodyBytes = potentiallyCompress(request.headers(), response, headerStringBuilder, varyHeader);
+        applyContentLength(headerStringBuilder, bodyBytes);
+        headerStringBuilder.append(varyHeader).append(HTTP_CRLF);
 
-        return new PreparedResponse(stringBuilder.toString(), bodyBytes);
+        return new PreparedResponse(headerStringBuilder.toString(), bodyBytes);
     }
 
     /**
      * Add extra headers specified by the business logic
      */
-    private static void addExtraHeaders(Response response, StringBuilder stringBuilder) {
+    private static void addOptionalExtraHeaders(Response response, StringBuilder stringBuilder) {
         stringBuilder.append(
                 response.extraHeaders().entrySet().stream()
                 .map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF)
@@ -365,7 +397,7 @@ public final class WebFramework {
     private void addKeepAliveTimeout(boolean isKeepAlive, StringBuilder stringBuilder) {
         // if we're a keep-alive connection, reply with a keep-alive header
         if (isKeepAlive) {
-            stringBuilder.append("Keep-Alive: timeout=" + constants.KEEP_ALIVE_TIMEOUT_SECONDS + HTTP_CRLF);
+            stringBuilder.append("Keep-Alive: timeout=").append(constants.keepAliveTimeoutSeconds).append(HTTP_CRLF);
         }
     }
 
@@ -373,41 +405,39 @@ public final class WebFramework {
      * The rules regarding the content-length header are byzantine.  Even in the cases
      * where you aren't returning anything, servers can use this header to determine when the
      * response is finished.
-     *
+     * <br>
      * There are a few rules when you MUST include it, MUST NOT, blah blah blah, but I'm
      * not following that stuff too closely because this code skips a lot of the spec.
      * For example, we don't handle OPTIONS or return any 1xx response types.
-     *
-     * See https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length
+     * <br>
+     * See <a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length">Content-Length in the HTTP spec</a>
      */
     private static void applyContentLength(StringBuilder stringBuilder, byte[] bodyBytes) {
-        stringBuilder.append("Content-Length: " + bodyBytes.length + HTTP_CRLF );
+        stringBuilder.append("Content-Length: ").append(bodyBytes.length).append(HTTP_CRLF);
     }
 
     /**
      * This method will examine the request headers and response content-type, and
      * compress the outgoing data if necessary.
      */
-    private static byte[] potentiallyCompress(Request request, Response response, StringBuilder stringBuilder) {
+    static byte[] potentiallyCompress(Headers headers, Response response, StringBuilder headerStringBuilder, VaryHeader varyHeader) {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
-        List<String> acceptEncoding = request.headers().valueByKey("accept-encoding");
+        List<String> acceptEncoding = headers.valueByKey("accept-encoding");
 
         // regardless of whether the client requests compression in their Accept-Encoding header,
         // if the data we're sending back is not of an appropriate type, we won't bother
         // compressing it.  Basically, we're going to compress plain text.
         Map.Entry<String, String> contentTypeHeader = SearchUtils.findExactlyOne(
                 response.extraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
+
         byte[] bodyBytes = response.body();
         if (contentTypeHeader != null) {
             String contentType = contentTypeHeader.getValue().toLowerCase();
-            if (contentType.contains("text/plain") ||
-                contentType.contains("text/css") ||
-                contentType.contains("text/html") ||
-                contentType.contains("application/javascript") ||
-                contentType.contains("text/javascript")) {
-                bodyBytes = compressBodyIfRequested(response.body(), acceptEncoding, stringBuilder, 2048);
+            if (contentType.contains("text/")) {
+                bodyBytes = compressBodyIfRequested(response.body(), acceptEncoding, headerStringBuilder, 2048);
+                varyHeader.addHeader("accept-encoding");
             }
         }
         return bodyBytes;
@@ -430,8 +460,7 @@ public final class WebFramework {
      */
     static byte[] compressBodyIfRequested(byte[] bodyBytes, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
-        Matcher compressionMatcher = gzipAcceptEncodingPattern.matcher(allContentEncodingHeaders);
-        if (bodyBytes.length >= minNumberBytes && acceptEncoding != null && compressionMatcher.find()) {
+        if (bodyBytes.length >= minNumberBytes && acceptEncoding != null && allContentEncodingHeaders.contains("gzip")) {
             stringBuilder.append("Content-Encoding: gzip" + HTTP_CRLF);
             return gzipCompress(bodyBytes);
         } else {
@@ -445,9 +474,9 @@ public final class WebFramework {
      * code lives here will be inserted into a slot within the server code
      * This builds a handler {@link Consumer} that provides
      * the code to be run in the web testing engine that selects which
-     * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(Function)}
+     * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(ThrowingFunction)}
      */
-    ThrowingConsumer<ISocketWrapper, IOException> makePrimaryHttpHandler() {
+    ThrowingConsumer<ISocketWrapper> makePrimaryHttpHandler() {
         return makePrimaryHttpHandler(this::findEndpointForThisStartline);
     }
 
@@ -456,8 +485,8 @@ public final class WebFramework {
      * or the static cache and returns the appropriate one (If we
      * do not find anything, return null)
      */
-    Function<Request, Response> findEndpointForThisStartline(RequestLine sl) {
-        Function<Request, Response> handler;
+    ThrowingFunction<Request, Response> findEndpointForThisStartline(RequestLine sl) {
+        ThrowingFunction<Request, Response> handler;
         logger.logTrace(() -> "Seeking a handler for " + sl);
 
         // first we check if there's a simple direct match
@@ -488,23 +517,19 @@ public final class WebFramework {
      * last ditch effort - look on disk.  This response will either
      * be the file to return, or null if we didn't find anything.
      */
-    private Function<Request, Response> findHandlerByFilesOnDisk(RequestLine sl) {
-        if (sl.getMethod() != RequestLine.Method.GET) {
+    private ThrowingFunction<Request, Response> findHandlerByFilesOnDisk(RequestLine sl) {
+        if (sl.getMethod() != RequestLine.Method.GET && sl.getMethod() != RequestLine.Method.HEAD) {
             return null;
         }
         String requestedPath = sl.getPathDetails().isolatedPath();
         Response response = fileUtils.readStaticFile(requestedPath);
-        if (response != null) {
-            return request -> response;
-        } else {
-            return null;
-        }
+        return request -> response;
     }
 
     /**
      * let's see if we can match the registered paths against a **portion** of the startline
      */
-    Function<Request, Response> findHandlerByPartialMatch(RequestLine sl) {
+    ThrowingFunction<Request, Response> findHandlerByPartialMatch(RequestLine sl) {
         String requestedPath = sl.getPathDetails().isolatedPath();
         var methodPathFunctionEntry = registeredPartialPaths.entrySet().stream()
                 .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
@@ -545,6 +570,7 @@ public final class WebFramework {
         // This random value is purely to help provide correlation betwee
         // error messages in the UI and error logs.  There are no security concerns.
         this.randomErrorCorrelationId = new Random();
+        this.emptyRequestLine = RequestLine.empty(context);
     }
 
     /**
@@ -556,12 +582,12 @@ public final class WebFramework {
      * so for example with {@code http://foo.com/mypath}, you provide us "mypath"
      * here.
      */
-    public void registerPath(RequestLine.Method method, String pathName, Function<Request, Response> webHandler) {
+    public void registerPath(RequestLine.Method method, String pathName, ThrowingFunction<Request, Response> webHandler) {
         registeredDynamicPaths.put(new MethodPath(method, pathName), webHandler);
     }
 
     /**
-     * Similar to {@link #registerPath(RequestLine.Method, String, Function)} except that the paths
+     * Similar to {@link WebFramework#registerPath(RequestLine.Method, String, ThrowingFunction)} except that the paths
      * registered here may be partially matched.
      * <p>
      *     For example, if you register <pre>.well-known/acme-challenge</pre> then it
@@ -579,7 +605,7 @@ public final class WebFramework {
      *     overlap with other URL's for your app, such as endpoints and static files.
      * </p>
      */
-    public void registerPartialPath(RequestLine.Method method, String pathName, Function<Request, Response> webHandler) {
+    public void registerPartialPath(RequestLine.Method method, String pathName, ThrowingFunction<Request, Response> webHandler) {
         registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
     }
 

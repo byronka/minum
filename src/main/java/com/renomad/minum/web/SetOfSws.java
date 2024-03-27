@@ -8,8 +8,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 
-import static com.renomad.minum.utils.Invariants.mustBeFalse;
-
 /**
  * This is a data structure of the live set of {@link ISocketWrapper}
  * in our system.  It exists so that we can keep tabs on how many
@@ -20,19 +18,19 @@ import static com.renomad.minum.utils.Invariants.mustBeFalse;
  *        the server for 80 vs 443)
  */
 record SetOfSws(
-        ConcurrentSet<ISocketWrapper> data,
+        ConcurrentSet<ISocketWrapper> socketWrappers,
         ILogger logger,
         String nameOfSet) {
 
     void add(ISocketWrapper sw) {
-        data().add(sw);
-        int size = data().size();
+        socketWrappers().add(sw);
+        int size = socketWrappers().size();
         logger.logTrace(() -> nameOfSet + " added " + sw + " to SetOfSws. size: " + size);
     }
 
     void remove(ISocketWrapper sw) {
-        data().remove(sw);
-        int size = data().size();
+        socketWrappers().remove(sw);
+        int size = socketWrappers().size();
         logger.logTrace(() -> nameOfSet +" removed " + sw + " from SetOfSws. size: " + size);
     }
 
@@ -50,13 +48,12 @@ record SetOfSws(
     ISocketWrapper getSocketWrapperByRemoteAddr(String address, int port) {
         int maxLoops = 3;
         for (int loopCount = 0; loopCount < maxLoops; loopCount++ ) {
-            List<ISocketWrapper> servers = data()
+            List<ISocketWrapper> servers = socketWrappers()
                     .asStream()
                     .filter(x -> x.getRemoteAddrWithPort().equals(new InetSocketAddress(address, port)))
                     .toList();
-            mustBeFalse(servers.size() > 1, "Too many sockets found with that address");
             if (servers.size() == 1) {
-                return servers.get(0);
+                return servers.getFirst();
             }
 
             // if we got here, we didn't find a server in the list - probably because the TCP
@@ -69,11 +66,11 @@ record SetOfSws(
             logger.logDebug(() -> String.format("no server found, sleeping on it... (attempt %d)", finalLoopCount + 1));
             MyThread.sleep(10);
         }
-        throw new RuntimeException("No socket found with that address");
+        throw new WebServerException("No socket found with that address");
     }
 
     void stopAllServers() throws IOException {
-        for(var s : data()) {
+        for(ISocketWrapper s : socketWrappers()) {
             s.close();
         }
     }

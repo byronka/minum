@@ -3,12 +3,14 @@ package com.renomad.minum.testing;
 import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.utils.ActionQueueKiller;
 import com.renomad.minum.utils.ExtendedExecutor;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.web.FullSystem;
 import com.renomad.minum.web.InputStreamUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -75,7 +77,7 @@ public final class TestFramework {
      * Compares two byte arrays for equality
      */
     public static void assertEqualByteArray(byte[] left, byte[] right) {
-        if (left == null || right == null) throw new TestFailureException("one of the inputs was null: left:  %s right: %s".formatted(left, right));
+        if (left == null || right == null) throw new TestFailureException("at least one of the inputs was null: left: %s right: %s".formatted(Arrays.toString(left), Arrays.toString(right)));
         if (left.length != right.length) throw new TestFailureException("Not equal! left length: %d right length: %d".formatted(left.length, right.length));
         for (int i = 0; i < left.length; i++) {
             if (left[i] != right[i]) throw new TestFailureException("Not equal! at index %d left was: %d right was: %d".formatted(i, left[i], right[i]));
@@ -222,16 +224,17 @@ public final class TestFramework {
      *     the whole string three times).
      * </p>
      */
-    private static String showWhiteSpace(String msg) {
+    static String showWhiteSpace(String msg) {
+        if (msg == null) return "(NULL)";
+        if (msg.isEmpty()) return "(EMPTY)";
+
         // if we have tabs, returns, newlines in the text, show them
         String text = msg
                 .replace("\t", "\\t")
                 .replace("\r", "\\r")
                 .replace("\n", "\\n");
-        // if the text is an empty string, render that
-        text = text.isEmpty() ? "(EMPTY)" : text;
-        // if the text is nothing but whitespace, show that
-        text = text.isBlank() ? "(BLANK)" : text;
+
+        if (text.isBlank()) return "(BLANK)";
         return text;
     }
 
@@ -243,7 +246,7 @@ public final class TestFramework {
      * This builds a context very similarly to {@link FullSystem#buildContext()},
      * except that it uses {@link TestLogger} instead of {@link com.renomad.minum.logging.Logger}
      * @param loggerName this will assign a human-readable name to the logger's
-     *                   {@link com.renomad.minum.logging.LoggingActionQueue} so we can distinguish it
+     *                   LoggingActionQueue so we can distinguish it
      *                   when reviewing the threads
      * @param properties If you want, you can inject a properties object here, to have
      *                   greater control over your test.  Using a parameter of null here
@@ -254,7 +257,7 @@ public final class TestFramework {
         var executorService = ExtendedExecutor.makeExecutorService(constants);
         var logger = new TestLogger(constants, executorService, loggerName);
         var fileUtils = new FileUtils(logger, constants);
-        var inputStreamUtils = new InputStreamUtils(logger, constants);
+        var inputStreamUtils = new InputStreamUtils(constants);
 
         var context = new Context();
 
@@ -265,6 +268,12 @@ public final class TestFramework {
         context.setInputStreamUtils(inputStreamUtils);
 
         return context;
+    }
+
+    public static void shutdownTestingContext(Context context) {
+            new ActionQueueKiller(context).killAllQueues();
+            context.getLogger().stop();
+            context.getExecutorService().shutdownNow();
     }
 
 }

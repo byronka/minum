@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
@@ -8,7 +9,7 @@ import java.net.SocketAddress;
  * This is the public interface to {@link ISocketWrapper}, whose
  * purpose is to make our lives easier when working with {@link java.net.Socket}.
  */
-interface ISocketWrapper extends AutoCloseable {
+public interface ISocketWrapper extends Closeable {
 
     /**
      * Convert the provided string value into bytes

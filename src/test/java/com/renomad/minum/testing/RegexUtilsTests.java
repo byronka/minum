@@ -3,6 +3,7 @@ package com.renomad.minum.testing;
 import org.junit.Test;
 
 import static com.renomad.minum.testing.RegexUtils.find;
+import static com.renomad.minum.testing.RegexUtils.isFound;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class RegexUtilsTests {
@@ -32,5 +33,17 @@ public class RegexUtilsTests {
     public void test_RegexUtils_SearchNamedMatchingGroup_NoSpecialChars() {
         var ex = assertThrows(java.util.regex.PatternSyntaxException.class, () -> find("photo\\?name=(?<some_cool_name>[a-z0-9\\-]*)", "src=photo?name=abc123", "some_cool_name"));
         assertTrue(ex.getMessage().contains("named capturing group is missing trailing '>' near index 19"));
+    }
+
+    @Test
+    public void test_RegexUtils_NothingFound() {
+        assertEquals(find("foo", "bar"), "");
+        assertEquals(find("foo", "bar", "baz"), "");
+    }
+
+    @Test
+    public void test_isFound() {
+        assertTrue(isFound("foo", "foo"));
+        assertFalse(isFound("bar", "foo"));
     }
 }

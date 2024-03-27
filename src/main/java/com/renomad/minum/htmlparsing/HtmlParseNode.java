@@ -28,13 +28,13 @@ public record HtmlParseNode(ParseNodeType type,
      */
     public List<String> print() {
         var myList = new ArrayList<String>();
-        recursiveTreeWalk(myList);
+        recursiveTreeWalk(myList, innerContent, textContent);
         return myList;
     }
 
-    private void recursiveTreeWalk(ArrayList<String> myList) {
-        for (var hpn : innerContent) {
-            hpn.recursiveTreeWalk(myList);
+    static void recursiveTreeWalk(ArrayList<String> myList, List<HtmlParseNode> innerContent, String textContent) {
+        for (HtmlParseNode hpn : innerContent) {
+            recursiveTreeWalk(myList, hpn.innerContent, hpn.textContent);
         }
         if (textContent != null && ! textContent.isBlank()) {
             myList.add(textContent);
@@ -69,12 +69,16 @@ public record HtmlParseNode(ParseNodeType type,
      *     Otherwise, return an empty string.
      * </p>
      */
-    public String innerText() {
+    static String innerText(List<HtmlParseNode> innerContent) {
        if (innerContent.size() == 1 && innerContent.getFirst().type == ParseNodeType.CHARACTERS) {
            return innerContent.getFirst().textContent;
        } else {
            return "";
        }
+    }
+
+    public String innerText() {
+        return innerText(innerContent);
     }
 
 }

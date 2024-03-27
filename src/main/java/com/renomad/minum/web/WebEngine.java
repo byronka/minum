@@ -13,8 +13,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Path;
-import java.security.KeyStore;
-import java.security.SecureRandom;
+import java.security.*;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -41,50 +40,68 @@ final class WebEngine {
   private final ILogger logger;
   static final String HTTP_CRLF = "\r\n";
 
-  Server startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
-    int port = constants.SERVER_PORT;
-    ServerSocket ss = new ServerSocket(port);
-    logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, context, "http server", theBrig);
+  IServer startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
+    int port = constants.serverPort;
+      ServerSocket ss;
+      try {
+          ss = new ServerSocket(port);
+      } catch (Exception e) {
+          throw new WebServerException(e);
+      }
+      logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
+    IServer server = new Server(ss, context, "http server", theBrig);
     logger.logDebug(() -> String.format("Just created a new Server: %s", server));
     server.start(es, handler);
-    String hostname = constants.HOST_NAME;
+    String hostname = constants.hostName;
     logger.logDebug(() -> String.format("%s started at http://%s:%s", server, hostname, port));
     return server;
   }
 
-  Server startSslServer(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) throws IOException {
+  IServer startSslServer(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
 
     /*
      * If we find the keystore and pass in the system properties
      */
-    final var useExternalKeystore = Boolean.TRUE.equals(checkSystemPropertiesForKeystore());
+    final var useExternalKeystore = isProvidedKeystoreProperties(constants.keystorePath, constants.keystorePassword, logger);
+    KeyStoreResult keystoreResult = getKeyStoreResult(useExternalKeystore, constants.keystorePath, constants.keystorePassword, logger);
 
-    ServerSocket ss;
+    int port = constants.secureServerPort;
+    ServerSocket ss = createSslSocketWithSpecificKeystore(port, keystoreResult.keystoreUrl(), keystoreResult.keystorePassword());
+    logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
+    IServer server = new Server(ss, context, "https server", theBrig);
+    logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
+    server.start(es, handler);
+    String hostname = constants.hostName;
+    logger.logDebug(() -> String.format("%s started at https://%s:%s", server, hostname, port));
+    return server;
+  }
 
+  static KeyStoreResult getKeyStoreResult(
+          boolean useExternalKeystore,
+          String keystorePath,
+          String keystorePassword,
+          ILogger logger) {
     if (useExternalKeystore) {
       logger.logDebug(() -> "Using keystore and password referenced in minum.config");
     } else {
       logger.logDebug(() -> "Using the default (self-signed / testing-only) certificate");
     }
 
-    final URL keystoreUrl = useExternalKeystore ?
-            Path.of(constants.KEYSTORE_PATH).toUri().toURL() :
-            WebEngine.class.getClassLoader().getResource("certs/keystore");
-    final String keystorePassword = useExternalKeystore ?
-            constants.KEYSTORE_PASSWORD :
-            "passphrase";
-
-    int port = constants.SECURE_SERVER_PORT;
-    ss = createSslSocketWithSpecificKeystore(port, keystoreUrl, keystorePassword);
-    logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    Server server = new Server(ss, context, "https server", theBrig);
-    logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
-    server.start(es, handler);
-    String hostname = constants.HOST_NAME;
-    logger.logDebug(() -> String.format("%s started at https://%s:%s", server, hostname, port));
-    return server;
+    final URL keystoreUrl;
+    try {
+        keystoreUrl = useExternalKeystore ?
+                Path.of(keystorePath).toUri().toURL() :
+                WebEngine.class.getClassLoader().getResource("certs/keystore");
+    } catch (Exception e) {
+        throw new WebServerException("Error while building keystoreUrl: " + e);
+    }
+    final String keystorePasswordFinal = useExternalKeystore ?
+          keystorePassword :
+          "passphrase";
+    return new KeyStoreResult(keystoreUrl, keystorePasswordFinal);
   }
+
+  record KeyStoreResult(URL keystoreUrl, String keystorePassword) { }
 
 
   /**
@@ -103,17 +120,15 @@ final class WebEngine {
    * <p>
    * We *do* bundle a cert, but it's for testing and is self-signed.
    */
-  private Boolean checkSystemPropertiesForKeystore() {
+  static Boolean isProvidedKeystoreProperties(String keystorePath, String keystorePassword, ILogger logger) {
 
     // get the directory to the keystore from a system property
-    final var keystore = constants.KEYSTORE_PATH;
-    boolean hasKeystore = ! (keystore == null || keystore.isBlank());
+    boolean hasKeystore = ! (keystorePath == null || keystorePath.isBlank());
     if (! hasKeystore) {
       logger.logDebug(() -> "Keystore system property was not set");
     }
 
     // get the password to that keystore from a system property
-    final var keystorePassword = constants.KEYSTORE_PASSWORD;
     boolean hasKeystorePassword = ! (keystorePassword == null || keystorePassword.isBlank());
     if (! hasKeystorePassword) {
       logger.logDebug(() -> "keystorePassword system property was not set");
@@ -144,7 +159,7 @@ final class WebEngine {
       return socketFactory.createServerSocket(sslPort);
     } catch (Exception ex) {
       logger.logDebug(ex::getMessage);
-      throw new RuntimeException(ex);
+      throw new WebServerException(ex);
     }
   }
 
@@ -152,7 +167,7 @@ final class WebEngine {
    * Create a listening server with no handler.
    * Mostly used to test the server very manually.
    */
-  Server startServer(ExecutorService es) throws IOException {
+  IServer startServer(ExecutorService es) {
     return startServer(es, null);
   }
 
@@ -161,7 +176,7 @@ final class WebEngine {
    */
   ISocketWrapper startClient(Socket socket) throws IOException {
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-    return new SocketWrapper(socket, logger, constants.SOCKET_TIMEOUT_MILLIS);
+    return new SocketWrapper(socket, logger, constants.socketTimeoutMillis);
   }
 
 }

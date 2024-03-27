@@ -4,38 +4,44 @@ import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.utils.ThrowingRunnable;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class InputStreamUtilsTests {
 
-    private InputStreamUtils inputStreamUtils;
+    private IInputStreamUtils inputStreamUtils;
     private TestLogger testLogger;
+    private Context context;
 
     @Before
-    public void init() throws UnsupportedEncodingException {
-        Context inputStreamUtilsTests = buildTestingContext("input stream utils tests");
-        testLogger = (TestLogger) inputStreamUtilsTests.getLogger();
+    public void init() {
+        context = buildTestingContext("input stream utils tests");
+        testLogger = (TestLogger) context.getLogger();
         Properties properties = new Properties();
         properties.setProperty("MAX_READ_SIZE_BYTES", "3");
-        inputStreamUtils = new InputStreamUtils(testLogger, new Constants(properties));
+        inputStreamUtils = new InputStreamUtils(new Constants(properties));
+    }
+
+    @After
+    public void cleanup() {
+        shutdownTestingContext(context);
     }
 
     /**
      * If we send too many bytes to get read, an exception gets thrown
      */
     @Test
-    public void testReadUntilEOF_EdgeCase_TooManyBytes() throws UnsupportedEncodingException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("abc".getBytes("UTF-8"));
+    public void testReadUntilEOF_EdgeCase_TooManyBytes() {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream("abc".getBytes(StandardCharsets.UTF_8));
 
         var exception = assertThrows(ForbiddenUseException.class, () -> inputStreamUtils.readUntilEOF(inputStream));
 
@@ -64,8 +70,8 @@ public class InputStreamUtilsTests {
      * If we send too many bytes to get read, an exception gets thrown
      */
     @Test
-    public void testReadChunkedEncoding_EdgeCase_TooManyBytes() throws UnsupportedEncodingException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("3\nabc".getBytes("UTF-8"));
+    public void testReadChunkedEncoding_EdgeCase_TooManyBytes() {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream("3\nabc".getBytes(StandardCharsets.UTF_8));
 
         var exception = assertThrows(ForbiddenUseException.class, () -> inputStreamUtils.readChunkedEncoding(inputStream));
 
@@ -77,8 +83,8 @@ public class InputStreamUtilsTests {
      * from this method.
      */
     @Test
-    public void testReadChunkedEncoding_EdgeCase_NullCount() throws UnsupportedEncodingException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("".getBytes("UTF-8"));
+    public void testReadChunkedEncoding_EdgeCase_NullCount() {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
 
         byte[] result = inputStreamUtils.readChunkedEncoding(inputStream);
 
@@ -103,22 +109,29 @@ public class InputStreamUtilsTests {
         assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
     }
 
+    @Test
+    public void testReadChunkedEncoding_HappyPath() {
+        var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+        byte[] bytes = inputStreamUtils.readChunkedEncoding(inputStream);
+        assertEquals(new String(bytes), "ab");
+    }
+
     /**
      * For the {@link InputStreamUtils#read(int, InputStream)}, if more bytes are sent than
      * the buffer can hold, it will loop, draining the buffer.  The buffer is hardcoded,
      * see the method in question for "typicalBufferSize"
      */
     @Test
-    public void testReadingLarge() throws UnsupportedEncodingException {
+    public void testReadingLarge() {
         Properties properties = new Properties();
         properties.setProperty("MAX_READ_SIZE_BYTES", "100000");
-        inputStreamUtils = new InputStreamUtils(testLogger, new Constants(properties));
+        inputStreamUtils = new InputStreamUtils(new Constants(properties));
 
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes("UTF-8"));
+        ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
 
         byte[] result = inputStreamUtils.read(10_000, inputStream);
 
-        assertEqualByteArray(result, "a".repeat(10_000).getBytes("UTF-8"));
+        assertEqualByteArray(result, "a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -149,7 +162,7 @@ public class InputStreamUtilsTests {
     public void testReading_EdgeCase_DifferentCount() {
         InputStream inputStream = new InputStream() {
 
-            private byte[] sampleData = new byte[] {123};
+            private final byte[] sampleData = new byte[] {123};
             int index = 0;
 
             @Override

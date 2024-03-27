@@ -1,11 +1,9 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Constants;
-import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.RunnableWithDescription;
-import com.renomad.minum.utils.ThrowingRunnable;
-import com.renomad.minum.utils.TimeUtils;
+import com.renomad.minum.utils.*;
 
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -16,29 +14,33 @@ import java.util.concurrent.LinkedBlockingQueue;
  *     It is necessary to create independent classes for logging to avoid circular dependencies
  * </p>
  */
-final class LoggingActionQueue {
+final class LoggingActionQueue implements com.renomad.minum.utils.AbstractActionQueue {
     private final String name;
     private final ExecutorService executorService;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
+    private Thread queueThread;
     private boolean stop = false;
-    private final Constants constants;
+    private boolean isStoppedStatus = false;
+    private final Map<LoggingLevel, Boolean> enabledLogLevels;
 
     LoggingActionQueue(String name, ExecutorService executorService, Constants constants) {
         this.name = name;
         this.executorService = executorService;
         this.queue = new LinkedBlockingQueue<>();
-        this.constants = constants;
+        this.enabledLogLevels = Logger.convertToMap(constants.logLevels);
     }
 
     // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that is what it is.
+    @Override
     @SuppressWarnings("InfiniteLoopStatement")
-    LoggingActionQueue initialize() {
-        Runnable queueThread = () -> {
+    public AbstractActionQueue initialize() {
+        Runnable centralLoop = () -> {
             Thread.currentThread().setName(name);
+            this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    runAction();
+                    runAction(queue.take());
                 }
             } catch (InterruptedException ex) {
                 /*
@@ -47,30 +49,23 @@ final class LoggingActionQueue {
                 this only gets called when we are trying to shut everything
                 down cleanly
                  */
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s LoggingActionQueue for %s is stopped.%n", TimeUtils.getTimestampIsoInstant(), name);
+                Logger.logHelper(() -> String.format("%s LoggingActionQueue for %s is stopped.%n", TimeUtils.getTimestampIsoInstant(), name), LoggingLevel.DEBUG, enabledLogLevels, this);
                 Thread.currentThread().interrupt();
-            } catch (Exception ex) {
-                System.out.printf("%s ERROR: LoggingActionQueue for %s has stopped unexpectedly. error: %s%n", TimeUtils.getTimestampIsoInstant(), name, ex);
-                throw ex;
             }
         };
-        executorService.submit(queueThread);
+        executorService.submit(centralLoop);
         return this;
     }
 
-    private void runAction() throws InterruptedException {
-        RunnableWithDescription action = queue.take();
-        try {
-            action.run();
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }
+    static void runAction(RunnableWithDescription action) {
+        action.run();
     }
 
     /**
      * Adds something to the queue to be processed.
      */
-    void enqueue(String description, ThrowingRunnable action) {
+    @Override
+    public void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {
             queue.add(new RunnableWithDescription(action, description));
         }
@@ -81,15 +76,16 @@ final class LoggingActionQueue {
      * @param count how many loops to wait before we crash it closed
      * @param sleepTime how long to wait in milliseconds between loops
      */
-    void stop(int count, int sleepTime) {
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s Stopping queue %s%n", TimeUtils.getTimestampIsoInstant(), this);
+    public void stop(int count, int sleepTime) {
+        Logger.logHelper(() -> String.format("%s Stopping queue %s%n", TimeUtils.getTimestampIsoInstant(), this), LoggingLevel.DEBUG, enabledLogLevels, this);
         stop = true;
         for (int i = 0; i < count; i++) {
             if (queue.isEmpty()) return;
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s Queue not yet empty, has %d elements. waiting...%n", TimeUtils.getTimestampIsoInstant(), queue.size());
+            Logger.logHelper(() -> String.format("%s Queue not yet empty, has %d elements. waiting...%n", TimeUtils.getTimestampIsoInstant(), queue.size()), LoggingLevel.DEBUG, enabledLogLevels, this);
             MyThread.sleep(sleepTime);
         }
-        System.out.printf("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s",TimeUtils.getTimestampIsoInstant(), this, queue.size(), queue);
+        isStoppedStatus = true;
+        Logger.logHelper(() -> String.format("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s",TimeUtils.getTimestampIsoInstant(), this, queue.size(), queue), LoggingLevel.DEBUG, enabledLogLevels, this);
     }
 
     /**
@@ -99,8 +95,19 @@ final class LoggingActionQueue {
      * when a call is made to [enqueue]) and will
      * block until the queue is empty.
      */
+    @Override
     public void stop() {
         stop(5, 20);
+    }
+
+    @Override
+    public Thread getQueueThread() {
+        return queueThread;
+    }
+
+    @Override
+    public LinkedBlockingQueue<RunnableWithDescription> getQueue() {
+        return queue;
     }
 
     @Override
@@ -108,4 +115,8 @@ final class LoggingActionQueue {
         return this.name;
     }
 
+    @Override
+    public boolean isStopped() {
+        return isStoppedStatus;
+    }
 }

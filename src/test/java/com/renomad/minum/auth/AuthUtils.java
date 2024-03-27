@@ -84,7 +84,7 @@ public class AuthUtils {
         // extract session identifiers from the cookies
         final var cookieMatcher = AuthUtils.sessionIdCookieRegex.matcher(cookieHeaders);
         final var listOfSessionIds = new ArrayList<String>();
-        for(int i = 0; cookieMatcher.find() && i < constants.MOST_COOKIES_WELL_LOOK_THROUGH; i++) {
+        for(int i = 0; cookieMatcher.find() && i < constants.mostCookiesWellLookThrough; i++) {
             final var sessionIdValue = cookieMatcher.group("sessionIdValue");
             listOfSessionIds.add(sessionIdValue);
         }
@@ -104,7 +104,7 @@ public class AuthUtils {
 
         // Did we find that session identifier in the database?
         final SessionId sessionFoundInDatabase = sessionDiskData.values().stream()
-                .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.get(0).toLowerCase()))
+                .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.getFirst().toLowerCase()))
                 .findFirst()
                 .orElse(emptySessionId);
 
@@ -120,7 +120,7 @@ public class AuthUtils {
 
         mustBeTrue(authenticatedUser.size() == 1, "There must be exactly one user found for a current session. We found: " + authenticatedUser.size());
 
-        return new AuthResult(true, sessionFoundInDatabase.getCreationDateTime(), authenticatedUser.get(0));
+        return new AuthResult(true, sessionFoundInDatabase.getCreationDateTime(), authenticatedUser.getFirst());
     }
 
     public List<User> getUsers() {
@@ -145,9 +145,6 @@ public class AuthUtils {
 
         // add a new session to memory and the disk
         sessionDiskData.write(newSession);
-
-        // remove the old user details
-        userDiskData.delete(user);
 
         // create details of the new user (the one who has a session)
         final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), newSession.getSessionCode());
@@ -185,7 +182,7 @@ public class AuthUtils {
         final var foundUsers = userDiskData.values().stream().filter(x -> x.getUsername().equals(username)).toList();
         return switch (foundUsers.size()) {
             case 0 -> new LoginResult(LoginResultStatus.NO_USER_FOUND, User.EMPTY);
-            case 1 -> passwordCheck(foundUsers.get(0), password);
+            case 1 -> passwordCheck(foundUsers.getFirst(), password);
             default ->
                     throw new InvariantException("there must be zero or one users found. Anything else indicates a bug");
         };
@@ -208,9 +205,8 @@ public class AuthUtils {
         final List<SessionId> userSession = sessionDiskData.values().stream().filter(s -> Objects.equals(s.getSessionCode(), user.getCurrentSession())).toList();
         mustBeTrue(userSession.size() == 1, "There must be exactly one session found for this active session id. Count found: " + userSession.size());
 
-        sessionDiskData.delete(userSession.get(0));
+        sessionDiskData.delete(userSession.getFirst());
 
-        userDiskData.delete(user);
         final User updatedUser = new User(user.getId(), user.getUsername(), user.getHashedPassword(), user.getSalt(), null);
         userDiskData.write(updatedUser);
 
@@ -219,7 +215,7 @@ public class AuthUtils {
 
 
     public Response loginUser(Request r) {
-        String hostname = constants.HOST_NAME;
+        String hostname = constants.hostName;
         if (processAuth(r).isAuthenticated()) {
             Response.redirectTo("photos");
         }
@@ -230,12 +226,12 @@ public class AuthUtils {
 
         switch (loginResult.status()) {
             case SUCCESS -> {
-                return new Response(_303_SEE_OTHER, Map.of(
+                return new Response(CODE_303_SEE_OTHER, Map.of(
                         "Location","index.html",
                         "Set-Cookie","%s=%s; Secure; HttpOnly; Domain=%s".formatted(cookieKey, loginResult.user().getCurrentSession(), hostname)));
             }
             default -> {
-                return new Response(_401_UNAUTHORIZED,
+                return new Response(CODE_401_UNAUTHORIZED,
                         """
                         Invalid account credentials. <a href="index.html">Index</a>
                         """,
@@ -256,7 +252,7 @@ public class AuthUtils {
     public Response registerUser(Request r) {
         final var authResult = processAuth(r);
         if (authResult.isAuthenticated()) {
-            return new Response(_303_SEE_OTHER, Map.of("Location","index"));
+            return new Response(CODE_303_SEE_OTHER, Map.of("Location","index"));
         }
 
         final var username = r.body().asString("username");
@@ -264,9 +260,9 @@ public class AuthUtils {
         final var registrationResult = registerUser(username, password);
 
         if (registrationResult.status() == ALREADY_EXISTING_USER) {
-            return new Response(_401_UNAUTHORIZED, "<p>This user is already registered</p><p><a href=\"index.html\">Index</a></p>", Map.of("content-type", "text/html"));
+            return new Response(CODE_401_UNAUTHORIZED, "<p>This user is already registered</p><p><a href=\"index.html\">Index</a></p>", Map.of("content-type", "text/html"));
         }
-        return new Response(_303_SEE_OTHER, Map.of("Location","login"));
+        return new Response(CODE_303_SEE_OTHER, Map.of("Location","login"));
 
     }
 

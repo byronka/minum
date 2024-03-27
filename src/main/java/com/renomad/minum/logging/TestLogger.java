@@ -1,9 +1,11 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Constants;
+import com.renomad.minum.utils.MyThread;
 
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.List;
+import java.util.Locale;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -11,14 +13,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * This implementation of {@link Logger} has a few
  * extra functions that only apply to tests, like {@link #test(String)}
  */
-public class TestLogger extends Logger {
+public final class TestLogger extends Logger {
 
-    private Queue<String> recentLogLines;
-    private static final int MAX_CACHE_SIZE = 20;
-    private final ReentrantLock logDebugLock;
-    private final ReentrantLock logAuditLock;
-    private final ReentrantLock logTraceLock;
-    private final ReentrantLock logAsyncErrorLock;
+private final Queue<String> recentLogLines;
+    public static final int MAX_CACHE_SIZE = 30;
+    private final ReentrantLock loggingLock;
     private int testCount = 0;
 
     /**
@@ -26,11 +25,8 @@ public class TestLogger extends Logger {
      */
     public TestLogger(Constants constants, ExecutorService executorService, String name) {
         super(constants, executorService, name);
-        this.recentLogLines = new ArrayBlockingQueue<>(MAX_CACHE_SIZE);
-        this.logDebugLock = new ReentrantLock();
-        this.logTraceLock = new ReentrantLock();
-        this.logAuditLock = new ReentrantLock();
-        this.logAsyncErrorLock = new ReentrantLock();
+        this.recentLogLines = new TestLoggerQueue(MAX_CACHE_SIZE);
+        this.loggingLock = new ReentrantLock();
     }
 
     /**
@@ -52,57 +48,53 @@ public class TestLogger extends Logger {
      * useful for some tests.
      */
     private void addToCache(ThrowingSupplier<String, Exception> msg) {
-        while (recentLogLines.size() >= (MAX_CACHE_SIZE)) {
-            // pull log messages off the head of the queue
-            recentLogLines.remove();
-        }
         // put log messages into the tail of the queue
         String message = extractMessage(msg);
-        String safeMessage = message == null ? "" : message;
-        recentLogLines.offer(safeMessage);
+        String safeMessage = message == null ? "(null message)" : message;
+        recentLogLines.add(safeMessage);
     }
 
     @Override
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
-        logDebugLock.lock();
+        loggingLock.lock();
         try {
             addToCache(msg);
             super.logDebug(msg);
         } finally {
-            logDebugLock.unlock();
+            loggingLock.unlock();
         }
     }
 
     @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
-        logTraceLock.lock();
+        loggingLock.lock();
         try {
             addToCache(msg);
             super.logTrace(msg);
         } finally {
-            logTraceLock.unlock();
+            loggingLock.unlock();
         }
     }
 
     @Override
     public void logAudit(ThrowingSupplier<String, Exception> msg) {
-        logAuditLock.lock();
+        loggingLock.lock();
         try {
             addToCache(msg);
             super.logAudit(msg);
         } finally {
-            logAuditLock.unlock();
+            loggingLock.unlock();
         }
     }
 
     @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
-        logAsyncErrorLock.lock();
+        loggingLock.lock();
         try {
             addToCache(msg);
             super.logAsyncError(msg);
         } finally {
-            logAsyncErrorLock.unlock();
+            loggingLock.unlock();
         }
     }
 
@@ -113,21 +105,75 @@ public class TestLogger extends Logger {
      *              up to {@link #MAX_CACHE_SIZE}
      */
     public String findFirstMessageThatContains(String value, int lines) {
+        List<String> values = findMessage(value, lines, recentLogLines);
+        List<String> logsBeingSearched = logLinesToSearch(lines, recentLogLines);
+        return checkValidityOfResults(value, values, logsBeingSearched);
+    }
+
+    /**
+     * This is used in {@link #findFirstMessageThatContains(String, int)} to
+     * handle exceptional situations with the results.  Specifically, exceptions
+     * are:
+     * <ol>
+     *    <li>If there were no results found</li>
+     *    <li>If there were multiple results found</li>
+     * </ol>
+     */
+    static String checkValidityOfResults(String value, List<String> values, List<String> recentLogLines) {
+        int size = values.size();
+        if (size == 0) {
+            throw new TestLoggerException(value + " was not found in \n\t" + String.join("\n\t", recentLogLines));
+        } else if (size >= 2) {
+            throw new TestLoggerException("multiple values of "+value+" found in: " + recentLogLines);
+        } else {
+            return values.getFirst();
+        }
+    }
+
+    /**
+     * Whether the given string exists in the log messages. May
+     * exist multiple times.
+     * @param value a string to search in the log
+     * @param lines how many lines back to examine
+     * @return whether this string was found, even if there
+     *      were multiple places it was found.
+     */
+    public boolean doesMessageExist(String value, int lines) {
+        if (! findMessage(value, lines, recentLogLines).isEmpty()) {
+            return true;
+        } else {
+            List<String> logsBeingSearched = logLinesToSearch(lines, recentLogLines);
+            throw new TestLoggerException(value + " was not found in \n\t" + String.join("\n\t", logsBeingSearched));
+        }
+    }
+
+    /**
+     * Whether the given string exists in the log messages. May
+     * exist multiple times.
+     * @param value a string to search in the log
+     * @return whether or not this string was found, even if there
+     * were multiple places it was found.
+     */
+    public boolean doesMessageExist(String value) {
+        return doesMessageExist(value, 3);
+    }
+
+    static List<String> findMessage(String value, int lines, Queue<String> recentLogLines) {
         if (lines > MAX_CACHE_SIZE) {
             throw new TestLoggerException(String.format("Can only get up to %s lines from the log", MAX_CACHE_SIZE));
         }
-        var fromIndex = recentLogLines.size() - lines < 0 ? 0 : recentLogLines.size() - lines;
-        var lineList = recentLogLines.stream().toList().subList(fromIndex, recentLogLines.size());
-        var values = lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
-        int size = values.size();
-        if (size == 0) {
-            throw new TestLoggerException(value + " was not found in " + String.join(";", lineList));
-        } else if (size == 1) {
-            return values.get(0);
-        } else if (size >= 2) {
-            throw new TestLoggerException("multiple values found: " + values);
+        if (lines <= 0) {
+            throw new TestLoggerException("number of recent log lines must be a positive number");
         }
-        throw new TestLoggerException("Shouldn't be possible to get here.");
+        MyThread.sleep(20);
+        var lineList = logLinesToSearch(lines, recentLogLines);
+        return lineList.stream().filter(x -> x.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))).toList();
+
+    }
+
+    private static List<String> logLinesToSearch(int lines, Queue<String> recentLogLines) {
+        var fromIndex = Math.max(recentLogLines.size() - lines, 0);
+        return recentLogLines.stream().toList().subList(fromIndex, recentLogLines.size());
     }
 
     /**

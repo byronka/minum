@@ -36,7 +36,7 @@ public class UploadPhoto {
         this.auth = auth;
         this.logger = context.getLogger();
         this.fileUtils = context.getFileUtils();
-        this.dbDir = Path.of(constants.DB_DIRECTORY);
+        this.dbDir = Path.of(constants.dbDirectory);
         uploadPhotoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_photo_template.html");
         this.db = db;
     }
@@ -44,7 +44,7 @@ public class UploadPhoto {
     public Response uploadPage(Request r) {
         AuthResult authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED);
+            return new Response(CODE_401_UNAUTHORIZED);
         }
         return Response.htmlOk(uploadPhotoTemplateHtml);
     }
@@ -52,7 +52,7 @@ public class UploadPhoto {
     public Response uploadPageReceivePost(Request request) {
         AuthResult authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED);
+            return new Response(CODE_401_UNAUTHORIZED);
         }
         var photoBytes = request.body().asBytes("image_uploads");
         var shortDescription = request.body().asString("short_description");
@@ -75,7 +75,7 @@ public class UploadPhoto {
             Files.write(photoPath, photoBytes);
         } catch (IOException e) {
             logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-            return new Response(_500_INTERNAL_SERVER_ERROR, e.toString(), Map.of("Content-Type", "text/plain;charset=UTF-8"));
+            return new Response(CODE_500_INTERNAL_SERVER_ERROR, e.toString(), Map.of("Content-Type", "text/plain;charset=UTF-8"));
         }
         db.write(newPhotograph);
         return Response.redirectTo("photos");

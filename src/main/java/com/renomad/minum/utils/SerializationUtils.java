@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.security.TheBrig;
 
 import java.util.ArrayList;
@@ -65,7 +66,10 @@ public final class SerializationUtils {
     public static List<String> tokenizer(String serializedText, char delimiter, int maxTokens) {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
-        for(int i = 0; i <= maxTokens; i++) {
+        for(int i = 0; ; i++) {
+            if (i >=  maxTokens) {
+                throw new ForbiddenUseException("too many partitions in the tokenizer.  Current max: " + maxTokens);
+            }
             final var nextDelimiterIndex = serializedText.indexOf(delimiter, currentPlace);
             if (nextDelimiterIndex == -1) {
                 // if we don't see any delimiters ahead, grab the rest of the text from our current place

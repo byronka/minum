@@ -32,7 +32,8 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  */
 public final class Headers{
 
-    private static InputStreamUtils inputStreamUtils;
+    public static final Headers EMPTY = new Headers(List.of(), Context.EMPTY);
+    private final IInputStreamUtils inputStreamUtils;
     /**
      * Each line of the headers is read into this data structure
      */
@@ -43,7 +44,7 @@ public final class Headers{
 
 
     /**
-     * It is rare you will use this constructor.  Instead, see {@link Headers#make(Context, InputStreamUtils)}
+     * It is rare you will use this constructor.  Instead, see {@link #make(Context)}
      * when you have to extract the headers from a live {@link InputStream}
      */
     public Headers(
@@ -51,9 +52,10 @@ public final class Headers{
             Context context
     ) {
         this.context = context;
+        inputStreamUtils = context.getInputStreamUtils();
         this.constants = context.getConstants();
         this.headerStrings = headerStrings;
-        this.headersMap = Collections.unmodifiableMap(extractHeadersToMap());
+        this.headersMap = Collections.unmodifiableMap(extractHeadersToMap(headerStrings));
     }
 
     public List<String> getHeaderStrings() {
@@ -69,8 +71,7 @@ public final class Headers{
     /**
      * Run this command to build a Headers object.
      */
-    public static Headers make(Context context, InputStreamUtils inputStreamUtils) {
-        Headers.inputStreamUtils = inputStreamUtils;
+    public static Headers make(Context context) {
         return new Headers(List.of(), context);
     }
 
@@ -79,8 +80,8 @@ public final class Headers{
      * returning a list of what it has found when it hits an empty line.
      * This is the HTTP convention.
      */
-    public Headers extractHeaderInformation(InputStream is) throws IOException {
-        List<String> headers = getAllHeaders(is);
+    public Headers extractHeaderInformation(InputStream is) {
+        List<String> headers = getAllHeaders(is, constants.maxHeadersCount, inputStreamUtils);
         return new Headers(headers, context);
     }
 
@@ -88,7 +89,7 @@ public final class Headers{
      * Obtain any desired header by looking it up in this map.  All keys
      * are made lowercase.
      */
-    private Map<String, List<String>> extractHeadersToMap() {
+    static Map<String, List<String>> extractHeadersToMap(List<String> headerStrings) {
         var result = new HashMap<String, List<String>>();
         for (var h : headerStrings) {
             var indexOfFirstColon = h.indexOf(":");
@@ -119,9 +120,11 @@ public final class Headers{
     public String contentType() {
         // find the header that starts with content-type
         List<String> cts = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
-        mustBeTrue(cts.isEmpty() || cts.size() == 1, "The number of content-type headers must be exactly zero or one.  Recieved: " + cts);
+        if (cts.size() > 1) {
+            throw new WebServerException("The number of content-type headers must be exactly zero or one.  Recieved: " + cts);
+        }
         if (!cts.isEmpty()) {
-            return cts.get(0);
+            return cts.getFirst();
         }
 
         // if we don't find a content-type header, or if we don't find one we can handle, return an empty string.
@@ -135,10 +138,12 @@ public final class Headers{
      */
     public int contentLength() {
         List<String> cl = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
-        mustBeTrue(cl.isEmpty() || cl.size() == 1, "The number of content-length headers must be exactly zero or one.  Received: " + cl);
+        if (cl.size() > 1) {
+            throw new WebServerException("The number of content-length headers must be exactly zero or one.  Received: " + cl);
+        }
         int contentLength = -1;
         if (!cl.isEmpty()) {
-            Matcher clMatcher = contentLengthRegex.matcher(cl.get(0));
+            Matcher clMatcher = contentLengthRegex.matcher(cl.getFirst());
             mustBeTrue(clMatcher.matches(), "The content length header value must match the contentLengthRegex");
             contentLength = Integer.parseInt(clMatcher.group(1));
             mustBeTrue(contentLength >= 0, "Content-length cannot be negative");
@@ -170,12 +175,18 @@ public final class Headers{
     /**
      * Loop through the lines of header in the HTTP message
      */
-    private List<String> getAllHeaders(InputStream is) throws IOException {
+    static List<String> getAllHeaders(InputStream is, int maxHeadersCount, IInputStreamUtils inputStreamUtils) {
         List<String> headers = new ArrayList<>();
-        // we'll only grab the first MAX_HEADERS_COUNT headers.
-        for (int i = 0; i <= constants.MAX_HEADERS_COUNT; i++) {
-            if (i == constants.MAX_HEADERS_COUNT) throw new ForbiddenUseException("User tried sending too many headers.  Current max: " + constants.MAX_HEADERS_COUNT);
-            String value = inputStreamUtils.readLine(is);
+        for (int i = 0;; i++) {
+            if (i >=maxHeadersCount) {
+                throw new ForbiddenUseException("User tried sending too many headers.  Current max: " + maxHeadersCount);
+            }
+            String value;
+            try {
+                value = inputStreamUtils.readLine(is);
+            } catch (IOException e) {
+                throw new WebServerException(e);
+            }
             if (value != null && value.isBlank()) {
                 break;
             } else if (value == null) {

@@ -3,24 +3,14 @@ package com.renomad.minum.security;
 import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.database.Db;
-import com.renomad.minum.database.DbData;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.logging.LoggingLevel;
-import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.SearchUtils;
+import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.utils.TimeUtils;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-
-import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
-import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
 
 /**
  * See {@link ITheBrig}
@@ -39,83 +29,13 @@ public final class TheBrig implements ITheBrig {
      */
     private final int sleepTime;
 
-    /**
-     * These are all the keys (identifiers of clients, sometimes with extra info) that have been added.
-     * For example, if 1.2.3.4 downloads files too frequently, we might create a
-     * key of 1.2.3.4_too_freq_downloads, so we can dispense justice appropriately.
-     */
-    private final Map<String, Long> clientKeys;
-
-    /**
-     * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
-     */
-    public static class Inmate extends DbData<Inmate> {
-
-        /**
-         * Builds an empty version of this class, except
-         * that it has a current Context object
-         */
-        public static final Inmate EMPTY = new Inmate(0L, "", 0L);
-        private Long index;
-        private final String clientId;
-        private final Long duration;
-
-        /**
-         * Represents an inmate in our "jail".  If someone does something we don't like, they do their time here.
-         * @param clientId a string representation of the client address plus a string representing the offense,
-         *                 for example, "1.2.3.4_vuln_seeking" - 1.2.3.4 was seeking out vulnerabilities.
-         * @param duration how long they are stuck in jail, in milliseconds
-         */
-        public Inmate(Long index, String clientId, Long duration) {
-            this.index = index;
-            this.clientId = clientId;
-            this.duration = duration;
-        }
-
-        @Override
-        public long getIndex() {
-            return index;
-        }
-
-        @Override
-        public void setIndex(long index) {
-            this.index = index;
-        }
-
-        @Override
-        public String serialize() {
-            return serializeHelper(index, clientId, duration);
-        }
-
-        @Override
-        public Inmate deserialize(String serializedText) {
-            final var tokens = deserializeHelper(serializedText);
-
-            return new Inmate(
-                    Long.parseLong(tokens.get(0)),
-                    tokens.get(1),
-                    Long.parseLong(tokens.get(2)));
-        }
-
-        public String getClientId() {
-            return clientId;
-        }
-
-        public Long getDuration() {
-            return duration;
-        }
-    }
-
     public TheBrig(int sleepTime, Context context) {
         this.es = context.getExecutorService();
         this.constants = context.getConstants();
         this.logger = context.getLogger();
-        Path dbDir = Path.of(constants.DB_DIRECTORY);
-        this.inmatesDb = new Db<>(dbDir.resolve("the_brig"), context, Inmate.EMPTY);
-        this.clientKeys = this.inmatesDb.values().stream().collect(Collectors.toMap(Inmate::getClientId, Inmate::getDuration));
+        this.inmatesDb = context.getDb("the_brig", Inmate.EMPTY);
         this.sleepTime = sleepTime;
     }
-
 
     /**
      * In this class we create a thread that runs throughout the lifetime
@@ -129,11 +49,10 @@ public final class TheBrig implements ITheBrig {
     // Regarding the BusyWait - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @Override
-    @SuppressWarnings({"BusyWait"})
     public ITheBrig initialize() {
         logger.logDebug(() -> "Initializing TheBrig main loop");
-        Callable<Object> innerLoopThread = () -> {
-            Thread.currentThread().setName("TheBrig");
+        ThrowingRunnable innerLoopThread = () -> {
+            Thread.currentThread().setName("TheBrigThread");
             myThread = Thread.currentThread();
             while (true) {
                 try {
@@ -147,99 +66,103 @@ public final class TheBrig implements ITheBrig {
                     down cleanly
                      */
 
-                    if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                        System.out.printf("%s TheBrig is stopped.%n", TimeUtils.getTimestampIsoInstant());
-                    }
+                    logger.logDebug(() -> String.format("%s TheBrig is stopped.%n", TimeUtils.getTimestampIsoInstant()));
                     Thread.currentThread().interrupt();
-                    return null;
-                } catch (Exception ex) {
-                    System.out.printf("%s ERROR: TheBrig has stopped unexpectedly. error: %s%n",TimeUtils.getTimestampIsoInstant(), ex);
-                    throw ex;
+                    break;
                 }
             }
         };
-        es.submit(innerLoopThread);
+        es.submit(ThrowingRunnable.throwingRunnableWrapper(innerLoopThread, logger));
         return this;
     }
 
     private void reviewCurrentInmates() throws InterruptedException {
-        int size = clientKeys.size();
-        if (size > 0) {
-            logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + size);
+        if (! inmatesDb.values().isEmpty()) {
+            logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + inmatesDb.values().size());
         }
         var now = System.currentTimeMillis();
-        List<String> keysToRemove = new ArrayList<>();
-        // figure out which clients have paid their dues
-        for (var e : clientKeys.entrySet()) {
-            reviewForParole(now, keysToRemove, e);
-        }
-        for (var k : keysToRemove) {
-            logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-            Inmate inmateToRemove = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.clientId.equals(k));
-            clientKeys.remove(k);
-            inmatesDb.delete(inmateToRemove);
-        }
+
+        processInmateList(now, inmatesDb.values(), logger, inmatesDb);
         Thread.sleep(sleepTime);
     }
 
-    private void reviewForParole(long now, List<String> keysToRemove, Map.Entry<String, Long> e) {
-        if (e.getValue() < now) {
-            logger.logTrace(() -> "UnderInvestigation: " + e.getKey() + " has paid its dues and is getting released");
-            keysToRemove.add(e.getKey());
+    /**
+     * figure out which clients have paid their dues
+     * @param now the current time, in milliseconds past the epoch
+     * @param inmatesDb the database of all inmates
+     */
+    static void processInmateList(long now, Collection<Inmate> inmates, ILogger logger, Db<Inmate> inmatesDb) {
+        List<String> keysToRemove = new ArrayList<>();
+        for (Inmate clientKeyAndDuration : inmates) {
+            reviewForParole(now, keysToRemove, clientKeyAndDuration, logger);
+        }
+        for (var k : keysToRemove) {
+            logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
+            Inmate inmateToRemove = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.getClientId().equals(k));
+            inmatesDb.delete(inmateToRemove);
+        }
+    }
+
+    private static void reviewForParole(
+            long now,
+            List<String> keysToRemove,
+            Inmate inmate,
+            ILogger logger) {
+        // if the release time is in the past (that is, the release time is
+        // before / less-than now), add them to the list to be released.
+        if (inmate.getReleaseTime() < now) {
+            logger.logTrace(() -> "UnderInvestigation: " + inmate.getClientId() + " has paid its dues and is getting released");
+            keysToRemove.add(inmate.getClientId());
         }
     }
 
     @Override
     public void stop() {
         logger.logDebug(() -> "TheBrig has been told to stop");
-        for (int i = 0; i < 10; i++) {
-            if (myThread != null) {
-                logger.logDebug(() -> "TheBrig: Sending interrupt to thread");
-                myThread.interrupt();
-                return;
-            } else {
-                MyThread.sleep(20);
-            }
+        if (myThread != null) {
+            logger.logDebug(() -> "TheBrig: Sending interrupt to thread");
+            myThread.interrupt();
+        } else {
+            throw new SecurityException("TheBrig was told to stop, but it was uninitialized");
         }
-        throw new SecurityException("TheBrig: Leaving without successfully stopping thread");
     }
 
 
     @Override
-    public void sendToJail(String clientIdentifier, long sentenceDuration) {
-        if (!constants.IS_THE_BRIG_ENABLED) {
-            return;
+    public boolean sendToJail(String clientIdentifier, long sentenceDuration) {
+        if (!constants.isTheBrigEnabled) {
+            return false;
         }
         lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds");
-            long newDuration = System.currentTimeMillis() + sentenceDuration;
-            clientKeys.put(clientIdentifier, newDuration);
-            Inmate existingInmate = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.clientId.equals(clientIdentifier));
+            long releaseTime = System.currentTimeMillis() + sentenceDuration;
+            Inmate existingInmate = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.getClientId().equals(clientIdentifier));
             if (existingInmate == null) {
                 // if this is a new inmate, add them
-                Inmate newInmate = new Inmate(0L, clientIdentifier, newDuration);
+                Inmate newInmate = new Inmate(0L, clientIdentifier, releaseTime);
                 inmatesDb.write(newInmate);
             } else {
                 // if this is an existing inmate continuing to attack us, just update their duration
-                inmatesDb.update(new Inmate(existingInmate.index, existingInmate.clientId, newDuration));
+                inmatesDb.write(new Inmate(existingInmate.getIndex(), existingInmate.getClientId(), releaseTime));
             }
         } finally {
             lock.unlock();
         }
+        return true;
 
     }
 
     @Override
     public boolean isInJail(String clientIdentifier) {
-        if (!constants.IS_THE_BRIG_ENABLED) {
+        if (!constants.isTheBrigEnabled) {
             return false;
         }
-        return clientKeys.containsKey(clientIdentifier);
+        return inmatesDb.values().stream().anyMatch(x -> x.getClientId().equals(clientIdentifier));
     }
 
     @Override
-    public List<Map.Entry<String, Long>> getInmates() {
-        return clientKeys.entrySet().stream().toList();
+    public List<Inmate> getInmates() {
+        return inmatesDb.values().stream().toList();
     }
 }

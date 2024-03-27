@@ -38,6 +38,7 @@ public class TestFrameworkTests {
     @Test
     public void test_assertEquals_ListsDifferentOrders() {
         assertEqualsDisregardOrder(List.of("a", "b"), List.of("b", "a"));
+        assertEqualsDisregardOrder(List.of("a", "b"), List.of("b", "a"), "This is my custom error");
         assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(List.of("a", "b", "c"), List.of("b", "a")));
         assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(List.of("a", "b", "c"), List.of("b", "a", "d")));
         var ex = assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(List.of("a", "b", "c"), List.of("b", "a", "d"), "Should be in order"));
@@ -65,8 +66,66 @@ public class TestFrameworkTests {
     @Test
     public void test_assertEqualsByteArray() {
         assertEqualByteArray(new byte[]{1,2,3}, new byte[]{1,2,3});
-        var ex = assertThrows(TestFailureException.class, () -> assertEqualByteArray(new byte[]{1,2,3}, new byte[]{4,5,6}, "should be equal arrays"));
-        assertTrue(ex.getMessage().contains("should be equal arrays"));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_DifferentValuesInArrays() {
+        assertThrows(TestFailureException.class,
+                "Not equal! at index 0 left was: 1 right was: 4",
+                () -> assertEqualByteArray(new byte[]{1,2,3}, new byte[]{4,5,6}));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_LeftIsNull() {
+        assertThrows(TestFailureException.class,
+                "at least one of the inputs was null: left: null right: [4, 5, 6]",
+                () -> assertEqualByteArray(null, new byte[]{4,5,6}));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_RightIsNull() {
+        assertThrows(TestFailureException.class,
+                "at least one of the inputs was null: left: [1, 2, 3] right: null",
+                () -> assertEqualByteArray(new byte[]{1,2,3}, null));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_BothNull() {
+        assertThrows(TestFailureException.class,
+                "at least one of the inputs was null: left: null right: null",
+                () -> assertEqualByteArray(null, null));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_DifferentLengths() {
+        assertThrows(TestFailureException.class,
+                "Not equal! left length: 3 right length: 4",
+                () -> assertEqualByteArray(new byte[]{1,2,3}, new byte[]{1, 2, 3, 4}));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_CustomError() {
+        assertThrows(TestFailureException.class,
+                "Not equal! left length: 3 right length: 4. This is my custom error",
+                () -> assertEqualByteArray(new byte[]{1,2,3}, new byte[]{1, 2, 3, 4}, "This is my custom error"));
+    }
+
+    @Test
+    public void test_assertEqualsByteArray_CustomError_ButValidComparison() {
+        assertEqualByteArray(new byte[]{1,2,3}, new byte[]{1, 2, 3}, "This is my custom error");
+    }
+
+    /**
+     * When writing logs, if there is whitespace it is helpful to convert it
+     * to a more apparent form, otherwise it could be overlooked. For example,
+     * an entirely blank string is: (BLANK)
+     */
+    @Test
+    public void testShowWhiteSpace() {
+        assertEquals(TestFramework.showWhiteSpace(" "), "(BLANK)");
+        assertEquals(TestFramework.showWhiteSpace(""), "(EMPTY)");
+        assertEquals(TestFramework.showWhiteSpace(null), "(NULL)");
+        assertEquals(TestFramework.showWhiteSpace("\t\r\n"), "\\t\\r\\n");
     }
 
 }

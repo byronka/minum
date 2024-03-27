@@ -14,7 +14,12 @@ import com.renomad.minum.logging.ILogger;
 @FunctionalInterface
 public interface ThrowingRunnable {
 
-    void run();
+    /**
+     * The reason this throws an exception is so that lambdas
+     * don't need to try-catch their thrown exceptions when they
+     * use this.
+     */
+    void run() throws Exception;
 
     static Runnable throwingRunnableWrapper(ThrowingRunnable throwingRunnable, ILogger logger) {
         return () -> {

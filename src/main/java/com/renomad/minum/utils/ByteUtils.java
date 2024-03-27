@@ -7,9 +7,7 @@ import java.util.List;
  */
 public final class ByteUtils {
 
-    private ByteUtils() {
-        // cannot construct
-    }
+    private ByteUtils() {}
 
     /**
      * A helper method to reduce some of the boilerplate

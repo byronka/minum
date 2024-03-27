@@ -5,7 +5,7 @@ package com.renomad.minum.logging;
  * to bubble up.
  */
 @FunctionalInterface
-public interface ThrowingSupplier<T, E extends Throwable>{
+public interface ThrowingSupplier<T, E extends Exception>{
 
     T get() throws E;
 

@@ -8,19 +8,19 @@ import java.util.List;
  */
 class Stock {
 
-    private String name;
+    private final String name;
 
-    private String name2;
+    private final String name2;
 
-    private String url;
+    private final String url;
 
-    private String symbol;
+    private final String symbol;
 
-    private double price;
+    private final double price;
 
-    private double change;
+    private final double change;
 
-    private double ratio;
+    private final double ratio;
 
     public Stock(String name, String name2, String url, String symbol, double price, double change, double ratio) {
         this.name = name;

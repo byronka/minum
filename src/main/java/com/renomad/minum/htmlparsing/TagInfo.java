@@ -12,5 +12,5 @@ public record TagInfo(
     /**
      * a null object
      */
-    public static TagInfo EMPTY = new TagInfo(TagName.NULL, Map.of());
+    public static final TagInfo EMPTY = new TagInfo(TagName.NULL, Map.of());
 }

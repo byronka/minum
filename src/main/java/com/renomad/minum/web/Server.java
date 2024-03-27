@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
  * the server side but also tie it in with an ExecutorService
  * for controlling lots of server threads.
  */
-final class Server implements AutoCloseable {
+final class Server implements IServer {
     private final ServerSocket serverSocket;
     private final SetOfSws setOfSWs;
     private final ILogger logger;
@@ -50,13 +50,8 @@ final class Server implements AutoCloseable {
         this.underInvestigation = new UnderInvestigation(constants);
     }
 
-    /**
-     * This is the infinite loop running inside the basic socket server code.  Every time we
-     * {@link ServerSocket#accept()} a new incoming socket connection, we attach our "end
-     * of the phone line" to the code that is "handler", which mainly handles it from there.
-     * @param handler the commonest handler will be found at {@link WebFramework#makePrimaryHttpHandler}
-     */
-    void start(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
+    @Override
+    public void start(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
         ThrowingRunnable serverCode = buildMainServerLoop(es, handler);
         Runnable t = ThrowingRunnable.throwingRunnableWrapper(serverCode, logger);
         this.centralLoopFuture = es.submit(t);
@@ -69,8 +64,8 @@ final class Server implements AutoCloseable {
      * @param handler the handler that will take charge immediately after
      *                a client makes a connection.
      */
-    private ThrowingRunnable buildMainServerLoop(ExecutorService es, ThrowingConsumer<ISocketWrapper, IOException> handler) {
-        ThrowingRunnable serverCode = () -> {
+    private ThrowingRunnable buildMainServerLoop(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
+        return () -> {
             Thread.currentThread().setName("Main Server");
             try {
                 // yes, this infinite loop can only exit by an exception.  But this is
@@ -81,7 +76,7 @@ final class Server implements AutoCloseable {
                 while (true) {
                     logger.logTrace(() -> serverName + " waiting to accept connection");
                     Socket freshSocket = serverSocket.accept();
-                    ISocketWrapper sw = new SocketWrapper(freshSocket, this, logger, constants.SOCKET_TIMEOUT_MILLIS);
+                    ISocketWrapper sw = new SocketWrapper(freshSocket, this, logger, constants.socketTimeoutMillis);
                     logger.logTrace(() -> String.format("client connected from %s", sw.getRemoteAddrWithPort()));
                     setOfSWs.add(sw);
                     if (handler != null) {
@@ -90,12 +85,15 @@ final class Server implements AutoCloseable {
                     }
                 }
             } catch (IOException ex) {
-                if (!(ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
-                    logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
-                }
+                handleServerException(ex, logger);
             }
         };
-        return serverCode;
+    }
+
+    static void handleServerException(IOException ex, ILogger logger) {
+        if (!(ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
+            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
+        }
     }
 
     /**
@@ -107,41 +105,53 @@ final class Server implements AutoCloseable {
      * </p>
      *
      */
-    ThrowingRunnable buildExceptionHandlingInnerCore(ThrowingConsumer<ISocketWrapper, IOException> handler, ISocketWrapper sw) {
-        ThrowingRunnable innerServerCode = () -> {
+    ThrowingRunnable buildExceptionHandlingInnerCore(ThrowingConsumer<ISocketWrapper> handler, ISocketWrapper sw) {
+        return () -> {
             Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
-            try {
+            // wrap socketwrapper in try-with-resources so leaving this block
+            // closes the socket.
+            try (sw) {
                 handler.accept(sw);
             } catch (SocketException | SocketTimeoutException ex) {
-                 /*
-                 if we close the application on the server side, there's a good
-                 likelihood a SocketException will come bubbling through here.
-                 NOTE:
-                   it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
-                   if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
-                 */
-                if (ex.getMessage().equals("Read timed out")) {
-                    logger.logTrace(() -> "Read timed out - remote address: " + sw.getRemoteAddrWithPort());
-                } else {
-                    logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
-                }
-
+                handleReadTimedOut(sw, ex, logger);
             } catch (ForbiddenUseException ex) {
-                logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
-                if (theBrig != null) {
-                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                }
+                handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
             } catch (IOException ex) {
-                logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
-                String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
-
-                if (suspiciousClues.length() > 0 && theBrig != null) {
-                    logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
-                    theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", constants.VULN_SEEKING_JAIL_DURATION);
-                }
+                handleIOException(sw, ex, logger, theBrig, underInvestigation, constants.vulnSeekingJailDuration);
             }
         };
-        return innerServerCode;
+    }
+
+    static void handleIOException(ISocketWrapper sw, IOException ex, ILogger logger, ITheBrig theBrig, UnderInvestigation underInvestigation, int vulnSeekingJailDuration ) {
+        logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
+        String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
+
+        if (!suspiciousClues.isEmpty() && theBrig != null) {
+            logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
+            theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
+        }
+    }
+
+    static void handleForbiddenUse(ISocketWrapper sw, ForbiddenUseException ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration) {
+        logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
+        if (theBrig != null) {
+            theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
+        }
+    }
+
+    static void handleReadTimedOut(ISocketWrapper sw, IOException ex, ILogger logger) {
+        /*
+        if we close the application on the server side, there's a good
+        likelihood a SocketException will come bubbling through here.
+        NOTE:
+          it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
+          if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
+        */
+        if (ex.getMessage().equals("Read timed out")) {
+            logger.logTrace(() -> "Read timed out - remote address: " + sw.getRemoteAddrWithPort());
+        } else {
+            logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
+        }
     }
 
     public void close() throws IOException {
@@ -152,37 +162,23 @@ final class Server implements AutoCloseable {
         serverSocket.close();
     }
 
-    /**
-     * Get the string version of the address of this
-     * server.  See {@link InetAddress#getHostAddress()}
-     */
-    String getHost() {
+    @Override
+    public String getHost() {
         return serverSocket.getInetAddress().getHostAddress();
     }
 
-    /**
-     * See {@link ServerSocket#getLocalPort()}
-     */
-    int getPort() {
+    @Override
+    public int getPort() {
         return serverSocket.getLocalPort();
     }
 
-    /**
-     * This is a helper method to find the server SocketWrapper
-     * connected to a client SocketWrapper.
-     */
-    ISocketWrapper getServer(ISocketWrapper sw) {
+    @Override
+    public ISocketWrapper getServer(ISocketWrapper sw) {
         return setOfSWs.getSocketWrapperByRemoteAddr(sw.getLocalAddr(), sw.getLocalPort());
     }
 
-    /**
-     * When we first create a SocketWrapper in Server, we provide it
-     * a reference back to this object, so that it can call
-     * this command.  This class maintains a list of open
-     * sockets in setOfSWs, and allows generated SocketWrappers
-     * to deregister themselves from this list by using this method.
-     */
-    void removeMyRecord(ISocketWrapper socketWrapper) {
+    @Override
+    public void removeMyRecord(ISocketWrapper socketWrapper) {
         setOfSWs.remove(socketWrapper);
     }
 
@@ -195,11 +191,8 @@ final class Server implements AutoCloseable {
         return this.serverName;
     }
 
-    /**
-     * Obtain the {@link Future} of the central loop of this
-     * server object, which is obtained during {@link #start(ExecutorService, ThrowingConsumer)}
-     */
-    Future<?> getCentralLoopFuture() {
+    @Override
+    public Future<?> getCentralLoopFuture() {
         return centralLoopFuture;
     }
 }

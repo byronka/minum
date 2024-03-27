@@ -21,7 +21,7 @@ public final class UnderInvestigation {
      * their shenanigans on us.  Returns true if we recognize anything.
      */
     public String isClientLookingForVulnerabilities(String exceptionMessage) {
-        List<String> suspiciousErrors = constants.SUSPICIOUS_ERRORS;
+        List<String> suspiciousErrors = constants.suspiciousErrors;
         return suspiciousErrors.stream().filter(exceptionMessage::contains).collect(Collectors.joining(";"));
     }
 
@@ -32,6 +32,6 @@ public final class UnderInvestigation {
      * the client is under control by a bad actor and we can safely block them.
      */
     public String isLookingForSuspiciousPaths(String isolatedPath) {
-        return constants.SUSPICIOUS_PATHS.stream().filter(isolatedPath::equals).collect(Collectors.joining(";"));
+        return constants.suspiciousPaths.stream().filter(isolatedPath::equals).collect(Collectors.joining(";"));
     }
 }

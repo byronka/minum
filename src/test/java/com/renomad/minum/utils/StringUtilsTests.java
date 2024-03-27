@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.renomad.minum.testing.TestFramework.assertEquals;
+import static com.renomad.minum.testing.TestFramework.assertTrue;
 
 public class StringUtilsTests {
 
@@ -58,5 +59,13 @@ public class StringUtilsTests {
         List<Byte> bytesList = IntStream.range(0, bytes.length).mapToObj(i -> bytes[i]).collect(Collectors.toList());
         String s = StringUtils.byteListToString(bytesList);
         assertEquals(s, "hello");
+        String shouldBeNull = StringUtils.byteListToString(null);
+        assertTrue(shouldBeNull == null);
+    }
+    
+    @Test
+    public void test_ByteArrayToString() {
+        String shouldBeNull = StringUtils.byteArrayToString(null);
+        assertTrue(shouldBeNull == null);
     }
 }

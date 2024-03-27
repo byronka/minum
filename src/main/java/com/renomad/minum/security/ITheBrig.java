@@ -1,7 +1,6 @@
 package com.renomad.minum.security;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Monitors the inmates who have misbehaved in our system.
@@ -17,7 +16,6 @@ import java.util.Map;
 public interface ITheBrig {
     // Regarding the BusyWait - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
-    @SuppressWarnings({"BusyWait"})
     ITheBrig initialize();
 
     /**
@@ -27,10 +25,12 @@ public interface ITheBrig {
 
     /**
      * Put a client in jail for some infraction, for a specified time.
+     *
      * @param clientIdentifier the client's address plus some feature identifier, like 1.2.3.4_too_freq_downloads
      * @param sentenceDuration length of stay, in milliseconds
+     * @return whether we put this client in jail
      */
-    void sendToJail(String clientIdentifier, long sentenceDuration);
+    boolean sendToJail(String clientIdentifier, long sentenceDuration);
 
     /**
      * Return true if a particular client ip address is found
@@ -42,5 +42,5 @@ public interface ITheBrig {
      * Get the current list of ip addresses that have been
      * judged as having carried out attacks on the system.
      */
-    List<Map.Entry<String, Long>> getInmates();
+    List<Inmate> getInmates();
 }

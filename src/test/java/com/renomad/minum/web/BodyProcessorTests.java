@@ -1,12 +1,15 @@
 package com.renomad.minum.web;
 
 import com.renomad.minum.Context;
-import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,6 +24,11 @@ public class BodyProcessorTests {
     public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger) context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
     }
 
     /**
@@ -128,4 +136,47 @@ public class BodyProcessorTests {
         assertTrue(unableToParseThisBody.contains("aaaaaaaaaa ... (remainder of data trimmed)"));
         assertEquals(bodyResult.getKeys(), Set.of());
     }
+
+    @Test
+    public void test_extractBodyFromBytes_EdgeCase_NoValidBoundaryFound() {
+        var bodyProcessor = new BodyProcessor(context);
+
+        // the content type should be multipart form data and also mention the boundary value -
+        // we are not including it, leading to this edge case branch being invoked.
+        Body result = bodyProcessor.extractBodyFromBytes(25, "multipart/form-data", new byte[0]);
+
+        assertTrue(logger.doesMessageExist("Did not find a valid boundary value for the multipart input"));
+        assertEquals(result, new Body(Map.of(), new byte[0], Map.of()));
+    }
+
+    @Test
+    public void test_extractBodyFromBytes_EdgeCase_contentLengthZero() {
+        var bodyProcessor = new BodyProcessor(context);
+        Body result = bodyProcessor.extractBodyFromBytes(0, "application/x-www-form-urlencoded", new byte[0]);
+        assertEqualByteArray(result.asBytes(), new byte[0]);
+        assertTrue(logger.doesMessageExist("did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body"));
+    }
+
+    @Test
+    public void test_tokenizer_HappyPath() {
+        List<String> results = BodyProcessor.tokenizer("a,b,c", ',', 10);
+        assertEqualsDisregardOrder(results, List.of("a","b","c"));
+    }
+
+    @Test
+    public void test_tokenizer_PartitionCountExceeded() {
+        var ex = assertThrows(ForbiddenUseException.class, () -> BodyProcessor.tokenizer("a,b,c", ',', 2));
+        assertEquals(ex.getMessage(), "Request made for too many partitions in the tokenizer.  Current max: 2");
+    }
+
+    @Test
+    public void test_extractData() {
+        var bodyProcessor = new BodyProcessor(context);
+        var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+        Headers headers = new Headers(List.of("Content-Length: 0"), context);
+
+        Body body = bodyProcessor.extractData(inputStream, headers);
+        assertEquals(body.asString(), "ab");
+    }
+
 }

@@ -2,6 +2,8 @@ package com.renomad.minum.utils;
 
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.testing.RegexUtils;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -16,6 +18,11 @@ public class ActionQueueTests {
     public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
     }
 
     /*
@@ -38,5 +45,24 @@ public class ActionQueueTests {
         String loggedMessage = logger.findFirstMessageThatContains(message);
         assertTrue(!loggedMessage.isBlank(),
                 "logged message must include expected message.  What was logged: " + loggedMessage);
+    }
+
+    @Test
+    public void test_Stopping() {
+        var aq = new ActionQueue("Test ActionQueue", context).initialize();
+
+        aq.enqueue("testing action", () -> {
+            MyThread.sleep(10);
+            System.out.println("a test message");
+        });
+
+        aq.stop(0,0);
+        var msg = logger.findFirstMessageThatContains("Queue Test ActionQueue has");
+        assertFalse(RegexUtils.find("Queue Test ActionQueue has .? elements left but we're done waiting", msg).isEmpty());
+        assertTrue(aq.isStopped());
+        assertThrows(UtilsException.class,
+                "failed to enqueue check if stopped - ActionQueue \"Test ActionQueue\" is stopped",
+                () ->  aq.enqueue("check if stopped", () -> System.out.println("testing if stopped")));
+        assertEquals(aq.getQueue().size(), 0);
     }
 }

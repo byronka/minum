@@ -1,9 +1,11 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.Context;
 import com.renomad.minum.templating.TemplateParseException;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.templating.TemplateRenderException;
 import com.renomad.minum.logging.TestLogger;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -15,12 +17,18 @@ import static com.renomad.minum.testing.TestFramework.*;
 public class TemplatingTests {
 
     private static FileUtils fileUtils;
+    private static Context context;
 
     @BeforeClass
     public static void setUpClass() {
-        var context = buildTestingContext("unit_tests");
+        context = buildTestingContext("unit_tests");
         var logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
     }
 
     /**
@@ -116,6 +124,13 @@ public class TemplatingTests {
         assertEquals(ex.getMessage(), "parsing failed for string starting with {{ foo");
     }
 
+    @Test
+    public void test_Template_EdgeCase_NoClosingBrackets_larger_template() {
+        String template = "{{ foo this is a longer piece of text";
+        var ex = assertThrows(TemplateParseException.class, () -> buildProcessor(template));
+        assertEquals(ex.getMessage(), "parsing failed for string starting with {{ foo thi");
+    }
+
     /*
     This test is based on a benchmark comparison project I found at https://github.com/mbosecke/template-benchmark
 
@@ -136,11 +151,10 @@ public class TemplatingTests {
     Velocity    20835
 
     Notes:
-    Pebble: pebble has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
-    Rocker: rocker has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996 lines of core non-test code
+    Pebble: has 229 classes and 16,876 lines of core non-test code, not include its required dependencies
+    Rocker: has a very large and disparate code base, but looking at just java, it has 112 classes and 11,996
+    lines of production code
 
-
-    My templating code is 69 lines of code.
      */
 
 
@@ -151,7 +165,6 @@ public class TemplatingTests {
     public void test_Template_Realistic() {
         var individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/individual_stock.html"));
         var stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/stock_prices.html"));
-        var expectedOutput = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < Stock.dummyItems().size(); i++) {
@@ -170,5 +183,21 @@ public class TemplatingTests {
             sb.append(renderedIndividualStock);
         }
         String result = stockPrices.renderTemplate(Map.of("individual_stocks", sb.toString()));
+        assertTrue(result.contains("<td><a href=\"/stocks/ADBE\">ADBE</a></td>"));
+        assertTrue(result.contains("<td><a href=\"http://www.adobe.com\">Adobe Systems</a></td>"));
+
+        assertTrue(result.contains("""
+                    <tr class="odd">
+                        <td>16</td>
+                        <td><a href="/stocks/ORCL">ORCL</a></td>
+                        <td><a href="http://www.oracle.com">Oracle</a></td>
+                        <td><strong>17.15</strong></td>
+                
+                        <td>0.17</td>
+                        <td>1.1</td>
+                    </tr>
+                """));
     }
+
+
 }

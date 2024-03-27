@@ -85,29 +85,16 @@ public final class TemplateProcessor {
 
             char charAtCursor = template.charAt(i);
 
-            if (charAtCursor == '{' && (i + 1) < template.length() && template.charAt(i + 1) == '{') {
-                // we were outside, now we're inside.
+            if (justArrivedInside(template, charAtCursor, i)) {
                 isInsideTemplateKeyLiteral = true;
                 i += 1;
-                if (builder.length() > 0) {
-                    tSections.add(new TemplateSection(null, builder.toString()));
-                    builder = new StringBuilder();
-                }
-                continue;
-            }
-
-            if (charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}' && isInsideTemplateKeyLiteral) {
-                // we were inside, now we're outside.
+                builder = processSectionInside(builder, tSections);
+            } else if (justArrivedOutside(template, charAtCursor, i, isInsideTemplateKeyLiteral)) {
                 isInsideTemplateKeyLiteral = false;
                 i += 1;
-                if (builder.length() > 0) {
-                    tSections.add(new TemplateSection(builder.toString().trim(), null));
-                    builder = new StringBuilder();
-                }
-                continue;
-            }
-
-            builder.append(charAtCursor);
+                builder = processSectionOutside(builder, tSections);
+            } else {
+                builder.append(charAtCursor);
 
             /*
              if we're at the end of the template, it's our last chance to
@@ -115,19 +102,62 @@ public final class TemplateProcessor {
              at the end, and it's not a closing brace, it's a malformed
              template.
              */
-            if (i == template.length() - 1) {
-                if (isInsideTemplateKeyLiteral) {
-                    // if we're exiting this string while inside a template literal, then
-                    // we're reading a corrupted input, and we should make that clear
-                    // to our caller.
-                    String templateSample = template.length() > 10 ? template.substring(0, 10) : template;
-                    throw new TemplateParseException("parsing failed for string starting with " + templateSample);
+                if (i == template.length() - 1) {
+                    if (isInsideTemplateKeyLiteral) {
+                        // if we're exiting this string while inside a template literal, then
+                        // we're reading a corrupted input, and we should make that clear
+                        // to our caller.
+                        String templateSample = template.length() > 10 ? template.substring(0, 10) : template;
+                        throw new TemplateParseException("parsing failed for string starting with " + templateSample);
+                    }
+                    tSections.add(new TemplateSection(null, builder.toString()));
                 }
-                tSections.add(new TemplateSection(null, builder.toString()));
             }
         }
 
         return new TemplateProcessor(tSections);
+    }
+
+    static StringBuilder processSectionInside(StringBuilder builder, ArrayList<TemplateSection> tSections) {
+        if (!builder.isEmpty()) {
+            tSections.add(new TemplateSection(null, builder.toString()));
+            builder = new StringBuilder();
+        }
+        return builder;
+    }
+
+    static StringBuilder processSectionOutside(StringBuilder builder, ArrayList<TemplateSection> tSections) {
+        if (!builder.isEmpty()) {
+            tSections.add(new TemplateSection(builder.toString().trim(), null));
+            builder = new StringBuilder();
+        }
+        return builder;
+    }
+
+    /**
+     * Just left a template key value.
+     * <pre>
+     *     hello {{ world }}
+     *                ^
+     *                +------Template key
+     *
+     * </pre>
+     */
+    static boolean justArrivedOutside(String template, char charAtCursor, int i, boolean isInsideTemplateKeyLiteral) {
+        return charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}' && isInsideTemplateKeyLiteral;
+    }
+
+    /**
+     * Just arrived inside a template key value.
+     * <pre>
+     *     hello {{ world }}
+     *                ^
+     *                +------Template key
+     *
+     * </pre>
+     */
+    static boolean justArrivedInside(String template, char charAtCursor, int i) {
+        return charAtCursor == '{' && (i + 1) < template.length() && template.charAt(i + 1) == '{';
     }
 }
 

@@ -18,12 +18,16 @@ public class FakeSocketWrapper implements ISocketWrapper {
     public Consumer<String> sendHttpLineAction;
     public Supplier<String> getLocalAddrAction;
     public Supplier<Integer> getLocalPortAction;
+    public Supplier<String> getRemoteAddrAction;
+    public Supplier<SocketAddress> getRemoteAddrWithPortAction;
     public ByteArrayOutputStream baos;
     public ByteArrayInputStream bais;
 
     public FakeSocketWrapper() {
         bais = new ByteArrayInputStream(new byte[0]);
         baos = new ByteArrayOutputStream();
+        this.getRemoteAddrAction = () -> "tester";
+        this.getRemoteAddrWithPortAction = () -> new InetSocketAddress("123.123.123.123", 1234);
     }
 
     @Override
@@ -53,12 +57,12 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public SocketAddress getRemoteAddrWithPort() {
-        return new InetSocketAddress(12345);
+        return getRemoteAddrWithPortAction.get();
     }
 
     @Override
     public String getRemoteAddr() {
-        return "";
+        return getRemoteAddrAction.get();
     }
 
     @Override

@@ -57,12 +57,15 @@ public final class RequestLine {
      * <p>
      * On the other hand if it's not a well-formed request, or
      * if we don't have that file, we reply with an error page
+     * </p>
      */
-    static final String REQUEST_LINE_PATTERN = "^([A-Z]{3,8}) /(.*) HTTP/(1.1|1.0)$";
+    static final String REQUEST_LINE_PATTERN = "^([A-Z]{3,8})" + // an HTTP method, like GET, HEAD, POST, or OPTIONS
+            " /?(.*)" + // the request target - may or may not start with a slash.
+            " HTTP/(1.1|1.0)$"; // the HTTP version, defining structure of the remaining message
 
     static final Pattern startLineRegex = Pattern.compile(REQUEST_LINE_PATTERN);
 
-    public static RequestLine EMPTY(Context context) {
+    public static RequestLine empty(Context context) {
         return new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", context);
     }
 
@@ -101,16 +104,16 @@ public final class RequestLine {
     }
 
     /**
-     * Given the string value of a startline (like GET /hello HTTP/1.1)
+     * Given the string value of a Request Line (like GET /hello HTTP/1.1)
      * validate and extract the values for our use.
      */
-    public RequestLine extractStartLine(String value) {
+    public RequestLine extractRequestLine(String value) {
         mustNotBeNull(value);
         Matcher m = RequestLine.startLineRegex.matcher(value);
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return RequestLine.EMPTY(context);
+            return RequestLine.empty(context);
         }
         mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, REQUEST_LINE_PATTERN));
         Method myMethod = extractMethod(m.group(1));
@@ -170,12 +173,11 @@ public final class RequestLine {
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
         // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
         for (int i = 0; tokenizer.hasMoreTokens(); i++) {
-            if (i == constants.MAX_QUERY_STRING_KEYS_COUNT) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + constants.MAX_QUERY_STRING_KEYS_COUNT);
+            if (i >= constants.maxQueryStringKeysCount) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + constants.maxQueryStringKeysCount);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
             if (equalSignLocation <= 0) return Map.of();
-            mustBeTrue(equalSignLocation > 0, "There must be an equals sign");
             String key = currentKeyValue.substring(0, equalSignLocation);
             String value = StringUtils.decode(currentKeyValue.substring(equalSignLocation + 1));
             queryStrings.put(key, value);
@@ -214,13 +216,13 @@ public final class RequestLine {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RequestLine requestLine = (RequestLine) o;
-        return method == requestLine.method && Objects.equals(pathDetails, requestLine.pathDetails) && version == requestLine.version && Objects.equals(rawValue, requestLine.rawValue);
+        RequestLine that = (RequestLine) o;
+        return method == that.method && Objects.equals(pathDetails, that.pathDetails) && version == that.version && Objects.equals(rawValue, that.rawValue) && Objects.equals(context, that.context) && Objects.equals(constants, that.constants) && Objects.equals(logger, that.logger);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(method, pathDetails, version, rawValue);
+        return Objects.hash(method, pathDetails, version, rawValue, context, constants, logger);
     }
 
     @Override

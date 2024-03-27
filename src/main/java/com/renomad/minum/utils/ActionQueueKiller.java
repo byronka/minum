@@ -1,8 +1,9 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
-import com.renomad.minum.logging.LoggingLevel;
+import com.renomad.minum.logging.ILogger;
+
+import java.util.Queue;
 
 /**
  * This class exists to properly kill off multiple action queues
@@ -10,11 +11,11 @@ import com.renomad.minum.logging.LoggingLevel;
 public final class ActionQueueKiller {
 
     private final Context context;
-    private final Constants constants;
+    private final ILogger logger;
 
     public ActionQueueKiller(Context context) {
         this.context = context;
-        this.constants = context.getConstants();
+        this.logger = context.getLogger();
     }
 
     /**
@@ -22,16 +23,19 @@ public final class ActionQueueKiller {
      * instantiated in this call tree.
      */
     public void killAllQueues() {
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " Killing all queue threads. ");
-        for (ActionQueue aq : context.getActionQueueList()) {
-            aq.stop();
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(TimeUtils.getTimestampIsoInstant() + " killing " + aq.getQueueThread());
-            if (aq.getQueueThread() != null) {
-                aq.getQueueThread().interrupt();
-            }
-            aq.getQueue().clear();
+        killAllQueues(context.getAqQueue());
+    }
 
+    void killAllQueues(Queue<AbstractActionQueue> aqQueue) {
+        logger.logDebug(() -> TimeUtils.getTimestampIsoInstant() + " Killing all queue threads. ");
+        for (AbstractActionQueue aq = aqQueue.poll(); aq != null ; aq = aqQueue.poll()) {
+            AbstractActionQueue finalAq = aq;
+            finalAq.stop();
+            logger.logDebug(() -> TimeUtils.getTimestampIsoInstant() + " killing " + finalAq.getQueueThread());
+            if (finalAq.getQueueThread() != null) {
+                finalAq.getQueueThread().interrupt();
+            }
+            finalAq.getQueue().clear();
         }
-        context.getActionQueueList().clear();
     }
 }

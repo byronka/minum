@@ -1,9 +1,7 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.logging.LoggingLevel;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -18,14 +16,14 @@ import java.util.concurrent.LinkedBlockingQueue;
  * thread and the only time required is passing the
  * function of what we want to run later.
  */
-public final class ActionQueue {
+public final class ActionQueue implements AbstractActionQueue {
     private final String name;
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private final ILogger logger;
     private boolean stop = false;
     private Thread queueThread;
-    private final Constants constants;
+    private boolean isStoppedStatus;
 
     /**
      * See the {@link ActionQueue} description for more detail. This
@@ -37,8 +35,7 @@ public final class ActionQueue {
         this.name = name;
         this.queueExecutor = context.getExecutorService();
         this.queue = new LinkedBlockingQueue<>();
-        context.getActionQueueList().add(this);
-        this.constants = context.getConstants();
+        context.getAqQueue().offer(this);
         this.logger = context.getLogger();
     }
 
@@ -60,11 +57,8 @@ public final class ActionQueue {
                 this only gets called when we are trying to shut everything
                 down cleanly
                  */
-                if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.printf("%s ActionQueue for %s is stopped.%n", TimeUtils.getTimestampIsoInstant(), name);
+                logger.logDebug(() -> String.format("%s ActionQueue for %s is stopped.%n", TimeUtils.getTimestampIsoInstant(), name));
                 Thread.currentThread().interrupt();
-            } catch (Exception ex) {
-                System.out.printf("%s ERROR: ActionQueue for %s has stopped unexpectedly. error: %s%n", TimeUtils.getTimestampIsoInstant(), name, ex);
-                throw ex;
             }
         };
         queueExecutor.submit(centralLoop);
@@ -72,7 +66,7 @@ public final class ActionQueue {
     }
 
     private void runAction() throws InterruptedException {
-        ThrowingRunnable action = queue.take();
+        RunnableWithDescription action = queue.take();
         try {
             action.run();
         } catch (Exception e) {
@@ -96,6 +90,8 @@ public final class ActionQueue {
     public void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {
             queue.add(new RunnableWithDescription(action, description));
+        } else {
+            throw new UtilsException(String.format("failed to enqueue %s - ActionQueue \"%s\" is stopped", description, this.name));
         }
     }
 
@@ -104,18 +100,18 @@ public final class ActionQueue {
      * @param count how many loops to wait before we crash it closed
      * @param sleepTime how long to wait in milliseconds between loops
      */
+    @Override
     public void stop(int count, int sleepTime) {
         String timestamp = TimeUtils.getTimestampIsoInstant();
-        if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) System.out.println(timestamp + " Stopping queue " + this);
+        logger.logDebug(() ->  String.format("%s Stopping queue %s", timestamp, this));
         stop = true;
         for (int i = 0; i < count; i++) {
             if (queue.isEmpty()) return;
-            if (constants.LOG_LEVELS.contains(LoggingLevel.DEBUG)) {
-                System.out.printf("%s Queue not yet empty, has %d elements. waiting...%n",timestamp, queue.size());
-            }
+            logger.logDebug(() ->  String.format("%s Queue not yet empty, has %d elements. waiting...%n",timestamp, queue.size()));
             MyThread.sleep(sleepTime);
         }
-        System.out.printf("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s", timestamp, this, queue.size(), queue);
+        isStoppedStatus = true;
+        logger.logDebug(() ->  String.format("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s", timestamp, this, queue.size(), queue));
     }
 
     /**
@@ -134,11 +130,17 @@ public final class ActionQueue {
         return this.name;
     }
 
-    Thread getQueueThread() {
+    @Override
+    public Thread getQueueThread() {
         return queueThread;
     }
 
-    LinkedBlockingQueue<RunnableWithDescription> getQueue() {
+    @Override
+    public LinkedBlockingQueue<RunnableWithDescription> getQueue() {
         return queue;
+    }
+
+    public boolean isStopped() {
+        return isStoppedStatus;
     }
 }

@@ -1,11 +1,12 @@
 package com.renomad.minum;
 
+import com.renomad.minum.logging.LoggingLevel;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Properties;
 
-import static com.renomad.minum.testing.TestFramework.assertEquals;
+import static com.renomad.minum.testing.TestFramework.*;
 
 /**
  * The {@link Constants} class is where we store values that
@@ -34,6 +35,7 @@ public class ConstantsTests {
     public void testGetProps_Array() {
         List<String> extraMimeMappings = Constants.extractList(" a,b, c, d, foo bar   , biz", "");
         assertEquals(extraMimeMappings, List.of("a","b","c","d", "foo bar","biz"));
+        assertEquals(Constants.extractList("", ""), List.of(""));
     }
 
     /**
@@ -47,10 +49,29 @@ public class ConstantsTests {
         properties.setProperty("SERVER_PORT","1234");
         properties.setProperty("DB_DIRECTORY","/some/directory/here");
         var constants = new Constants(properties);
-        assertEquals(constants.SERVER_PORT, 1234);
-        assertEquals(constants.DB_DIRECTORY, "/some/directory/here");
+        assertEquals(constants.serverPort, 1234);
+        assertEquals(constants.dbDirectory, "/some/directory/here");
         // if a property does not exist, it will use defaults
-        assertEquals(constants.USE_VIRTUAL, false);
+        assertEquals(constants.useVirtual, false);
+    }
 
+    @Test
+    public void testGettingConfiguredPropertiesFromFile_NothingFound() {
+        Properties props = Constants.getConfiguredProperties("foo");
+        assertEquals(props.size(), 0);
+    }
+
+    @Test
+    public void test_convertLoggingStringsToEnums() {
+        List<String> logLevels = List.of("DEBUG");
+        List<LoggingLevel> result = Constants.convertLoggingStringsToEnums(logLevels);
+        assertEquals(result.toString(), List.of(LoggingLevel.DEBUG).toString());
+    }
+
+    @Test
+    public void test_convertLoggingStringsToEnums_NegativeCase() {
+        List<String> logLevels = List.of("FUBAR");
+        List<LoggingLevel> result = Constants.convertLoggingStringsToEnums(logLevels);
+        assertEquals(result.toString(), List.of().toString());
     }
 }

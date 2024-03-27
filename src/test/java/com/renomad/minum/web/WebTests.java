@@ -3,6 +3,9 @@ package com.renomad.minum.web;
 import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.security.ITheBrig;
+import com.renomad.minum.security.TheBrig;
+import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -19,16 +22,13 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 
 import static com.renomad.minum.testing.TestFramework.*;
-import static com.renomad.minum.web.RequestLine.Method.GET;
-import static com.renomad.minum.web.RequestLine.Method.POST;
+import static com.renomad.minum.web.RequestLine.Method.*;
 import static com.renomad.minum.web.RequestLine.startLineRegex;
-import static com.renomad.minum.web.StatusLine.StatusCode._200_OK;
-import static com.renomad.minum.web.StatusLine.StatusCode._404_NOT_FOUND;
 import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
+import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
 /**
@@ -50,7 +50,7 @@ public class WebTests {
 
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
     static private ExecutorService es;
-    static private InputStreamUtils inputStreamUtils;
+    static private IInputStreamUtils inputStreamUtils;
     static private Context context;
     static private WebEngine webEngine;
     static private TestLogger logger;
@@ -68,6 +68,8 @@ public class WebTests {
     public static void setUpClass() throws IOException {
         var properties = new Properties();
         properties.setProperty("SERVER_PORT", "7777");
+        properties.setProperty("SUSPICIOUS_PATHS", ".env");
+        properties.setProperty("IS_THE_BRIG_ENABLED", "true");
         context = buildTestingContext("unit_tests",properties);
         webEngine = new WebEngine(context);
         es = context.getExecutorService();
@@ -78,18 +80,20 @@ public class WebTests {
 
 
     @AfterClass
-    public static void tearDownClass() throws IOException {
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().DB_DIRECTORY), logger);
-        new ActionQueueKiller(context).killAllQueues();
-        context.getExecutorService().shutdownNow();
-        context.getLogger().stop();
+    public static void tearDownClass() {
+        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), logger);
+        shutdownTestingContext(context);
+    }
+
+    private static void accept(String x) throws IOException{
+        throw new IOException("testing");
     }
 
     @Test
-    public void test_basicClientServer() throws IOException {
-        try (var primaryServer = webEngine.startServer(es)) {
+    public void test_basicClientServer() throws Exception {
+        try (IServer primaryServer = webEngine.startServer(es)) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
                     try (var server = primaryServer.getServer(client)) {
                         InputStream is = server.getInputStream();
 
@@ -104,7 +108,7 @@ public class WebTests {
     }
 
     @Test
-    public void test_basicClientServer_MoreConversation() throws IOException {
+    public void test_basicClientServer_MoreConversation() throws Exception {
         String msg1 = "hello foo!";
         String msg2 = "and how are you?";
         String msg3 = "oh, fine";
@@ -147,13 +151,14 @@ public class WebTests {
             }
         });
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+        assertTrue(logger.doesMessageExist("No worries folks, just testing the exception handling", 8));
     }
 
     /**
      * What would it be like if we were a real web server?
      */
     @Test
-    public void test_LikeARealWebServer() throws IOException {
+    public void test_LikeARealWebServer() throws Exception {
         try (var primaryServer = webEngine.startServer(es)) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
@@ -163,10 +168,12 @@ public class WebTests {
                         client.sendHttpLine("cookie: abc=123");
                         client.sendHttpLine("");
                         server.sendHttpLine("HTTP/1.1 200 OK");
+                        assertTrue(logger.doesMessageExist("HTTP/1.1 200 OK"));
                     }
                 }
             }
         }
+
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
@@ -176,26 +183,25 @@ public class WebTests {
      * truly act like the minum.web server we want it to be.
      */
     @Test
-    public void test_StartingServerWithHandler() throws IOException {
-      /*
+    public void test_StartingServerWithHandler() throws Exception {
+       /*
         Simplistic proof-of-concept of the minum.primary server
         handler.  The socket has been created and as new
         clients call it, this method handles each request.
-
-        There's nothing to prevent us using this as the entire
-        basis of a minum.web minum.testing.
        */
-        ThrowingConsumer<ISocketWrapper, IOException> handler = (sw) -> {
+        ThrowingConsumer<ISocketWrapper> handler = (sw) -> {
             InputStream is = sw.getInputStream();
             logger.logDebug(() -> inputStreamUtils.readLine(is));
+            assertTrue(logger.doesMessageExist("GET /index.html HTTP/1.1"));
         };
 
-        try (Server primaryServer = webEngine.startServer(es, handler)) {
+        try (IServer primaryServer = webEngine.startServer(es, handler)) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
                     // send a GET request
-                    client.sendHttpLine("GET /index.html HTTP/1.1");
-
+                    client.sendHttpLine("GET /index.html HTTP/1.0");
+                    client.sendHttpLine("");
+                    MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
                 }
             }
         }
@@ -219,11 +225,14 @@ public class WebTests {
         }
     }
 
+    /**
+     * A more realistic use case of the Minum server
+     */
     @Test
-    public void test_StartingWithHandler_2() throws IOException {
+    public void test_StartingWithHandler_Realistic() throws Exception {
         var wf = new WebFramework(context, default_zdt);
         wf.registerPath(GET, "add_two_numbers", Summation::addTwoNumbers);
-        try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -237,7 +246,7 @@ public class WebTests {
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                    Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(is);
+                    Headers hi = Headers.make(context).extractHeaderInformation(is);
 
                     assertEquals(hi.valueByKey("server"), List.of("minum"));
                     assertTrue(hi.valueByKey("date") != null);
@@ -254,13 +263,13 @@ public class WebTests {
     }
 
     @Test
-    public void test_TDD_ofHandler() throws IOException {
+    public void test_TDD_ofHandler() throws Exception {
         FakeSocketWrapper sw = new FakeSocketWrapper();
         AtomicReference<String> result = new AtomicReference<>();
         sw.sendHttpLineAction = result::set;
 
         // this is what we're really going to test
-        ThrowingConsumer<ISocketWrapper, IOException> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
+        ThrowingConsumer<ISocketWrapper> handler = (socketWrapper) -> socketWrapper.sendHttpLine("this is a test");
         handler.accept(sw);
 
         assertEquals("this is a test", result.get());
@@ -280,13 +289,13 @@ public class WebTests {
 
     @Test
     public void test_StartLine_Post() {
-        RequestLine sl = RequestLine.EMPTY(context).extractStartLine("POST /something HTTP/1.0");
+        RequestLine sl = RequestLine.empty(context).extractRequestLine("POST /something HTTP/1.0");
         assertEquals(sl.getMethod(), POST);
     }
 
     @Test
     public void test_StartLine_EmptyPath() {
-        RequestLine sl = RequestLine.EMPTY(context).extractStartLine("GET / HTTP/1.1");
+        RequestLine sl = RequestLine.empty(context).extractRequestLine("GET / HTTP/1.1");
         assertEquals(sl.getMethod(), GET);
         assertEquals(sl.getPathDetails().isolatedPath(), "");
     }
@@ -303,40 +312,61 @@ public class WebTests {
                     ""
             );
             for (String s : badStartLines) {
-                assertEquals(RequestLine.EMPTY(context).extractStartLine(s), RequestLine.EMPTY(context));
+                assertEquals(RequestLine.empty(context).extractRequestLine(s), RequestLine.empty(context));
             }
-            assertThrows(InvariantException.class, () -> RequestLine.EMPTY(context).extractStartLine(null));
+            assertThrows(InvariantException.class, () -> RequestLine.empty(context).extractRequestLine(null));
     }
 
     @Test
     public void test_StatusLine_HappyPath() {
         StatusLine sl = StatusLine.extractStatusLine("HTTP/1.1 200 OK");
-        assertEquals(sl.status(), _200_OK);
+        assertEquals(sl.status(), CODE_200_OK);
+    }
+
+    @Test
+    public void test_StatusLine_HappyPath_1_0() {
+        StatusLine sl = StatusLine.extractStatusLine("HTTP/1.0 200 OK");
+        assertEquals(sl.status(), CODE_200_OK);
     }
 
     @Test
     public void test_StatusLine_MissingStatusDescription() {
-        assertThrows(InvariantException.class, "HTTP/1.1 200 must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.1 200"));
+        assertThrows(InvariantException.class,
+                "HTTP/1.1 200 must match the statusLinePattern: ^HTTP/(...) (\\d{3}) (.*)$",
+                () -> StatusLine.extractStatusLine("HTTP/1.1 200"));
     }
 
     @Test
     public void test_StatusLine_MissingStatusCode() {
-        assertThrows(InvariantException.class, "HTTP/1.1  OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.1  OK"));
+        assertThrows(InvariantException.class,
+                "HTTP/1.1  OK must match the statusLinePattern: ^HTTP/(...) (\\d{3}) (.*)$",
+                () -> StatusLine.extractStatusLine("HTTP/1.1  OK"));
     }
 
     @Test
     public void test_StatusLine_MissingHttpVersion() {
-        assertThrows(InvariantException.class, "HTTP 200 OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP 200 OK"));
+        assertThrows(InvariantException.class,
+                "HTTP 200 OK must match the statusLinePattern: ^HTTP/(...) (\\d{3}) (.*)$",
+                () -> StatusLine.extractStatusLine("HTTP 200 OK"));
     }
 
     @Test
     public void test_StatusLine_InvalidHttpVersion() {
-        assertThrows(InvariantException.class, "HTTP/1.3 200 OK must match the statusLinePattern: ^HTTP/(1.1|1.0) (\\d{3}) (.*)$", () -> StatusLine.extractStatusLine("HTTP/1.3 200 OK"));
+        assertThrows(RuntimeException.class,
+                "HTTP version was not an acceptable value. Given: 1.3",
+                () -> StatusLine.extractStatusLine("HTTP/1.3 200 OK"));
     }
 
     @Test
     public void test_StatusLine_InvalidStatusCode() {
-        assertThrows(NoSuchElementException.class, "No value present", () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
+        assertThrows(NoSuchElementException.class,
+                "No value present",
+                () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
+    }
+
+    @Test
+    public void test_StatusLine_nullStatusLine() {
+        assertEquals(StatusLine.extractStatusLine(null), StatusLine.EMPTY);
     }
 
     /*
@@ -382,7 +412,7 @@ public class WebTests {
 
     /**
      * What happens if we are dealing with a form having many values?
-     * By the way, the maximum allowed is set by {@link com.renomad.minum.Constants#MAX_TOKENIZER_PARTITIONS}
+     * By the way, the maximum allowed is set by {@link com.renomad.minum.Constants#maxTokenizerPartitions}
      */
     @Test
     public void test_ParseForm_EdgeCase_ManyFormValues() {
@@ -412,7 +442,13 @@ public class WebTests {
     }
 
     @Test
-    public void test_ParseForm_MoreRealisticCase() throws IOException {
+    public void test_ParseForm_Empty() {
+        final var result = new BodyProcessor(context).parseUrlEncodedForm("");
+        assertEquals(result, Body.EMPTY);
+    }
+
+    @Test
+    public void test_ParseForm_MoreRealisticCase() throws Exception {
         var wf = new WebFramework(context, default_zdt);
         try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
@@ -438,7 +474,7 @@ public class WebTests {
 
                     // the server will respond to us.  Check everything is legit.
                     StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    Headers hi = Headers.make(context, inputStreamUtils).extractHeaderInformation(client.getInputStream());
+                    Headers hi = Headers.make(context).extractHeaderInformation(client.getInputStream());
                     String body = readBody(is, hi.contentLength());
 
                     assertEquals(body, "123");
@@ -449,7 +485,7 @@ public class WebTests {
     }
 
     @Test
-    public void test_NotFoundPath() throws IOException {
+    public void test_NotFoundPath() throws Exception {
         var wf = new WebFramework(context, default_zdt);
         try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
@@ -476,7 +512,7 @@ public class WebTests {
      * see https://www.rfc-editor.org/rfc/rfc7230#section-3.3.3
      */
     @Test
-    public void test_TransferEncodingChunked() throws IOException {
+    public void test_TransferEncodingChunked() throws Exception {
         String receivedData =
             """
             HTTP/1.1 200 OK
@@ -537,6 +573,16 @@ public class WebTests {
         assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
     }
 
+    @Test
+    public void test_MultiPartForm_NoContentDisposition() {
+        byte[] multiPartData = makeTestMultiPartDataNoContentDisposition();
+        var bp = new BodyProcessor(context);
+
+        Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
+        assertTrue(logger.doesMessageExist("No name value found in the headers of a partition."));
+        assertTrue(result.asString().contains("I am a value that is text"));
+    }
+
     /**
      * Each part of the multipart data has its own headers. Let's
      * make sure to convey this information to users.
@@ -583,12 +629,12 @@ public class WebTests {
      * </p>
      */
     @Test
-    public void test_MultiPartForm_HappyPath() throws IOException {
+    public void test_MultiPartForm_HappyPath() throws Exception {
         byte[] multiPartData = makeTestMultiPartData();
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final Function<RequestLine, Function<Request, Response>> testHandler = (sl -> r -> {
+        final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> {
             if (r.body().asString("text1").equals("I am a value that is text") &&
                     (r.body().asBytes("image_uploads"))[0] == 1 &&
                     (r.body().asBytes("image_uploads"))[1] == 2 &&
@@ -596,14 +642,14 @@ public class WebTests {
             ) {
                 return Response.htmlOk("<p>r was </p>");
             } else {
-              return new Response(_404_NOT_FOUND);
+              return new Response(CODE_404_NOT_FOUND);
             }
         });
 
         WebFramework wf = new WebFramework(context, default_zdt);
-        try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -615,7 +661,7 @@ public class WebTests {
                     client.send(multiPartData);
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    assertEquals(statusLine.status(), _200_OK);
+                    assertEquals(statusLine.status(), CODE_200_OK);
                 }
             }
         }
@@ -635,12 +681,12 @@ public class WebTests {
      * it's the world I have to live in.  It's a bit complicated of a test, so I'll explain as I go.
      */
     @Test
-    public void test_Path_InsaneWorld() {
+    public void test_Path_InsaneWorld() throws Exception {
         // The startline causing us heartache
         String startLineString = "GET /.well-known/acme-challenge/foobar HTTP/1.1";
 
         // Convert it to a typed value
-        var startLine = RequestLine.EMPTY(context).extractStartLine(startLineString);
+        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
 
         // instantiate a web framework to do the processing.  We're TDD'ing some new
         // code inside this.
@@ -673,18 +719,16 @@ public class WebTests {
      * Playing a bit with some of keep-alive behavior
      */
     @Test
-    public void test_KeepAlive_Http_1_0() throws IOException {
+    public void test_KeepAlive_Http_1_0() throws Exception {
 
-        final Function<RequestLine, Function<Request, Response>> testHandler = (sl -> r -> {
-           return Response.htmlOk("looking good!");
-        });
+        final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> Response.htmlOk("looking good!"));
 
         WebFramework wf = new WebFramework(context, default_zdt);
-        try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
-                    Headers headers = Headers.make(context, inputStreamUtils);
+                    Headers headers = Headers.make(context);
 
                     // send a GET request
                     client.sendHttpLine("GET /some_endpoint HTTP/1.0");
@@ -693,7 +737,7 @@ public class WebTests {
                     client.sendHttpLine("");
 
                     StatusLine statusLine1 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    assertEquals(statusLine1.status(), _200_OK);
+                    assertEquals(statusLine1.status(), CODE_200_OK);
                     Headers headers1 = headers.extractHeaderInformation(is);
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                     new BodyProcessor(context).extractData(is, headers1);
@@ -705,7 +749,7 @@ public class WebTests {
                     client.sendHttpLine("");
 
                     StatusLine statusLine2 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    assertEquals(statusLine2.status(), _200_OK);
+                    assertEquals(statusLine2.status(), CODE_200_OK);
                     Headers headers2 = headers.extractHeaderInformation(is);
                     assertTrue(headers2.valueByKey("keep-alive") == null);
                 }
@@ -714,9 +758,9 @@ public class WebTests {
 
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
-        try (Server primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -726,47 +770,76 @@ public class WebTests {
                     client.sendHttpLine("");
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    assertEquals(statusLine.status(), _200_OK);
-                    Headers headers = Headers.make(context, inputStreamUtils);
+                    assertEquals(statusLine.status(), CODE_200_OK);
+                    Headers headers = Headers.make(context);
                     Headers headers1 = headers.extractHeaderInformation(is);
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                 }
             }
         }
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+
+    }
+
+    @Test
+    public void test_InvalidRequestLine() throws Exception {
+        WebFramework wf = new WebFramework(context, default_zdt);
+        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+                try (var client = webEngine.startClient(socket)) {
+                    // send an invalid GET request
+                    client.sendHttpLine("FOOP FOOP FOOP");
+                    client.sendHttpLine("");
+                    MyThread.sleep(10);
+                    assertTrue(logger.doesMessageExist("RequestLine was unparseable.  Returning.", 20));
+                }
+            }
+        }
+        assertTrue(logger.doesMessageExist("close called on http server", 20));
+        MyThread.sleep(10);
+
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
+
+    /**
+     * If there are errors when the server gets instantiated, it throws
+     * an error
+     */
+    @Test
+    public void test_InvalidPort() {
+        var properties = new Properties();
+        properties.setProperty("SERVER_PORT", "999999999");
+        Context context = buildTestingContext("testing invalid port",properties);
+        try {
+            WebEngine webEngine = new WebEngine(context);
+            assertThrows(WebServerException.class, () -> webEngine.startServer(es, null));
+            MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+        } finally {
+            shutdownTestingContext(context);
+        }
     }
 
     @Test
     public void test_IsThereABody_ContentType() {
-        var webFramework = new WebFramework(context, default_zdt);
-
         // content-type: foo is illegitimate, but it will cause the system to look closer
         var headers1 = new Headers(List.of("content-type: foo"), context);
-        assertFalse(webFramework.isThereIsABody(headers1));
+        assertFalse(WebFramework.isThereIsABody(headers1));
     }
 
     @Test
     public void test_IsThereABody_TransferEncodingFoo() {
-        var webFramework = new WebFramework(context, default_zdt);
-
         // transfer-encoding: foo is illegitimate, it will look for chunked but won't find it.
         var headers2 = new Headers(List.of("content-type: foo", "transfer-encoding: foo"), context);
-        assertFalse(webFramework.isThereIsABody(headers2));
+        assertFalse(WebFramework.isThereIsABody(headers2));
     }
 
     @Test
     public void test_IsThereABody_TransferEncodingChunked() {
-        var webFramework = new WebFramework(context, default_zdt);
-
         // transfer-encoding: chunked is acceptable, it will return true here
         var headers3 = new Headers(List.of("content-type: foo", "transfer-encoding: chunked"), context);
-        assertTrue(webFramework.isThereIsABody(headers3));
+        assertTrue(WebFramework.isThereIsABody(headers3));
     }
-
-    /*
-    Since I recently saw a failure on the server due to missing testing of some logic
-    branches, trying to get into a pattern of testing branches more robustly.
-     */
 
     /**
      * a situation where nothing was registered to the list of partial paths
@@ -775,7 +848,6 @@ public class WebTests {
     public void test_PartialMatch_NothingRegistered() {
         var webFramework = new WebFramework(context, default_zdt);
 
-        //
         var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
@@ -786,7 +858,7 @@ public class WebTests {
     @Test
     public void test_PartialMatch_PerfectMatch() {
         var webFramework = new WebFramework(context, default_zdt);
-        Function<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
@@ -797,7 +869,7 @@ public class WebTests {
     @Test
     public void test_PartialMatch_DoesNotMatch() {
         var webFramework = new WebFramework(context, default_zdt);
-        Function<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
@@ -808,7 +880,7 @@ public class WebTests {
     @Test
     public void test_PartialMatch_DifferentMethod() {
         var webFramework = new WebFramework(context, default_zdt);
-        Function<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
@@ -819,7 +891,7 @@ public class WebTests {
     @Test
     public void test_PartialMatch_MatchTooMuch() {
         var webFramework = new WebFramework(context, default_zdt);
-        Function<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
         webFramework.registerPartialPath(GET, "m", helloHandler);
@@ -869,10 +941,10 @@ public class WebTests {
     @Test
     public void test_ExtractMapFromQueryString_TooManyPairs() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < context.getConstants().MAX_QUERY_STRING_KEYS_COUNT + 2; i++) {
+        for (int i = 0; i < context.getConstants().maxQueryStringKeysCount + 2; i++) {
                 sb.append(String.format("foo%d=bar%d&", i, i));
         }
-        RequestLine requestLine = RequestLine.EMPTY(context);
+        RequestLine requestLine = RequestLine.empty(context);
         assertThrows(ForbiddenUseException.class, () -> requestLine.extractMapFromQueryString(sb.toString()));
     }
 
@@ -881,7 +953,7 @@ public class WebTests {
      */
     @Test
     public void test_ExtractMapFromQueryString_NoEqualsSign() {
-        RequestLine requestLine = RequestLine.EMPTY(context);
+        RequestLine requestLine = RequestLine.empty(context);
         var result = requestLine.extractMapFromQueryString("foo");
         assertEquals(result, Map.of());
     }
@@ -894,7 +966,7 @@ public class WebTests {
      * and we'll return early from the handler, returning nothing.
      */
     @Test
-    public void test_RedirectHandler_HappyPath() throws IOException {
+    public void test_RedirectHandler_HappyPath() throws Exception {
         var webFramework = new WebFramework(context);
         var redirectHandler = webFramework.makeRedirectHandler();
         FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
@@ -910,14 +982,102 @@ public class WebTests {
      * and we'll return early from the handler, returning nothing.
      */
     @Test
-    public void test_RedirectHandler_NoStartLine() throws IOException {
+    public void test_RedirectHandler_NoStartLine() throws Exception {
         var webFramework = new WebFramework(context);
         var redirectHandler = webFramework.makeRedirectHandler();
-        FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+        var fakeSocketWrapper = new FakeSocketWrapper();
         redirectHandler.accept(fakeSocketWrapper);
         assertEquals(fakeSocketWrapper.baos.toString(), "");
     }
 
+    @Test
+    public void test_RedirectHandler_EmptyStartLine() throws Exception {
+        var webFramework = new WebFramework(context);
+        var redirectHandler = webFramework.makeRedirectHandler();
+        var fakeSocketWrapper = new FakeSocketWrapper();
+        fakeSocketWrapper.bais = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
+        redirectHandler.accept(fakeSocketWrapper);
+        assertEquals(fakeSocketWrapper.baos.toString(), "");
+    }
+
+    /**
+     * Test what happens when an error occurs during readLine
+     */
+    @Test
+    public void test_RedirectHandler_ExceptionThrown_AtReadLine() {
+        try (var fakeSocketWrapper = new FakeSocketWrapper()) {
+            var throwingInputStreamUtils = new IInputStreamUtils() {
+
+                @Override
+                public byte[] readUntilEOF(InputStream inputStream) {
+                    return new byte[0];
+                }
+
+                @Override
+                public byte[] readChunkedEncoding(InputStream inputStream) {
+                    return new byte[0];
+                }
+
+                @Override
+                public String readLine(InputStream inputStream) throws IOException {
+                    throw new IOException("This is a test");
+                }
+
+                @Override
+                public byte[] read(int lengthToRead, InputStream inputStream) {
+                    return new byte[0];
+                }
+            };
+            assertThrows(WebServerException.class,
+                    "java.io.IOException: This is a test",
+                    () -> WebFramework.redirectHandlerCore(
+                            fakeSocketWrapper,
+                            throwingInputStreamUtils,
+                            context,
+                            "testing",
+                            logger));
+        }
+    }
+
+    /**
+     * Test what happens when an error occurs during sending
+     */
+    @Test
+    public void test_RedirectHandler_ExceptionThrown_AtSending() {
+        try (var fakeSocketWrapper = new ThrowingFakeSocketWrapper()) {
+            var throwingInputStreamUtils = new IInputStreamUtils() {
+
+                @Override
+                public byte[] readUntilEOF(InputStream inputStream) {
+                    return new byte[0];
+                }
+
+                @Override
+                public byte[] readChunkedEncoding(InputStream inputStream) {
+                    return new byte[0];
+                }
+
+                @Override
+                public String readLine(InputStream inputStream) {
+                    return "testing";
+                }
+
+                @Override
+                public byte[] read(int lengthToRead, InputStream inputStream) {
+                    return new byte[0];
+                }
+            };
+
+            assertThrows(WebServerException.class,
+                    "java.io.IOException: testing send(String)",
+                    () -> WebFramework.redirectHandlerCore(
+                            fakeSocketWrapper,
+                            throwingInputStreamUtils,
+                            context,
+                            "testing",
+                            logger));
+        }
+    }
 
     private static byte[] makeTestMultiPartData() {
         try {
@@ -936,6 +1096,36 @@ public class WebTests {
                 --i_am_a_boundary\r
                 Content-Type: application/octet-stream\r
                 Content-Disposition: form-data; name="image_uploads"; filename="photo_preview.jpg"\r
+                \r
+                """.getBytes(StandardCharsets.UTF_8));
+            baos.write(new byte[]{1, 2, 3});
+            baos.write(
+                """
+                --i_am_a_boundary--
+                """.getBytes(StandardCharsets.UTF_8));
+
+            return baos.toByteArray();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+
+    private static byte[] makeTestMultiPartDataNoContentDisposition() {
+        try {
+        /*
+        Per the specs for multipart, the boundary is preceded by
+        two dashes.
+         */
+            final var baos = new ByteArrayOutputStream();
+            baos.write(
+                """
+                --i_am_a_boundary\r
+                Content-Type: text/plain\r
+                \r
+                I am a value that is text\r
+                --i_am_a_boundary\r
+                Content-Type: application/octet-stream\r
                 \r
                 """.getBytes(StandardCharsets.UTF_8));
             baos.write(new byte[]{1, 2, 3});
@@ -989,4 +1179,305 @@ public class WebTests {
         assertEquals(body, gettysburgAddress);
         assertEquals(stringBuilder.toString(), "");
     }
+
+    /**
+     * A complete URL, known as the absolute form, is mostly used with
+     * GET when connected to a proxy.
+     */
+    @Test
+    public void testAbsoluteForm() throws Exception {
+        String startLineString = "GET https://foo.bar.baz HTTP/1.1";
+        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var webFramework = new WebFramework(context);
+
+        ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
+
+        assertEquals(response.apply(null), new Response(CODE_400_BAD_REQUEST));
+    }
+
+
+    /**
+     * The authority component of a URL, consisting of the domain name
+     * and optionally the port (prefixed by a ':'), is called the
+     * authority form. It is only used with CONNECT when setting up
+     * an HTTP tunnel.
+     * <p>
+     *     We don't handle HTTP tunnels.
+     * </p>
+     */
+    @Test
+    public void testAuthorityComponent() {
+        String startLineString = "CONNECT  foo.bar:80 HTTP/1.1";
+        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var webFramework = new WebFramework(context);
+
+        ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
+
+        assertTrue(response == null);
+    }
+
+    /**
+     * The asterisk form, a simple asterisk ('*') is used
+     * with OPTIONS, representing the server as a whole. OPTIONS * HTTP/1.1
+     */
+    @Test
+    public void testAsteriskForm() {
+        String startLineString = "OPTIONS * HTTP/1.1";
+        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var webFramework = new WebFramework(context);
+
+        ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
+
+        assertTrue(response == null);
+    }
+
+    /**
+     * If processRequest is given a handlerFinder that returns null
+     * for the path, we'll return a 404 not found.
+     */
+    @Test
+    public void testNoEndpointFound() throws Exception {
+        var webFramework = new WebFramework(context);
+        WebFramework.ProcessingResult result;
+        try (var sw = new FakeSocketWrapper()) {
+
+            result = webFramework.processRequest(
+                    path -> null,
+                    sw,
+                    new RequestLine(POST,
+                            new RequestLine.PathDetails(
+                                    "FOO",
+                                    "",
+                                    Map.of()
+                            ),
+                            ONE_DOT_ONE,
+                            "POST /FOO HTTP/1.1",
+                            context
+                    ),
+                    null,
+                    null);
+        }
+
+        assertEquals(result.resultingResponse(), new Response(CODE_404_NOT_FOUND));
+        assertEquals(result.clientRequest().requestLine().toString(), "StartLine{method=POST, pathDetails=PathDetails[isolatedPath=FOO, rawQueryString=, queryString={}], version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1'}");
+        assertEquals(result.clientRequest().remoteRequester(), "tester");
+    }
+
+    /**
+     * If a failure takes place during processing of the business code, a
+     * random integer will be generated and returned in the 500 to the browser,
+     * and also to the logs.  This correlation helps the developer debug the situation.
+     */
+    @Test
+    public void testExceptionThrownWhileProcessing() throws Exception {
+        var webFramework = new WebFramework(context);
+        ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> handlerFinder = path -> request -> {
+            throw new RuntimeException("just for testing error handling - no worries");
+        };
+        WebFramework.ProcessingResult result;
+        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
+            result = webFramework.processRequest(handlerFinder, sw, null, null, null);
+        }
+        assertEquals(result.resultingResponse().statusCode(), CODE_500_INTERNAL_SERVER_ERROR);
+        String body = new String(result.resultingResponse().body());
+        String errorCode = RegexUtils.find("Server error: (?<errorcode>.*)$", body, "errorcode");
+        String errorMessage = logger.findFirstMessageThatContains(errorCode, 7);
+
+        assertTrue(errorMessage.contains("Code: "+errorCode+". Error: java.lang.RuntimeException: just for testing error handling - no worries"));
+    }
+
+    /**
+     * This method handles actually sending the data on the socket.
+     * If we get a HEAD request, we send the headers but no body.
+     */
+    @Test
+    public void testSendingResponse_Head() throws IOException {
+        var webFramework = new WebFramework(context);
+        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
+            var preparedResponse = new PreparedResponse("fake status line and headers", new byte[0]);
+            var processingResult = new WebFramework.ProcessingResult(
+                    new Request(
+                            null,
+                            new RequestLine(HEAD,
+                                    new RequestLine.PathDetails("fake testing path", null, null),
+                                    null,
+                                    null,
+                                    context),
+                            null,
+                            null),
+                    null);
+            webFramework.sendResponse(sw, preparedResponse, processingResult);
+        }
+
+        String msg = logger.findFirstMessageThatContains("is requesting HEAD");
+        assertEquals(msg, "client null is requesting HEAD for fake testing path.  Excluding body from response");
+    }
+
+    @Test
+    public void testPreparedResponseString() {
+        var preparedResponse = new PreparedResponse("fake status line and headers", new byte[0]);
+        assertEquals(preparedResponse.toString(), "PreparedResponse{statusLineAndHeaders='fake status line and headers', body=[]}");
+    }
+
+    /**
+     * If the client has made a connection but has sent an empty string in
+     * the start line spot, there's nothing for us to do, so bail out with
+     * an exception.  This is going to be common, because browsers make
+     * over-eager connections anticipating a user request, and because of
+     * keep-alive connections that end up being unused.
+     */
+    @Test
+    public void testGettingProcessedStartLine_EdgeCase_EmptyStartLine() {
+        var webFramework = new WebFramework(context);
+        RequestLine result;
+        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
+
+            result = webFramework.getProcessedRequestLine(sw, "");
+        }
+        assertEquals(result, RequestLine.empty(context));
+    }
+
+    @Test
+    public void testGettingProcessedStartLine_EdgeCase_InvalidStartLine() {
+        var webFramework = new WebFramework(context);
+        RequestLine result;
+        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
+
+            result = webFramework.getProcessedRequestLine(sw, "FOO FOO the FOO");
+        }
+        assertEquals(result, RequestLine.empty(context));
+    }
+
+    /**
+     * If the client requests a path we deem suspicious, we
+     * throw an exception that will put them into the brig
+     * <p>
+     *     Note: the ".env" suspicious path is set in the initialization method
+     *     for this test class.
+     * </p>
+     */
+    @Test
+    public void testCheckIfSuspiciousPath() {
+        var webFramework = new WebFramework(context);
+        ForbiddenUseException ex;
+        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
+
+            ex = assertThrows(ForbiddenUseException.class, () -> webFramework.checkIfSuspiciousPath(
+                    sw,
+                    new RequestLine(GET,
+                            new RequestLine.PathDetails(".env", null, null),
+                            ONE_DOT_ONE,
+                            null,
+                            context)
+            ));
+        }
+        assertEquals(ex.getMessage(), "tester is looking for a vulnerability, for this: .env");
+    }
+
+    /**
+     * When we start handling the request from a client, right at
+     * the onset we check to see if this is a client we recognize
+     * in our list of attackers.  if so, we throw a ForbiddenUseException,
+     * which will prevent further processing and also re-add this client to
+     * the brig.  As long as they are sending requests, we're going
+     * to reset their time in the brig.
+     */
+    @Test
+    public void testDumpIfAttacker() {
+        var webFramework = new WebFramework(context);
+        ForbiddenUseException ex;
+        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
+            TheBrig theBrig = new TheBrig(context);
+            String attacker = "I_am_attacker";
+            theBrig.sendToJail(attacker + "_vuln_seeking", 500);
+            sw.getRemoteAddrAction = () -> attacker;
+
+            ex = assertThrows(ForbiddenUseException.class, () -> webFramework.dumpIfAttacker(sw, theBrig));
+        }
+
+        assertEquals(ex.getMessage(), "closing the socket on I_am_attacker due to being found in the brig");
+    }
+
+    /**
+     * If the http version is not 1.1 or 1.0, it's not keep alive
+     */
+    @Test
+    public void testDetermineIfKeepAlive_EdgeCase_HttpVersionNone() {
+        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.NONE, "", context);
+        Headers headers = new Headers(List.of("connection: keep-alive"), context);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        assertFalse(isKeepAlive);
+    }
+
+    /**
+     * If an HTTP request is version 1.1, the default is to set them as keep-alive
+     */
+    @Test
+    public void testDetermineIfKeepAlive_OneDotOne() {
+        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, ONE_DOT_ONE, "", context);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, Headers.make(context), logger);
+        assertTrue(isKeepAlive);
+    }
+
+    /**
+     * If an HTTP request is version 1.0, the keep-alive header has to be explicit
+     */
+    @Test
+    public void testDetermineIfKeepAlive_OneDotZero() {
+        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", context);
+        Headers headers = new Headers(List.of("connection: keep-alive"), context);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        assertTrue(isKeepAlive);
+    }
+
+    /**
+     * If an HTTP request is version 1.0, the keep-alive header has to be explicit
+     */
+    @Test
+    public void testDetermineIfKeepAlive_OneDotZero_NoHeader() {
+        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", context);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, Headers.make(context), logger);
+        assertFalse(isKeepAlive);
+    }
+
+    /**
+     * If the client sends connection: close, we won't do keep-alive
+     */
+    @Test
+    public void testDetermineIfKeepAlive_OneDotZero_ConnectionClose() {
+        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", context);
+        Headers headers = new Headers(List.of("connection: close"), context);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        assertFalse(isKeepAlive);
+    }
+
+    /**
+     * If the client sends connection: close, we won't do keep-alive
+     */
+    @Test
+    public void testDetermineIfKeepAlive_OneDotOne_ConnectionClose() {
+        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, ONE_DOT_ONE, "", context);
+        Headers headers = new Headers(List.of("connection: close"), context);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        assertFalse(isKeepAlive);
+    }
+
+    /**
+     * Because the code is written to facilitate access for testing,
+     * there have to be checks on whether the objects are non-null before
+     * running {@link WebFramework#dumpIfAttacker(ISocketWrapper, ITheBrig)}.
+     */
+    @Test
+    public void test_dumpAttackerNullChecks_NullBrig() {
+        var webFramework = new WebFramework(context);
+        var fullSystem = new FullSystem(context);
+        assertFalse(webFramework.dumpIfAttacker(null, fullSystem));
+    }
+
+    @Test
+    public void test_dumpAttackerNullChecks_NullFullSystem() {
+        var webFramework = new WebFramework(context);
+        assertFalse(webFramework.dumpIfAttacker(null, (FullSystem) null));
+    }
+
 }
