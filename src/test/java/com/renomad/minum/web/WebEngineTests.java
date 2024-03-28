@@ -76,7 +76,7 @@ public class WebEngineTests {
 
     @Test
     public void test_MalformedUrl() {
-        var ex = assertThrows(WebServerException.class, () -> WebEngine.getKeyStoreResult(true, "foo:", "password", logger));
-        assertEquals(ex.getMessage(), "Error while building keystoreUrl: java.nio.file.InvalidPathException: Illegal char <:> at index 3: foo:");
+        var ex = assertThrows(WebServerException.class, () -> WebEngine.getKeyStoreResult(true, null, "password", logger));
+        assertEquals(ex.getMessage(), "Error while building keystoreUrl: java.lang.NullPointerException");
     }
 }

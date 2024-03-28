@@ -640,7 +640,7 @@ public class DbTests {
         var db = new Db<>(foosDirectory, context, INSTANCE);
         MyThread.sleep(20);
         db.stop();
-        assertTrue(logger.doesMessageExist("Stopping queue DatabaseWriter out\\simple_db\\foos", 8));
+        assertTrue(logger.doesMessageExist("Stopping queue DatabaseWriter", 8));
     }
 
     @Test
@@ -648,7 +648,7 @@ public class DbTests {
         var db = new Db<>(foosDirectory, context, INSTANCE);
         MyThread.sleep(20);
         db.stop(1, 1);
-        assertTrue(logger.doesMessageExist("Stopping queue DatabaseWriter out\\simple_db\\foos", 8));
+        assertTrue(logger.doesMessageExist("Stopping queue DatabaseWriter", 8));
     }
 
     static class Foo extends DbData<Foo> implements Comparable<Foo> {
