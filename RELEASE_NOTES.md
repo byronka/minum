@@ -1,3 +1,11 @@
+v3.1.0
+------
+
+* Adjust tests to work on Mac
+* Include "throws Exception" on ThrowingRunnable.  This obviates handling checked
+  exceptions when adding endpoints - the thrown exception will get caught and
+  logged at `throwingRunnableWrapper`.
+
 v3.0.0
 ------
 

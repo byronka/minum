@@ -1,6 +1,7 @@
 package com.renomad.minum.utils;
 
 import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.Inmate;
 import com.renomad.minum.security.TheBrig;
 
 import java.util.ArrayList;
@@ -24,7 +25,7 @@ public final class SerializationUtils {
      *     and making sure all the values are accounted for.
      * </p>
      * <p>
-     *     For example, see how this is used in {@link TheBrig.Inmate#serialize()}
+     *     For example, see how this is used in {@link Inmate#serialize()}
      * </p>
      */
     public static String serializeHelper(Object... values) {
@@ -46,7 +47,7 @@ public final class SerializationUtils {
      *     the package "com.renomad.minum.database"
      * </p>
      * <p>
-     *     For an example, see how this is used in {@link com.renomad.minum.security.TheBrig.Inmate#deserialize(String)}
+     *     For an example, see how this is used in {@link Inmate#deserialize(String)}
      * </p>
      * @param serializedText the string we are splitting into tokens
      */

@@ -150,7 +150,7 @@ public final class WebFramework {
             ISocketWrapper sw,
             RequestLine requestLine,
             Headers hi,
-            Body body) {
+            Body body) throws Exception {
         Request clientRequest = new Request(hi, requestLine, body, sw.getRemoteAddr());
         Response resultingResponse;
         // Unless this is an unusual test, the definition for handlerFinder is at findEndpointForThisStartline
