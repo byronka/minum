@@ -2,7 +2,6 @@ package com.renomad.minum.utils;
 
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.security.Inmate;
-import com.renomad.minum.security.TheBrig;
 
 import java.util.ArrayList;
 import java.util.List;

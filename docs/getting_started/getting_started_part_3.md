@@ -48,7 +48,7 @@ Add Junit as a dependency in the file at `pom.xml`:
         <dependency>
             <groupId>com.renomad</groupId>
             <artifactId>minum</artifactId>
-            <version>3.1.0</version>
+            <version>3.1.1</version>
         </dependency>
 
         <!-- JUnit is a testing framework -->
@@ -66,7 +66,7 @@ Add Junit as a dependency in the file at `pom.xml`:
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.1.1</version>
                 <configuration>
                     <mainClass>org.example.myproject.Main</mainClass>
                 </configuration>

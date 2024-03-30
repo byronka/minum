@@ -17,6 +17,34 @@ public class Main {
 }
 ```
 
+What is this?
+--------------
+
+This web framework, "Minum", provides an all-in-one minimalist foundation for a highly-maintainable 
+single-binary web application. For TDD, by TDD.
+
+* Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
+* Around 100% test coverage that runs in 30 seconds without any special setup (`make test_coverage`)
+* Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`)
+* Relies on no dependencies other than the Java 21 SDK - i.e. no Netty, Jetty, Tomcat, Log4j, Hibernate, MySql, etc.
+* Well-documented
+* Uses no reflection
+* Requires no annotations
+* No magic
+* Has [examples of framework use](#example-projects-demonstrating-usage):
+  * a tiny project, as the basis to get started
+  * a small project, showing some minimal use cases
+  * a full application demonstrating realistic usage
+
+Minum is five thousand lines of code - the "minimalist" competitors range from 400,000 to 700,000 lines when 
+accounting for their dependencies. I have not found a similar project.
+
+Applying a minimalist approach enables easier debugging, maintainability, and lower overall cost. Most 
+frameworks trade faster start-up for a higher overall cost. If you need sustainable quality, the software 
+must be well-tested and documented from the onset.  As an example, this project's ability to attain such
+high test coverage was greatly enabled by the minimalism paradigm.
+
+
 Getting Started
 ---------------
 
@@ -31,7 +59,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>3.1.0</version>
+    <version>3.1.1</version>
 </dependency>
 ```
 
@@ -56,7 +84,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,396 | 141,048 | 1,085,405   |
+| 4,398 | 141,048 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 

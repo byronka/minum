@@ -1,13 +1,20 @@
-v3.1.0
-------
+v3.1.1 - Apr 5, 2024
+--------------------
+
+* bug fix: multipart data partitioning.  The multipart-form decoding was not properly 
+  trimming the last two bytes - carriage return and line feed.  That is to say, data
+  being received by multipart-form had two bytes appended at the end.
+
+v3.1.0 - Mar 29, 2024
+---------------------
 
 * Adjust tests to work on Mac
 * Include "throws Exception" on ThrowingRunnable.  This obviates handling checked
   exceptions when adding endpoints - the thrown exception will get caught and
   logged at `throwingRunnableWrapper`.
 
-v3.0.0
-------
+v3.0.0 - Mar 27, 2024
+--------------------
 
 * Deeper testing - nearly 100% test coverage
 * Breaking changes (see [migration guide](docs/migration_to_v3.md)): 

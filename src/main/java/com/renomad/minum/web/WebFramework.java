@@ -203,9 +203,23 @@ public final class WebFramework {
             logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
             body = bodyProcessor.extractData(sw.getInputStream(), hi);
             Body finalBody = body;
-            logger.logTrace(() -> "The body is: " + finalBody.asString());
+
+            logger.logTrace(() -> getBodyStringForTraceLog(finalBody.asString()));
         }
         return body;
+    }
+
+    static String getBodyStringForTraceLog(String bodyString) {
+        if (bodyString == null) {
+            return "The body was null";
+        }
+        String possiblyTruncatedBody;
+        if (bodyString.length() > 50) {
+            possiblyTruncatedBody = bodyString.substring(0,50);
+        } else {
+            possiblyTruncatedBody = bodyString;
+        }
+        return "The body is: " + possiblyTruncatedBody;
     }
 
     /**

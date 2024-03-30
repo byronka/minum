@@ -35,7 +35,9 @@ public final class InputStreamUtils implements IInputStreamUtils {
                     throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.maxReadSizeBytes);
                 }
                 int a = inputStream.read();
-                if (a == -1) return byteListToArray(result);
+                if (a == -1) {
+                    return byteListToArray(result);
+                }
 
                 result.add((byte) a);
             }

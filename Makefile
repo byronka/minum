@@ -3,7 +3,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=3.1.0
+VERSION=3.1.1
 
 MAVEN := ./mvnw
 
@@ -42,6 +42,7 @@ test_coverage::
 #: run mutation testing using pitest
 mutation_test::
 	 @echo "be patient - this can take 10 minutes, for real"
+	 @echo "It will complain about TIMED_OUT a lot - but don't worry.  Just wait."
 	 @${MAVEN} test-compile org.pitest:pitest-maven:mutationCoverage
 
 #: build the javadoc documentation in the out/javadoc directory

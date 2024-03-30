@@ -6,6 +6,7 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.testing.RegexUtils;
+import com.renomad.minum.testing.TestFailureException;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -554,10 +555,17 @@ public class WebTests {
         byte[] multiPartData = makeTestMultiPartData();
         var bp = new BodyProcessor(context);
 
-        List<byte[]> result = bp.split(multiPartData, "--i_am_a_boundary");
+        List<byte[]> result = bp.split(multiPartData, "\r\n--i_am_a_boundary");
+
         assertEquals(result.size(), 2);
-        assertEquals(result.get(0).length, 101);
-        assertEquals(result.get(1).length, 129);
+        assertEquals(new String(result.get(0)), "Content-Type: text/plain\r\n" +
+                "Content-Disposition: form-data; name=\"text1\"\r\n" +
+                "\r\n" +
+                "I am a value that is text");
+        assertEquals(new String(result.get(1)), "Content-Type: application/octet-stream\r\n" +
+                "Content-Disposition: form-data; name=\"image_uploads\"; filename=\"photo_preview.jpg\"\r\n" +
+                "\r\n" +
+                "\u0001\u0002\u0003");
     }
 
     /**
@@ -569,6 +577,7 @@ public class WebTests {
         var bp = new BodyProcessor(context);
 
         Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
+
         assertEquals(result.asString("text1"), "I am a value that is text");
         assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
     }
@@ -579,7 +588,6 @@ public class WebTests {
         var bp = new BodyProcessor(context);
 
         Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
-        assertTrue(logger.doesMessageExist("No name value found in the headers of a partition."));
         assertTrue(result.asString().contains("I am a value that is text"));
     }
 
@@ -596,6 +604,7 @@ public class WebTests {
         var bp = new BodyProcessor(context);
 
         Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
+
         assertEquals(result.asString("text1"), "I am a value that is text");
         assertEquals(result.partitionHeaders("text1").valueByKey("content-type"), List.of("text/plain"));
         assertEquals(result.partitionHeaders("text1").valueByKey("content-disposition"), List.of("form-data; name=\"text1\""));
@@ -636,11 +645,77 @@ public class WebTests {
 
         final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> {
             if (r.body().asString("text1").equals("I am a value that is text") &&
+                    (r.body().asBytes("image_uploads")).length == 3 &&
                     (r.body().asBytes("image_uploads"))[0] == 1 &&
                     (r.body().asBytes("image_uploads"))[1] == 2 &&
                     (r.body().asBytes("image_uploads"))[2] == 3
             ) {
-                return Response.htmlOk("<p>r was </p>");
+                return Response.htmlOk("<p>everything was ok</p>");
+            } else {
+              return new Response(CODE_404_NOT_FOUND);
+            }
+        });
+
+        WebFramework wf = new WebFramework(context, default_zdt);
+        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                    InputStream is = client.getInputStream();
+
+                    // send a GET request
+                    client.sendHttpLine("POST /some_endpoint HTTP/1.1");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+                    client.sendHttpLine("Content-length: " + multiPartData.length);
+                    client.sendHttpLine("");
+                    client.send(multiPartData);
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    assertEquals(statusLine.status(), CODE_200_OK);
+                }
+            }
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
+    private boolean isEqualByteArray(byte[] left, byte[] right) {
+        if (left == null || right == null) {
+            logger.logDebug(() -> "at least one of the inputs was null: left: %s right: %s".formatted(Arrays.toString(left), Arrays.toString(right)));
+            return false;
+        }
+        if (left.length != right.length) {
+            logger.logDebug(() -> "Not equal! left length: %d right length: %d".formatted(left.length, right.length));
+            return false;
+        }
+        for (int i = 0; i < left.length; i++) {
+            if (left[i] != right[i]) {
+                int finalI = i;
+                int finalI1 = i;
+                logger.logDebug(() -> "Not equal! at index %d left was: %d right was: %d".formatted(finalI, left[finalI1], right[finalI1]));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Similar to {@link #test_MultiPartForm_HappyPath()} but uses a multipart-form
+     * data that has a couple large binaries - jpeg's of a kitty
+     */
+    @Test
+    public void test_MultiPartForm_HappyPath_MoreImages() throws Exception {
+        byte[] multiPartData = makeTestMultiPartData_MultipleImages();
+
+        // This is the core of the test - here's where we'll process receiving a multipart data
+
+        final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> {
+            byte[] kittyPic = Files.readAllBytes(Path.of("src/test/resources/kitty.jpg"));
+            if (r.body().asString("text1").equals("I am a value that is text") &&
+                    isEqualByteArray(r.body().asBytes("image_uploads"), new byte[]{1,2,3}) &&
+                    isEqualByteArray(r.body().asBytes("kitty1"), kittyPic) &&
+                    isEqualByteArray(r.body().asBytes("kitty2"), kittyPic)
+            ) {
+                return Response.htmlOk("<p>everything was ok</p>");
             } else {
               return new Response(CODE_404_NOT_FOUND);
             }
@@ -1088,6 +1163,7 @@ public class WebTests {
             final var baos = new ByteArrayOutputStream();
             baos.write(
                 """
+                \r
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
                 Content-Disposition: form-data; name="text1"\r
@@ -1101,8 +1177,67 @@ public class WebTests {
             baos.write(new byte[]{1, 2, 3});
             baos.write(
                 """
-                --i_am_a_boundary--
+                \r
+                --i_am_a_boundary--\r
+                
                 """.getBytes(StandardCharsets.UTF_8));
+
+            return baos.toByteArray();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * This creates a multipart form data containing multiple
+     * JPEG files
+     */
+    private static byte[] makeTestMultiPartData_MultipleImages() {
+        try {
+        /*
+        Per the specs for multipart, the boundary is preceded by
+        two dashes.
+         */
+            Path kittyPath = Path.of("src/test/resources/kitty.jpg");
+            byte[] kittyBytes = Files.readAllBytes(kittyPath);
+            final var baos = new ByteArrayOutputStream();
+            baos.write(
+                """
+                \r
+                --i_am_a_boundary\r
+                Content-Type: text/plain\r
+                Content-Disposition: form-data; name="text1"\r
+                \r
+                I am a value that is text\r
+                --i_am_a_boundary\r
+                Content-Type: application/octet-stream\r
+                Content-Disposition: form-data; name="image_uploads"; filename="photo_preview.jpg"\r
+                \r
+                """.getBytes(StandardCharsets.UTF_8));
+            baos.write(new byte[]{1, 2, 3});
+            baos.write("""
+                        \r
+                        --i_am_a_boundary\r
+                        Content-Type: application/octet-stream\r
+                        Content-Disposition: form-data; name="kitty1"; filename="kitty1.jpg"\r
+                        \r
+                        """.getBytes(StandardCharsets.UTF_8));
+            baos.write(kittyBytes);
+            baos.write("""
+                        \r
+                        --i_am_a_boundary\r
+                        Content-Type: application/octet-stream\r
+                        Content-Disposition: form-data; name="kitty2"; filename="kitty2.jpg"\r
+                        \r
+                        """.getBytes(StandardCharsets.UTF_8));
+            baos.write(kittyBytes);
+            baos.write(
+                    """
+                    \r
+                    --i_am_a_boundary--\r
+                    
+                    """.getBytes(StandardCharsets.UTF_8));
+
 
             return baos.toByteArray();
         } catch (Exception ex) {
@@ -1478,6 +1613,21 @@ public class WebTests {
     public void test_dumpAttackerNullChecks_NullFullSystem() {
         var webFramework = new WebFramework(context);
         assertFalse(webFramework.dumpIfAttacker(null, (FullSystem) null));
+    }
+
+    /**
+     * Because this trace logging can get a little tricky..
+     */
+    @Test
+    public void test_GettingBodyStringForTraceLogging() {
+        assertEquals(WebFramework.getBodyStringForTraceLog("a"), "The body is: a");
+        assertEquals(WebFramework.getBodyStringForTraceLog(""), "The body is: ");
+        assertEquals(WebFramework.getBodyStringForTraceLog("abc"), "The body is: abc");
+        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(49)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(50)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(51)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(52)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assertEquals(WebFramework.getBodyStringForTraceLog(null), "The body was null");
     }
 
 }

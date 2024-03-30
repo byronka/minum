@@ -320,11 +320,8 @@ public final class HtmlParser {
      * at this point we have a tagname for our tag, and we're still in the tag
      */
     private static void handleAfterReadingTagName(State state, char currentChar) {
-        /*
-        the following logic looks crazy (sorry) but what it's trying to do
-        is to check whether we're in the whitespace between the tagname and
-        the start of the (potential) key.
-        */
+        // check whether we're in the whitespace between the tagname and
+        // the start of the (potential) key.
         boolean atYetAnotherWhitespaceBetweenTagAndAttributes =
                 state.currentAttributeKey.isEmpty() &&
                         state.stringBuilder.isEmpty()

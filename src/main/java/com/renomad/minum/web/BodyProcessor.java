@@ -167,12 +167,12 @@ final class BodyProcessor {
      */
     Body parseMultiform(byte[] body, String boundaryValue) {
         // how to split this up? It's a mix of strings and bytes.
-        List<byte[]> partitions = split(body, "--" + boundaryValue);
+        List<byte[]> partitions = split(body, "\r\n--" + boundaryValue);
         // What we can bear in mind is that once we've read the headers, and gotten
         // past the single blank line, *everything else* is pure data.
         final var result = new HashMap<String, byte[]>();
         final var partitionHeaders = new HashMap<String, Headers>();
-        for (var df : partitions) {
+        for (byte[] df : partitions) {
             final var is = new ByteArrayInputStream(df);
 
             Headers headers = Headers.make(context).extractHeaderInformation(is);
@@ -186,24 +186,16 @@ final class BodyProcessor {
                 String name = matcher.group("namevalue");
                 // at this point our inputstream pointer is at the beginning of the
                 // body data.  From here until the end it's pure data.
+
                 var data = inputStreamUtils.readUntilEOF(is);
                 result.put(name, data);
                 partitionHeaders.put(name, headers);
-            }
-            else {
-                String returnedData;
-                if (body.length > MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) {
-                    returnedData = StringUtils.byteArrayToString(Arrays.copyOf(body, MAX_SIZE_DATA_RETURNED_IN_EXCEPTION)) + " ... (remainder of data trimmed)";
-                } else {
-                    returnedData = StringUtils.byteArrayToString(body);
-                }
-                logger.logDebug(() -> "No name value found in the headers of a partition. Data: " + returnedData);
-                return new Body(Map.of(), body, Map.of());
             }
 
         }
         return new Body(result, body, partitionHeaders);
     }
+
 
     /**
      * Given a multipart-formatted data, return a list of byte arrays

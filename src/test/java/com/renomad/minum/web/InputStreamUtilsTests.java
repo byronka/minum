@@ -36,6 +36,14 @@ public class InputStreamUtilsTests {
         shutdownTestingContext(context);
     }
 
+
+    @Test
+    public void testReadUntilEOF_HappyPath() {
+        ByteArrayInputStream inputStream = new ByteArrayInputStream("ab".getBytes(StandardCharsets.UTF_8));
+        byte[] bytes = inputStreamUtils.readUntilEOF(inputStream);
+        assertEquals(new String(bytes), "ab");
+    }
+
     /**
      * If we send too many bytes to get read, an exception gets thrown
      */

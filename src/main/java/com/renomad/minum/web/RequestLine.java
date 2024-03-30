@@ -10,7 +10,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.utils.Invariants.mustNotBeNull;
 
 /**
@@ -115,7 +114,6 @@ public final class RequestLine {
         if (!doesMatch) {
             return RequestLine.empty(context);
         }
-        mustBeTrue(doesMatch, String.format("%s must match the startLinePattern: %s", value, REQUEST_LINE_PATTERN));
         Method myMethod = extractMethod(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
         HttpVersion httpVersion = getHttpVersion(m.group(3));

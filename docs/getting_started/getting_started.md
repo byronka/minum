@@ -50,7 +50,7 @@ Contents:
       <dependency>
           <groupId>com.renomad</groupId>
           <artifactId>minum</artifactId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
       </dependency>
     </dependencies>
 
@@ -59,7 +59,7 @@ Contents:
        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
           <configuration>
             <mainClass>org.example.myproject.Main</mainClass>
           </configuration>

@@ -12,7 +12,7 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  * then the substring gets concatenated unchanged when the final string
  * is rendered.
  */
-public record TemplateSection(String key, String subString) {
+record TemplateSection(String key, String subString) {
 
     public String render(Map<String, String> myMap) {
         mustBeTrue(subString != null || key != null, "Either the key or substring must exist");

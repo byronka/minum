@@ -8,7 +8,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,12 +42,13 @@ public class BodyProcessorTests {
     @Test
     public void test_MultiPart_EdgeCase_MissingNameInHeaders() {
         String body = """
+                \r
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
                 Content-Disposition: form-data; NO_NAME="text1"\r
                 \r
                 I am a value that is text\r
-                --i_am_a_boundary\r
+                --i_am_a_boundary--\r
                 """.stripIndent();
         var bodyProcessor = new BodyProcessor(context);
 
@@ -52,9 +58,7 @@ public class BodyProcessorTests {
                 body.getBytes(StandardCharsets.UTF_8)
                 );
 
-        String unableToParseThisBody = logger.findFirstMessageThatContains("No name value found");
-        assertTrue(unableToParseThisBody.contains("No name value found in the headers of a partition. Data: --i_am_a_boundary\nContent-Type: text"));
-        assertEquals(bodyResult.getKeys(), Set.of());
+        assertEquals(bodyResult, new Body(Map.of(), body.getBytes(StandardCharsets.UTF_8), Map.of()));
     }
 
     /**
@@ -110,6 +114,7 @@ public class BodyProcessorTests {
     public void test_MultiPart_EdgeCase_MissingNameInHeaders_LargeData() {
         String body =
                 """
+                \r
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
                 Content-Disposition: form-data; NO_NAME="text1"\r
@@ -119,7 +124,7 @@ public class BodyProcessorTests {
                         "a".repeat(BodyProcessor.MAX_SIZE_DATA_RETURNED_IN_EXCEPTION+1) +
                 """
                 text\r
-                --i_am_a_boundary\r
+                --i_am_a_boundary--\r
                 """.stripIndent();
         var bodyProcessor = new BodyProcessor(context);
 
@@ -129,12 +134,99 @@ public class BodyProcessorTests {
                 body.getBytes(StandardCharsets.UTF_8)
         );
 
-        String unableToParseThisBody = logger.findFirstMessageThatContains("No name value found in the headers", 1);
-        assertTrue(unableToParseThisBody.contains("No name value found in the headers of a partition"));
-        assertTrue(unableToParseThisBody.contains("Data: --i_am_a_boundary\r\nContent-Type:"));
-        assertTrue(unableToParseThisBody.contains("text/plain\r\nContent-Disposition: form-data; NO_NAME=\"text1\"\r\n\r\nI am a value that"));
-        assertTrue(unableToParseThisBody.contains("aaaaaaaaaa ... (remainder of data trimmed)"));
-        assertEquals(bodyResult.getKeys(), Set.of());
+        assertEquals(bodyResult, new Body(Map.of(), body.getBytes(StandardCharsets.UTF_8), Map.of()));
+    }
+
+    /**
+     * I found a bug while writing a program - when requesting the data
+     * from multipart, it was including an extra carriage-return plus line-feed
+     * at the end.  This test is to examine the issue more closely.
+     */
+    @Test
+    public void test_MultiPart_Avoid_ExtraBytes() {
+        String body = """
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
+                Content-Type: text/plain\r
+                \r
+                1\r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o--\r
+                """;
+        var bodyProcessor = new BodyProcessor(context);
+
+        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+                body.length(),
+                "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
+                body.getBytes(StandardCharsets.UTF_8)
+        );
+        assertEqualByteArray(bodyResult.asBytes("myfile"), "1".getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * I found a bug while writing a program - when requesting the data
+     * from multipart, it was including an extra carriage-return plus line-feed
+     * at the end.  This test is to examine the issue more closely.
+     */
+    @Test
+    public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions() {
+        String body = """
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
+                Content-Type: text/plain\r
+                \r
+                1\r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile2"; filename="one.txt"\r
+                Content-Type: text/plain\r
+                \r
+                2\r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o--\r
+                """;
+        var bodyProcessor = new BodyProcessor(context);
+
+        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+                body.length(),
+                "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
+                body.getBytes(StandardCharsets.UTF_8)
+        );
+        assertEqualByteArray(bodyResult.asBytes("myfile"), "1".getBytes(StandardCharsets.UTF_8));
+        assertEqualByteArray(bodyResult.asBytes("myfile2"), "2".getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * I found a bug while writing a program - when requesting the data
+     * from multipart, it was including an extra carriage-return plus line-feed
+     * at the end.  This test is to examine the issue more closely.
+     */
+    @Test
+    public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions_Bytes() {
+        String body = """
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
+                Content-Type: application/octet-stream\r
+                \r
+                """+new String(new byte[]{1,2,3})+"""
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile2"; filename="two.txt"\r
+                Content-Type: application/octet-stream\r
+                \r
+                """+new String(new byte[]{4,5,6})+"""
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o--\r
+                """;
+        var bodyProcessor = new BodyProcessor(context);
+
+        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+                body.length(),
+                "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
+                body.getBytes(StandardCharsets.UTF_8)
+        );
+        assertEqualByteArray(bodyResult.asBytes("myfile"), new byte[]{1,2,3});
+        assertEqualByteArray(bodyResult.asBytes("myfile2"), new byte[]{4,5,6});
     }
 
     @Test
@@ -155,6 +247,46 @@ public class BodyProcessorTests {
         Body result = bodyProcessor.extractBodyFromBytes(0, "application/x-www-form-urlencoded", new byte[0]);
         assertEqualByteArray(result.asBytes(), new byte[0]);
         assertTrue(logger.doesMessageExist("did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body"));
+    }
+
+    /**
+     * Sending a photo of a cute kitty
+     */
+    @Test
+    public void test_ExtractBodyFromBytes_Image() throws IOException {
+        byte[] kittyImageBytes = Files.readAllBytes(Path.of("src/test/resources/kitty.jpg"));
+        final var baos = new ByteArrayOutputStream();
+        baos.write(
+                """
+                 \r
+                 ------WebKitFormBoundaryGlzbZJMmR2xSuAaT\r
+                 Content-Disposition: form-data; name="person_id"\r
+                 \r
+                 1a3e2d86-639f-49f8-8278-4e769a4d7222\r
+                 ------WebKitFormBoundaryGlzbZJMmR2xSuAaT\r
+                 Content-Disposition: form-data; name="image_uploads"; filename="kitty.jpg"\r
+                 Content-Type: image/png\r
+                 \r
+                 """.getBytes(StandardCharsets.UTF_8));
+        baos.write(kittyImageBytes);
+        baos.write(
+                """
+                \r
+                ------WebKitFormBoundaryGlzbZJMmR2xSuAaT--\r
+                
+                """.getBytes(StandardCharsets.UTF_8));
+        var bodyProcessor = new BodyProcessor(context);
+        byte[] byteArray = baos.toByteArray();
+
+        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+                byteArray.length,
+                "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryGlzbZJMmR2xSuAaT",
+                byteArray
+        );
+
+        byte[] bytes = bodyResult.asBytes("image_uploads");
+        assertEquals(kittyImageBytes.length, bytes.length);
+        assertEqualByteArray(kittyImageBytes, bytes);
     }
 
     @Test
