@@ -69,6 +69,12 @@ public final class WebFramework {
      */
     private final Map<MethodPath, ThrowingFunction<Request, Response>> registeredPartialPaths;
 
+
+    private ThrowingFunction<PreHandlerInputs, Response> preHandler;
+
+    private ThrowingFunction<LastMinuteHandlerInputs, Response> lastMinuteHandler;
+
+
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
     private final FullSystem fs;
@@ -152,15 +158,19 @@ public final class WebFramework {
             Headers hi,
             Body body) throws Exception {
         Request clientRequest = new Request(hi, requestLine, body, sw.getRemoteAddr());
-        Response resultingResponse;
+        Response response;
         // Unless this is an unusual test, the definition for handlerFinder is at findEndpointForThisStartline
         ThrowingFunction<Request, Response> endpoint = handlerFinder.apply(requestLine);
         if (endpoint == null) {
-            resultingResponse = new Response(CODE_404_NOT_FOUND);
+            response = new Response(CODE_404_NOT_FOUND);
         } else {
             var handlerStopwatch = new StopwatchUtils().startTimer();
             try {
-                resultingResponse = endpoint.apply(clientRequest);
+                if (preHandler != null) {
+                    response = preHandler.apply(new PreHandlerInputs(clientRequest, endpoint));
+                } else {
+                    response = endpoint.apply(clientRequest);
+                }
             } catch (Exception ex) {
                 // if an error happens while running an endpoint's code, this is the
                 // last-chance handling of that error where we return a 500 and a
@@ -168,11 +178,18 @@ public final class WebFramework {
                 // information in the logs, which have that same value.
                 int randomNumber = randomErrorCorrelationId.nextInt();
                 logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                resultingResponse = new Response(CODE_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
+                response = new Response(CODE_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
             }
             logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, handlerStopwatch.stopTimer()));
         }
-        return new ProcessingResult(clientRequest, resultingResponse);
+
+        // if the user has chosen to customize the response based on status code, that will
+        // be applied now, and it will override the previous response.
+        if (lastMinuteHandler != null) {
+            response = lastMinuteHandler.apply(new LastMinuteHandlerInputs(clientRequest, response));
+        }
+
+        return new ProcessingResult(clientRequest, response);
     }
 
     record ProcessingResult(Request clientRequest, Response resultingResponse) { }
@@ -394,7 +411,7 @@ public final class WebFramework {
     /**
      * If a response body exists, it needs to have a content-type specified, or throw an exception.
      */
-    private static void confirmBodyHasContentType(Request request, Response response) {
+    static void confirmBodyHasContentType(Request request, Response response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
         boolean hasContentType = response.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
 
@@ -604,15 +621,8 @@ public final class WebFramework {
      * Similar to {@link WebFramework#registerPath(RequestLine.Method, String, ThrowingFunction)} except that the paths
      * registered here may be partially matched.
      * <p>
-     *     For example, if you register <pre>.well-known/acme-challenge</pre> then it
-     *     can match a client request for <pre>.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX</pre>
-     * </p>
-     * <p>
-     *     What if I didn't have the ability to match partial paths? In
-     * that case, if I tried <pre>GET .well-known/acme-challenge/sadoifpiefewsfae</pre>
-     * I would get an {@link RequestLine.PathDetails#isolatedPath()} of
-     * <pre>.well-known/acme-challenge/sadoifpiefewsfae</pre> which wouldn't
-     * match anything I could statically register.
+     *     For example, if you register {@code .well-known/acme-challenge} then it
+     *     can match a client request for {@code .well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX}
      * </p>
      * <p>
      *     Be careful here, be thoughtful - partial paths will match a lot, and may
@@ -621,6 +631,98 @@ public final class WebFramework {
      */
     public void registerPartialPath(RequestLine.Method method, String pathName, ThrowingFunction<Request, Response> webHandler) {
         registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
+    }
+
+    /**
+     * Sets a handler to process all requests across the board.
+     * <br>
+     * <p>
+     *     This is an <b>unusual</b> method.  Setting a handler here allows the user to run code of his
+     * choosing before the regular business code is run.
+     * </p>
+     * <p>Here is an example</p>
+     * <pre>{@code
+     *
+     *      webFramework.registerPreHandler(preHandlerInputs -> preHandlerCode(preHandlerInputs, auth));
+     *
+     *      ...
+     *
+     *      private Response preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
+     *         // log all requests
+     *         Request request = preHandlerInputs.clientRequest();
+     *         ThrowingFunction<Request, Response> endpoint = preHandlerInputs.endpoint();
+     *         logger.logTrace(() -> String.format("Request: %s by %s",
+     *                 request.requestLine().getRawValue(),
+     *                 request.remoteRequester()));
+     *
+     *         // adjust behavior if non-authenticated and path includes "secure/"
+     *         String path = request.requestLine().getPathDetails().isolatedPath();
+     *         if (path.contains("secure/")) {
+     *             AuthResult authResult = auth.processAuth(request);
+     *             if (authResult.isAuthenticated()) {
+     *                 return endpoint.apply(request);
+     *             } else {
+     *                 return new Response(CODE_403_FORBIDDEN);
+     *             }
+     *         }
+     *
+     *         // if the path does not include /secure, just move the request along unchanged.
+     *         return endpoint.apply(request);
+     *     }
+     * }</pre>
+     */
+        public void registerPreHandler(ThrowingFunction<PreHandlerInputs, Response> preHandler) {
+        this.preHandler = preHandler;
+    }
+
+    /**
+     * Sets a handler to be executed after running the ordinary handler, just
+     * before sending the response.
+     * <p>
+     *     This is an <b>unusual</b> method, so please be aware of its proper use. Its
+     *     purpose is to allow the user to inject code to run after ordinary code, across
+     *     all requests.
+     * </p>
+     * <p>
+     *     For example, if the system would have returned a 404 NOT FOUND response,
+     *     code can handle that situation in a switch case and adjust the response according
+     *     to your programming.
+     * </p>
+     * <p>Here is an example</p>
+     * <pre>{@code
+     *
+     *
+     *      webFramework.registerLastMinuteHandler(TheRegister::lastMinuteHandlerCode);
+     *
+     * ...
+     *
+     *     private static Response lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
+     *         switch (inputs.response().statusCode()) {
+     *             case CODE_404_NOT_FOUND -> {
+     *                 return new Response(
+     *                         StatusLine.StatusCode.CODE_404_NOT_FOUND,
+     *                         "<p>No document was found</p>",
+     *                         Map.of("Content-Type", "text/html; charset=UTF-8"));
+     *             }
+     *             case CODE_500_INTERNAL_SERVER_ERROR -> {
+     *                 Response response = inputs.response();
+     *                 return new Response(
+     *                         StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR,
+     *                         "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.body()) + "</p>",
+     *                         Map.of("Content-Type", "text/html; charset=UTF-8"));
+     *             }
+     *             default -> {
+     *                 return inputs.response();
+     *             }
+     *         }
+     *     }
+     * }
+     * </pre>
+     * @param lastMinuteHandler a function that will take a request and return a response, exactly like
+     *                   we use in the other registration methods for this class.
+     */
+    public void registerLastMinuteHandler(ThrowingFunction<LastMinuteHandlerInputs, Response> lastMinuteHandler) {
+        this.lastMinuteHandler = lastMinuteHandler;
     }
 
     /**

@@ -6,7 +6,6 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.testing.RegexUtils;
-import com.renomad.minum.testing.TestFailureException;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

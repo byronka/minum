@@ -4,6 +4,7 @@ import com.renomad.minum.utils.InvariantException;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -11,7 +12,7 @@ public class TemplateSectionTests {
 
     @Test
     public void test_MissingKeyAndSubstring() {
-        var templateSection = new TemplateSection(null, null);
+        var templateSection = new TemplateSection(null, null, 0);
         assertThrows(InvariantException.class,
                 "Either the key or substring must exist",
                 () -> templateSection.render(null));
@@ -19,7 +20,7 @@ public class TemplateSectionTests {
 
     @Test
     public void test_HavingKeyAndSubstring() {
-        var templateSection = new TemplateSection("key", "substring");
+        var templateSection = new TemplateSection("key", "substring", 0);
         assertThrows(InvariantException.class,
                 "If this object has a substring, then it must not have a key",
                 () -> templateSection.render(null));
@@ -34,7 +35,7 @@ public class TemplateSectionTests {
         var sb = new StringBuilder();
         ArrayList<TemplateSection> templateSections = new ArrayList<>();
 
-        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections);
+        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
 
         assertTrue(sb == result);
     }
@@ -48,7 +49,7 @@ public class TemplateSectionTests {
         var sb = new StringBuilder().append("hello world");
         ArrayList<TemplateSection> templateSections = new ArrayList<>();
 
-        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections);
+        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
 
         assertEquals(result.toString(), "");
         assertEquals(templateSections.getFirst().key(), "hello world");
@@ -58,6 +59,27 @@ public class TemplateSectionTests {
     public void test_justArrivedInside() {
         assertTrue(TemplateProcessor.justArrivedInside("hello {{ world }}", '{', 6));
         assertFalse(TemplateProcessor.justArrivedInside("{", '{', 0));
+    }
+
+    /**
+     * In this test, the indent does not get used, since
+     * it is only one line.
+     */
+    @Test
+    public void test_indenting_edgeCase_NoIndent() {
+        TemplateSection templateSection = new TemplateSection("abc", null, 5);
+        String render = templateSection.render(Map.of("abc", "foo foo"));
+        assertEquals(render, "foo foo");
+    }
+
+    /**
+     * In this test, the indent is applied to the next line
+     */
+    @Test
+    public void test_indenting_edgeCase_WithIndent() {
+        TemplateSection templateSection = new TemplateSection("abc", null, 5);
+        String render = templateSection.render(Map.of("abc", "foo foo\nbar bar"));
+        assertEquals(render, "foo foo\n    bar bar");
     }
 
 }

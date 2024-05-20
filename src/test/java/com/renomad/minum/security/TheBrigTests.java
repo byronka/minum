@@ -4,15 +4,12 @@ import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -55,6 +52,9 @@ public class TheBrigTests {
         MyThread.sleep(10);
         b.stop();
         assertTrue(true, "We should get here without an exception");
+        assertTrue(logger.doesMessageExist("TheBrig has been told to stop"));
+        assertTrue(logger.doesMessageExist("TheBrig: Sending interrupt to thread"));
+        assertTrue(logger.doesMessageExist("TheBrig is stopped."));
     }
 
     /**

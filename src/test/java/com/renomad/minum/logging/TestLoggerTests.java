@@ -151,4 +151,17 @@ public class TestLoggerTests {
                 "multiple values of word2 found in: [word1, word2, word2, word3]",
                 () -> TestLogger.checkValidityOfResults("word2", List.of("word2","word2"), recentLogLines));
     }
+
+    /**
+     * The {@link TestLogger} has a method, "test", that is used to
+     * display information about the test in the logs.  That way, the
+     * log message is displayed very close to the logs about the test.
+     * If instead we merely used printf, the output message would probably
+     * show up much earlier or later in the logs, which is pointless.
+     */
+    @Test
+    public void test_test() {
+        logger.test("testing the test method");
+        assertTrue(logger.doesMessageExist("testing the test method"));
+    }
 }

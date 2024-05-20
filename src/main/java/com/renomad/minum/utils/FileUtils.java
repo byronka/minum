@@ -36,17 +36,16 @@ public final class FileUtils {
     private final ILogger logger;
     private final Constants constants;
     private final Map<String, String> fileSuffixToMime;
-    private final Map<String, byte[]> lruCache;
     private final IFileReader fileReader;
 
     public FileUtils(ILogger logger, Constants constants) {
-        this.logger = logger;
-        this.constants = constants;
-        fileSuffixToMime = new HashMap<>();
-        addDefaultValuesForMimeMap();
-        readExtraMimeMappings(constants.extraMimeMappings);
-        lruCache = LRUCache.getLruCache(constants.maxElementsLruCacheStaticFiles);
-        fileReader = new FileReader(lruCache, constants.useCacheForStaticFiles, logger);
+        this(
+                logger,
+                constants,
+                new FileReader(
+                        LRUCache.getLruCache(constants.maxElementsLruCacheStaticFiles),
+                        constants.useCacheForStaticFiles,
+                        logger));
     }
 
     /**
@@ -58,7 +57,6 @@ public final class FileUtils {
         fileSuffixToMime = new HashMap<>();
         addDefaultValuesForMimeMap();
         readExtraMimeMappings(constants.extraMimeMappings);
-        lruCache = LRUCache.getLruCache(constants.maxElementsLruCacheStaticFiles);
         this.fileReader = fileReader;
     }
 

@@ -3,6 +3,7 @@ package com.renomad.minum.web;
 import com.renomad.minum.Context;
 import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.utils.InvariantException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -10,7 +11,6 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 
 public class BodyProcessorTests {
 
@@ -309,6 +310,48 @@ public class BodyProcessorTests {
 
         Body body = bodyProcessor.extractData(inputStream, headers);
         assertEquals(body.asString(), "ab");
+    }
+
+    @Test
+    public void test_GettingCorrectContentType_MissingContentType() {
+        var response = new Response(CODE_200_OK, "foo foo");
+        var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response));
+        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, body=[102, 111, 111, 32, 102, 111, 111]} Request: null");
+    }
+
+    @Test
+    public void test_PotentiallyCompress_HappyPath() {
+        StringBuilder headerStringBuilder = new StringBuilder();
+        Headers headers = new Headers(List.of("accept-encoding: gzip"), context);
+        Map<String, String> extraHeaders = Map.of("content-type", "text/plain");
+        VaryHeader varyHeader = new VaryHeader();
+
+        byte[] bytes = WebFramework.potentiallyCompress(
+                headers,
+                new Response(CODE_200_OK, "foo bar".repeat(1000), extraHeaders),
+                headerStringBuilder,
+                varyHeader);
+
+        assertEquals(bytes.length, 55);
+    }
+
+    /**
+     * If the content type does not include "text", we won't compress.
+     */
+    @Test
+    public void test_PotentiallyCompress_MissingContentType() {
+        StringBuilder headerStringBuilder = new StringBuilder();
+        Headers headers = new Headers(List.of("accept-encoding: gzip"), context);
+        Map<String, String> extraHeaders = Map.of("content-type", "");
+        VaryHeader varyHeader = new VaryHeader();
+
+        byte[] bytes = WebFramework.potentiallyCompress(
+                headers,
+                new Response(CODE_200_OK, "foo bar".repeat(1000), extraHeaders),
+                headerStringBuilder,
+                varyHeader);
+
+        assertEquals(bytes.length, 7000);
     }
 
 }

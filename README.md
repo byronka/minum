@@ -59,7 +59,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>3.1.1</version>
+    <version>3.2.0</version>
 </dependency>
 ```
 
@@ -84,7 +84,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,398 | 141,048 | 1,085,405   |
+| 4,438 | 141,048 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 
@@ -94,7 +94,7 @@ Performance:
 
 * 19,000 http responses per second by web server. [detail](docs/perf_data/response_speed_test.md)
 * 2,000,000 updates per second to database. [detail](docs/perf_data/database_speed_test.md)
-* 27,000 templates per second rendered. [detail](docs/perf_data/templateRenderTest.md)
+* 35,236 templates per second rendered. See test_Templating_Performance at [detail](src/test/java/com/renomad/minum/templating/TemplatingTests.java)
 
 See [framework performance comparison](docs/perf_data/framework_perf_comparison.md)
 

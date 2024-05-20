@@ -1,3 +1,35 @@
+v3.2.0 - May 20, 2024
+---------------------
+
+* New ability to inject code before and after regular endpoint processing.  See registerPreHandler
+  and registerLastMinuteHandler in WebFramework.
+* Extra testing across the board.
+* Improve documentation.
+* Remove dead code in ExtendedExecutor.
+* Improve performance test for templating.  Uses parallel processing to show more realistic speed.
+* Include indent when rendering template.  Often, a user will render a value with newlines in
+  a template.  This adjustment keeps tabs on the indent of the key in the template and then
+  applies that to subsequent lines of the key values.
+
+As an example, with a template like `foo bar {{ color }}`:
+
+  before:
+  
+  ```
+  foo bar red
+  blue
+  orange
+  ```
+  
+  after:
+  
+  ```
+  foo bar red
+          blue
+          orange
+  ```
+
+
 v3.1.1 - Apr 5, 2024
 --------------------
 

@@ -75,44 +75,64 @@ public final class TemplateProcessor {
      * are surrounded by double-curly-braces, i.e. {{foo}} or {{ foo }}
      */
     public static TemplateProcessor buildProcessor(String template) {
+        // this value holds the entire template after processing, comprised
+        // of an ordered list of TemplateSections
         var tSections = new ArrayList<TemplateSection>();
+
+        // these values are used for logging and setting proper indentation
+        int rowNumber = 1;
+        int columnNumber = 1;
+        // this value records the indent of the beginning of template keys,
+        // so we can properly indent the values later.
+        int startOfKey = 0;
+
         StringBuilder builder = new StringBuilder();
         // this flag is to help us understand whether we are currently reading the
         // name of a template literal.
         // e.g. in the case of hello {{ name }}, "name" is the literal.
         boolean isInsideTemplateKeyLiteral = false;
         for (int i = 0; i < template.length(); i++) {
-
             char charAtCursor = template.charAt(i);
 
             if (justArrivedInside(template, charAtCursor, i)) {
                 isInsideTemplateKeyLiteral = true;
+                startOfKey = columnNumber;
                 i += 1;
                 builder = processSectionInside(builder, tSections);
             } else if (justArrivedOutside(template, charAtCursor, i, isInsideTemplateKeyLiteral)) {
                 isInsideTemplateKeyLiteral = false;
                 i += 1;
-                builder = processSectionOutside(builder, tSections);
+                builder = processSectionOutside(builder, tSections, startOfKey);
+                startOfKey = 0;
             } else {
                 builder.append(charAtCursor);
 
-            /*
-             if we're at the end of the template, it's our last chance to
-             add a substring (we can't be adding to a key, since if we're
-             at the end, and it's not a closing brace, it's a malformed
-             template.
-             */
+                /*
+                 if we're at the end of the template, it's our last chance to
+                 add a substring (we can't be adding to a key, since if we're
+                 at the end, and it's not a closing brace, it's a malformed
+                 template.
+                 */
                 if (i == template.length() - 1) {
                     if (isInsideTemplateKeyLiteral) {
                         // if we're exiting this string while inside a template literal, then
                         // we're reading a corrupted input, and we should make that clear
                         // to our caller.
-                        String templateSample = template.length() > 10 ? template.substring(0, 10) : template;
-                        throw new TemplateParseException("parsing failed for string starting with " + templateSample);
+                        String templateSample = template.length() > 10 ? template.substring(0, 10) + "..." : template;
+                        throw new TemplateParseException(
+                                "parsing failed for string starting with \"" + templateSample + "\" at line " + rowNumber + " and column " + columnNumber);
                     }
-                    tSections.add(new TemplateSection(null, builder.toString()));
+                    tSections.add(new TemplateSection(null, builder.toString(), 0));
                 }
             }
+
+            if (charAtCursor == '\n') {
+                rowNumber += 1;
+                columnNumber = 1;
+            } else {
+                columnNumber += 1;
+            }
+
         }
 
         return new TemplateProcessor(tSections);
@@ -120,15 +140,15 @@ public final class TemplateProcessor {
 
     static StringBuilder processSectionInside(StringBuilder builder, ArrayList<TemplateSection> tSections) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(null, builder.toString()));
+            tSections.add(new TemplateSection(null, builder.toString(), 0));
             builder = new StringBuilder();
         }
         return builder;
     }
 
-    static StringBuilder processSectionOutside(StringBuilder builder, ArrayList<TemplateSection> tSections) {
+    static StringBuilder processSectionOutside(StringBuilder builder, ArrayList<TemplateSection> tSections, int indent) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(builder.toString().trim(), null));
+            tSections.add(new TemplateSection(builder.toString().trim(), null, indent));
             builder = new StringBuilder();
         }
         return builder;

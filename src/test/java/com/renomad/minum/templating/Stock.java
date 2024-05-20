@@ -1,4 +1,4 @@
-package com.renomad.minum.utils;
+package com.renomad.minum.templating;
 
 import java.util.ArrayList;
 import java.util.List;

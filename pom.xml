@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>3.1.1</version>
+    <version>3.2.0</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 

@@ -67,7 +67,7 @@ public final class SerializationUtils {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
         for(int i = 0; ; i++) {
-            if (i >=  maxTokens) {
+            if (i >= maxTokens) {
                 throw new ForbiddenUseException("too many partitions in the tokenizer.  Current max: " + maxTokens);
             }
             final var nextDelimiterIndex = serializedText.indexOf(delimiter, currentPlace);

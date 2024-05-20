@@ -50,6 +50,7 @@ public class ActionQueueTests {
     @Test
     public void test_Stopping() {
         var aq = new ActionQueue("Test ActionQueue", context).initialize();
+        assertFalse(aq.isStopped());
 
         aq.enqueue("testing action", () -> {
             MyThread.sleep(10);

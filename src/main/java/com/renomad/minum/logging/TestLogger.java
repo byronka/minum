@@ -197,13 +197,19 @@ private final Queue<String> recentLogLines;
      */
     public void test(String msg) {
         // put together some pretty-looking text graphics to show the suiteName of our test in log
-        final var baseLength = 11;
-        final var dashes = "-".repeat(msg.length() + baseLength);
+        loggingLock.lock();
+        try {
+            final var baseLength = 11;
+            final var dashes = "-".repeat(msg.length() + baseLength);
 
-        loggingActionQueue.enqueue("Testlogger#test("+msg+")", () -> {
-            testCount += 1;
-            System.out.printf("%n+%s+%n| TEST %d: %s |%n+%s+%n%n", dashes, testCount, msg, dashes);
-        });
+            loggingActionQueue.enqueue("Testlogger#test("+msg+")", () -> {
+                testCount += 1;
+                System.out.printf("%n+%s+%n| TEST %d: %s |%n+%s+%n%n", dashes, testCount, msg, dashes);
+                recentLogLines.add(msg);
+            });
+        } finally {
+            loggingLock.unlock();
+        }
     }
 
 }

@@ -290,7 +290,6 @@ public final class HtmlParser {
         if (isInsideTag && !hasEncounteredTagName && atCommentStart) {
             state.isInsideComment = true;
             state.isInsideTag = false;
-            state.hasEncounteredTagName = false;
         } else if (state.isInsideComment && atCommentEnd) {
             state.isInsideComment = false;
         }

@@ -105,8 +105,10 @@ The experiment is still ongoing, but I have seen some interim benefits.
   standard library is sufficient for most needs.  Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
 
 - Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). See
-  the [response speed test](perf_data/response_speed_test.md), the [database speed test](perf_data/database_speed_test.md), and 
-  the [templating engine speed test](perf_data/templateRenderTest.md).
+  the [response speed test](perf_data/response_speed_test.md), the [database speed test](perf_data/database_speed_test.md), and
+  test_Templating_Performance in the [templating tests](../src/test/java/com/renomad/minum/templating/TemplatingTests.java).
+  Please understand - this does not make it the fastest in the world, but
+  its ratio of speed to code size fares well.
 
 - Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/444).
   This allows it to manage [thousands of concurrent requests](perf_data/loom_perf.md) on resource-constrained

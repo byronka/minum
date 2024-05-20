@@ -15,14 +15,16 @@ public final class MyThread {
      * wrapped so that it prints the exception's stacktrace
      * instead of letting it bubble up.
      * @param millis length of time in milliseconds.
+     * @return false if the sleep succeeded without being interrupted
      */
-    public static void sleep(long millis) {
+    public static boolean sleep(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
             handleInterrupted(e);
+            return false;
         }
-
+        return true;
     }
 
     static void handleInterrupted(InterruptedException e) {

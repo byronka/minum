@@ -6,7 +6,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -54,4 +53,46 @@ public class ActionQueueKillerTests {
         MyThread.sleep(40);
         assertTrue(logger.doesMessageExist("Stopping queue testing the killAllQueues method"));
     }
+
+    @Test
+    public void test_KillAllQueues() {
+        Context context1 = new Context();
+        TestLogger killAllQueuesLogger = new TestLogger(context.getConstants(), context.getExecutorService(), "testing kill all queues");
+        context1.setLogger(killAllQueuesLogger);
+        var aqk = new ActionQueueKiller(context1);
+
+        aqk.killAllQueues();
+
+        assertTrue(context1.getAqQueue().isEmpty());
+    }
+
+    /**
+     * It will sometimes be necessary to interrupt
+     * the inner thread of an action queue if it
+     * is not done in time (see ActionQueue.stop()).
+     * In that case, we will send an interrupt event
+     * which will cause the thread to be "interrupted"
+     * and more forcibly halted.
+     * <br>
+     * This tests that.
+     */
+    @Test
+    public void test_KillAllQueues_NeedingInterruption() {
+        ActionQueue aq = new ActionQueue("testing interruption", context).initialize();
+        context.getAqQueue().add(aq);
+        var aqk = new ActionQueueKiller(context);
+        Thread.ofVirtual().start(() -> {
+                aq.enqueue("testing interruption", () -> {
+                    MyThread.sleep(10);
+                    System.out.println("hello");
+                });
+        });
+        assertFalse(aqk.hadToInterrupt());
+
+        aqk.killAllQueues();
+
+        assertTrue(context.getAqQueue().isEmpty());
+        assertTrue(aqk.hadToInterrupt());
+    }
+
 }

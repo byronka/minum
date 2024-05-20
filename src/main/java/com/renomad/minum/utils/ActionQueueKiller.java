@@ -13,9 +13,16 @@ public final class ActionQueueKiller {
     private final Context context;
     private final ILogger logger;
 
+    /**
+     * If we were interrupted while attempting to cleanly kill the
+     * action queues, this will be set true
+     */
+    private boolean hadToInterrupt;
+
     public ActionQueueKiller(Context context) {
         this.context = context;
         this.logger = context.getLogger();
+        hadToInterrupt = false;
     }
 
     /**
@@ -33,9 +40,19 @@ public final class ActionQueueKiller {
             finalAq.stop();
             logger.logDebug(() -> TimeUtils.getTimestampIsoInstant() + " killing " + finalAq.getQueueThread());
             if (finalAq.getQueueThread() != null) {
+                hadToInterrupt = true;
+                System.out.println("had to interrupt " + finalAq);
                 finalAq.getQueueThread().interrupt();
             }
-            finalAq.getQueue().clear();
         }
     }
+
+    /**
+     * @return true If we were interrupted while attempting to cleanly kill the
+     *         action queues
+     */
+    public boolean hadToInterrupt() {
+        return hadToInterrupt;
+    }
+
 }

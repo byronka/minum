@@ -74,7 +74,28 @@ public class FunctionalTests {
         checkForClosedSocket();
 
         logger.test("what if we ask for a file that doesn't exist?");
-        assertEquals(ft.get("DOES_NOT_EXIST.html").statusLine().status(), CODE_404_NOT_FOUND);
+        TestResponse notFoundResponse = ft.get("DOES_NOT_EXIST.html");
+        assertEquals(notFoundResponse.statusLine().status(), CODE_404_NOT_FOUND);
+        assertEquals(notFoundResponse.body().asString(), "<p>No document was found</p>");
+
+        logger.test("What about when business logic fails and an exception is thrown?");
+        TestResponse serverErrorResponse = ft.get("throwexception");
+        assertEquals(serverErrorResponse.statusLine().status(), CODE_500_INTERNAL_SERVER_ERROR);
+        assertTrue(serverErrorResponse.body().asString().contains(
+                "Server error occurred.  A log entry with further information has been added with the following code"));
+
+        /*
+         * If the user uses the WebFramework.registerPreHandler to register some code to
+         * be run before all requests, it is possible to add some interesting extra behavior.
+         *
+         * In this case, code has been written that is looking for a path string of /secure. If
+         * found, and if the request contains a proper cookie, the system will allow the request
+         * to proceed.  Otherwise, it will disallow the request.
+         *
+         */
+        logger.test("What if we ask for a page with a string meant for our preHandler?");
+        TestResponse securePhotoResponse = ft.get("secure/photos");
+        assertEquals(securePhotoResponse.statusLine().status(),  CODE_403_FORBIDDEN);
 
         logger.test("grab the photos page unauthenticated. We should be able to view the photos.");
         TestResponse photos = ft.get("photos");

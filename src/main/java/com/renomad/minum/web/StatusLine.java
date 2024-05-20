@@ -21,7 +21,7 @@ public record StatusLine(StatusCode status, HttpVersion version, String rawValue
     static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
 
     /**
-     * See see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">Status Codes</a>
+     * See <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">Status Codes</a>
      */
     public enum StatusCode{
 

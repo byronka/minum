@@ -118,10 +118,18 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
 
     @Override
     public String toString() {
+        String arrayString;
+        if (body.length > 10) {
+            byte[] newBytes = new byte[10];
+            System.arraycopy(body, 0, newBytes, 0, 10);
+            arrayString = Arrays.toString(newBytes) + "...";
+        } else {
+            arrayString = Arrays.toString(body);
+        }
         return "Response{" +
                 "statusCode=" + statusCode +
                 ", extraHeaders=" + extraHeaders +
-                ", body=" + Arrays.toString(body) +
+                ", body=" + arrayString +
                 '}';
     }
 }

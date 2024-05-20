@@ -275,7 +275,7 @@ public final class Db<T extends DbData<?>> {
     void readAndDeserialize(Path p) throws IOException {
         String filename = p.getFileName().toString();
         int startOfSuffixIndex = filename.indexOf('.');
-        if(startOfSuffixIndex < 0) {
+        if(startOfSuffixIndex == -1) {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
         String fileContents = Files.readString(p);
@@ -319,17 +319,17 @@ public final class Db<T extends DbData<?>> {
     private void loadData() {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
-            hasLoadedData = loadDataCore(hasLoadedData, this::loadDataFromDisk);
+            loadDataCore(hasLoadedData, this::loadDataFromDisk);
+            hasLoadedData = true;
         } finally {
             loadDataLock.unlock();
         }
     }
 
-    static boolean loadDataCore(boolean hasLoadedData, Runnable loadDataFromDisk) {
+    static void loadDataCore(boolean hasLoadedData, Runnable loadDataFromDisk) {
         if (!hasLoadedData) {
             loadDataFromDisk.run();
         }
-        return true;
     }
 
 }

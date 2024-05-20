@@ -6,7 +6,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,398 | 141,048 | 1,085,405   |
+| 4,438 | 141,048 | 1,085,405   |
 
 
 #### Our project is 32 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -28,14 +28,14 @@ Web server
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 1774  | 163,000 | 242,000 |
+| 1802  | 163,000 | 242,000 |
 
 Templating
 ----------
 
 | Minum | Mustache | Pebble | Rocker |
 |-------|----------|--------|--------|
-| 99    | 11,346   | 16,876 | 11,996 |
+| 122   | 11,346   | 16,876 | 11,996 |
 
 
 Database
@@ -51,7 +51,7 @@ Logging
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
-| 340   | 70,000 | 3,400 |
+| 346   | 70,000 | 3,400 |
 
 
 HTML Parser
@@ -59,7 +59,7 @@ HTML Parser
 
 | Minum | JSoup  |
 |-------|--------|
-| 492   | 14,337 |
+| 491   | 14,337 |
 
 
 Testing
@@ -75,7 +75,7 @@ Various helpful utilities
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 836   | 18,045            |
+| 820   | 18,045            |
 
 Appendix
 --------

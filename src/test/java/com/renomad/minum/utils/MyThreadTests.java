@@ -3,6 +3,7 @@ package com.renomad.minum.utils;
 import com.renomad.minum.testing.StopwatchUtils;
 import org.junit.Test;
 
+import static com.renomad.minum.testing.TestFramework.assertFalse;
 import static com.renomad.minum.testing.TestFramework.assertTrue;
 
 public class MyThreadTests {
@@ -10,8 +11,10 @@ public class MyThreadTests {
     @Test
     public void testMyThread() {
         var stopwatchUtils = new StopwatchUtils().startTimer();
-        MyThread.sleep(10);
+        boolean sleptWithoutInterruption = MyThread.sleep(10);
         assertTrue(stopwatchUtils.stopTimer() >= 10, "Sleep time should be at least 10 milliseconds");
+        assertTrue(sleptWithoutInterruption);
+        assertFalse(Thread.currentThread().isInterrupted());
     }
 
     @Test
@@ -21,12 +24,12 @@ public class MyThreadTests {
             MyThread.sleep(5);
             currentThread.interrupt();
         });
-        var stopwatchUtils = new StopwatchUtils().startTimer();
-        interruptingThread.run();
-        MyThread.sleep(30);
-        long duration = stopwatchUtils.stopTimer();
-        assertTrue(duration < 30,
-                "The interruption should have caused this to take less than 30 millis.  Actual time: " + duration);
+        interruptingThread.start();
+
+        boolean sleptWithoutInterruption = MyThread.sleep(30);
+
+        assertFalse(sleptWithoutInterruption);
+        assertTrue(Thread.currentThread().isInterrupted());
     }
 
     @Test

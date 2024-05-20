@@ -198,6 +198,9 @@ public final class RequestLine {
         return method;
     }
 
+    /**
+     * See {@link PathDetails}
+     */
     public PathDetails getPathDetails() {
         return pathDetails;
     }

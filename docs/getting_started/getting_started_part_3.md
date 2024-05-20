@@ -48,7 +48,7 @@ Add Junit as a dependency in the file at `pom.xml`:
         <dependency>
             <groupId>com.renomad</groupId>
             <artifactId>minum</artifactId>
-            <version>3.1.1</version>
+            <version>3.2.0</version>
         </dependency>
 
         <!-- JUnit is a testing framework -->

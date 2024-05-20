@@ -28,8 +28,12 @@ public class ResponseTests {
 
     @Test
     public void testToString() {
-        Response response1 = Response.htmlOk("foo");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111]}");
+        Response response1 = Response.htmlOk("fooabcdefg");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111, 97, 98, 99, 100, 101, 102, 103]}");
+        response1 = Response.htmlOk("fooabcdefgh");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111, 97, 98, 99, 100, 101, 102, 103]...}");
+        response1 = Response.htmlOk("fooabcdefghi");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111, 97, 98, 99, 100, 101, 102, 103]...}");
     }
 
     @Test

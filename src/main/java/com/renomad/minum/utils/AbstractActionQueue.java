@@ -15,22 +15,20 @@ import java.util.concurrent.LinkedBlockingQueue;
 public interface AbstractActionQueue {
 
     /**
-     * Start the inner loop - in other words, start the queue's processing
+     * Start the queue's processing
      */
     AbstractActionQueue initialize();
 
     /**
      * Adds something to the queue to be processed.
      * <p>
-     *     Here is an example use of .enqueue:
+     *     An example:
      * </p>
-     * <p>
      * <pre>
      * {@code   actionQueue.enqueue("Write person file to disk at " + filePath, () -> {
      *             Files.writeString(filePath, pf.serialize());
-     *         });}
+ *         });}
      * </pre>
-     * </p>
      */
     void enqueue(String description, ThrowingRunnable action);
 

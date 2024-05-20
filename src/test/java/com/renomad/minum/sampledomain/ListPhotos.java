@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -58,6 +59,34 @@ public class ListPhotos {
         """.formatted(x.getPhotoUrl(), x.getShortDescription(), x.getDescription())).collect(Collectors.joining ("\n"));
 
         String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload</a></p>" : "";
+
+        String listPhotosHtml = listPhotosTemplateProcessor.renderTemplate(Map.of(
+                "nav_bar", navBar,
+                "photo_html", photoHtml
+        ));
+        return Response.htmlOk(listPhotosHtml);
+    }
+
+    public Response ListPhotosPage2(Request r) {
+
+        String photoHtml = up.getPhotographs().stream().map(x ->
+        """
+        <li>
+            <img src="/photo?name=%s"
+                alt="photo alt text"
+                title="photo title text" />
+            <p>%s</p>
+            <p>%s</p>
+        </li>
+        """.formatted(x.getPhotoUrl(), x.getShortDescription(), x.getDescription())).collect(Collectors.joining ("\n"));
+
+        String navBar;
+        List<String> headerStrings = r.headers().valueByKey("x-preapproved");
+        if (headerStrings != null && headerStrings.contains("true")) {
+            navBar = "<p><a href=\"/logout\">Logout</a></p><p><a href=\"/upload\">Upload</a></p>";
+        } else {
+            navBar = "";
+        }
 
         String listPhotosHtml = listPhotosTemplateProcessor.renderTemplate(Map.of(
                 "nav_bar", navBar,

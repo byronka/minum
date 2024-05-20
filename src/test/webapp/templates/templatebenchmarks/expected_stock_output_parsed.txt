@@ -1,24 +1,24 @@
 [[Stock Prices, 
 body {
-	color: #333333;
-	line-height: 150%;
+  color: #333333;
+  line-height: 150%;
 }
 
 thead {
-	font-weight: bold;
-	background-color: #CCCCCC;
+  font-weight: bold;
+  background-color: #CCCCCC;
 }
 
 .odd {
-	background-color: #FFCCCC;
+  background-color: #FFCCCC;
 }
 
 .even {
-	background-color: #CCCCFF;
+  background-color: #CCCCFF;
 }
 
 .minus {
-	color: #FF0000;
+  color: #FF0000;
 }
 
 

@@ -31,7 +31,13 @@ public class SerializationUtilsTests {
 
     @Test
     public void testTokenizer_OverMaxTokenCount() {
-        var ex = assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%|%NULL%", '|', 2));
+        // first two should run fine...
+        assertEquals(SerializationUtils.tokenizer("a", '|', 2).size(), 1);
+        assertEquals(SerializationUtils.tokenizer("a|b", '|', 2).size(), 2);
+
+        // third and further tokens should throw exceptions...
+        var ex = assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%", '|', 2));
         assertEquals(ex.getMessage(), "too many partitions in the tokenizer.  Current max: 2" );
+        assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%|%NULL%", '|', 2));
     }
 }
