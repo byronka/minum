@@ -1,6 +1,7 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.Context;
+import com.renomad.minum.utils.MyThread;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -163,5 +164,10 @@ public class TestLoggerTests {
     public void test_test() {
         logger.test("testing the test method");
         assertTrue(logger.doesMessageExist("testing the test method"));
+        assertEquals(logger.getTestCount(), 1);
+        logger.test("testing something else");
+        // wait time for queued log command to finish
+        MyThread.sleep(10);
+        assertEquals(logger.getTestCount(), 2);
     }
 }

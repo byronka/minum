@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>3.2.0</version>
+    <version>3.2.1</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 
@@ -136,6 +136,7 @@
                         <avoidCallsTo>com.renomad.minum.logging</avoidCallsTo>
                         <avoidCallsTo>com.renomad.minum.utils.Invariants</avoidCallsTo>
                         <avoidCallsTo>java.io.PrintStream</avoidCallsTo>
+                        <avoidCallsTo>java.lang.Thread</avoidCallsTo>
                     </avoidCallsTo>
                 </configuration>
             </plugin>

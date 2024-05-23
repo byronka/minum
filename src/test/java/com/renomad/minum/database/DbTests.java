@@ -94,63 +94,93 @@ public class DbTests {
     @Test
     public void test_GeneralCapability() {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-        final var foos = range(1,10).mapToObj(x -> new Foo(0, x, "abc"+x)).toList();
+
         final var db = new Db<>(foosDirectory, context, INSTANCE);
 
-        // make some files on disk
-        for (var foo : foos) {
-            db.write(foo);
-        }
+        for (int i = 0; i < 10; i++) {
+            final var foos = range(1, 40).mapToObj(x -> new Foo(0, x, "abc" + x)).toList();
 
-        // check that the files are now there.
-        // note that since our minum.database is *eventually* synced to disk, we need to wait a
-        // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(FINISH_TIME);
-        for (var foo : foos) {
-            assertTrue(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
-        }
+            // make some files on disk
+            for (var foo : foos) {
+                db.write(foo);
+            }
 
-        // rebuild some objects from what was written to disk
-        // note that since our minum.database is *eventually* synced to disk, we need to wait a
-        // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(FINISH_TIME);
-        assertEqualsDisregardOrder(
-                db.values().stream().map(Foo::toString).toList(),
-                foos.stream().map(Foo::toString).toList());
+            // check that the files are now there.
+            // note that since our minum.database is *eventually* synced to disk, we need to wait a
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            MyThread.sleep(FINISH_TIME);
+            for (var foo : foos) {
+                Path foundFile = foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX);
+                assertTrue(Files.exists(foundFile), "should find file at " + foundFile);
+            }
 
-        // change those files
-        final var updatedFoos = new ArrayList<Foo>();
-        for (var foo : db.values().stream().toList()) {
-            final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
-            updatedFoos.add(newFoo);
-            db.write(newFoo);
-        }
+            // rebuild some objects from what was written to disk
+            // note that since our minum.database is *eventually* synced to disk, we need to wait a
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            MyThread.sleep(FINISH_TIME);
+            assertEqualsDisregardOrder(
+                    db.values().stream().map(Foo::toString).toList(),
+                    foos.stream().map(Foo::toString).toList());
 
-        // rebuild some objects from what was written to disk
-        // note that since our minum.database is *eventually* synced to disk, we need to wait a
-        // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(FINISH_TIME);
-        assertEqualsDisregardOrder(
-                db.values().stream().map(Foo::toString).toList(),
-                updatedFoos.stream().map(Foo::toString).toList());
+            // change those files
+            final var updatedFoos = new ArrayList<Foo>();
+            for (var foo : db.values().stream().toList()) {
+                final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+                updatedFoos.add(newFoo);
+                db.write(newFoo);
+            }
 
-        // delete the files
-        for (var foo : foos) {
-            db.delete(foo);
-        }
+            // rebuild some objects from what was written to disk
+            // note that since our minum.database is *eventually* synced to disk, we need to wait a
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            MyThread.sleep(FINISH_TIME);
+            assertEqualsDisregardOrder(
+                    db.values().stream().map(Foo::toString).toList(),
+                    updatedFoos.stream().map(Foo::toString).toList());
 
-        // check that all the files are now gone
-        // note that since our minum.database is *eventually* synced to disk, we need to wait a
-        // (milli)second or two here for them to get onto the disk before we check for them.
-        MyThread.sleep(FINISH_TIME);
-        for (var foo : foos) {
-            assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
+            // delete the files
+            for (var foo : foos) {
+                db.delete(foo);
+            }
+
+            // check that all the files are now gone
+            // note that since our minum.database is *eventually* synced to disk, we need to wait a
+            // (milli)second or two here for them to get onto the disk before we check for them.
+            MyThread.sleep(FINISH_TIME);
+            for (var foo : foos) {
+                assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
+            }
         }
 
         // give the action queue time to save files to disk
         // then shut down.
         db.stop();
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("out/simple_db"), logger);
+        MyThread.sleep(FINISH_TIME);
+    }
+
+    /**
+     * If we run create, update, and delete in a fast loop,
+     * the locks are there to keep things stable.
+     */
+    @Test
+    public void test_Locking() {
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+
+        final var db = new Db<>(foosDirectory, context, INSTANCE);
+
+        for (int i = 0; i < 10; i++) {
+            Foo a = new Foo(0, 1, "a");
+            db.write(a);
+            db.write(new Foo(a.index, 2, "b"));
+            db.delete(a);
+        }
+        MyThread.sleep(100);
+        Path foundFile = foosDirectory.resolve(1 + Db.DATABASE_FILE_SUFFIX);
+        assertFalse(Files.exists(foundFile), "should not find file at " + foundFile);
+
+        // give the action queue time to save files to disk
+        // then shut down.
+        db.stop();
         MyThread.sleep(FINISH_TIME);
     }
 
@@ -211,8 +241,8 @@ public class DbTests {
      */
     @Test
     public void test_Performance() throws IOException {
-        int originalFooCount = 2;
-        int loopCount = 2;
+        int originalFooCount = 50;
+        int loopCount = 50;
 
         // clear out the directory to start
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
@@ -226,7 +256,7 @@ public class DbTests {
 
         // write the foos
         for (int i = 0; i < originalFooCount; i++) {
-            final var newFoo = new Foo(i, i + 1, "original");
+            final var newFoo = new Foo(0, i + 1, "original");
             foos.add(newFoo);
             db.write(newFoo);
         }
@@ -293,71 +323,75 @@ public class DbTests {
         // moving to the next step.
         int stepDelay = 40;
 
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
-        var db = new Db<>(foosDirectory, context, INSTANCE);
-        MyThread.sleep(stepDelay);
-        Foo foo1 = new Foo(0, 2, "a");
-        Foo foo2 = new Foo(0, 3, "b");
+        for (int i = 0; i < 3; i++) {
+            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            var db = new Db<>(foosDirectory, context, INSTANCE);
+            MyThread.sleep(stepDelay);
+            Foo foo1 = new Foo(0, 2, "a");
+            Foo foo2 = new Foo(0, 3, "b");
 
-        // first round - adding to an empty database
-        db.write(foo1);
-        var foos = db.values().stream().toList();
-        assertEquals(foos.size(), 1);
-        assertEquals(foos.getFirst(), foo1);
-        db.stop();
-        MyThread.sleep(stepDelay);
+            // first round - adding to an empty database
+            db.write(foo1);
+            var foos = db.values().stream().toList();
+            assertEquals(foos.size(), 1);
+            assertEquals(foos.getFirst(), foo1);
+            db.stop();
+            MyThread.sleep(stepDelay);
 
-        // second round - adding to a database that has stuff on disk
-        var db2 = new Db<>(foosDirectory, context, INSTANCE);
-        db2.write(foo2);
-        MyThread.sleep(stepDelay);
+            // second round - adding to a database that has stuff on disk
+            var db2 = new Db<>(foosDirectory, context, INSTANCE);
+            db2.write(foo2);
+            MyThread.sleep(stepDelay);
 
-        var foos2 = db2.values().stream().toList();
-        assertEquals(foos2.size(), 2);
-        assertEquals(foos2.get(0), foo1);
-        assertEquals(foos2.get(1), foo2);
-        db2.stop();
-        MyThread.sleep(stepDelay);
+            var foos2 = db2.values().stream().toList();
+            assertEquals(foos2.size(), 2);
+            assertEquals(foos2.get(0), foo1);
+            assertEquals(foos2.get(1), foo2);
+            db2.stop();
+            MyThread.sleep(stepDelay);
 
-        // third round - reading from a database that has yet to read from disk
-        var db3 = new Db<>(foosDirectory, context, INSTANCE);
-        var foos3 = db3.values().stream().toList();
-        assertEquals(foos3.size(), 2);
-        assertEquals(foos3.get(0), foo1);
-        assertEquals(foos3.get(1), foo2);
-        db3.stop();
-        MyThread.sleep(stepDelay);
+            // third round - reading from a database that has yet to read from disk
+            var db3 = new Db<>(foosDirectory, context, INSTANCE);
+            var foos3 = db3.values().stream().toList();
+            assertEquals(foos3.size(), 2);
+            assertEquals(foos3.get(0), foo1);
+            assertEquals(foos3.get(1), foo2);
+            db3.stop();
+            MyThread.sleep(stepDelay);
 
-        // fourth round - deleting from a database that has yet to read from disk
-        var db4 = new Db<>(foosDirectory, context, INSTANCE);
-        db4.delete(foo2);
-        var foos4 = db4.values().stream().toList();
-        assertEquals(foos4.size(), 1);
-        assertEquals(foos4.getFirst(), foo1);
-        db4.stop();
-        MyThread.sleep(stepDelay);
+            // fourth round - deleting from a database that has yet to read from disk
+            var db4 = new Db<>(foosDirectory, context, INSTANCE);
+            db4.delete(foo2);
+            var foos4 = db4.values().stream().toList();
+            assertEquals(foos4.size(), 1);
+            assertEquals(foos4.getFirst(), foo1);
+            db4.stop();
+            MyThread.sleep(stepDelay);
 
-        // fifth round - updating an item in a database that has not yet read from disk
-        var db5 = new Db<>(foosDirectory, context, INSTANCE);
-        var updatedFoo1 = new Foo(1, 42, "update");
-        db5.write(updatedFoo1);
-        var foos5 = db5.values().stream().toList();
-        assertEquals(foos5.size(), 1);
-        assertEquals(foos5.getFirst(), updatedFoo1);
-        db5.stop();
-        MyThread.sleep(stepDelay);
+            // fifth round - updating an item in a database that has not yet read from disk
+            var db5 = new Db<>(foosDirectory, context, INSTANCE);
+            var updatedFoo1 = new Foo(1, 42, "update");
+            db5.write(updatedFoo1);
+            var foos5 = db5.values().stream().toList();
+            assertEquals(foos5.size(), 1);
+            assertEquals(foos5.getFirst(), updatedFoo1);
+            db5.stop();
+            MyThread.sleep(stepDelay);
 
-        // sixth round - if we delete, it will reset the next index to 1
-        var db6 = new Db<>(foosDirectory, context, INSTANCE);
-        db6.delete(updatedFoo1);
-        var foos6 = db6.values().stream().toList();
-        assertEquals(foos6.size(), 0);
+            // sixth round - if we delete, it will reset the next index to 1
+            var db6 = new Db<>(foosDirectory, context, INSTANCE);
+            db6.delete(updatedFoo1);
+            var foos6 = db6.values().stream().toList();
+            assertEquals(foos6.size(), 0);
 
-        Foo newData = db6.write(new Foo(0, 1, "new data"));
-        assertEquals(newData.index, 1L);
+            Foo newData = db6.write(new Foo(0, 1, "new data"));
+            assertEquals(newData.index, 1L);
 
-        db6.stop();
-        MyThread.sleep(stepDelay);
+            db6.delete(newData);
+
+            db6.stop();
+            MyThread.sleep(stepDelay);
+        }
     }
 
     /**
@@ -436,7 +470,7 @@ public class DbTests {
 
         // create our "racers".  On your marks!
 
-        var foo = new Foo(1, 42, "hi I am foo");
+        var foo = new Foo(0, 42, "hi I am foo");
 
         Runnable racer1Writer = () -> {
             Thread.currentThread().setName("racer1_writer");

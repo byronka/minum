@@ -37,7 +37,7 @@ public class SerializationUtilsTests {
 
         // third and further tokens should throw exceptions...
         var ex = assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%", '|', 2));
-        assertEquals(ex.getMessage(), "too many partitions in the tokenizer.  Current max: 2" );
+        assertEquals(ex.getMessage(), "Asked to split content into too many partitions in the tokenizer.  Current max: 2" );
         assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%|%NULL%", '|', 2));
     }
 }

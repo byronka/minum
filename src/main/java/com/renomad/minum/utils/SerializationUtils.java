@@ -13,6 +13,14 @@ public final class SerializationUtils {
     }
 
     /**
+     * As a general precaution, loops throughout the system have
+     * safety limits in place.  In this case, it would be unexpected
+     * to have databases of type {@link com.renomad.minum.database.DbData} that
+     * have this many fields.
+     */
+    private static int MAXIMUM_DATABASE_PARTITIONS_ALLOWED = 200;
+
+    /**
      * This is a helper that will encode the values you give it
      * in preparation for storage in a database file.
      * <p>
@@ -40,7 +48,7 @@ public final class SerializationUtils {
     }
 
     /**
-     * Splits up a string based on a pipe character.  See {@link #tokenizer(String, char)}
+     * Splits up a string based on a pipe character.  See {@link #tokenizer(String, char, int)}
      * <p>
      *     This method is intended to be used as part of the database.  See
      *     the package "com.renomad.minum.database"
@@ -51,7 +59,7 @@ public final class SerializationUtils {
      * @param serializedText the string we are splitting into tokens
      */
     public static List<String> deserializeHelper(String serializedText) {
-        return tokenizer(serializedText, '|').stream().map(StringUtils::decode).toList();
+        return tokenizer(serializedText, '|', MAXIMUM_DATABASE_PARTITIONS_ALLOWED).stream().map(StringUtils::decode).toList();
     }
 
     /**
@@ -68,7 +76,7 @@ public final class SerializationUtils {
         var currentPlace = 0;
         for(int i = 0; ; i++) {
             if (i >= maxTokens) {
-                throw new ForbiddenUseException("too many partitions in the tokenizer.  Current max: " + maxTokens);
+                throw new ForbiddenUseException("Asked to split content into too many partitions in the tokenizer.  Current max: " + maxTokens);
             }
             final var nextDelimiterIndex = serializedText.indexOf(delimiter, currentPlace);
             if (nextDelimiterIndex == -1) {
@@ -83,9 +91,4 @@ public final class SerializationUtils {
         return resultList;
     }
 
-    public static List<String> tokenizer(String serializedText, char delimiter) {
-        // specify a reasonable maximum if given no value
-        int maxTokens = 200;
-        return tokenizer(serializedText, delimiter, maxTokens);
-    }
 }

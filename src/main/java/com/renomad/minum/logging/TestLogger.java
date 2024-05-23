@@ -212,4 +212,8 @@ private final Queue<String> recentLogLines;
         }
     }
 
+    public int getTestCount() {
+        return testCount;
+    }
+
 }

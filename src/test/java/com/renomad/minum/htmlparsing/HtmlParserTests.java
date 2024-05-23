@@ -154,7 +154,7 @@ public class HtmlParserTests {
     @Test
     public void test_HtmlParser_Edge_InvalidClosingTag() {
         assertThrows(ParsingException.class,
-                "Did not find expected closing-tag type. Expected: P at line 1 and at the 8th character",
+                "Did not find expected closing-tag type. Expected: P at line 1 and at the 8th character. 8 characters read in total.",
                 () -> new HtmlParser().parse("<p></br>"));
     }
 
@@ -164,8 +164,12 @@ public class HtmlParserTests {
     @Test
     public void test_HtmlParser_Edge_InvalidChar2() {
         assertThrows(ParsingException.class,
-                "in closing a void tag (e.g. <link />), character after forward slash must be angle bracket.  Char: / at line 1 and at the 13 character",
+                "in closing a void tag (e.g. <link />), character after forward slash must be angle bracket.  Char: / at line 1 and at the 13 character. 13 chars read in total.",
                 () -> new HtmlParser().parse("<br id=foo //>"));
+
+        assertThrows(ParsingException.class,
+                "in closing a void tag (e.g. <link />), character after forward slash must be angle bracket.  Char: / at line 3 and at the 4 character. 15 chars read in total.",
+                () -> new HtmlParser().parse("<br id=foo\n\n //>"));
     }
 
     @Test
@@ -205,6 +209,8 @@ public class HtmlParserTests {
      */
     @Test
     public void test_HtmlParser_ExceedMaxSize() {
+        new HtmlParser().parse("a".repeat(MAX_HTML_SIZE - 1));
+        new HtmlParser().parse("a".repeat(MAX_HTML_SIZE));
         assertThrows(ForbiddenUseException.class, () -> new HtmlParser().parse("a".repeat(MAX_HTML_SIZE + 1)));
     }
 
@@ -215,15 +221,24 @@ public class HtmlParserTests {
     @Test
     public void test_HtmlParser_ErrorMessagesShowRowAndColumn_NoStartingTag() {
         assertThrows(ParsingException.class,
-                "No starting tag found. At line 1 and at the 4th character",
+                "No starting tag found. At line 1 and at the 4th character. 4 characters read in total.",
                 () -> new HtmlParser().parse("</p>"));
+
+
+        assertThrows(ParsingException.class,
+                "No starting tag found. At line 4 and at the 5th character. 7 characters read in total.",
+                () -> new HtmlParser().parse("\n\n\n</p>"));
     }
 
     @Test
     public void test_HtmlParser_ErrorMessagesShowRowAndColumn_WrongEndingTag() {
         assertThrows(ParsingException.class,
-                "Did not find expected closing-tag type. Expected: A at line 1 and at the 7th character",
+                "Did not find expected closing-tag type. Expected: A at line 1 and at the 7th character. 7 characters read in total.",
                 () -> new HtmlParser().parse("<a></p>"));
+
+        assertThrows(ParsingException.class,
+                "Did not find expected closing-tag type. Expected: A at line 4 and at the 5th character. 10 characters read in total.",
+                () -> new HtmlParser().parse("<a>\n\n\n</p>"));
     }
 
     /**
@@ -276,6 +291,74 @@ public class HtmlParserTests {
         assertFalse(HtmlParser.isFinishedReadingTag("", true));
         assertFalse(HtmlParser.isFinishedReadingTag("foo", false));
         assertFalse(HtmlParser.isFinishedReadingTag("", false));
+    }
+
+    /**
+     * A test for a logical predicate to determine whether we have
+     * moved from whitespace to characters indicating the key of
+     * an HTML attribute.
+     * <br>
+     * The state that we are checking is:
+     * <pre>
+     *     1. state.currentAttributeKey - a token (i.e. a string) that is probably an HTML attribute
+     *     2. state.stringBuilder - an accumulator of text as we scan across characters, often representing
+     *                              the most recent important token.
+     *     3. currentChar - the current character we're analyzing
+     * </pre>
+     */
+    @Test
+    public void test_isHandlingAttributes() {
+        HtmlParser.State state = HtmlParser.State.buildNewState();
+
+        // empty attribute key and stringbuilder. This is the only
+        // situation where we decide we are still reading whitespace
+        // between the tag name and the potential start of an
+        // HTML tag attribute
+        state.currentAttributeKey = "";
+        state.stringBuilder = new StringBuilder();
+        assertFalse(HtmlParser.isHandlingAttributes(state, ' '));
+
+        // In this situation the result is true - we are in a mode of
+        // handling attributes, because we have previously read in
+        // an attribute of "class"
+        state.currentAttributeKey = "class";
+        state.stringBuilder = new StringBuilder();
+        assertTrue(HtmlParser.isHandlingAttributes(state, ' '));
+
+        // Here, we observe that our stringbuilder has been collecting
+        // characters - looks like this is possibly going to be "class"
+        state.currentAttributeKey = "";
+        state.stringBuilder = new StringBuilder("cla");
+        assertTrue(HtmlParser.isHandlingAttributes(state, ' '));
+
+        // In this situation, even though our prior state shows
+        // no collected characters, we *are* reading an "a", meaning
+        // we are no longer in a span of space characters between the
+        // tag name and start of attributes.
+        state.currentAttributeKey = "";
+        state.stringBuilder = new StringBuilder();
+        assertTrue(HtmlParser.isHandlingAttributes(state, 'a'));
+
+        // various edge combinations.  Some are invalid situations
+        // to be in, but since our False condition is so picky, we
+        // don't need to throw an exception.
+        // ********************
+
+        state.currentAttributeKey = "class";
+        state.stringBuilder = new StringBuilder();
+        assertTrue(HtmlParser.isHandlingAttributes(state, 'a'));
+
+        state.currentAttributeKey = "";
+        state.stringBuilder = new StringBuilder("cla");
+        assertTrue(HtmlParser.isHandlingAttributes(state, 'a'));
+
+        state.currentAttributeKey = "class";
+        state.stringBuilder = new StringBuilder("dat");
+        assertTrue(HtmlParser.isHandlingAttributes(state, 'a'));
+
+        state.currentAttributeKey = "class";
+        state.stringBuilder = new StringBuilder("dat");
+        assertTrue(HtmlParser.isHandlingAttributes(state, ' '));
     }
 
 }

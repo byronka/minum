@@ -57,7 +57,7 @@ public final class HtmlParser {
      * </p>
      */
     public List<HtmlParseNode> parse(String input) {
-        if (input.length() >= MAX_HTML_SIZE)
+        if (input.length() > MAX_HTML_SIZE)
             throw new ForbiddenUseException("Input exceeds max allowed HTML text size, " + MAX_HTML_SIZE + " chars");
         var is = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
 
@@ -319,20 +319,8 @@ public final class HtmlParser {
      * at this point we have a tagname for our tag, and we're still in the tag
      */
     private static void handleAfterReadingTagName(State state, char currentChar) {
-        // check whether we're in the whitespace between the tagname and
-        // the start of the (potential) key.
-        boolean atYetAnotherWhitespaceBetweenTagAndAttributes =
-                state.currentAttributeKey.isEmpty() &&
-                        state.stringBuilder.isEmpty()
-                        && currentChar == ' ';
 
-        /*
-        once we cross the chasm between the tag and the potential key,
-        there's a whole set of logic to run through. Yum. (but by the
-        way, it's not uncommon to never see a key inside a tag, so none
-        of this code would ever get run in that case)
-         */
-        boolean isHandlingAttributes = !atYetAnotherWhitespaceBetweenTagAndAttributes;
+        boolean isHandlingAttributes = isHandlingAttributes(state, currentChar);
         if (isHandlingAttributes) {
 
             if (state.currentAttributeKey.isBlank()) {
@@ -348,6 +336,16 @@ public final class HtmlParser {
                 handlePotentialAttributeValue(state, currentChar);
             }
         }
+    }
+
+    /**
+     * Check whether we're past the whitespace between the tag name and
+     * the start of the (potential) attribute key.
+     */
+    static boolean isHandlingAttributes(State state, char currentChar) {
+        return ! (state.currentAttributeKey.isEmpty() &&
+                        state.stringBuilder.isEmpty()
+                        && currentChar == ' ');
     }
 
     private static void handlePotentialAttributeValue(State state, char currentChar) {
@@ -401,7 +399,7 @@ public final class HtmlParser {
             a forward slash, so the current character *should*
             be a closing angle, but if it's not ...
              */
-            throw new ParsingException(String.format("in closing a void tag (e.g. <link />), character after forward slash must be angle bracket.  Char: %s at line %d and at the %d character", currentChar, state.lineRow, state.lineColumn));
+            throw new ParsingException(String.format("in closing a void tag (e.g. <link />), character after forward slash must be angle bracket.  Char: %s at line %d and at the %d character. %d chars read in total.", currentChar, state.lineRow, state.lineColumn, state.charsRead));
         } else if (currentChar == ' ' || currentChar == '=') {
             // if we hit whitespace or an equals sign, we're done reading the key
             state.currentAttributeKey = state.stringBuilder.toString();
@@ -510,7 +508,7 @@ public final class HtmlParser {
             try {
                 htmlParseNode = state.parseStack.pop();
             } catch (NoSuchElementException ex) {
-                throw new ParsingException("No starting tag found. At line " + state.lineRow + " and at the " + state.lineColumn + "th character");
+                throw new ParsingException("No starting tag found. At line " + state.lineRow + " and at the " + state.lineColumn + "th character. " + state.charsRead + " characters read in total.");
             }
 
              /*
@@ -523,7 +521,7 @@ public final class HtmlParser {
             }
             TagName expectedTagName = htmlParseNode.tagInfo().tagName();
             if (expectedTagName != tagName) {
-                throw new ParsingException("Did not find expected closing-tag type. " + "Expected: " + expectedTagName + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character");
+                throw new ParsingException("Did not find expected closing-tag type. " + "Expected: " + expectedTagName + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character. " + state.charsRead + " characters read in total.");
             }
         }
     }

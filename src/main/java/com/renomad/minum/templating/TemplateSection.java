@@ -29,6 +29,13 @@ import static com.renomad.minum.utils.SerializationUtils.tokenizer;
  */
 record TemplateSection(String key, String subString, int indent) {
 
+    /**
+     * It would be absurd to send a million lines to a browser, much
+     * less ten million.  This is here to set an upper limit on
+     * the tokenizer loop, to prevent certain attacks.
+     */
+    static final int MAXIMUM_LINES_ALLOWED = 10_000_000;
+
     public String render(Map<String, String> myMap) {
         mustBeTrue(subString != null || key != null, "Either the key or substring must exist");
         if (subString != null) {
@@ -37,7 +44,7 @@ record TemplateSection(String key, String subString, int indent) {
         } else {
             String value = myMap.get(key);
             if (value == null) throw new TemplateRenderException("Missing a value for key {"+key+"}");
-            List<String> lines = tokenizer(value, '\n', 10_000);
+            List<String> lines = tokenizer(value, '\n', MAXIMUM_LINES_ALLOWED);
 
             // if, after splitting on newlines, we have more than one line, we'll indent the remaining
             // lines so that they end up at the same column as the first line.

@@ -1,3 +1,15 @@
+v3.2.1 - May 26, 2024
+---------------------
+
+* Adjust maximum partitions in serializer.  A bug was found: text that was large but
+  but still reasonably sized (it more than ten thousand lines) was 
+  causing a failure in templating. The serializer utility allowed a maximum of ten thousand 
+  "partitions" (i.e. lines) before throwing an exception.  While it does make sense to 
+  set a maximum on any loop, ten thousand was too low.  This value was raised to ten 
+  million, based on the concept that sending an HTML template with a million lines would 
+  be absurdly high, and then putting a safety factor multiple on top of that.
+* Extra testing
+
 v3.2.0 - May 20, 2024
 ---------------------
 
