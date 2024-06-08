@@ -2,9 +2,9 @@ package com.renomad.minum.security;
 
 import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
-import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.utils.SearchUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,12 +18,13 @@ public class TheBrigTests {
 
     private static Context context;
     private static TestLogger logger;
-    private static Constants constants;
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
-        constants = context.getConstants();
+        var props = new Properties();
+        props.setProperty("DB_DIRECTORY", "out/brigdb");
+        props.setProperty("IS_THE_BRIG_ENABLED", "true");
+        context = buildTestingContext("unit_tests", props);
         logger = (TestLogger) context.getLogger();
     }
 
@@ -38,23 +39,79 @@ public class TheBrigTests {
      */
     @Test
     public void test_TheBrig_Basic() {
+        MyThread.sleep(50);
+        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var b = new TheBrig(10, context).initialize();
-        b.sendToJail("1.2.3.4_too_freq_downloads", 20);
-        assertTrue(b.isInJail("1.2.3.4_too_freq_downloads"));
-        MyThread.sleep(70);
-        assertFalse(b.isInJail("1.2.3.4_too_freq_downloads"));
+        // give the database time to start
+        MyThread.sleep(20);
+
+        // send some clients to jail
+        ITheBrig finalB = b;
+        Thread.ofVirtual().start(() -> finalB.sendToJail("1.1.1.1_too_freq_downloads", 10000));
+        Thread.ofVirtual().start(() -> finalB.sendToJail("2.2.2.2_too_freq_downloads", 20));
+        Thread.ofVirtual().start(() -> finalB.sendToJail("3.3.3.3_too_freq_downloads", 20));
+        Thread.ofVirtual().start(() -> finalB.sendToJail("4.4.4.4_too_freq_downloads", 20));
+
+        // what's the situation?
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertFalse(finalB.isInJail("DOES_NOT_EXIST")));
+
+        MyThread.sleep(10);
+
+        // after a short time, they should all still be in jail
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads")));
+        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads")));
+
+        MyThread.sleep(80);
+
+        b.stop();
+        b = new TheBrig(10, context).initialize();
+        MyThread.sleep(30);
+
+        // after their release time, they should all be out, except 1.1.1.1, who bugged us
+        assertTrue(b.isInJail("1.1.1.1_too_freq_downloads"));
+        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"));
+        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"));
+        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"));
+
+        // 1.1.1.1 bugged us some more.
+        b.sendToJail("1.1.1.1_too_freq_downloads", 40);
+
+        b.stop();
+        b = new TheBrig(10, context).initialize();
+        MyThread.sleep(30);
+
+        assertTrue(b.isInJail("1.1.1.1_too_freq_downloads"));
+        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"));
+        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"));
+        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"));
+
+        MyThread.sleep(20);
+
+        assertTrue(b.isInJail("1.1.1.1_too_freq_downloads"));
+        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"));
+        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"));
+        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"));
+
         b.stop();
     }
 
     @Test
     public void test_TheBrig_RegularStop() {
+        MyThread.sleep(50);
+        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var b = new TheBrig(10, context).initialize();
         MyThread.sleep(10);
         b.stop();
         assertTrue(true, "We should get here without an exception");
-        assertTrue(logger.doesMessageExist("TheBrig has been told to stop"));
-        assertTrue(logger.doesMessageExist("TheBrig: Sending interrupt to thread"));
-        assertTrue(logger.doesMessageExist("TheBrig is stopped."));
+        assertTrue(logger.doesMessageExist("TheBrig has been told to stop", 8));
+        assertTrue(logger.doesMessageExist("TheBrig: Sending interrupt to thread", 8));
+        assertTrue(logger.doesMessageExist("TheBrig is stopped.", 8));
     }
 
     /**
@@ -74,16 +131,15 @@ public class TheBrigTests {
      */
     @Test
     public void test_TheBrig_ExistingInmate() {
+        MyThread.sleep(50);
+        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var b = new TheBrig(10, context).initialize();
         b.sendToJail("1.2.3.4_too_freq_downloads", 20);
+        Long releaseTime = b.getInmates().getFirst().getReleaseTime();
         assertTrue(b.isInJail("1.2.3.4_too_freq_downloads"));
         assertEquals(b.getInmates().size(), 1);
-        MyThread.sleep(10);
         b.sendToJail("1.2.3.4_too_freq_downloads", 20);
-        MyThread.sleep(10);
-        b.sendToJail("1.2.3.4_too_freq_downloads", 20);
-        MyThread.sleep(10);
-        b.sendToJail("1.2.3.4_too_freq_downloads", 20);
+        assertEquals(releaseTime + 20, b.getInmates().getFirst().getReleaseTime());
         MyThread.sleep(70);
         assertFalse(b.isInJail("1.2.3.4_too_freq_downloads"));
         assertEquals(b.getInmates().size(), 0);
@@ -98,32 +154,6 @@ public class TheBrigTests {
         assertEquals(inmate.getReleaseTime(), 1691728931684L);
     }
 
-    /**
-     * Every so often, the thread inside the brig wakes up and checks
-     * on the "inmates".  These are strings which represent attackers,
-     * along with their "release time" - the timestamp at which they can
-     * be removed from the list.
-     * <p>
-     *     At the present, websites are under constant attack.  This is
-     *     a simple tool to put some friction in the attacker's path.
-     * </p>
-     */
-    @Test
-    public void test_ProcessingInmateList() {
-        Path dbDir = Path.of(constants.dbDirectory);
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(dbDir.resolve("the_brig_tests"), logger);
-        var inmatesDb = new Db<>(dbDir.resolve("the_brig_tests"), context, Inmate.EMPTY);
-        inmatesDb.write(new Inmate(0L, "abc", 0L));
-        inmatesDb.write(new Inmate(0L, "def", 99L));
-        inmatesDb.write(new Inmate(0L, "ghi", 100L));
-        inmatesDb.write(new Inmate(0L, "jkl", 101L));
-        inmatesDb.write(new Inmate(0L, "mno", 200L));
-
-        TheBrig.processInmateList(100L, inmatesDb.values(), logger, inmatesDb);
-
-        assertEquals(inmatesDb.values().size(), 3);
-        assertEquals(inmatesDb.values().toString(), "[Inmate{index=3, clientId='ghi', releaseTime=100}, Inmate{index=4, clientId='jkl', releaseTime=101}, Inmate{index=5, clientId='mno', releaseTime=200}]");
-    }
 
     @Test
     public void test_BrigDisabled() {

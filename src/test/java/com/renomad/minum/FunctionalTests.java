@@ -31,6 +31,7 @@ public class FunctionalTests {
     @BeforeClass
     public static void init() {
         context = buildTestingContext("_integration_test");
+        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         new FullSystem(context).start();
         new TheRegister(context).registerDomains();
         logger = (TestLogger) context.getLogger();
@@ -44,7 +45,6 @@ public class FunctionalTests {
     public static void cleanup() {
         // delay a sec so our system has time to finish before we start deleting files
         MyThread.sleep(500);
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var fs = context.getFullSystem();
         fs.shutdown();
         context.getLogger().stop();
@@ -77,6 +77,11 @@ public class FunctionalTests {
         TestResponse notFoundResponse = ft.get("DOES_NOT_EXIST.html");
         assertEquals(notFoundResponse.statusLine().status(), CODE_404_NOT_FOUND);
         assertEquals(notFoundResponse.body().asString(), "<p>No document was found</p>");
+
+        logger.test("If we ask for a path of \"whoops\", we should get redirected to the https endpoint");
+        TestResponse redirectedResponse = ft.get("whoops");
+        assertEquals(redirectedResponse.statusLine().status(), CODE_303_SEE_OTHER);
+        assertEquals(redirectedResponse.headers().valueByKey("location").getFirst(), "https://localhost:8080/whoops");
 
         logger.test("What about when business logic fails and an exception is thrown?");
         TestResponse serverErrorResponse = ft.get("throwexception");

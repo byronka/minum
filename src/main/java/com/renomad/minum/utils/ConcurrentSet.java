@@ -3,8 +3,6 @@ package com.renomad.minum.utils;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * This uses a [ConcurrentHashMap] as its base.  We store
@@ -44,14 +42,5 @@ public final class ConcurrentSet<T> implements Iterable<T> {
          * we are only using the keys, never the values.
          */
         NULL
-    }
-
-    public Stream<T> asStream() {
-        return asStream(false);
-    }
-
-    public Stream<T> asStream(boolean parallel) {
-        Iterable<T> iterable = this;
-        return StreamSupport.stream(iterable.spliterator(), parallel);
     }
 }

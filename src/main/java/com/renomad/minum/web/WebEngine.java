@@ -16,6 +16,9 @@ import java.nio.file.Path;
 import java.security.*;
 import java.util.concurrent.ExecutorService;
 
+import static com.renomad.minum.web.HttpServerType.ENCRYPTED_HTTP;
+import static com.renomad.minum.web.HttpServerType.PLAIN_TEXT_HTTP;
+
 /**
  * This class contains the basic internet capabilities.
  * <br><br>
@@ -28,19 +31,23 @@ final class WebEngine {
   private final ITheBrig theBrig;
   private final Constants constants;
   private final Context context;
+  private final ExecutorService executorService;
+  private final WebFramework webFramework;
 
-  WebEngine(Context context) {
+  WebEngine(Context context, WebFramework webFramework) {
     this.logger = context.getLogger();
     this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
     this.theBrig = context.getFullSystem() != null ? context.getFullSystem().getTheBrig() : null;
     this.constants = context.getConstants();
     this.context = context;
+    this.executorService = context.getExecutorService();
+    this.webFramework = webFramework;
   }
 
   private final ILogger logger;
   static final String HTTP_CRLF = "\r\n";
 
-  IServer startServer(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
+  IServer startServer() {
     int port = constants.serverPort;
       ServerSocket ss;
       try {
@@ -49,15 +56,15 @@ final class WebEngine {
           throw new WebServerException(e);
       }
       logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    IServer server = new Server(ss, context, "http server", theBrig);
+    IServer server = new Server(ss, context, "http server", theBrig, webFramework, executorService, PLAIN_TEXT_HTTP);
     logger.logDebug(() -> String.format("Just created a new Server: %s", server));
-    server.start(es, handler);
+    server.start();
     String hostname = constants.hostName;
     logger.logDebug(() -> String.format("%s started at http://%s:%s", server, hostname, port));
     return server;
   }
 
-  IServer startSslServer(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
+  IServer startSslServer() {
 
     /*
      * If we find the keystore and pass in the system properties
@@ -68,9 +75,9 @@ final class WebEngine {
     int port = constants.secureServerPort;
     ServerSocket ss = createSslSocketWithSpecificKeystore(port, keystoreResult.keystoreUrl(), keystoreResult.keystorePassword());
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    IServer server = new Server(ss, context, "https server", theBrig);
+    IServer server = new Server(ss, context, "https server", theBrig, webFramework, executorService, ENCRYPTED_HTTP);
     logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
-    server.start(es, handler);
+    server.start();
     String hostname = constants.hostName;
     logger.logDebug(() -> String.format("%s started at https://%s:%s", server, hostname, port));
     return server;
@@ -164,19 +171,11 @@ final class WebEngine {
   }
 
   /**
-   * Create a listening server with no handler.
-   * Mostly used to test the server very manually.
-   */
-  IServer startServer(ExecutorService es) {
-    return startServer(es, null);
-  }
-
-  /**
    * Create a client {@link ISocketWrapper} connected to the running host server
    */
   ISocketWrapper startClient(Socket socket) throws IOException {
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-    return new SocketWrapper(socket, logger, constants.socketTimeoutMillis);
+    return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
   }
 
 }

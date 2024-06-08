@@ -5,13 +5,18 @@ import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
-import com.renomad.minum.testing.RegexUtils;
-import com.renomad.minum.utils.*;
+import com.renomad.minum.utils.CompressionUtils;
+import com.renomad.minum.utils.InvariantException;
+import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.utils.StringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,9 +30,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 
 import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
 import static com.renomad.minum.web.RequestLine.Method.*;
 import static com.renomad.minum.web.RequestLine.startLineRegex;
-import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
@@ -52,13 +57,12 @@ public class WebTests {
     static private ExecutorService es;
     static private IInputStreamUtils inputStreamUtils;
     static private Context context;
-    static private WebEngine webEngine;
     static private TestLogger logger;
     private static String gettysburgAddress;
     /**
      * The length of time, in milliseconds, we will wait for the server to close
      * before letting computation continue.
-     *
+     * <br>
      * Otherwise, for some operating systems (Windows), there will be a conflict when the
      * next server bind occurs.
      */
@@ -71,7 +75,6 @@ public class WebTests {
         properties.setProperty("SUSPICIOUS_PATHS", ".env");
         properties.setProperty("IS_THE_BRIG_ENABLED", "true");
         context = buildTestingContext("unit_tests",properties);
-        webEngine = new WebEngine(context);
         es = context.getExecutorService();
         inputStreamUtils = context.getInputStreamUtils();
         logger = (TestLogger)context.getLogger();
@@ -83,59 +86,6 @@ public class WebTests {
     public static void tearDownClass() {
         context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), logger);
         shutdownTestingContext(context);
-    }
-
-    private static void accept(String x) throws IOException{
-        throw new IOException("testing");
-    }
-
-    @Test
-    public void test_basicClientServer() throws Exception {
-        try (IServer primaryServer = webEngine.startServer(es)) {
-            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
-                    try (var server = primaryServer.getServer(client)) {
-                        InputStream is = server.getInputStream();
-
-                        client.send("hello foo!\n");
-                        String result = inputStreamUtils.readLine(is);
-                        assertEquals("hello foo!", result);
-                    }
-                }
-            }
-        }
-        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-    }
-
-    @Test
-    public void test_basicClientServer_MoreConversation() throws Exception {
-        String msg1 = "hello foo!";
-        String msg2 = "and how are you?";
-        String msg3 = "oh, fine";
-
-        try (var primaryServer = webEngine.startServer(es)) {
-            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
-                    try (var server = primaryServer.getServer(client)) {
-                        InputStream sis = server.getInputStream();
-                        InputStream cis = client.getInputStream();
-
-                        // client sends, server receives
-                        client.sendHttpLine(msg1);
-                        assertEquals(msg1, inputStreamUtils.readLine(sis));
-
-                        // server sends, client receives
-                        server.sendHttpLine(msg2);
-                        assertEquals(msg2, inputStreamUtils.readLine(cis));
-
-                        // client sends, server receives
-                        client.sendHttpLine(msg3);
-                        assertEquals(msg3, inputStreamUtils.readLine(sis));
-                    }
-                }
-            }
-        }
-        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
     /**
@@ -155,67 +105,13 @@ public class WebTests {
     }
 
     /**
-     * What would it be like if we were a real web server?
-     */
-    @Test
-    public void test_LikeARealWebServer() throws Exception {
-        try (var primaryServer = webEngine.startServer(es)) {
-            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
-                    try (var server = primaryServer.getServer(client)) {
-                        // send a GET request
-                        client.sendHttpLine("GET /index.html HTTP/1.1");
-                        client.sendHttpLine("cookie: abc=123");
-                        client.sendHttpLine("");
-                        server.sendHttpLine("HTTP/1.1 200 OK");
-                        assertTrue(logger.doesMessageExist("HTTP/1.1 200 OK"));
-                    }
-                }
-            }
-        }
-
-        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-    }
-
-    /**
-     * If we provide some code to handle things on the server
-     * side when it accepts a connection, then it will more
-     * truly act like the minum.web server we want it to be.
-     */
-    @Test
-    public void test_StartingServerWithHandler() throws Exception {
-       /*
-        Simplistic proof-of-concept of the minum.primary server
-        handler.  The socket has been created and as new
-        clients call it, this method handles each request.
-       */
-        ThrowingConsumer<ISocketWrapper> handler = (sw) -> {
-            InputStream is = sw.getInputStream();
-            logger.logDebug(() -> inputStreamUtils.readLine(is));
-            assertTrue(logger.doesMessageExist("GET /index.html HTTP/1.1"));
-        };
-
-        try (IServer primaryServer = webEngine.startServer(es, handler)) {
-            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
-                    // send a GET request
-                    client.sendHttpLine("GET /index.html HTTP/1.0");
-                    client.sendHttpLine("");
-                    MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-                }
-            }
-        }
-        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-    }
-
-    /**
      * This class belongs to the test below, "starting server with a handler part 2"
      * This represents the shape an endpoint could take. It's given a request object,
      * we presume it has everything is needs to do its work (query strings on the path,
      * header values, body contents, all that stuff), and it replies with a response
      * object that gets ferried along to the client.
      */
-    class Summation {
+    static class Summation {
         static Response addTwoNumbers(Request r) {
             int aValue = Integer.parseInt(r.requestLine().queryString().get("a"));
             int bValue = Integer.parseInt(r.requestLine().getPathDetails().queryString().get("b"));
@@ -230,9 +126,12 @@ public class WebTests {
      */
     @Test
     public void test_StartingWithHandler_Realistic() throws Exception {
+
         var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
         wf.registerPath(GET, "add_two_numbers", Summation::addTwoNumbers);
-        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+        try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -412,7 +311,7 @@ public class WebTests {
 
     /**
      * What happens if we are dealing with a form having many values?
-     * By the way, the maximum allowed is set by {@link com.renomad.minum.Constants#maxTokenizerPartitions}
+     * By the way, the maximum allowed is set by {@link com.renomad.minum.Constants#maxBodyKeysUrlEncoded}
      */
     @Test
     public void test_ParseForm_EdgeCase_ManyFormValues() {
@@ -450,7 +349,9 @@ public class WebTests {
     @Test
     public void test_ParseForm_MoreRealisticCase() throws Exception {
         var wf = new WebFramework(context, default_zdt);
-        try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+        var webEngine = new WebEngine(context, wf);
+
+        try (var primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
                     wf.registerPath(
@@ -487,7 +388,8 @@ public class WebTests {
     @Test
     public void test_NotFoundPath() throws Exception {
         var wf = new WebFramework(context, default_zdt);
-        try (var primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+        var webEngine = new WebEngine(context, wf);
+        try (var primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -642,7 +544,7 @@ public class WebTests {
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> {
+        final ThrowingFunction<Request, Response> testHandler = r -> {
             if (r.body().asString("text1").equals("I am a value that is text") &&
                     (r.body().asBytes("image_uploads")).length == 3 &&
                     (r.body().asBytes("image_uploads"))[0] == 1 &&
@@ -653,10 +555,13 @@ public class WebTests {
             } else {
               return new Response(CODE_404_NOT_FOUND);
             }
-        });
+        };
 
-        WebFramework wf = new WebFramework(context, default_zdt);
-        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        wf.registerPath(POST, "some_endpoint", testHandler);
+        try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -707,7 +612,7 @@ public class WebTests {
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> {
+        final ThrowingFunction<Request, Response> testHandler = r -> {
             byte[] kittyPic = Files.readAllBytes(Path.of("src/test/resources/kitty.jpg"));
             if (r.body().asString("text1").equals("I am a value that is text") &&
                     isEqualByteArray(r.body().asBytes("image_uploads"), new byte[]{1,2,3}) &&
@@ -718,10 +623,13 @@ public class WebTests {
             } else {
               return new Response(CODE_404_NOT_FOUND);
             }
-        });
+        };
 
-        WebFramework wf = new WebFramework(context, default_zdt);
-        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        wf.registerPath(POST, "some_endpoint", testHandler);
+        try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -781,8 +689,7 @@ public class WebTests {
                 new Headers(List.of(), context),
                 startLine,
                 Body.EMPTY,
-                ""
-        );
+                "");
 
         // when we run that handler against the request, it works.
         Response response = endpoint.apply(request);
@@ -795,10 +702,13 @@ public class WebTests {
     @Test
     public void test_KeepAlive_Http_1_0() throws Exception {
 
-        final ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> testHandler = (sl -> r -> Response.htmlOk("looking good!"));
+        final ThrowingFunction<Request, Response> testHandler =  r -> Response.htmlOk("looking good!");
 
-        WebFramework wf = new WebFramework(context, default_zdt);
-        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        wf.registerPath(GET, "some_endpoint", testHandler);
+        try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -832,7 +742,7 @@ public class WebTests {
 
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
 
-        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler(testHandler))) {
+        try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
@@ -857,8 +767,10 @@ public class WebTests {
 
     @Test
     public void test_InvalidRequestLine() throws Exception {
-        WebFramework wf = new WebFramework(context, default_zdt);
-        try (IServer primaryServer = webEngine.startServer(es, wf.makePrimaryHttpHandler())) {
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (var client = webEngine.startClient(socket)) {
                     // send an invalid GET request
@@ -886,8 +798,8 @@ public class WebTests {
         properties.setProperty("SERVER_PORT", "999999999");
         Context context = buildTestingContext("testing invalid port",properties);
         try {
-            WebEngine webEngine = new WebEngine(context);
-            assertThrows(WebServerException.class, () -> webEngine.startServer(es, null));
+            WebEngine webEngine = new WebEngine(context, null);
+            assertThrows(WebServerException.class, () -> webEngine.startServer());
             MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
         } finally {
             shutdownTestingContext(context);
@@ -1030,127 +942,6 @@ public class WebTests {
         RequestLine requestLine = RequestLine.empty(context);
         var result = requestLine.extractMapFromQueryString("foo");
         assertEquals(result, Map.of());
-    }
-
-    /**
-     *  When we run the redirection handler, it will redirect all traffic
-     * on the socket to the HTTPS endpoint.
-     *  Sometimes a client will connect to TCP but then close their
-     * connection, in which case when we readline it will return as null,
-     * and we'll return early from the handler, returning nothing.
-     */
-    @Test
-    public void test_RedirectHandler_HappyPath() throws Exception {
-        var webFramework = new WebFramework(context);
-        var redirectHandler = webFramework.makeRedirectHandler();
-        FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
-        fakeSocketWrapper.bais = new ByteArrayInputStream("The startline\n".getBytes(StandardCharsets.UTF_8));
-        redirectHandler.accept(fakeSocketWrapper);
-        String result = fakeSocketWrapper.baos.toString();
-        assertTrue(result.contains("303 SEE OTHER"), "result was: " + result);
-    }
-
-    /**
-     * Sometimes a client will connect to TCP but then close their
-     * connection, in which case when we read the line it will return as null,
-     * and we'll return early from the handler, returning nothing.
-     */
-    @Test
-    public void test_RedirectHandler_NoStartLine() throws Exception {
-        var webFramework = new WebFramework(context);
-        var redirectHandler = webFramework.makeRedirectHandler();
-        var fakeSocketWrapper = new FakeSocketWrapper();
-        redirectHandler.accept(fakeSocketWrapper);
-        assertEquals(fakeSocketWrapper.baos.toString(), "");
-    }
-
-    @Test
-    public void test_RedirectHandler_EmptyStartLine() throws Exception {
-        var webFramework = new WebFramework(context);
-        var redirectHandler = webFramework.makeRedirectHandler();
-        var fakeSocketWrapper = new FakeSocketWrapper();
-        fakeSocketWrapper.bais = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
-        redirectHandler.accept(fakeSocketWrapper);
-        assertEquals(fakeSocketWrapper.baos.toString(), "");
-    }
-
-    /**
-     * Test what happens when an error occurs during readLine
-     */
-    @Test
-    public void test_RedirectHandler_ExceptionThrown_AtReadLine() {
-        try (var fakeSocketWrapper = new FakeSocketWrapper()) {
-            var throwingInputStreamUtils = new IInputStreamUtils() {
-
-                @Override
-                public byte[] readUntilEOF(InputStream inputStream) {
-                    return new byte[0];
-                }
-
-                @Override
-                public byte[] readChunkedEncoding(InputStream inputStream) {
-                    return new byte[0];
-                }
-
-                @Override
-                public String readLine(InputStream inputStream) throws IOException {
-                    throw new IOException("This is a test");
-                }
-
-                @Override
-                public byte[] read(int lengthToRead, InputStream inputStream) {
-                    return new byte[0];
-                }
-            };
-            assertThrows(WebServerException.class,
-                    "java.io.IOException: This is a test",
-                    () -> WebFramework.redirectHandlerCore(
-                            fakeSocketWrapper,
-                            throwingInputStreamUtils,
-                            context,
-                            "testing",
-                            logger));
-        }
-    }
-
-    /**
-     * Test what happens when an error occurs during sending
-     */
-    @Test
-    public void test_RedirectHandler_ExceptionThrown_AtSending() {
-        try (var fakeSocketWrapper = new ThrowingFakeSocketWrapper()) {
-            var throwingInputStreamUtils = new IInputStreamUtils() {
-
-                @Override
-                public byte[] readUntilEOF(InputStream inputStream) {
-                    return new byte[0];
-                }
-
-                @Override
-                public byte[] readChunkedEncoding(InputStream inputStream) {
-                    return new byte[0];
-                }
-
-                @Override
-                public String readLine(InputStream inputStream) {
-                    return "testing";
-                }
-
-                @Override
-                public byte[] read(int lengthToRead, InputStream inputStream) {
-                    return new byte[0];
-                }
-            };
-
-            assertThrows(WebServerException.class,
-                    "java.io.IOException: testing send(String)",
-                    () -> WebFramework.redirectHandlerCore(
-                            fakeSocketWrapper,
-                            throwingInputStreamUtils,
-                            context,
-                            "testing",
-                            logger));
-        }
     }
 
     private static byte[] makeTestMultiPartData() {
@@ -1376,7 +1167,6 @@ public class WebTests {
         try (var sw = new FakeSocketWrapper()) {
 
             result = webFramework.processRequest(
-                    path -> null,
                     sw,
                     new RequestLine(POST,
                             new RequestLine.PathDetails(
@@ -1395,29 +1185,6 @@ public class WebTests {
         assertEquals(result.resultingResponse(), new Response(CODE_404_NOT_FOUND));
         assertEquals(result.clientRequest().requestLine().toString(), "StartLine{method=POST, pathDetails=PathDetails[isolatedPath=FOO, rawQueryString=, queryString={}], version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1'}");
         assertEquals(result.clientRequest().remoteRequester(), "tester");
-    }
-
-    /**
-     * If a failure takes place during processing of the business code, a
-     * random integer will be generated and returned in the 500 to the browser,
-     * and also to the logs.  This correlation helps the developer debug the situation.
-     */
-    @Test
-    public void testExceptionThrownWhileProcessing() throws Exception {
-        var webFramework = new WebFramework(context);
-        ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> handlerFinder = path -> request -> {
-            throw new RuntimeException("just for testing error handling - no worries");
-        };
-        WebFramework.ProcessingResult result;
-        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
-            result = webFramework.processRequest(handlerFinder, sw, null, null, null);
-        }
-        assertEquals(result.resultingResponse().statusCode(), CODE_500_INTERNAL_SERVER_ERROR);
-        String body = new String(result.resultingResponse().body());
-        String errorCode = RegexUtils.find("Server error: (?<errorcode>.*)$", body, "errorcode");
-        String errorMessage = logger.findFirstMessageThatContains(errorCode, 7);
-
-        assertTrue(errorMessage.contains("Code: "+errorCode+". Error: java.lang.RuntimeException: just for testing error handling - no worries"));
     }
 
     /**

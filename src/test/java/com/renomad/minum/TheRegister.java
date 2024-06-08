@@ -109,12 +109,22 @@ public class TheRegister {
         // log all requests
         Request request = preHandlerInputs.clientRequest();
         ThrowingFunction<Request, Response> endpoint = preHandlerInputs.endpoint();
+        ISocketWrapper sw = preHandlerInputs.sw();
+
         logger.logTrace(() -> String.format("Request: %s by %s",
                 request.requestLine().getRawValue(),
                 request.remoteRequester()));
 
-        // adjust behavior if non-authenticated and path includes "secure/"
         String path = request.requestLine().getPathDetails().isolatedPath();
+
+        // redirect to https if they are on the plain-text connection and the path is "whoops"
+        if (path.contains("whoops") &&
+                sw.getServerType().equals(HttpServerType.PLAIN_TEXT_HTTP)) {
+            return Response.redirectTo("https://%s:%d/%s".formatted(sw.getHostName(), sw.getLocalPort(), path));
+        }
+
+        // adjust behavior if non-authenticated and path includes "secure/"
+
         if (path.contains("secure/")) {
             AuthResult authResult = auth.processAuth(request);
             if (authResult.isAuthenticated()) {

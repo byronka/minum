@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -108,7 +109,7 @@ public final class Db<T extends DbData<?>> {
      * on our minum.database
      * </p>
      */
-    void stop() {
+    public void stop() {
         actionQueue.stop();
     }
 
@@ -116,7 +117,7 @@ public final class Db<T extends DbData<?>> {
      * Similar to {@link #stop()} but gives more control over how long
      * we'll wait before crashing it closed.  See {@link ActionQueue#stop(int, int)}
      */
-    void stop(int count, int sleepTime) {
+    public void stop(int count, int sleepTime) {
         actionQueue.stop(count, sleepTime);
     }
 
@@ -306,7 +307,7 @@ public final class Db<T extends DbData<?>> {
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        return data.values();
+        return Collections.unmodifiableCollection(data.values());
     }
 
     /**

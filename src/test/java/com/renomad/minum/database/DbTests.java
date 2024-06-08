@@ -6,7 +6,6 @@ import com.renomad.minum.logging.Logger;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
-import com.renomad.minum.utils.ExtendedExecutor;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.web.InputStreamUtils;
@@ -94,6 +93,7 @@ public class DbTests {
     @Test
     public void test_GeneralCapability() {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        MyThread.sleep(FINISH_TIME);
 
         final var db = new Db<>(foosDirectory, context, INSTANCE);
 
@@ -117,7 +117,7 @@ public class DbTests {
             // rebuild some objects from what was written to disk
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(FINISH_TIME);
+            MyThread.sleep(90);
             assertEqualsDisregardOrder(
                     db.values().stream().map(Foo::toString).toList(),
                     foos.stream().map(Foo::toString).toList());
@@ -146,7 +146,7 @@ public class DbTests {
             // check that all the files are now gone
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(FINISH_TIME);
+            MyThread.sleep(90);
             for (var foo : foos) {
                 assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
             }
@@ -891,7 +891,7 @@ public class DbTests {
 
     private Context buildTestingContextWithRegularLogger(String loggerName) {
         var constants = new Constants();
-        var executorService = ExtendedExecutor.makeExecutorService(constants);
+        var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, loggerName);
         var fileUtils = new FileUtils(logger, constants);
         var inputStreamUtils = new InputStreamUtils(constants);

@@ -29,12 +29,6 @@ public interface ISocketWrapper extends Closeable {
     void sendHttpLine(String msg) throws IOException;
 
     /**
-     * A live running socket connects a local address and port to a
-     * remote address and port. This returns the local address.
-     */
-    String getLocalAddr();
-
-    /**
      * Get the port of the server
      */
     int getLocalPort();
@@ -50,10 +44,18 @@ public interface ISocketWrapper extends Closeable {
      */
     String getRemoteAddr();
 
+    HttpServerType getServerType();
+
     void close() throws IOException;
 
     /**
      * Returns this socket's input stream for more granular access
      */
     InputStream getInputStream();
+
+    /**
+     * The hostname of the server, as set in the configuration
+     * file of key HOST_NAME in {@link com.renomad.minum.Constants#hostName}
+     */
+    String getHostName();
 }

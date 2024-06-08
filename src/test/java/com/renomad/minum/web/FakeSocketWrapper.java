@@ -16,8 +16,6 @@ import java.util.function.Supplier;
 public class FakeSocketWrapper implements ISocketWrapper {
 
     public Consumer<String> sendHttpLineAction;
-    public Supplier<String> getLocalAddrAction;
-    public Supplier<Integer> getLocalPortAction;
     public Supplier<String> getRemoteAddrAction;
     public Supplier<SocketAddress> getRemoteAddrWithPortAction;
     public ByteArrayOutputStream baos;
@@ -46,13 +44,8 @@ public class FakeSocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public String getLocalAddr() {
-        return getLocalAddrAction.get();
-    }
-
-    @Override
     public int getLocalPort() {
-        return getLocalPortAction.get();
+        return 0;
     }
 
     @Override
@@ -66,10 +59,25 @@ public class FakeSocketWrapper implements ISocketWrapper {
     }
 
     @Override
+    public HttpServerType getServerType() {
+        return null;
+    }
+
+    @Override
     public void close() {}
 
     @Override
     public InputStream getInputStream() {
         return bais;
+    }
+
+    @Override
+    public String getHostName() {
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return "fake socket wrapper";
     }
 }

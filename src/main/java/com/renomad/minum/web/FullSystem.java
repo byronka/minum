@@ -15,6 +15,7 @@ import java.time.ZonedDateTime;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This class is responsible for kicking off the entire system.
@@ -57,7 +58,7 @@ public final class FullSystem {
      */
     public static Context buildContext() {
         var constants = new Constants();
-        var executorService = ExtendedExecutor.makeExecutorService(constants);
+        var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, "primary logger");
         var fileUtils = new FileUtils(logger, constants);
         var inputStreamUtils = new InputStreamUtils(constants);
@@ -109,19 +110,10 @@ public final class FullSystem {
         // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
 
-        // build the primary http handler - the beating heart of code
-        // that handles HTTP protocol
-        final var webHandler = webFramework.makePrimaryHttpHandler();
-
-        // should we redirect all insecure traffic to https? If so,
-        // then for port 80 all requests will cause a redirect to the secure TLS endpoint
-        boolean shouldRedirect = constants.redirectToSecure;
-        var nonTlsWebHandler = shouldRedirect ? webFramework.makeRedirectHandler() : webHandler;
-        
         // kick off the servers - low level internet handlers
-        webEngine = new WebEngine(context);
-        server = webEngine.startServer(es, nonTlsWebHandler);
-        sslServer = webEngine.startSslServer(es, webHandler);
+        webEngine = new WebEngine(context, webFramework);
+        server = webEngine.startServer();
+        sslServer = webEngine.startSslServer();
 
         // document how long to start up the system
         var now = ZonedDateTime.now(ZoneId.of("UTC"));

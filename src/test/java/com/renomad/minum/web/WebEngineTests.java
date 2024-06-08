@@ -21,7 +21,8 @@ public class WebEngineTests {
     @BeforeClass
     public static void setUpClass() {
         context = buildTestingContext("WebEngine Tests");
-        webEngine = new WebEngine(context);
+        var webFramework = new WebFramework(context);
+        webEngine = new WebEngine(context, webFramework);
         logger = (TestLogger)context.getLogger();
     }
 

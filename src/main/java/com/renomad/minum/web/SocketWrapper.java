@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 final class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
+    private final String hostName;
     private final InputStream inputStream;
     private final OutputStream writer;
     private final ILogger logger;
@@ -26,12 +27,9 @@ final class SocketWrapper implements ISocketWrapper {
      * @param logger not much more to say on this param
      * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
      */
-    SocketWrapper(Socket socket, ILogger logger, int timeoutMillis) throws IOException {
-        this(socket, null, logger, timeoutMillis);
-    }
-
-    SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis) throws IOException {
+    SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) throws IOException {
         this.socket = socket;
+        this.hostName = hostName;
         this.socket.setSoTimeout(timeoutMillis);
         this.inputStream = socket.getInputStream();
         writer = socket.getOutputStream();
@@ -56,11 +54,6 @@ final class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public String getLocalAddr() {
-        return socket.getLocalAddress().getHostAddress();
-    }
-
-    @Override
     public int getLocalPort() {
         return socket.getLocalPort();
     }
@@ -73,6 +66,11 @@ final class SocketWrapper implements ISocketWrapper {
     @Override
     public String getRemoteAddr() {
         return socket.getInetAddress().getHostAddress();
+    }
+
+    @Override
+    public HttpServerType getServerType() {
+        return server.getServerType();
     }
 
     @Override
@@ -95,5 +93,10 @@ final class SocketWrapper implements ISocketWrapper {
     @Override
     public String toString() {
         return "(SocketWrapper for remote address: " + this.getRemoteAddrWithPort().toString() + ")";
+    }
+
+    @Override
+    public String getHostName() {
+        return hostName;
     }
 }

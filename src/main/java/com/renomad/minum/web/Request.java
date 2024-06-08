@@ -45,11 +45,11 @@ package com.renomad.minum.web;
  * A request line containing only the path name is accepted by servers to
  * maintain compatibility with HTTP clients before the HTTP/1.0 specification in RFC 1945.
  *</p>
+ * @param  remoteRequester This is the remote address making the request
  */
-public record Request(Headers headers, RequestLine requestLine, Body body,
-                      /*
-                      This is the remote address making the request
-                       */
+public record Request(Headers headers,
+                      RequestLine requestLine,
+                      Body body,
                       String remoteRequester) {
 
 }

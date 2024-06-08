@@ -170,4 +170,25 @@ public class TestLoggerTests {
         MyThread.sleep(10);
         assertEquals(logger.getTestCount(), 2);
     }
+
+    /**
+     * If we don't find the log message we expected, an
+     * exception should be thrown.
+     */
+    @Test
+    public void test_doesMessageExist_NegativeCase() {
+        var ex = assertThrows(TestLoggerException.class, () -> logger.doesMessageExist("foo foo"));
+        assertTrue(ex.getMessage().contains("foo foo was not found in"));
+    }
+
+    /**
+     * A simple test for testLoggerQueue, just to get a handle on it.
+     */
+    @Test
+    public void test_testLoggerQueue_Basic() {
+        var tlq = new TestLoggerQueue(1);
+        assertTrue(tlq.add("abc"));
+        assertTrue(tlq.add("123"));
+        assertFalse(tlq.contains("abc"));
+    }
 }

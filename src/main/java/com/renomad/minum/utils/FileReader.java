@@ -13,13 +13,16 @@ import java.util.Map;
 
 import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
 
+/**
+ * Reads files from disk, optionally storing into a LRU cache.
+ */
 public final class FileReader implements IFileReader {
 
     private final Map<String, byte[]> lruCache;
     private final boolean useCacheForStaticFiles;
     private final ILogger logger;
 
-    FileReader(Map<String, byte[]> lruCache, boolean useCacheForStaticFiles, ILogger logger) {
+    public FileReader(Map<String, byte[]> lruCache, boolean useCacheForStaticFiles, ILogger logger) {
 
         this.lruCache = lruCache;
         this.useCacheForStaticFiles = useCacheForStaticFiles;

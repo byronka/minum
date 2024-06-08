@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.HtmlParser;
@@ -22,11 +23,11 @@ import java.util.Map;
 public final class FunctionalTesting {
 
     private final Context context;
-    private final WebEngine webEngine;
     private final String host;
     private final int port;
     private final IInputStreamUtils inputStreamUtils;
     private final ILogger logger;
+    private final Constants constants;
 
     /**
      * Allows the user to set the host and port to target
@@ -34,7 +35,7 @@ public final class FunctionalTesting {
      */
     public FunctionalTesting(Context context, String host, int port) {
         this.context = context;
-        this.webEngine = new WebEngine(context);
+        this.constants = context.getConstants();
         this.host = host;
         this.port = port;
 
@@ -161,13 +162,21 @@ public final class FunctionalTesting {
      */
     public TestResponse send(RequestLine.Method method, String path, byte[] payload, List<String> extraHeaders) {
         try (Socket socket = new Socket(host, port)) {
-            try (ISocketWrapper client = webEngine.startClient(socket)) {
+            try (ISocketWrapper client = startClient(socket)) {
                 return innerClientSend(client, method, path, payload, extraHeaders);
             }
         } catch (Exception e) {
             logger.logDebug(() -> "Error during client send: " + StacktraceUtils.stackTraceToString(e));
             return TestResponse.EMPTY;
         }
+    }
+
+    /**
+     * Create a client {@link ISocketWrapper} connected to the running host server
+     */
+    ISocketWrapper startClient(Socket socket) throws IOException {
+        logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+        return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 
     public TestResponse innerClientSend(

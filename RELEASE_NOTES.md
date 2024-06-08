@@ -1,3 +1,35 @@
+v4.0.0 - June 8, 2024
+---------------------
+
+* Noticed that the utils package had a dependency on the web package
+  in the FileUtils class.  Moved code to avoid this cyclical dependency.
+* Disentangle methods in the web code to make stacktraces and debugging simpler
+* Configuration
+  * Removed flag to redirect to HTTPS from the HTTP endpoint. This behavior
+    is now provided by writing appropriate code in WebFramework.preHandler.  Examples
+    are provided in the documentation for the method.
+    * Related: removed REDIRECT_TO_SECURE property
+  * Removed ability to choose non-virtual threads.  Having two major modes of thread
+    execution increases the testing surface area unnecessarily.  Since Java 21 is
+    required, will just use the primary intention.
+    * Related: removed USE_VIRTUAL property
+    * Related: Removed ExtendedExecutor class and makeExecutorService method
+  * Increased default maximum for query string count from 20 to 50
+  * Changed default value for using virtual threads to true
+  * Changed default value for using the brig to true
+  * Including the default values as text in the minum.config file
+  * Rename MAX_TOKENIZER_PARTITIONS to MAX_BODY_KEYS_URL_ENCODED
+  * Better documentation in the configuration file
+* Database
+  * Made Db.stop() a publicly available method
+  * Db.values now returns an unmodifiable collection.  This was always the intent,
+    but by using Collections.unmodifiableCollection, this concept is more
+    strictly enforced.
+* TheBrig
+  * Calling `.stop()` on TheBrig will now stop its associated Db.
+  * More informative log messages in TheBrig.
+  * Better locking 
+
 v3.2.1 - May 26, 2024
 ---------------------
 

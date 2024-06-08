@@ -8,7 +8,6 @@ import org.junit.Test;
 
 import java.util.Properties;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -83,8 +82,7 @@ public class FullSystemTests {
 
     IServer throwingServer = new IServer() {
         @Override
-        public void start(ExecutorService es, ThrowingConsumer<ISocketWrapper> handler) {
-
+        public void start() {
         }
 
         @Override
@@ -98,11 +96,6 @@ public class FullSystemTests {
         }
 
         @Override
-        public ISocketWrapper getServer(ISocketWrapper sw) {
-            return null;
-        }
-
-        @Override
         public void removeMyRecord(ISocketWrapper socketWrapper) {
 
         }
@@ -110,6 +103,11 @@ public class FullSystemTests {
         @Override
         public Future<?> getCentralLoopFuture() {
             throw new CancellationException("Just testing");
+        }
+
+        @Override
+        public HttpServerType getServerType() {
+            return null;
         }
 
         @Override

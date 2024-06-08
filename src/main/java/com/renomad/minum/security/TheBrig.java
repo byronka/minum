@@ -77,12 +77,13 @@ public final class TheBrig implements ITheBrig {
     }
 
     private void reviewCurrentInmates() throws InterruptedException {
-        if (! inmatesDb.values().isEmpty()) {
-            logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + inmatesDb.values().size());
+        Collection<Inmate> values = inmatesDb.values();
+        if (! values.isEmpty()) {
+            logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + values.size());
         }
         var now = System.currentTimeMillis();
 
-        processInmateList(now, inmatesDb.values(), logger, inmatesDb);
+        processInmateList(now, values, logger, inmatesDb);
         Thread.sleep(sleepTime);
     }
 
@@ -98,7 +99,7 @@ public final class TheBrig implements ITheBrig {
         }
         for (var k : keysToRemove) {
             logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-            Inmate inmateToRemove = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.getClientId().equals(k));
+            Inmate inmateToRemove = SearchUtils.findExactlyOne(inmates.stream(), x -> x.getClientId().equals(k));
             inmatesDb.delete(inmateToRemove);
         }
     }
@@ -111,7 +112,7 @@ public final class TheBrig implements ITheBrig {
         // if the release time is in the past (that is, the release time is
         // before / less-than now), add them to the list to be released.
         if (inmate.getReleaseTime() < now) {
-            logger.logTrace(() -> "UnderInvestigation: " + inmate.getClientId() + " has paid its dues and is getting released");
+            logger.logTrace(() -> "UnderInvestigation: " + inmate.getClientId() + " has paid its dues as of " + inmate.getReleaseTime() + " and is getting released. Current time: " + now);
             keysToRemove.add(inmate.getClientId());
         }
     }
@@ -122,6 +123,7 @@ public final class TheBrig implements ITheBrig {
         if (myThread != null) {
             logger.logDebug(() -> "TheBrig: Sending interrupt to thread");
             myThread.interrupt();
+            this.inmatesDb.stop();
         } else {
             throw new SecurityException("TheBrig was told to stop, but it was uninitialized");
         }
@@ -135,15 +137,19 @@ public final class TheBrig implements ITheBrig {
         }
         lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
-            logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds");
-            long releaseTime = System.currentTimeMillis() + sentenceDuration;
+            long now = System.currentTimeMillis();
+
             Inmate existingInmate = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.getClientId().equals(clientIdentifier));
             if (existingInmate == null) {
                 // if this is a new inmate, add them
+                long releaseTime = now + sentenceDuration;
+                logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds. Release time: " + releaseTime + ". Current time: " + now);
                 Inmate newInmate = new Inmate(0L, clientIdentifier, releaseTime);
                 inmatesDb.write(newInmate);
             } else {
                 // if this is an existing inmate continuing to attack us, just update their duration
+                long releaseTime = existingInmate.getReleaseTime() + sentenceDuration;
+                logger.logDebug(() -> "TheBrig: Putting away " + clientIdentifier + " for " + sentenceDuration + " milliseconds. Release time: " + releaseTime + ". Current time: " + now);
                 inmatesDb.write(new Inmate(existingInmate.getIndex(), existingInmate.getClientId(), releaseTime));
             }
         } finally {
@@ -158,11 +164,22 @@ public final class TheBrig implements ITheBrig {
         if (!constants.isTheBrigEnabled) {
             return false;
         }
-        return inmatesDb.values().stream().anyMatch(x -> x.getClientId().equals(clientIdentifier));
+        lock.lock();
+        try {
+            return inmatesDb.values().stream().anyMatch(x -> x.getClientId().equals(clientIdentifier));
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public List<Inmate> getInmates() {
-        return inmatesDb.values().stream().toList();
+        lock.lock();
+        try {
+            return inmatesDb.values().stream().toList();
+        } finally {
+            lock.unlock();
+        }
     }
+
 }

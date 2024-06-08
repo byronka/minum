@@ -27,20 +27,18 @@ public final class Constants {
         dbDirectory = properties.getProperty("DB_DIRECTORY",  "db");
         staticFilesDirectory = properties.getProperty("STATIC_FILES_DIRECTORY",  "static");
         logLevels = convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT"));
-        useVirtual = getProp("USE_VIRTUAL", false);
         keystorePath = properties.getProperty("KEYSTORE_PATH",  "");
         keystorePassword = properties.getProperty("KEYSTORE_PASSWORD",  "");
-        redirectToSecure = getProp("REDIRECT_TO_SECURE", false);
         maxReadSizeBytes = getProp("MAX_READ_SIZE_BYTES",  10 * 1024 * 1024);
         maxReadLineSizeBytes = getProp("MAX_READ_LINE_SIZE_BYTES", 1024);
-        maxQueryStringKeysCount = getProp("MAX_QUERY_STRING_KEYS_COUNT", 20);
+        maxQueryStringKeysCount = getProp("MAX_QUERY_STRING_KEYS_COUNT", 50);
         mostCookiesWellLookThrough = getProp("MOST_COOKIES_WELL_LOOK_THROUGH", 5);
         maxHeadersCount = getProp("MAX_HEADERS_COUNT", 70);
-        maxTokenizerPartitions = getProp("MAX_TOKENIZER_PARTITIONS", 1000);
+        maxBodyKeysUrlEncoded = getProp("MAX_BODY_KEYS_URL_ENCODED", 1000);
         socketTimeoutMillis = getProp("SOCKET_TIMEOUT_MILLIS", 7 * 1000);
         keepAliveTimeoutSeconds = getProp("KEEP_ALIVE_TIMEOUT_SECONDS", 3);
         vulnSeekingJailDuration = getProp("VULN_SEEKING_JAIL_DURATION", 10 * 1000);
-        isTheBrigEnabled = getProp("IS_THE_BRIG_ENABLED", false);
+        isTheBrigEnabled = getProp("IS_THE_BRIG_ENABLED", true);
         suspiciousErrors = getProp("SUSPICIOUS_ERRORS", "");
         suspiciousPaths = getProp("SUSPICIOUS_PATHS", "");
         startTime = System.currentTimeMillis();
@@ -81,12 +79,6 @@ public final class Constants {
     public final List<LoggingLevel> logLevels;
 
     /**
-     * If true, use the new Java "Project Loom" virtual threads instead of
-     * regular threads.
-     */
-    public final boolean useVirtual;
-
-    /**
      * The path to the keystore, required for encrypted TLS communication
      */
     public final String keystorePath;
@@ -95,14 +87,6 @@ public final class Constants {
      * The password of the keystore, used for TLS
      */
     public final String keystorePassword;
-
-
-    /**
-     * If true, any requests to the non-encrypted port will receive a
-     * redirect to the secure schema.  This is mostly used in production
-     * environments and is thus defaulted to false.
-     */
-    public final boolean redirectToSecure;
 
     /**
      * this is the most bytes we'll read from a socket
@@ -123,7 +107,8 @@ public final class Constants {
     public final int maxQueryStringKeysCount;
 
     /**
-     * Totally nonsense if we find more than this many matches of cookies in the headers.
+     * Totally nonsense if we find more than this many matches of
+     * cookies in the headers.
      */
     public final int mostCookiesWellLookThrough;
 
@@ -136,7 +121,7 @@ public final class Constants {
      * We have a tokenizer that can split a string into partitions.  When
      * would we ever need it to split this many?
      */
-    public final int maxTokenizerPartitions;
+    public final int maxBodyKeysUrlEncoded;
 
     /**
      * How long will we let a socket live before we crash it closed?
@@ -204,7 +189,7 @@ public final class Constants {
      * Whether we will use caching for the static files.
      * <p>
      *     When a user requests a path we don't recognize, we
-     *     go looking for it using {@link com.renomad.minum.utils.FileUtils#readStaticFile(String)}.
+     *     go looking for it.
      *     If we have already found it for someone else, it will
      *     be in a cache.
      * </p>
@@ -331,12 +316,12 @@ public final class Constants {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Constants constants = (Constants) o;
-        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && useVirtual == constants.useVirtual && redirectToSecure == constants.redirectToSecure && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && maxQueryStringKeysCount == constants.maxQueryStringKeysCount && mostCookiesWellLookThrough == constants.mostCookiesWellLookThrough && maxHeadersCount == constants.maxHeadersCount && maxTokenizerPartitions == constants.maxTokenizerPartitions && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
+        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && maxQueryStringKeysCount == constants.maxQueryStringKeysCount && mostCookiesWellLookThrough == constants.mostCookiesWellLookThrough && maxHeadersCount == constants.maxHeadersCount && maxBodyKeysUrlEncoded == constants.maxBodyKeysUrlEncoded && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, useVirtual, keystorePath, keystorePassword, redirectToSecure, maxReadSizeBytes, maxReadLineSizeBytes, maxQueryStringKeysCount, mostCookiesWellLookThrough, maxHeadersCount, maxTokenizerPartitions, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxElementsLruCacheStaticFiles);
+        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, maxReadLineSizeBytes, maxQueryStringKeysCount, mostCookiesWellLookThrough, maxHeadersCount, maxBodyKeysUrlEncoded, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxElementsLruCacheStaticFiles);
     }
 }
 

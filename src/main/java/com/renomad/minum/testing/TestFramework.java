@@ -4,7 +4,6 @@ import com.renomad.minum.Constants;
 import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.ActionQueueKiller;
-import com.renomad.minum.utils.ExtendedExecutor;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.web.FullSystem;
@@ -13,6 +12,7 @@ import com.renomad.minum.web.InputStreamUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 
 /**
  * These are utility functions for basic automated
@@ -254,7 +254,7 @@ public final class TestFramework {
      */
     public static Context buildTestingContext(String loggerName, Properties properties) {
         var constants = new Constants(properties);
-        var executorService = ExtendedExecutor.makeExecutorService(constants);
+        var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new TestLogger(constants, executorService, loggerName);
         var fileUtils = new FileUtils(logger, constants);
         var inputStreamUtils = new InputStreamUtils(constants);

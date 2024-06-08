@@ -52,7 +52,7 @@ public class ConstantsTests {
         assertEquals(constants.serverPort, 1234);
         assertEquals(constants.dbDirectory, "/some/directory/here");
         // if a property does not exist, it will use defaults
-        assertEquals(constants.useVirtual, false);
+        assertEquals(constants.maxReadLineSizeBytes, 1024);
     }
 
     @Test

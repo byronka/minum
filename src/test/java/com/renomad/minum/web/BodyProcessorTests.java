@@ -83,7 +83,6 @@ public class BodyProcessorTests {
         assertEquals(unableToParseThisBody, "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: Range [0, -1) out of bounds for length 3");
         assertEquals(bodyResult.getKeys(), Set.of());
         assertEquals(bodyResult.asString(), "Foo");
-
     }
 
     /**
@@ -354,4 +353,24 @@ public class BodyProcessorTests {
         assertEquals(bytes.length, 7000);
     }
 
+    /**
+     * If we receive data in url format, it will be in
+     * key-value format, like a = hello and b = 123.
+     */
+    @Test
+    public void test_DataByKey_HappyPath() {
+        String body = "a=hello&b=123";
+        var bodyProcessor = new BodyProcessor(context);
+
+        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+                body.length(),
+                "content-type: application/x-www-form-urlencoded",
+                body.getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertEquals(bodyResult.getKeys(), Set.of("a","b"));
+        assertEquals(bodyResult.asString("a"), "hello");
+        assertEquals(bodyResult.asString("b"), "123");
+
+    }
 }

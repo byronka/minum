@@ -26,8 +26,19 @@ public class SetOfSwsTests {
     }
 
     @Test
-    public void test_getSocketWrapperByRemoteAddr_Missing() {
-        SetOfSws mySetOfSws = new SetOfSws(new ConcurrentSet<>(), logger, "Test server");
-        assertThrows(RuntimeException.class, () -> mySetOfSws.getSocketWrapperByRemoteAddr("123.123.123.123", 1234));
+    public void test_SetOfSws() {
+        ConcurrentSet<ISocketWrapper> mySet = new ConcurrentSet<>();
+        SetOfSws mySetOfSws = new SetOfSws(mySet, logger, "my set");
+        FakeSocketWrapper sw1 = new FakeSocketWrapper();
+        mySetOfSws.add(sw1);
+        assertTrue(logger.doesMessageExist("my set added fake socket wrapper to SetOfSws. size: 1"));
+        FakeSocketWrapper sw2 = new FakeSocketWrapper();
+        mySetOfSws.add(sw2);
+        assertTrue(logger.doesMessageExist("my set added fake socket wrapper to SetOfSws. size: 2"));
+        mySetOfSws.remove(sw1);
+        assertTrue(logger.doesMessageExist("my set removed fake socket wrapper from SetOfSws. size: 1"));
+        mySetOfSws.remove(sw2);
+        assertTrue(logger.doesMessageExist("my set removed fake socket wrapper from SetOfSws. size: 0"));
     }
+
 }

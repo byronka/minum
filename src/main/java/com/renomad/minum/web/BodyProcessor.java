@@ -106,7 +106,7 @@ final class BodyProcessor {
         final var postedPairs = new HashMap<String, byte[]>();
 
         try {
-            final var splitByAmpersand = tokenizer(input, '&', context.getConstants().maxTokenizerPartitions);
+            final var splitByAmpersand = tokenizer(input, '&', context.getConstants().maxBodyKeysUrlEncoded);
 
             for (final var s : splitByAmpersand) {
                 final var pair = splitKeyAndValue(s);

@@ -7,34 +7,27 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.UnderInvestigation;
 import com.renomad.minum.testing.StopwatchUtils;
-import com.renomad.minum.utils.FileUtils;
-import com.renomad.minum.utils.SearchUtils;
-import com.renomad.minum.utils.StacktraceUtils;
+import com.renomad.minum.utils.*;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.renomad.minum.utils.CompressionUtils.gzipCompress;
+import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
-import static com.renomad.minum.web.StatusLine.StatusCode.CODE_404_NOT_FOUND;
-import static com.renomad.minum.web.StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR;
+import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
 /**
- * Responsible for the logistics after socket connection
- * <p>
- * Relies on server sockets built in {@link WebEngine}.  Builds
- * a function in {@link #makePrimaryHttpHandler()} that sort-of fits into a
- * slot in WebEngine and handles HTTP protocol.  Also handles
- * routing and static files.
+ * Responsible for the HTTP handling after socket connection
  */
 public final class WebFramework {
 
@@ -49,7 +42,6 @@ public final class WebFramework {
      * will also be put in the logs, to make finding it easier.
      */
     private final Random randomErrorCorrelationId;
-    private final FileUtils fileUtils;
     private final RequestLine emptyRequestLine;
 
     /**
@@ -69,11 +61,19 @@ public final class WebFramework {
      */
     private final Map<MethodPath, ThrowingFunction<Request, Response>> registeredPartialPaths;
 
-
+    /**
+     * A function that will be run instead of the ordinary business code. Has
+     * provisions for running the business code as well.  See {@link #registerPreHandler(ThrowingFunction)}
+     */
     private ThrowingFunction<PreHandlerInputs, Response> preHandler;
 
+    /**
+     * A function run after the ordinary business code
+     */
     private ThrowingFunction<LastMinuteHandlerInputs, Response> lastMinuteHandler;
 
+    private final IFileReader fileReader;
+    private final Map<String, String> fileSuffixToMime;
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
@@ -84,55 +84,92 @@ public final class WebFramework {
     /**
      * This is the brains of how the server responds to web clients.  Whatever
      * code lives here will be inserted into a slot within the server code.
-     * See {@link Server#start(ExecutorService, ThrowingConsumer)}
-     *
-     * @param handlerFinder bear with me...  This is a function, that takes a {@link RequestLine}, and
-     *                      returns a {@link Function} that handles the {@link Request} -> {@link Response}.
-     *                      Normally, you would just use {@link #makePrimaryHttpHandler()} and the default code at
-     *                      {@link #findEndpointForThisStartline(RequestLine)} would be called.  However, you can provide
-     *                      a handler here if you want to override that behavior, for example in tests when
-     *                      you want a bit more control.
-     *                      <br>
-     *                      The common case definition of this is found at {@link #findEndpointForThisStartline}
      */
-    ThrowingConsumer<ISocketWrapper> makePrimaryHttpHandler(ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> handlerFinder) {
+    ThrowingRunnable makePrimaryHttpHandler(ISocketWrapper sw, ITheBrig theBrig) {
 
-        // build the handler
-        return sw -> {
-            dumpIfAttacker(sw, fs);
-            var fullStopwatch = stopWatchUtils.startTimer();
-            final var is = sw.getInputStream();
+        return () -> {
+            Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
+            try (sw) {
+                dumpIfAttacker(sw, fs);
+                var fullStopwatch = stopWatchUtils.startTimer();
+                final var is = sw.getInputStream();
 
-            // By default, browsers expect the server to run in keep-alive mode.
-            // We'll break out later if we find that the browser doesn't do keep-alive
-            while (true) {
-                final String rawStartLine = inputStreamUtils.readLine(is);
-                if (rawStartLine.isEmpty()) {
-                    // here, the client connected, sent nothing, and closed.
-                    // nothing to do but return.
-                    logger.logTrace(() -> "rawStartLine was empty.  Returning.");
-                    break;
+                // By default, browsers expect the server to run in keep-alive mode.
+                // We'll break out later if we find that the browser doesn't do keep-alive
+                while (true) {
+                    final String rawStartLine = inputStreamUtils.readLine(is);
+                    if (rawStartLine.isEmpty()) {
+                        // here, the client connected, sent nothing, and closed.
+                        // nothing to do but return.
+                        logger.logTrace(() -> "rawStartLine was empty.  Returning.");
+                        break;
+                    }
+                    final RequestLine sl = getProcessedRequestLine(sw, rawStartLine);
+
+                    if (sl.equals(emptyRequestLine)) {
+                        // here, the client sent something we cannot parse.
+                        // nothing to do but return.
+                        logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
+                        break;
+                    }
+                    checkIfSuspiciousPath(sw, sl);
+                    Headers hi = getHeaders(sw);
+                    boolean isKeepAlive = determineIfKeepAlive(sl, hi, logger);
+                    Body body = determineIfBody(sw, hi);
+                    ProcessingResult result = processRequest(sw, sl, hi, body);
+                    PreparedResponse preparedResponse = prepareResponseData(
+                            result.clientRequest(),
+                            result.resultingResponse(),
+                            isKeepAlive);
+                    sendResponse(sw, preparedResponse, result);
+                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
+                    if (!isKeepAlive) break;
                 }
-                final RequestLine sl = getProcessedRequestLine(sw, rawStartLine);
-
-                if (sl.equals(emptyRequestLine)) {
-                    // here, the client sent something we cannot parse.
-                    // nothing to do but return.
-                    logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
-                    break;
-                }
-                checkIfSuspiciousPath(sw, sl);
-                Headers hi = getHeaders(sw);
-                boolean isKeepAlive = determineIfKeepAlive(sl, hi, logger);
-                Body body = determineIfBody(sw, hi);
-                ProcessingResult result = processRequest(handlerFinder, sw, sl, hi, body);
-                PreparedResponse preparedResponse = prepareResponseData(result.clientRequest(), result.resultingResponse(), isKeepAlive);
-                sendResponse(sw, preparedResponse, result);
-                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
-                if (!isKeepAlive) break;
+            } catch (SocketException | SocketTimeoutException ex) {
+                handleReadTimedOut(sw, ex, logger);
+            } catch (ForbiddenUseException ex) {
+                handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
+            } catch (IOException ex) {
+                handleIOException(sw, ex, logger, theBrig, underInvestigation, constants.vulnSeekingJailDuration);
             }
         };
     }
+
+
+    static void handleIOException(ISocketWrapper sw, IOException ex, ILogger logger, ITheBrig theBrig, UnderInvestigation underInvestigation, int vulnSeekingJailDuration ) {
+        logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
+        String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
+
+        if (!suspiciousClues.isEmpty() && theBrig != null) {
+            logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
+            theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
+        }
+    }
+
+    static void handleForbiddenUse(ISocketWrapper sw, ForbiddenUseException ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration) {
+        logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
+        if (theBrig != null) {
+            theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
+        } else {
+            logger.logDebug(() -> "theBrig is null at handleForbiddenUse, will not store address in database");
+        }
+    }
+
+    static void handleReadTimedOut(ISocketWrapper sw, IOException ex, ILogger logger) {
+        /*
+        if we close the application on the server side, there's a good
+        likelihood a SocketException will come bubbling through here.
+        NOTE:
+          it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
+          if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
+        */
+        if (ex.getMessage().equals("Read timed out")) {
+            logger.logTrace(() -> "Read timed out - remote address: " + sw.getRemoteAddrWithPort());
+        } else {
+            logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
+        }
+    }
+
 
     void sendResponse(ISocketWrapper sw, PreparedResponse preparedResponse, ProcessingResult result) throws IOException {
         // Here is where the bytes actually go out on the socket
@@ -152,22 +189,20 @@ public final class WebFramework {
     }
 
     ProcessingResult processRequest(
-            ThrowingFunction<RequestLine, ThrowingFunction<Request, Response>> handlerFinder,
             ISocketWrapper sw,
             RequestLine requestLine,
             Headers hi,
             Body body) throws Exception {
         Request clientRequest = new Request(hi, requestLine, body, sw.getRemoteAddr());
         Response response;
-        // Unless this is an unusual test, the definition for handlerFinder is at findEndpointForThisStartline
-        ThrowingFunction<Request, Response> endpoint = handlerFinder.apply(requestLine);
+        ThrowingFunction<Request, Response> endpoint = findEndpointForThisStartline(requestLine);
         if (endpoint == null) {
             response = new Response(CODE_404_NOT_FOUND);
         } else {
             var handlerStopwatch = new StopwatchUtils().startTimer();
             try {
                 if (preHandler != null) {
-                    response = preHandler.apply(new PreHandlerInputs(clientRequest, endpoint));
+                    response = preHandler.apply(new PreHandlerInputs(clientRequest, endpoint, sw));
                 } else {
                     response = endpoint.apply(clientRequest);
                 }
@@ -294,56 +329,6 @@ public final class WebFramework {
             String message = "closing the socket on " + remoteClient + " due to being found in the brig";
             logger.logDebug(() -> message);
             throw new ForbiddenUseException(message);
-        }
-    }
-
-    /**
-     * This handler redirects all traffic to the HTTPS endpoint.
-     * <br>
-     * It is necessary to extract the target path, but that's all
-     * the help we'll give.  We're not going to extract headers or
-     * body, we'll just read the start line and then stop reading from them.
-     */
-    ThrowingConsumer<ISocketWrapper> makeRedirectHandler() {
-        return sw -> redirectHandlerCore(sw, inputStreamUtils, context, constants.hostName, logger);
-    }
-
-    static void redirectHandlerCore(ISocketWrapper sw,
-                                    IInputStreamUtils inputStreamUtils,
-                                    Context context,
-                                    String hostname,
-                                    ILogger logger) {
-        String rawStartLine;
-        try (InputStream is = sw.getInputStream()) {
-                rawStartLine = inputStreamUtils.readLine(is);
-        } catch (IOException e) {
-            logger.logDebug(() -> "Error in redirect handler: " + e.getMessage());
-            throw new WebServerException(e);
-        }
-        /*
-        if the rawStartLine is blank, that means the client stopped talking.
-        See ISocketWrapper.readLine()
-        */
-        if (rawStartLine.isBlank()) {
-            return;
-        }
-
-        var sl = RequestLine.empty(context).extractRequestLine(rawStartLine);
-
-        // just ignore all the rest of the incoming lines.  TCP is duplex -
-        // we'll just start talking back the moment we understand the first line.
-        String date = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
-        try {
-            sw.send(
-                    "HTTP/1.1 303 SEE OTHER" + HTTP_CRLF +
-                            "Date: " + date + HTTP_CRLF +
-                            "Server: minum" + HTTP_CRLF +
-                            "Location: https://" + hostname + "/" + sl.getPathDetails().isolatedPath() + HTTP_CRLF +
-                            HTTP_CRLF
-            );
-        } catch (IOException ex) {
-            logger.logDebug(() -> "Error in redirect handler: " + ex.getMessage());
-            throw new WebServerException(ex);
         }
     }
 
@@ -499,18 +484,6 @@ public final class WebFramework {
         }
     }
 
-
-    /**
-     * This is the brains of how the server responds to web clients. Whatever
-     * code lives here will be inserted into a slot within the server code
-     * This builds a handler {@link Consumer} that provides
-     * the code to be run in the web testing engine that selects which
-     * function to run for a particular HTTP request.  See {@link #makePrimaryHttpHandler(ThrowingFunction)}
-     */
-    ThrowingConsumer<ISocketWrapper> makePrimaryHttpHandler() {
-        return makePrimaryHttpHandler(this::findEndpointForThisStartline);
-    }
-
     /**
      * Looks through the mappings of {@link MethodPath} and path to registered endpoints
      * or the static cache and returns the appropriate one (If we
@@ -553,9 +526,88 @@ public final class WebFramework {
             return null;
         }
         String requestedPath = sl.getPathDetails().isolatedPath();
-        Response response = fileUtils.readStaticFile(requestedPath);
+        Response response = readStaticFile(requestedPath);
         return request -> response;
     }
+
+
+    /**
+     * Get a file from a path and create a response for it with a mime type.
+     * <p>
+     *     Parent directories are made unavailable by searching the path for
+     *     bad characters.  See {@link FileUtils#badFilePathPatterns}
+     * </p>
+     *
+     * @return a response with the file contents and caching headers and mime if valid.
+     *  if the path has invalid characters, we'll return a "bad request" response.
+     */
+    Response readStaticFile(String path) {
+        if (badFilePathPatterns.matcher(path).find()) {
+            logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
+            return new Response(CODE_400_BAD_REQUEST);
+        }
+        String mimeType = null;
+
+        byte[] fileContents;
+        try {
+            Path staticFilePath = Path.of(constants.staticFilesDirectory).resolve(path);
+            if (!Files.isRegularFile(staticFilePath)) {
+                logger.logDebug(() -> String.format("No readable file found at %s", path));
+                return new Response(CODE_404_NOT_FOUND);
+            }
+            fileContents = fileReader.readFile(staticFilePath.toString());
+        } catch (IOException e) {
+            logger.logAsyncError(() -> String.format("Error while reading file: %s. %s", path, StacktraceUtils.stackTraceToString(e)));
+            return new Response(CODE_400_BAD_REQUEST);
+        }
+
+        // if the provided path has a dot in it, use that
+        // to obtain a suffix for determining file type
+        int suffixBeginIndex = path.lastIndexOf('.');
+        if (suffixBeginIndex > 0) {
+            String suffix = path.substring(suffixBeginIndex+1);
+            mimeType = fileSuffixToMime.get(suffix);
+        }
+
+        // if we don't find any registered mime types for this
+        // suffix, or if it doesn't have a suffix, set the mime type
+        // to application/octet-stream
+        if (mimeType == null) {
+            mimeType = "application/octet-stream";
+        }
+
+        return createOkResponseForStaticFiles(fileContents, mimeType);
+    }
+
+    /**
+     * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
+     */
+    private Response createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
+        var headers = Map.of(
+                "cache-control", "max-age=" + constants.staticFileCacheTime,
+                "content-type", mimeType);
+
+        return new Response(
+                StatusLine.StatusCode.CODE_200_OK,
+                headers,
+                fileContents);
+    }
+
+
+    /**
+     * These are the default starting values for mappings
+     * between file suffixes and appropriate mime types
+     */
+    private void addDefaultValuesForMimeMap() {
+        fileSuffixToMime.put("css", "text/css");
+        fileSuffixToMime.put("js", "application/javascript");
+        fileSuffixToMime.put("webp", "image/webp");
+        fileSuffixToMime.put("jpg", "image/jpeg");
+        fileSuffixToMime.put("jpeg", "image/jpeg");
+        fileSuffixToMime.put("htm", "text/html");
+        fileSuffixToMime.put("html", "text/html");
+    }
+
 
     /**
      * let's see if we can match the registered paths against a **portion** of the startline
@@ -577,7 +629,11 @@ public final class WebFramework {
      * This constructor is used for the real production system
      */
     WebFramework(Context context) {
-        this(context, null);
+        this(context, null, null);
+    }
+
+    WebFramework(Context context, ZonedDateTime overrideForDateTime) {
+        this(context, overrideForDateTime, null);
     }
 
     /**
@@ -585,7 +641,7 @@ public final class WebFramework {
      * can set the current date (for testing purposes)
      * @param overrideForDateTime for those test cases where we need to control the time
      */
-    WebFramework(Context context, ZonedDateTime overrideForDateTime) {
+    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader) {
         this.fs = context.getFullSystem();
         this.logger = context.getLogger();
         this.constants = context.getConstants();
@@ -595,13 +651,49 @@ public final class WebFramework {
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
         this.inputStreamUtils = context.getInputStreamUtils();
-        this.fileUtils = context.getFileUtils();
         this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);
+
         // This random value is purely to help provide correlation betwee
         // error messages in the UI and error logs.  There are no security concerns.
         this.randomErrorCorrelationId = new Random();
         this.emptyRequestLine = RequestLine.empty(context);
+
+        // this allows us to inject a IFileReader for deeper testing
+        if (fileReader != null) {
+            this.fileReader = fileReader;
+        } else {
+            this.fileReader = new FileReader(
+                    LRUCache.getLruCache(constants.maxElementsLruCacheStaticFiles),
+                    constants.useCacheForStaticFiles,
+                    logger);
+        }
+        this.fileSuffixToMime = new HashMap<>();
+        addDefaultValuesForMimeMap();
+        readExtraMimeMappings(constants.extraMimeMappings);
+    }
+
+
+    /**
+     * This getter allows users to add extra mappings
+     * between file suffixes and mime types, in case
+     * a user needs one that was not provided.
+     */
+    public Map<String,String> getSuffixToMime() {
+        return fileSuffixToMime;
+    }
+
+
+    void readExtraMimeMappings(List<String> input) {
+        if (input == null || input.isEmpty()) return;
+        mustBeTrue(input.size() % 2 == 0, "input must be even (key + value = 2 items). Your input: " + input);
+
+        for (int i = 0; i < input.size(); i += 2) {
+            String fileSuffix = input.get(i);
+            String mime = input.get(i+1);
+            logger.logTrace(() -> "Adding mime mapping: " + fileSuffix + " -> " + mime);
+            fileSuffixToMime.put(fileSuffix, mime);
+        }
     }
 
     /**
@@ -638,7 +730,8 @@ public final class WebFramework {
      * <br>
      * <p>
      *     This is an <b>unusual</b> method.  Setting a handler here allows the user to run code of his
-     * choosing before the regular business code is run.
+     * choosing before the regular business code is run.  Note that by defining this value, the ordinary
+     * call to endpoint.apply(request) will not be run.
      * </p>
      * <p>Here is an example</p>
      * <pre>{@code
@@ -648,27 +741,37 @@ public final class WebFramework {
      *      ...
      *
      *      private Response preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
-     *         // log all requests
-     *         Request request = preHandlerInputs.clientRequest();
-     *         ThrowingFunction<Request, Response> endpoint = preHandlerInputs.endpoint();
-     *         logger.logTrace(() -> String.format("Request: %s by %s",
-     *                 request.requestLine().getRawValue(),
-     *                 request.remoteRequester()));
+     *          // log all requests
+     *          Request request = preHandlerInputs.clientRequest();
+     *          ThrowingFunction<Request, Response> endpoint = preHandlerInputs.endpoint();
+     *          ISocketWrapper sw = preHandlerInputs.sw();
      *
-     *         // adjust behavior if non-authenticated and path includes "secure/"
-     *         String path = request.requestLine().getPathDetails().isolatedPath();
-     *         if (path.contains("secure/")) {
-     *             AuthResult authResult = auth.processAuth(request);
-     *             if (authResult.isAuthenticated()) {
-     *                 return endpoint.apply(request);
-     *             } else {
-     *                 return new Response(CODE_403_FORBIDDEN);
-     *             }
-     *         }
+     *          logger.logTrace(() -> String.format("Request: %s by %s",
+     *              request.requestLine().getRawValue(),
+     *              request.remoteRequester())
+     *          );
      *
-     *         // if the path does not include /secure, just move the request along unchanged.
-     *         return endpoint.apply(request);
-     *     }
+     *          String path = request.requestLine().getPathDetails().isolatedPath();
+     *
+     *          // redirect to https if they are on the plain-text connection and the path is "whoops"
+     *          if (path.contains("whoops") &&
+     *              sw.getServerType().equals(HttpServerType.PLAIN_TEXT_HTTP)) {
+     *              return Response.redirectTo("https://" + sw.getHostName() + "/" + path);
+     *          }
+     *
+     *          // adjust behavior if non-authenticated and path includes "secure/"
+     *          if (path.contains("secure/")) {
+     *              AuthResult authResult = auth.processAuth(request);
+     *              if (authResult.isAuthenticated()) {
+     *                  return endpoint.apply(request);
+     *              } else {
+     *                  return new Response(CODE_403_FORBIDDEN);
+     *              }
+     *          }
+     *
+     *          // if the path does not include /secure, just move the request along unchanged.
+     *          return endpoint.apply(request);
+     *      }
      * }</pre>
      */
         public void registerPreHandler(ThrowingFunction<PreHandlerInputs, Response> preHandler) {
@@ -741,6 +844,6 @@ public final class WebFramework {
      * </pre>
      */
     public void addMimeForSuffix(String suffix, String mimeType) {
-        fileUtils.getSuffixToMime().put(suffix, mimeType);
+        getSuffixToMime().put(suffix, mimeType);
     }
 }
