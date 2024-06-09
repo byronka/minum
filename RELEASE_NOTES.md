@@ -1,3 +1,9 @@
+v4.0.1 - June 9, 2024
+---------------------
+
+* Minor fix - request handling timer was outside the keep-alive loop, showing
+  incorrect timing in the log statements.
+
 v4.0.0 - June 8, 2024
 ---------------------
 

@@ -91,12 +91,12 @@ public final class WebFramework {
             Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
             try (sw) {
                 dumpIfAttacker(sw, fs);
-                var fullStopwatch = stopWatchUtils.startTimer();
                 final var is = sw.getInputStream();
 
                 // By default, browsers expect the server to run in keep-alive mode.
                 // We'll break out later if we find that the browser doesn't do keep-alive
                 while (true) {
+                    var fullStopwatch = stopWatchUtils.startTimer();
                     final String rawStartLine = inputStreamUtils.readLine(is);
                     if (rawStartLine.isEmpty()) {
                         // here, the client connected, sent nothing, and closed.

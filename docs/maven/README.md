@@ -30,3 +30,30 @@ Deployment checklist
 - [ ] squash the changes to a single commit
 - [ ] generate reports: site page, pitest report, javadoc
 - [ ] add Github release
+
+
+Gnupg - GNU privacy guard
+-------------------------
+
+Gnupg [gpg](https://gnupg.org/) is used to sign the bundle for shipping to Maven central. Its entire
+configuration directory is encrypted and stored here, as `gnupg.tar.gz.encrypted`.
+
+The passphrase to decrypt this file is the same as the one used when creating a signed bundle.
+
+To encrypt the directory:
+
+```shell
+gpg --output gnupg.tar.gz.encrypted --symmetric --cipher-algo AES256 gnupg.tar.gz
+```
+
+To decrypt the directory:
+
+```shell
+gpg --output gnupg.tar.gz --decrypt gnupg.tar.gz.encrypted
+```
+
+to untar the result:
+
+```shell
+tar zxf gnupg.tar.gz
+```
