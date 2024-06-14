@@ -34,7 +34,6 @@ public final class WebFramework {
     private final Constants constants;
     private final UnderInvestigation underInvestigation;
     private final IInputStreamUtils inputStreamUtils;
-    private final StopwatchUtils stopWatchUtils;
     private final BodyProcessor bodyProcessor;
     /**
      * This is a variable storing a pseudo-random (non-secure) number
@@ -96,8 +95,8 @@ public final class WebFramework {
                 // By default, browsers expect the server to run in keep-alive mode.
                 // We'll break out later if we find that the browser doesn't do keep-alive
                 while (true) {
-                    var fullStopwatch = stopWatchUtils.startTimer();
                     final String rawStartLine = inputStreamUtils.readLine(is);
+                    long startMillis = System.currentTimeMillis();
                     if (rawStartLine.isEmpty()) {
                         // here, the client connected, sent nothing, and closed.
                         // nothing to do but return.
@@ -122,7 +121,8 @@ public final class WebFramework {
                             result.resultingResponse(),
                             isKeepAlive);
                     sendResponse(sw, preparedResponse, result);
-                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, fullStopwatch.stopTimer()));
+                    long endMillis = System.currentTimeMillis();
+                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, endMillis - startMillis));
                     if (!isKeepAlive) break;
                 }
             } catch (SocketException | SocketTimeoutException ex) {
@@ -199,7 +199,7 @@ public final class WebFramework {
         if (endpoint == null) {
             response = new Response(CODE_404_NOT_FOUND);
         } else {
-            var handlerStopwatch = new StopwatchUtils().startTimer();
+            long millisAtStart = System.currentTimeMillis();
             try {
                 if (preHandler != null) {
                     response = preHandler.apply(new PreHandlerInputs(clientRequest, endpoint, sw));
@@ -215,7 +215,8 @@ public final class WebFramework {
                 logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
                 response = new Response(CODE_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
             }
-            logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, handlerStopwatch.stopTimer()));
+            long millisAtEnd = System.currentTimeMillis();
+            logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, millisAtEnd - millisAtStart));
         }
 
         // if the user has chosen to customize the response based on status code, that will
@@ -651,7 +652,6 @@ public final class WebFramework {
         this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
         this.inputStreamUtils = context.getInputStreamUtils();
-        this.stopWatchUtils = new StopwatchUtils();
         this.bodyProcessor = new BodyProcessor(context);
 
         // This random value is purely to help provide correlation betwee

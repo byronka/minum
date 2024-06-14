@@ -1,3 +1,10 @@
+v4.0.2 - June 14, 2024
+----------------------
+
+* Minor fix, follow-up to previous update - request handling timer code moved to record
+  timing after the request begins.
+* Improve HtmlParseNodes.innerText to return valuable data when receiving more than one node.
+
 v4.0.1 - June 9, 2024
 ---------------------
 

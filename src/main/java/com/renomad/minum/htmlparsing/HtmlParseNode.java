@@ -60,21 +60,27 @@ public record HtmlParseNode(ParseNodeType type,
     }
 
     /**
-     * Return the inner text
+     * Return the inner text of these nodes
      * <p>
-     * If this element has only one inner
-     * content item, and it's a {@link ParseNodeType#CHARACTERS} element, return its text content.
+     *      If this element has only one inner
+     *      content item, and it's a {@link ParseNodeType#CHARACTERS} element, return its text content.
      * </p>
      * <p>
-     *     Otherwise, return an empty string.
+     *     If there is more than one node, run the {@link #print()} command on each, appending
+     *     to a single string.
      * </p>
      */
     static String innerText(List<HtmlParseNode> innerContent) {
-       if (innerContent.size() == 1 && innerContent.getFirst().type == ParseNodeType.CHARACTERS) {
-           return innerContent.getFirst().textContent;
-       } else {
-           return "";
-       }
+        if (innerContent == null) return "";
+        if (innerContent.size() == 1 && innerContent.getFirst().type == ParseNodeType.CHARACTERS) {
+            return innerContent.getFirst().textContent;
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (HtmlParseNode hpn : innerContent) {
+                sb.append(hpn.print());
+            }
+            return sb.toString();
+        }
     }
 
     public String innerText() {

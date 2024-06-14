@@ -12,8 +12,14 @@ public class HtmlParseNodeTests {
     @Test
     public void testInnerText_EdgeCases() {
         assertEquals(HtmlParseNode.innerText(List.of()), "");
-        assertEquals(HtmlParseNode.innerText(List.of(HtmlParseNode.EMPTY, HtmlParseNode.EMPTY)), "");
-        assertEquals(HtmlParseNode.innerText(List.of(new HtmlParseNode(ParseNodeType.ELEMENT, TagInfo.EMPTY, List.of(), ""))), "");
+        assertEquals(HtmlParseNode.innerText(null), "");
+        assertEquals(HtmlParseNode.innerText(List.of(HtmlParseNode.EMPTY, HtmlParseNode.EMPTY)), "[EMPTY HTMLPARSENODE][EMPTY HTMLPARSENODE]");
+        assertEquals(HtmlParseNode.innerText(List.of(new HtmlParseNode(ParseNodeType.ELEMENT, TagInfo.EMPTY, List.of(), ""))), "[]");
+    }
+
+    @Test
+    public void testInnerText_HappyPath() {
+        assertEquals(HtmlParseNode.innerText(List.of(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, List.of(), "This is the text"))), "This is the text");
     }
 
     @Test
