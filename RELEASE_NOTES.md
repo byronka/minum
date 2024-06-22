@@ -1,3 +1,17 @@
+v4.0.3 - June 22, 2024
+----------------------
+
+* Templates will now complain with a TemplateRenderException if the user supplies
+  keys that end up not being used.  For example, in this template: `Hello {name}`,
+  then if the user provides keys of `Map.of("name", "world", "foo", "bar")`, rendering
+  will return an exception with a message, `No corresponding key in template found for these keys: foo`
+  Adding this functionality slightly slowed down the template processor (35k/sec to 32k/sec), but
+  it is still faster than the web handler (20k/sec), which is the bottleneck in this situation.
+  Correctness and simplicity is more important than speed in this situation.
+* SPECIAL NOTE: Because the templates are stricter, you may find your application complaining
+  where it was lenient before.  Take care to notice the issues, if any exist.
+* Make the key in LRUCache a generic (the value was already generic)
+
 v4.0.2 - June 14, 2024
 ----------------------
 

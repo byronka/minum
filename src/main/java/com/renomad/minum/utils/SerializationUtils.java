@@ -13,14 +13,6 @@ public final class SerializationUtils {
     }
 
     /**
-     * As a general precaution, loops throughout the system have
-     * safety limits in place.  In this case, it would be unexpected
-     * to have databases of type {@link com.renomad.minum.database.DbData} that
-     * have this many fields.
-     */
-    private static int MAXIMUM_DATABASE_PARTITIONS_ALLOWED = 200;
-
-    /**
      * This is a helper that will encode the values you give it
      * in preparation for storage in a database file.
      * <p>
@@ -59,6 +51,13 @@ public final class SerializationUtils {
      * @param serializedText the string we are splitting into tokens
      */
     public static List<String> deserializeHelper(String serializedText) {
+        /*
+         * As a general precaution, loops throughout the system have
+         * safety limits in place.  In this case, it would be unexpected
+         * to have databases of type {@link com.renomad.minum.database.DbData} that
+         * have this many fields.
+         */
+        int MAXIMUM_DATABASE_PARTITIONS_ALLOWED = 200;
         return tokenizer(serializedText, '|', MAXIMUM_DATABASE_PARTITIONS_ALLOWED).stream().map(StringUtils::decode).toList();
     }
 

@@ -8,6 +8,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -39,28 +40,28 @@ public class TemplatingTests {
      */
     @Test
     public void test_Template_Basic() {
-        String template = "Hello {{name}}, I'm {{animal}}";
+        String template = "Hello {{name}}, I'm {{animal}}.  Nice to meet you {{ name }}";
         var myMap = Map.of("name", "byron", "animal", "cat");
         TemplateProcessor tp = buildProcessor(template);
 
         String renderedTemplate = tp.renderTemplate(myMap);
 
-        assertEquals(renderedTemplate, "Hello byron, I'm cat");
+        assertEquals(renderedTemplate, "Hello byron, I'm cat.  Nice to meet you byron");
     }
 
 
     /**
-     * template rendering - no keys
+     * If the user specifies a key that doesn't get used,
+     * throw an exception.  We prioritize correctness with
+     * this system.
      */
     @Test
-    public void test_Template_NoKeys() {
+    public void test_Template_TooManyKeys() {
         String template = "Hello there byron";
         var myMap = Map.of("name", "byron", "animal", "cat");
         TemplateProcessor tp = buildProcessor(template);
 
-        String renderedTemplate = tp.renderTemplate(myMap);
-
-        assertEquals(renderedTemplate, "Hello there byron");
+        assertThrows(TemplateRenderException.class, "No corresponding key in template found for these keys: name, animal", () -> tp.renderTemplate(myMap));
     }
 
 
@@ -144,7 +145,7 @@ public class TemplatingTests {
 
 
         StopwatchUtils stopwatch = new StopwatchUtils().startTimer();
-        // rendered 500,000 times in 14190 millis, which is 35,236 templates per second.
+        // rendered 500,000 times in 15,764 millis, which is 31,717 templates per second.
         // currently set lower to speed up testing in ordinary case
         int renderingCount = 1;
         IntStream.range(0, renderingCount).boxed().parallel().forEach(renderTemplate(individualStockProcessor, stockPrices, expectedFullOutput));
@@ -153,7 +154,7 @@ public class TemplatingTests {
 
     private static Consumer<Integer> renderTemplate(TemplateProcessor individualStockProcessor, TemplateProcessor stockPrices, String expectedFullOutput) {
         return x -> {
-            StringBuilder sb = new StringBuilder();
+            List<String> parts = new ArrayList<>();
             for (int i = 0; i < Stock.dummyItems().size(); i++) {
                 Stock stock = Stock.dummyItems().get(i);
                 String renderedIndividualStock = individualStockProcessor.renderTemplate(Map.of(
@@ -168,10 +169,10 @@ public class TemplatingTests {
                         "change", String.valueOf(stock.getChange()),
                         "ratio", String.valueOf(stock.getRatio())
                 ));
-                sb.append(renderedIndividualStock);
-                if (i < Stock.dummyItems().size() - 1) sb.append('\n');
+                parts.add(renderedIndividualStock);
+                if (i < Stock.dummyItems().size() - 1) parts.add("\n");
             }
-            String result = stockPrices.renderTemplate(Map.of("individual_stocks", sb.toString()));
+            String result = stockPrices.renderTemplate(Map.of("individual_stocks", String.join("", parts)));
             assertEquals(expectedFullOutput, result);
         };
     }

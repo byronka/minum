@@ -8,7 +8,7 @@ import java.util.Map;
  * A simple Least-Recently Used Cache
  * See <a href="https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)">LRU</a>
  */
-public final class LRUCache<T> extends LinkedHashMap<String, T> {
+public final class LRUCache<K,V> extends LinkedHashMap<K, V> {
 
     @Serial
     private static final long serialVersionUID = -8687744696157499778L;
@@ -18,7 +18,7 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
     private final int maxSize;
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<String, T> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
         return size() > maxSize;
     }
 
@@ -39,7 +39,7 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
      * and the assignment is what enables Java to determine
      * what types to build.
      */
-    public static <T> Map<String, T> getLruCache() {
+    public static <K,V> Map<K, V> getLruCache() {
         return getLruCache(DEFAULT_MAX_ENTRIES);
     }
 
@@ -53,7 +53,7 @@ public final class LRUCache<T> extends LinkedHashMap<String, T> {
      * and the assignment is what enables Java to determine
      * what types to build.
      */
-    public static <T> Map<String, T> getLruCache(int maxSize) {
+    public static <K,V> Map<K, V> getLruCache(int maxSize) {
         return new LRUCache<>(maxSize);
     }
 }

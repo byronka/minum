@@ -52,7 +52,7 @@ public class TemplateSectionTests {
         StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
 
         assertEquals(result.toString(), "");
-        assertEquals(templateSections.getFirst().key(), "hello world");
+        assertEquals(templateSections.getFirst().key, "hello world");
     }
 
     @Test
@@ -68,8 +68,8 @@ public class TemplateSectionTests {
     @Test
     public void test_indenting_edgeCase_NoIndent() {
         TemplateSection templateSection = new TemplateSection("abc", null, 5);
-        String render = templateSection.render(Map.of("abc", "foo foo"));
-        assertEquals(render, "foo foo");
+        RenderingResult render = templateSection.render(Map.of("abc", "foo foo"));
+        assertEquals(render.renderedSection(), "foo foo");
     }
 
     /**
@@ -78,8 +78,8 @@ public class TemplateSectionTests {
     @Test
     public void test_indenting_edgeCase_WithIndent() {
         TemplateSection templateSection = new TemplateSection("abc", null, 5);
-        String render = templateSection.render(Map.of("abc", "foo foo\nbar bar"));
-        assertEquals(render, "foo foo\n    bar bar");
+        RenderingResult render = templateSection.render(Map.of("abc", "foo foo\nbar bar"));
+        assertEquals(render.renderedSection(), "foo foo\n    bar bar");
     }
 
 }

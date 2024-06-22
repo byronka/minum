@@ -59,7 +59,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>4.0.2</version>
+    <version>4.0.3</version>
 </dependency>
 ```
 
@@ -84,7 +84,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,373 | 141,048 | 1,085,405   |
+| 4,409 | 141,048 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 
@@ -92,9 +92,11 @@ See [details](docs/size_comparisons.md)
 Performance:
 ------------
 
-* 19,000 http responses per second by web server. [detail](docs/perf_data/response_speed_test.md)
-* 2,000,000 updates per second to database. [detail](docs/perf_data/database_speed_test.md)
-* 35,236 templates per second rendered. See test_Templating_Performance at [detail](src/test/java/com/renomad/minum/templating/TemplatingTests.java)
+* 19,000 http web server responses per second. [detail](docs/perf_data/response_speed_test.md)
+* 2,000,000 database updates per second. [detail](docs/perf_data/database_speed_test.md)
+* 31,717 templates rendered per second. See "test_Templating_Performance" [here](src/test/java/com/renomad/minum/templating/TemplatingTests.java).
+  Also, see this [comparison benchmark](https://github.com/byronka/template-benchmark?tab=readme-ov-file#original-string-output-test), with Minum's
+  code represented [here](https://github.com/byronka/template-benchmark/blob/utf8/src/main/java/com/mitchellbosecke/benchmark/Minum.java).
 
 See [framework performance comparison](docs/perf_data/framework_perf_comparison.md)
 
@@ -213,6 +215,18 @@ Getting a body parameter from a request, as a string:
 
 ```java
 String personId = request.body().asString("person_id");
+```
+
+Get a path parameter from a request as a string:
+
+```java
+Pattern requestRegex = Pattern.compile(".well-known/acme-challenge/(?<challengeValue>.*$)");
+final var challengeMatcher = requestRegex.matcher(request.requestLine().getPathDetails().isolatedPath());
+// When the find command is run, it changes state so we can search by matching group
+if (! challengeMatcher.find()) {
+    return new Response(StatusLine.StatusCode.CODE_400_BAD_REQUEST);
+}
+String tokenFileName = challengeMatcher.group("challengeValue");
 ```
 
 Getting a body parameter from a request, as a byte array:

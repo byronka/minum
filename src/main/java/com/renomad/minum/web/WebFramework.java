@@ -6,7 +6,6 @@ import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.UnderInvestigation;
-import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.utils.*;
 
 import java.io.IOException;

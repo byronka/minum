@@ -1,9 +1,7 @@
 package com.renomad.minum.templating;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Allows rendering of templates
@@ -62,11 +60,24 @@ public final class TemplateProcessor {
      * Given a map of key names -> value, render a template.
      */
     public String renderTemplate(Map<String, String> myMap) {
-        StringBuilder sb = new StringBuilder();
+        // This indicates the count of usages of each key
+        Map <String, Integer> usageMap = new HashMap<>();
+        List<String> parts = new ArrayList<>();
         for (TemplateSection templateSection : templateSections) {
-            sb.append(templateSection.render(myMap));
+            RenderingResult result = templateSection.render(myMap);
+            parts.add(result.renderedSection());
+            String appliedKey = result.appliedKey();
+            if (appliedKey != null) {
+                usageMap.merge(appliedKey, 1, Integer::sum);
+            }
         }
-        return sb.toString();
+        Set<String> unusedKeys = new HashSet<>(myMap.keySet());
+        unusedKeys.removeIf(usageMap.keySet()::contains);
+
+        if (!unusedKeys.isEmpty()) {
+            throw new TemplateRenderException("No corresponding key in template found for these keys: " + String.join(", ", unusedKeys));
+        }
+        return String.join("",parts);
     }
 
     /**
