@@ -594,7 +594,7 @@ See the [parable of two programmers](parable_two_programmers.md)
 
 
 >It is better to do a simple thing today and pay a little more tomorrow to change it
->if it needs it, than to do a more [complicated](docs/simplify_then_add_lightness.md) thing today
+>if it needs it, than to do a more [complicated](simplify_then_add_lightness.md) thing today
 >that may never be used anyway.
 >
 > -- _Kent Beck Extreme Programming Explained_
@@ -670,3 +670,17 @@ Any time it is important to put something to be done later, ActionQueue is ready
 drawbacks.  For one, you won't get exceptions bubbling up from your call.  If you need to immediately return
 a 400 error to a user based on some calculation, it wouldn't make sense to use ActionQueue there.  And like I 
 mentioned, the other options - `synchronized`, Locks - are also good in many cases.
+
+
+Dependency Injection
+--------------------
+
+Dependency injection has multiple meanings.  It can mean a general practice of having methods
+receive objects or functions it requires instead of building them itself.  This term can also 
+refer to the automated ways in which the framework makes instances of that class available.
+
+Some of the most popular Java web frameworks have this functionality as their core feature.
+Minum does not provide this, opting for simpler non-automated approaches, exemplified
+in its own programming and projects like [Memoria](https://github.com/byronka/memoria_project)
+
+See [this blogpost](https://renomad.com/blogposts/minum_ioc.html) for further explanation.
