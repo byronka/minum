@@ -1,6 +1,6 @@
 package com.renomad.minum.sampledomain;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.TheRegister;
 import com.renomad.minum.auth.AuthUtils;
 import com.renomad.minum.database.Db;
@@ -25,7 +25,7 @@ public class SampleDomain {
         FullSystem fs = FullSystem.initialize();
 
         // Register some endpoints
-        new TheRegister(fs.getContext()).registerDomains();
+        new TheRegister(fs.getContext(), fs.getWebFramework()).registerDomains();
 
         fs.block();
     }
@@ -35,12 +35,11 @@ public class SampleDomain {
     private final TemplateProcessor nameEntryTemplate;
     private final String authHomepage;
     private final String unauthHomepage;
-    private final FileUtils fileUtils;
 
     public SampleDomain(Db<PersonName> db, AuthUtils auth, Context context) {
         this.db = db;
         this.auth = auth;
-        this.fileUtils = context.getFileUtils();
+        FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
         String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
         nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
         authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");

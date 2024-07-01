@@ -47,7 +47,7 @@ Let's add a new test method to the file at `src/test/java/org/example/myproject/
 ```java
 package org.example.myproject;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.htmlparsing.TagName;
 import com.renomad.minum.web.FullSystem;
 import com.renomad.minum.web.FunctionalTesting;
@@ -401,10 +401,8 @@ This is at `src/main/java/org/example/myproject/Book.java`:
 ```java
 package org.example.myproject;
 
-import com.renomad.minum.Context;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.templating.TemplateProcessor;
-import com.renomad.minum.utils.StringUtils;
 import com.renomad.minum.web.Request;
 import com.renomad.minum.web.Response;
 
@@ -412,7 +410,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 

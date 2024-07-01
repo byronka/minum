@@ -1,6 +1,9 @@
 package com.renomad.minum.templating;
 
 /**
+ * The result of rendering one of the {@link TemplateSection}s, used to build
+ * up the full template. This is needed so we obtain information about whether our
+ * user-supplied keys were applied.
  * @param renderedSection The result of rendering this section.  In the case of a
  *                        {@link TemplateSection} that takes a key, this will be
  *                        the result of replacing that with what the user provided.

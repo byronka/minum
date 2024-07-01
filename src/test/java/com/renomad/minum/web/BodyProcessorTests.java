@@ -1,8 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -208,13 +208,13 @@ public class BodyProcessorTests {
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
                 Content-Type: application/octet-stream\r
                 \r
-                """+new String(new byte[]{1,2,3})+"""
+                """+new String(new byte[]{1,2,3}, StandardCharsets.UTF_8)+"""
                 \r
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile2"; filename="two.txt"\r
                 Content-Type: application/octet-stream\r
                 \r
-                """+new String(new byte[]{4,5,6})+"""
+                """+new String(new byte[]{4,5,6}, StandardCharsets.UTF_8)+"""
                 \r
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o--\r
                 """;
@@ -305,7 +305,7 @@ public class BodyProcessorTests {
     public void test_extractData() {
         var bodyProcessor = new BodyProcessor(context);
         var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
-        Headers headers = new Headers(List.of("Content-Length: 0"), context);
+        Headers headers = new Headers(List.of("Content-Length: 0"));
 
         Body body = bodyProcessor.extractData(inputStream, headers);
         assertEquals(body.asString(), "ab");
@@ -321,7 +321,7 @@ public class BodyProcessorTests {
     @Test
     public void test_PotentiallyCompress_HappyPath() {
         StringBuilder headerStringBuilder = new StringBuilder();
-        Headers headers = new Headers(List.of("accept-encoding: gzip"), context);
+        Headers headers = new Headers(List.of("accept-encoding: gzip"));
         Map<String, String> extraHeaders = Map.of("content-type", "text/plain");
         VaryHeader varyHeader = new VaryHeader();
 
@@ -340,7 +340,7 @@ public class BodyProcessorTests {
     @Test
     public void test_PotentiallyCompress_MissingContentType() {
         StringBuilder headerStringBuilder = new StringBuilder();
-        Headers headers = new Headers(List.of("accept-encoding: gzip"), context);
+        Headers headers = new Headers(List.of("accept-encoding: gzip"));
         Map<String, String> extraHeaders = Map.of("content-type", "");
         VaryHeader varyHeader = new VaryHeader();
 

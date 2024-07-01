@@ -1,13 +1,12 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.queue.ActionQueue;
+import com.renomad.minum.queue.ActionQueueKiller;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -34,10 +33,9 @@ public class ActionQueueKillerTests {
     public void test_KillAllQueues_WithDebug() {
         var actionQueue = new ActionQueue("testing the killAllQueues method", context);
         var aqk = new ActionQueueKiller(context);
-        Queue<AbstractActionQueue> listOfQueues = new LinkedBlockingQueue<>();
-        listOfQueues.add(actionQueue);
+        context.getActionQueueState().offerToQueue(actionQueue);
 
-        aqk.killAllQueues(listOfQueues);
+        aqk.killAllQueues();
         MyThread.sleep(40);
         assertTrue(logger.doesMessageExist("Stopping queue testing the killAllQueues method"));
     }
@@ -46,24 +44,23 @@ public class ActionQueueKillerTests {
     public void test_KillAllQueues_WithoutDebug() {
         var actionQueue = new ActionQueue("testing the killAllQueues method", context);
         var aqk = new ActionQueueKiller(context);
-        Queue<AbstractActionQueue> listOfQueues = new LinkedBlockingQueue<>();
-        listOfQueues.add(actionQueue);
+        context.getActionQueueState().offerToQueue(actionQueue);
 
-        aqk.killAllQueues(listOfQueues);
+        aqk.killAllQueues();
         MyThread.sleep(40);
         assertTrue(logger.doesMessageExist("Stopping queue testing the killAllQueues method"));
     }
 
     @Test
     public void test_KillAllQueues() {
-        Context context1 = new Context();
         TestLogger killAllQueuesLogger = new TestLogger(context.getConstants(), context.getExecutorService(), "testing kill all queues");
+        Context context1 = new Context(context.getExecutorService(), context.getConstants());
         context1.setLogger(killAllQueuesLogger);
         var aqk = new ActionQueueKiller(context1);
 
         aqk.killAllQueues();
 
-        assertTrue(context1.getAqQueue().isEmpty());
+        assertTrue(context1.getActionQueueState().isAqQueueEmpty());
     }
 
     /**
@@ -79,7 +76,7 @@ public class ActionQueueKillerTests {
     @Test
     public void test_KillAllQueues_NeedingInterruption() {
         ActionQueue aq = new ActionQueue("testing interruption", context).initialize();
-        context.getAqQueue().add(aq);
+        context.getActionQueueState().offerToQueue(aq);
         var aqk = new ActionQueueKiller(context);
         Thread.ofVirtual().start(() -> {
                 aq.enqueue("testing interruption", () -> {
@@ -91,7 +88,7 @@ public class ActionQueueKillerTests {
 
         aqk.killAllQueues();
 
-        assertTrue(context.getAqQueue().isEmpty());
+        assertTrue(context.getActionQueueState().isAqQueueEmpty());
         assertTrue(aqk.hadToInterrupt());
     }
 

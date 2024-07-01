@@ -1,6 +1,6 @@
 package com.renomad.minum.htmlparsing;
 
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -235,7 +235,7 @@ public final class HtmlParser {
 
             // This is where we add characters if we found any between tags.
             if (! state.parseStack.isEmpty() && ! textContent.isBlank()) {
-                state.parseStack.peek().innerContent().add(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), textContent));
+                state.parseStack.peek().addToInnerContent(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, new ArrayList<>(), textContent));
             }
         }
     }
@@ -486,7 +486,7 @@ public final class HtmlParser {
             if (! state.parseStack.isEmpty()) {
                 // if we're inside an html element,
                 // add this to the inner content
-                state.parseStack.peek().innerContent().add(newNode);
+                state.parseStack.peek().addToInnerContent(newNode);
             }
 
             if (state.parseStack.isEmpty() && tagName.isVoidElement) {
@@ -519,7 +519,7 @@ public final class HtmlParser {
             if (state.parseStack.isEmpty()) {
                 nodes.add(htmlParseNode);
             }
-            TagName expectedTagName = htmlParseNode.tagInfo().tagName();
+            TagName expectedTagName = htmlParseNode.getTagInfo().getTagName();
             if (expectedTagName != tagName) {
                 throw new ParsingException("Did not find expected closing-tag type. " + "Expected: " + expectedTagName + " at line " + state.lineRow + " and at the " + state.lineColumn + "th character. " + state.charsRead + " characters read in total.");
             }

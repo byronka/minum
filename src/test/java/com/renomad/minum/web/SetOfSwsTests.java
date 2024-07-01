@@ -1,7 +1,7 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.ConcurrentSet;
 import org.junit.After;
 import org.junit.Before;

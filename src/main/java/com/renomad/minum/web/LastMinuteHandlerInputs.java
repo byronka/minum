@@ -2,6 +2,8 @@ package com.renomad.minum.web;
 
 
 /**
+ * The parameters required to set up a handler that is run after everything else in the
+ * web framework.  See {@link WebFramework#registerLastMinuteHandler(ThrowingFunction)}
  * @param request a HTTP request from a user
  * @param response This is the response previously calculated.  For context: this method is intended
  *                 to be run as a *special situation*, when the programmer wants a handler to run

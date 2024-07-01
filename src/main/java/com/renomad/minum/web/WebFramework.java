@@ -1,11 +1,11 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.UnderInvestigation;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
 import java.io.IOException;
@@ -42,6 +42,10 @@ public final class WebFramework {
     private final Random randomErrorCorrelationId;
     private final RequestLine emptyRequestLine;
 
+    public Map<String,String> getSuffixToMimeMappings() {
+        return new HashMap<>(fileSuffixToMime);
+    }
+
     /**
      * This is used as a key when registering endpoints
      */
@@ -77,7 +81,6 @@ public final class WebFramework {
     private final ZonedDateTime overrideForDateTime;
     private final FullSystem fs;
     private final ILogger logger;
-    private final Context context;
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -172,7 +175,7 @@ public final class WebFramework {
 
     void sendResponse(ISocketWrapper sw, PreparedResponse preparedResponse, ProcessingResult result) throws IOException {
         // Here is where the bytes actually go out on the socket
-        String statusLineAndHeaders = preparedResponse.statusLineAndHeaders() + HTTP_CRLF;
+        String statusLineAndHeaders = preparedResponse.getStatusLineAndHeaders() + HTTP_CRLF;
 
         logger.logTrace(() -> "Sending headers back: " + statusLineAndHeaders);
         sw.send(statusLineAndHeaders);
@@ -180,10 +183,10 @@ public final class WebFramework {
         if (result.clientRequest().requestLine().getMethod().equals(RequestLine.Method.HEAD)) {
             Request finalClientRequest = result.clientRequest();
             logger.logDebug(() -> "client " + finalClientRequest.remoteRequester() +
-                    " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().isolatedPath() +
+                    " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().getIsolatedPath() +
                     ".  Excluding body from response");
         } else {
-            sw.send(preparedResponse.body());
+            sw.send(preparedResponse.getBody());
         }
     }
 
@@ -240,8 +243,8 @@ public final class WebFramework {
        we're receiving a multipart, there will be no content-length, but
        the content-type will include the boundary string.
     */
-        var headers = Headers.make(context);
-        Headers hi = headers.extractHeaderInformation(sw.getInputStream());
+        List<String> allHeaders = Headers.getAllHeaders(sw.getInputStream(), constants.maxHeadersCount, inputStreamUtils);
+        Headers hi = new Headers(allHeaders);
         logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
         return hi;
     }
@@ -290,15 +293,21 @@ public final class WebFramework {
     }
 
     RequestLine getProcessedRequestLine(ISocketWrapper sw, String rawStartLine) {
-        logger.logTrace(() -> sw + ": raw startline received: " + rawStartLine);
-        RequestLine sl = RequestLine.empty(context).extractRequestLine(rawStartLine);
-        logger.logTrace(() -> sw + ": StartLine received: " + sl);
-        return sl;
+        logger.logTrace(() -> sw + ": raw request line received: " + rawStartLine);
+        RequestLine rl = new RequestLine(
+                RequestLine.Method.NONE,
+                PathDetails.empty,
+                HttpVersion.NONE,
+                "", logger,
+                constants.maxQueryStringKeysCount);
+        RequestLine extractedRequestLine = rl.extractRequestLine(rawStartLine);
+        logger.logTrace(() -> sw + ": RequestLine has been derived: " + extractedRequestLine);
+        return extractedRequestLine;
     }
 
     void checkIfSuspiciousPath(ISocketWrapper sw, RequestLine requestLine) {
         String suspiciousClues = underInvestigation.isLookingForSuspiciousPaths(
-                requestLine.getPathDetails().isolatedPath());
+                requestLine.getPathDetails().getIsolatedPath());
         if (!suspiciousClues.isEmpty()) {
             String msg = sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + suspiciousClues;
             throw new ForbiddenUseException(msg);
@@ -362,7 +371,7 @@ public final class WebFramework {
         VaryHeader varyHeader = new VaryHeader();
 
         // add the status line
-        headerStringBuilder.append("HTTP/1.1 ").append(response.statusCode().code).append(" ").append(response.statusCode().shortDescription).append(HTTP_CRLF);
+        headerStringBuilder.append("HTTP/1.1 ").append(response.getStatusCode().code).append(" ").append(response.getStatusCode().shortDescription).append(HTTP_CRLF);
 
         // add a date-timestamp
         headerStringBuilder.append("Date: ").append(date).append(HTTP_CRLF);
@@ -388,7 +397,7 @@ public final class WebFramework {
      */
     private static void addOptionalExtraHeaders(Response response, StringBuilder stringBuilder) {
         stringBuilder.append(
-                response.extraHeaders().entrySet().stream()
+                response.getExtraHeaders().entrySet().stream()
                 .map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF)
                 .collect(Collectors.joining()));
     }
@@ -398,10 +407,10 @@ public final class WebFramework {
      */
     static void confirmBodyHasContentType(Request request, Response response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = response.extraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
+        boolean hasContentType = response.getExtraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
 
         // if there *is* data, we had better be returning a content type
-        if (response.body().length > 0) {
+        if (response.getBody().length > 0) {
             mustBeTrue(hasContentType, "a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
         }
     }
@@ -446,13 +455,13 @@ public final class WebFramework {
         // if the data we're sending back is not of an appropriate type, we won't bother
         // compressing it.  Basically, we're going to compress plain text.
         Map.Entry<String, String> contentTypeHeader = SearchUtils.findExactlyOne(
-                response.extraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
+                response.getExtraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
 
-        byte[] bodyBytes = response.body();
+        byte[] bodyBytes = response.getBody();
         if (contentTypeHeader != null) {
-            String contentType = contentTypeHeader.getValue().toLowerCase();
+            String contentType = contentTypeHeader.getValue().toLowerCase(Locale.ROOT);
             if (contentType.contains("text/")) {
-                bodyBytes = compressBodyIfRequested(response.body(), acceptEncoding, headerStringBuilder, 2048);
+                bodyBytes = compressBodyIfRequested(response.getBody(), acceptEncoding, headerStringBuilder, 2048);
                 varyHeader.addHeader("accept-encoding");
             }
         }
@@ -494,7 +503,7 @@ public final class WebFramework {
         logger.logTrace(() -> "Seeking a handler for " + sl);
 
         // first we check if there's a simple direct match
-        String requestedPath = sl.getPathDetails().isolatedPath().toLowerCase(Locale.ROOT);
+        String requestedPath = sl.getPathDetails().getIsolatedPath().toLowerCase(Locale.ROOT);
 
         // if the user is asking for a HEAD request, they want to run a GET command
         // but don't want the body.  We'll simply exclude sending the body, later on, when returning the data
@@ -525,7 +534,7 @@ public final class WebFramework {
         if (sl.getMethod() != RequestLine.Method.GET && sl.getMethod() != RequestLine.Method.HEAD) {
             return null;
         }
-        String requestedPath = sl.getPathDetails().isolatedPath();
+        String requestedPath = sl.getPathDetails().getIsolatedPath();
         Response response = readStaticFile(requestedPath);
         return request -> response;
     }
@@ -613,7 +622,7 @@ public final class WebFramework {
      * let's see if we can match the registered paths against a **portion** of the startline
      */
     ThrowingFunction<Request, Response> findHandlerByPartialMatch(RequestLine sl) {
-        String requestedPath = sl.getPathDetails().isolatedPath();
+        String requestedPath = sl.getPathDetails().getIsolatedPath();
         var methodPathFunctionEntry = registeredPartialPaths.entrySet().stream()
                 .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
                         x.getKey().method().equals(sl.getMethod()))
@@ -648,15 +657,14 @@ public final class WebFramework {
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
         this.registeredPartialPaths = new HashMap<>();
-        this.context = context;
         this.underInvestigation = new UnderInvestigation(constants);
-        this.inputStreamUtils = context.getInputStreamUtils();
+        this.inputStreamUtils = new InputStreamUtils(constants);
         this.bodyProcessor = new BodyProcessor(context);
 
-        // This random value is purely to help provide correlation betwee
+        // This random value is purely to help provide correlation between
         // error messages in the UI and error logs.  There are no security concerns.
         this.randomErrorCorrelationId = new Random();
-        this.emptyRequestLine = RequestLine.empty(context);
+        this.emptyRequestLine = RequestLine.empty();
 
         // this allows us to inject a IFileReader for deeper testing
         if (fileReader != null) {
@@ -671,17 +679,6 @@ public final class WebFramework {
         addDefaultValuesForMimeMap();
         readExtraMimeMappings(constants.extraMimeMappings);
     }
-
-
-    /**
-     * This getter allows users to add extra mappings
-     * between file suffixes and mime types, in case
-     * a user needs one that was not provided.
-     */
-    public Map<String,String> getSuffixToMime() {
-        return fileSuffixToMime;
-    }
-
 
     void readExtraMimeMappings(List<String> input) {
         if (input == null || input.isEmpty()) return;
@@ -843,6 +840,6 @@ public final class WebFramework {
      * </pre>
      */
     public void addMimeForSuffix(String suffix, String mimeType) {
-        getSuffixToMime().put(suffix, mimeType);
+        fileSuffixToMime.put(suffix, mimeType);
     }
 }

@@ -1,5 +1,7 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.state.Constants;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +48,7 @@ public interface ISocketWrapper extends Closeable {
 
     HttpServerType getServerType();
 
+    @Override
     void close() throws IOException;
 
     /**
@@ -55,7 +58,7 @@ public interface ISocketWrapper extends Closeable {
 
     /**
      * The hostname of the server, as set in the configuration
-     * file of key HOST_NAME in {@link com.renomad.minum.Constants#hostName}
+     * file of key HOST_NAME in {@link Constants#hostName}
      */
     String getHostName();
 }

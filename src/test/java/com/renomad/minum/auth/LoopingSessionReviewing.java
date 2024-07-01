@@ -1,7 +1,7 @@
 package com.renomad.minum.auth;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.utils.MyThread;

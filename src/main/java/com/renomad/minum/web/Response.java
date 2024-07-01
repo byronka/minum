@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -43,20 +44,34 @@ import java.util.*;
  * an optional message body.
  * </li>
  *</ul>
- * @param extraHeaders extra headers we want to return with the response.
+
  */
-public record Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders,
-                       byte[] body) {
+public final class Response {
+
+    private final StatusLine.StatusCode statusCode;
+    private final Map<String, String> extraHeaders;
+    private final byte[] body;
+
+    /**
+     * @param extraHeaders extra headers we want to return with the response.
+     */
+    public Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders,
+                    byte[] body) {
+        this.statusCode = statusCode;
+        this.extraHeaders = new HashMap<>(extraHeaders);
+        this.body = body.clone();
+    }
+
     public Response(StatusLine.StatusCode statusCode, byte[] body) {
         this(statusCode, Map.of(), body);
     }
 
     public Response(StatusLine.StatusCode statusCode, String body) {
-        this(statusCode, Map.of(), body.getBytes());
+        this(statusCode, Map.of(), body.getBytes(StandardCharsets.UTF_8));
     }
 
     public Response(StatusLine.StatusCode statusCode, String body, Map<String, String> extraHeaders) {
-        this(statusCode, extraHeaders, body.getBytes());
+        this(statusCode, extraHeaders, body.getBytes(StandardCharsets.UTF_8));
     }
 
     public Response(StatusLine.StatusCode statusCode, byte[] body, Map<String, String> extraHeaders) {
@@ -64,11 +79,11 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
     }
 
     public Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders) {
-        this(statusCode, extraHeaders, "".getBytes());
+        this(statusCode, extraHeaders, "".getBytes(StandardCharsets.UTF_8));
     }
 
     public Response(StatusLine.StatusCode statusCode) {
-        this(statusCode, Map.of(), "".getBytes());
+        this(statusCode, Map.of(), "".getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -99,6 +114,18 @@ public record Response(StatusLine.StatusCode statusCode, Map<String, String> ext
      */
     public static Response htmlOk(String body) {
         return htmlOk(body, Map.of());
+    }
+
+    public Map<String, String> getExtraHeaders() {
+        return new HashMap<>(extraHeaders);
+    }
+
+    public StatusLine.StatusCode getStatusCode() {
+        return statusCode;
+    }
+
+    public byte[] getBody() {
+        return body.clone();
     }
 
     @Override

@@ -1,9 +1,6 @@
 package com.renomad.minum.web;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -18,24 +15,24 @@ public class FakeSocketWrapper implements ISocketWrapper {
     public Consumer<String> sendHttpLineAction;
     public Supplier<String> getRemoteAddrAction;
     public Supplier<SocketAddress> getRemoteAddrWithPortAction;
-    public ByteArrayOutputStream baos;
-    public ByteArrayInputStream bais;
+    public OutputStream os;
+    public InputStream is;
 
     public FakeSocketWrapper() {
-        bais = new ByteArrayInputStream(new byte[0]);
-        baos = new ByteArrayOutputStream();
+        is = new ByteArrayInputStream(new byte[0]);
+        os = new ByteArrayOutputStream();
         this.getRemoteAddrAction = () -> "tester";
         this.getRemoteAddrWithPortAction = () -> new InetSocketAddress("123.123.123.123", 1234);
     }
 
     @Override
     public void send(String msg) throws IOException {
-        baos.write(msg.getBytes(StandardCharsets.UTF_8));
+        os.write(msg.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
     public void send(byte[] bodyContents) throws IOException {
-        baos.write(bodyContents);
+        os.write(bodyContents);
     }
 
     @Override
@@ -68,7 +65,7 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public InputStream getInputStream() {
-        return bais;
+        return is;
     }
 
     @Override

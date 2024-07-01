@@ -48,7 +48,7 @@ Add Junit as a dependency in the file at `pom.xml`:
         <dependency>
             <groupId>com.renomad</groupId>
             <artifactId>minum</artifactId>
-            <version>4.0.3</version>
+            <version>5.0.0</version>
         </dependency>
 
         <!-- JUnit is a testing framework -->
@@ -84,7 +84,7 @@ this content.  Hold your breath, here we go:
 ```java
 package org.example.myproject;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.htmlparsing.TagName;
 import com.renomad.minum.web.FullSystem;
 import com.renomad.minum.web.FunctionalTesting;

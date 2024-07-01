@@ -1,7 +1,7 @@
 package com.renomad.minum.security;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.SearchUtils;
@@ -9,7 +9,7 @@ import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.utils.TimeUtils;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -125,7 +125,7 @@ public final class TheBrig implements ITheBrig {
             myThread.interrupt();
             this.inmatesDb.stop();
         } else {
-            throw new SecurityException("TheBrig was told to stop, but it was uninitialized");
+            throw new MinumSecurityException("TheBrig was told to stop, but it was uninitialized");
         }
     }
 

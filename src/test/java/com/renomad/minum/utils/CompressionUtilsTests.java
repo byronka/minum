@@ -1,6 +1,6 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.StopwatchUtils;
 import org.junit.AfterClass;
@@ -99,7 +99,7 @@ public class CompressionUtilsTests {
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             IntStream.range(0, 100).forEach(i -> {
-                executor.submit(() -> {
+                var unused = executor.submit(() -> {
                     var bytes = gettysburgAddress.getBytes(StandardCharsets.UTF_8);
                     var compressedBytes = gzipCompress(bytes);
                     byte[] decompressedBytes = gzipDecompress(compressedBytes);

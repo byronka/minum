@@ -3,7 +3,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=4.0.3
+VERSION=5.0.0
 
 MAVEN := ./mvnw
 
@@ -30,6 +30,10 @@ clean::
 #: test the whole system
 test::
 	 @${MAVEN} test
+
+#: run linting tools
+lint::
+	 @${MAVEN} spotbugs:check
 
 #: create the site report
 site::

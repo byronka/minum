@@ -1,9 +1,10 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Constants;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -171,7 +172,7 @@ public final class FileUtils {
      */
     public String readTextFile(String path) {
         try {
-            return new String(fileReader.readFile(path));
+            return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
         } catch (IOException e) {
             logger.logDebug(() -> String.format("Error while reading file %s, returning empty string. %s", path, e));
             return "";

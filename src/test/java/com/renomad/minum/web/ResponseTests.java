@@ -2,6 +2,7 @@ package com.renomad.minum.web;
 
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -39,16 +40,16 @@ public class ResponseTests {
     @Test
     public void testResponseConstructor1() {
         Response response = new Response(StatusLine.StatusCode.CODE_200_OK, new byte[]{1, 2, 3});
-        assertTrue(response.extraHeaders().isEmpty());
-        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
-        assertEqualByteArray(response.body(), new byte[]{1, 2, 3});
+        assertTrue(response.getExtraHeaders().isEmpty());
+        assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertEqualByteArray(response.getBody(), new byte[]{1, 2, 3});
     }
 
     @Test
     public void testResponseConstructor2() {
         Response response = new Response(StatusLine.StatusCode.CODE_200_OK, "testing");
-        assertTrue(response.extraHeaders().isEmpty());
-        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
-        assertEquals(new String(response.body()), "testing");
+        assertTrue(response.getExtraHeaders().isEmpty());
+        assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertEquals(new String(response.getBody(), StandardCharsets.UTF_8), "testing");
     }
 }

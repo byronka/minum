@@ -1,9 +1,9 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ITheBrig;
+import com.renomad.minum.state.Context;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -176,6 +176,15 @@ final class WebEngine {
   ISocketWrapper startClient(Socket socket) throws IOException {
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
     return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
+  }
+
+  /**
+   * Intentionally return just the default object toString, this is only used
+   * to differentiate between multiple instances in memory.
+   */
+  @Override
+  public String toString() {
+    return super.toString();
   }
 
 }

@@ -6,10 +6,10 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,398 | 141,048 | 1,085,405   |
+| 4,551 | 141,048 | 1,085,405   |
 
 
-#### Our project is 32 times smaller than [Javalin](https://javalin.io/), which bills itself as
+#### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
 
 >"A simple web framework for Java and Kotlin"
 > 
@@ -28,7 +28,7 @@ Web server
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 1836  | 163,000 | 242,000 |
+| 1897  | 163,000 | 242,000 |
 
 Templating
 ----------
@@ -43,7 +43,7 @@ Database
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 238   | 1,300,000  | 1,500,000 | 116,000 |
+| 243   | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -51,7 +51,7 @@ Logging
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
-| 349   | 70,000 | 3,400 |
+| 354   | 70,000 | 3,400 |
 
 
 HTML Parser
@@ -59,7 +59,7 @@ HTML Parser
 
 | Minum | JSoup  |
 |-------|--------|
-| 497   | 14,337 |
+| 565   | 14,337 |
 
 
 Testing
@@ -70,12 +70,20 @@ Testing
 | 192   | 10,834 |
 
 
+Background task processing
+--------------------------
+
+| Minum | Jobrunr |
+|-------|---------|
+| 151   | 22,581  |
+
+
 Various helpful utilities
 -------------------------
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 713   | 18,045            |
+| 592   | 18,045            |
 
 Appendix
 --------

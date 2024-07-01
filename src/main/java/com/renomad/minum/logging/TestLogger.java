@@ -1,6 +1,6 @@
 package com.renomad.minum.logging;
 
-import com.renomad.minum.Constants;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.utils.MyThread;
 
 import java.util.List;
@@ -214,6 +214,11 @@ private final Queue<String> recentLogLines;
 
     public int getTestCount() {
         return testCount;
+    }
+
+    @Override
+    public String toString() {
+        return "TestLogger using queue: " + super.loggingActionQueue.toString();
     }
 
 }

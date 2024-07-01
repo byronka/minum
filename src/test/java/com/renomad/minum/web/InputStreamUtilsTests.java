@@ -1,9 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
-import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.state.Context;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,13 +18,11 @@ import static com.renomad.minum.testing.TestFramework.*;
 public class InputStreamUtilsTests {
 
     private IInputStreamUtils inputStreamUtils;
-    private TestLogger testLogger;
     private Context context;
 
     @Before
     public void init() {
         context = buildTestingContext("input stream utils tests");
-        testLogger = (TestLogger) context.getLogger();
         Properties properties = new Properties();
         properties.setProperty("MAX_READ_SIZE_BYTES", "3");
         inputStreamUtils = new InputStreamUtils(new Constants(properties));
@@ -41,7 +38,7 @@ public class InputStreamUtilsTests {
     public void testReadUntilEOF_HappyPath() {
         ByteArrayInputStream inputStream = new ByteArrayInputStream("ab".getBytes(StandardCharsets.UTF_8));
         byte[] bytes = inputStreamUtils.readUntilEOF(inputStream);
-        assertEquals(new String(bytes), "ab");
+        assertEquals(new String(bytes, StandardCharsets.UTF_8), "ab");
     }
 
     /**
@@ -60,18 +57,19 @@ public class InputStreamUtilsTests {
      * If an IOException gets thrown, it will be converted to a RuntimeException
      */
     @Test
-    public void testReadUntilEOF_EdgeCase_IOException() {
-        InputStream inputStream = new InputStream() {
+    public void testReadUntilEOF_EdgeCase_IOException() throws IOException {
+        try(InputStream inputStream = new InputStream() {
 
             @Override
             public int read() throws IOException {
                 throw new IOException("test exception only, no worries");
             }
-        };
+        }) {
 
-        var exception = assertThrows(RuntimeException.class, () -> inputStreamUtils.readUntilEOF(inputStream));
+            var exception = assertThrows(RuntimeException.class, () -> inputStreamUtils.readUntilEOF(inputStream));
 
-        assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+        }
     }
 
     /**
@@ -103,25 +101,26 @@ public class InputStreamUtilsTests {
      * If an IOException gets thrown, it will be converted to a RuntimeException
      */
     @Test
-    public void testReadChunkedEncoding_EdgeCase_IOException() {
-        InputStream inputStream = new InputStream() {
+    public void testReadChunkedEncoding_EdgeCase_IOException() throws IOException {
+        try (InputStream inputStream = new InputStream() {
 
             @Override
             public int read() throws IOException {
                 throw new IOException("test exception only, no worries");
             }
-        };
+        }) {
 
-        var exception = assertThrows(RuntimeException.class, () -> inputStreamUtils.readChunkedEncoding(inputStream));
+            var exception = assertThrows(RuntimeException.class, () -> inputStreamUtils.readChunkedEncoding(inputStream));
 
-        assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+        }
     }
 
     @Test
     public void testReadChunkedEncoding_HappyPath() {
         var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
         byte[] bytes = inputStreamUtils.readChunkedEncoding(inputStream);
-        assertEquals(new String(bytes), "ab");
+        assertEquals(new String(bytes, StandardCharsets.UTF_8), "ab");
     }
 
     /**
@@ -143,18 +142,19 @@ public class InputStreamUtilsTests {
     }
 
     @Test
-    public void testReading_EdgeCase_IOException() {
-        InputStream inputStream = new InputStream() {
+    public void testReading_EdgeCase_IOException() throws IOException {
+        try (InputStream inputStream = new InputStream() {
 
             @Override
             public int read() throws IOException {
                 throw new IOException("test exception only, no worries");
             }
-        };
+        }) {
 
-        var exception = assertThrows(RuntimeException.class, () -> inputStreamUtils.read(2, inputStream));
+            var exception = assertThrows(RuntimeException.class, () -> inputStreamUtils.read(2, inputStream));
 
-        assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+        }
     }
 
     /**
@@ -167,8 +167,8 @@ public class InputStreamUtilsTests {
      * </p>
      */
     @Test
-    public void testReading_EdgeCase_DifferentCount() {
-        InputStream inputStream = new InputStream() {
+    public void testReading_EdgeCase_DifferentCount() throws IOException {
+        try (InputStream inputStream = new InputStream() {
 
             private final byte[] sampleData = new byte[] {123};
             int index = 0;
@@ -183,10 +183,11 @@ public class InputStreamUtilsTests {
                     return -1;
                 }
             }
-        };
+        }) {
 
-        var exception = assertThrows(ForbiddenUseException.class, () -> inputStreamUtils.read(2, inputStream));
+            var exception = assertThrows(ForbiddenUseException.class, () -> inputStreamUtils.read(2, inputStream));
 
-        assertEquals(exception.getMessage(), "length of bytes read (1) must be what we expected (2)");
+            assertEquals(exception.getMessage(), "length of bytes read (1) must be what we expected (2)");
+        }
     }
 }

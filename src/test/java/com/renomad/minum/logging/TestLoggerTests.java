@@ -1,6 +1,6 @@
 package com.renomad.minum.logging;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.MyThread;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,12 +13,11 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class TestLoggerTests {
 
-    private Context context;
     private TestLogger logger;
 
     @Before
     public void init() {
-        context = buildTestingContext("TestLogger tests");
+        Context context = buildTestingContext("TestLogger tests");
         logger = (TestLogger) context.getLogger();
     }
 

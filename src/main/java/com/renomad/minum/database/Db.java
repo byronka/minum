@@ -1,14 +1,15 @@
 package com.renomad.minum.database;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.AbstractActionQueue;
-import com.renomad.minum.utils.ActionQueue;
+import com.renomad.minum.queue.AbstractActionQueue;
+import com.renomad.minum.queue.ActionQueue;
 import com.renomad.minum.utils.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -67,6 +68,10 @@ public final class Db<T extends DbData<?>> {
      * @param dbDirectory this uniquely names your database, and also sets the directory
      *                    name for this data.  The expected use case is to name this after
      *                    the data in question.  For example, "users", or "accounts".
+     * @param context used to provide important state data to several components
+     * @param instance an instance of the {@link DbData} object relevant for use in this database. Note
+     *                 that each database (that is, each instance of this class), focuses on just one
+     *                 data, which must be an implementation of {@link DbData}.
      */
     public Db(Path dbDirectory, Context context, T instance) {
         this.hasLoadedData = false;
@@ -76,16 +81,18 @@ public final class Db<T extends DbData<?>> {
         this.dbDirectory = dbDirectory;
         this.fullPathForIndexFile = dbDirectory.resolve("index" + DATABASE_FILE_SUFFIX);
         this.emptyInstance = instance;
-        this.fileUtils = context.getFileUtils();
+        this.fileUtils = new FileUtils(logger, context.getConstants());
 
         if (Files.exists(fullPathForIndexFile)) {
             long indexValue;
-            try (var fileReader = new FileReader(fullPathForIndexFile.toFile())) {
-                String s = new BufferedReader(fileReader).readLine();
-                mustNotBeNull(s);
-                mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
-                String trim = s.trim();
-                indexValue = Long.parseLong(trim);
+            try (var fileReader = new FileReader(fullPathForIndexFile.toFile(), StandardCharsets.UTF_8)) {
+                try (BufferedReader br = new BufferedReader(fileReader)) {
+                    String s = br.readLine();
+                    if (s == null) throw new DbException("index file for " + dbDirectory + " returned null when reading a line from it");
+                    mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
+                    String trim = s.trim();
+                    indexValue = Long.parseLong(trim);
+                }
             } catch (Exception e) {
                 throw new DbException("Exception while reading "+fullPathForIndexFile+" in Db constructor", e);
             }
@@ -131,9 +138,9 @@ public final class Db<T extends DbData<?>> {
         try {
             // load data if needed
             if (!hasLoadedData) loadData();
+            boolean newIndexCreated = false;
 
             modificationLock.lock();
-            boolean newIndexCreated = false;
             try {
                 // *** deal with the in-memory portion ***
 
@@ -274,14 +281,16 @@ public final class Db<T extends DbData<?>> {
      * @param p the path of a particular file
      */
     void readAndDeserialize(Path p) throws IOException {
-        String filename = p.getFileName().toString();
+        Path fileName = p.getFileName();
+        if (fileName == null) throw new DbException("At readAndDeserialize, path " + p + " returned a null filename");
+        String filename = fileName.toString();
         int startOfSuffixIndex = filename.indexOf('.');
         if(startOfSuffixIndex == -1) {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
         String fileContents = Files.readString(p);
         if (fileContents.isBlank()) {
-            logger.logDebug( () -> p.getFileName() + " file exists but empty, skipping");
+            logger.logDebug( () -> fileName + " file exists but empty, skipping");
         } else {
             try {
                 @SuppressWarnings("unchecked")

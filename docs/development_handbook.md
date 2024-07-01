@@ -34,6 +34,7 @@ Table of contents
 - [History](#history)
 - [Theme](#theme)
 - [ActionQueue](#actionqueue)
+- [Dependency Injections](#dependency-injection)
 
 
 Features:
@@ -192,14 +193,13 @@ HOWTO
 A series of HOWTO's for essential capabilities:
 
 * [How to add a new endpoint](howto/add_a_new_endpoint.md)
-* [How to create a new test class](howto/create_a_new_test_class.md)
-* [How to test against the logs](howto/testing_against_the_logs.md)
 
 
 Versioning
 ----------
 
-The version of the project is set in the Makefile, with a property name of VERSION
+The version of the project is set in the Makefile, with a property name of VERSION.
+We have followed semantic versioning.
 
 Mutation Testing
 ----------------
@@ -263,11 +263,18 @@ Testing
 The assertions are minimalistic.  Here's assertEquals:
 
 ```java
-public static <T> void assertEquals(T left, T right) {
-    if (! left.equals(right)) {
-        throw new RuntimeException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
+  public static <T> void assertEquals(List<T> left, List<T> right, String failureMessage) {
+    if (left.size() != right.size()) {
+        throw new TestFailureException(
+                String.format("different sizes: left was %d, right was %d. %s", left.size(), right.size(), failureMessage));
     }
-}
+    for (int i = 0; i < left.size(); i++) {
+        if (!left.get(i).equals(right.get(i))) {
+            throw new TestFailureException(
+                    String.format("different values - left: \"%s\" right: \"%s\". %s", showWhiteSpace(left.get(i).toString()), showWhiteSpace(right.get(i).toString()), failureMessage));
+        }
+    }
+  }
 ```
 
 The rest of the testing framework is about the same.  It's never simple,
@@ -341,7 +348,7 @@ and check whether any of the authentication sessions are old and need to be remo
 
 Our project uses virtual threads, a very recent addition to the Java language.  Also known
 as "Project Loom", it enables our server to handle many concurrent requests with minimal
-resource needs.  See also loom/README.md
+resource needs.
 
 Routing
 -------
@@ -377,7 +384,7 @@ in that list, and if so, drop the connection.
 The offending client is designated by a combination of their ip address and a short string
 representing the offense type. For example, if someone tries to force our system to use 
 a version of TLS that has known vulnerabilities, we'll assume they're of no value to us 
-and put them away for a week:
+and put them away for a while:
 
     "123.123.123.123_vuln_seeking", 604800000
 
@@ -387,9 +394,17 @@ Templates
 
 There's a few things to note when dealing with templates.
 
-First, files you intend to use as a template should be stored under src/main/webapp/templates.
+Template files can really be stored anywhere, but there are some conventional locations in the 
+Java ecosystem.  Templates meant to be used in a webapp are commonly stored under src/main/webapp/templates.
 They should then be placed inside a subdirectory there, to help organize them. It will be
 necessary to read the file using plain old Java file reading - see [an example](https://github.com/byronka/minum_usage_example_mvn/blob/03a34f32e9c79fdc4a00f16d85d62eb5b8173ae6/src/main/java/com/renomad/sampledomain/SampleDomain.java#L31C27-L31C27)
+
+In order to read those files during local dev testing, it is recommended to keep things simple - 
+you can just read the file from its location in the directory structure.  Once you graduate to
+running a system in production as well, you may find that the location differs between your
+development environment and the production system.  In that case, I have taken to writing a
+helper method that uses a value set in a property file.  See the [Memoria project config file](https://github.com/byronka/memoria_project/blob/a3e5e2d299dfa4f770f65fa902a30ac707f059ad/memoria.config#L12)
+and its [template reader in a helper method](https://github.com/byronka/memoria_project/blob/a3e5e2d299dfa4f770f65fa902a30ac707f059ad/src/main/java/com/renomad/inmra/utils/FileUtils.java#L29)
 
 Inside a template, wherever you intend to substitute values, use a syntax like this:
 
@@ -421,9 +436,8 @@ String renderedFoo = fooProcessor.renderTemplate(Map.of(
 Writing to files
 ----------------
 
-Occasionally you will need to write to files.  If you want to keep with the paradigm of
-this software, you will want to keep those files in the same root directory as the database,
-but in its own sub-directory.
+Occasionally you will need to write to files.  You may want to keep those files in the same 
+root directory as the database, but in its own sub-directory, but the choice is up to you.
 
 The steps to this are:
 1. Get the configured root directory for the database: `var dbDir = Path.of(FullSystem.getConfiguredProperties().getProperty("dbdir"));`
@@ -453,7 +467,11 @@ try {
 Authentication
 --------------
 
-Authentication is handled like follows:
+Here is an example of how I chose to implement authentication in some of my projects running Minum.
+This is arbitrary - the way you develop this is up to you, but maybe this example will help.
+
+See [the authentication code](https://github.com/byronka/memoria_project/blob/a3e5e2d299dfa4f770f65fa902a30ac707f059ad/src/main/java/com/renomad/inmra/auth/AuthUtils.java#L64)
+and [an example of applying it](https://github.com/byronka/memoria_project/blob/a3e5e2d299dfa4f770f65fa902a30ac707f059ad/src/main/java/com/renomad/inmra/featurelogic/persons/PersonCreateEndpoints.java#L67)
 
 ```java
 AuthResult authResult = auth.processAuth(request);

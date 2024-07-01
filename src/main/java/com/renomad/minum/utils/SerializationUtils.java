@@ -1,6 +1,6 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.Inmate;
 
 import java.util.ArrayList;
@@ -57,8 +57,8 @@ public final class SerializationUtils {
          * to have databases of type {@link com.renomad.minum.database.DbData} that
          * have this many fields.
          */
-        int MAXIMUM_DATABASE_PARTITIONS_ALLOWED = 200;
-        return tokenizer(serializedText, '|', MAXIMUM_DATABASE_PARTITIONS_ALLOWED).stream().map(StringUtils::decode).toList();
+        int maximumDatabasePartitionsAllowed = 200;
+        return tokenizer(serializedText, '|', maximumDatabasePartitionsAllowed).stream().map(StringUtils::decode).toList();
     }
 
     /**

@@ -1,14 +1,12 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
-import com.renomad.minum.utils.CompressionUtils;
-import com.renomad.minum.utils.InvariantException;
-import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.StringUtils;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -59,6 +57,8 @@ public class WebTests {
     static private Context context;
     static private TestLogger logger;
     private static String gettysburgAddress;
+    private static int maxQueryStringKeysCount;
+    
     /**
      * The length of time, in milliseconds, we will wait for the server to close
      * before letting computation continue.
@@ -67,6 +67,7 @@ public class WebTests {
      * next server bind occurs.
      */
     static int SERVER_CLOSE_WAIT_TIME = 30;
+    private static FileUtils fileUtils;
 
     @BeforeClass
     public static void setUpClass() throws IOException {
@@ -75,16 +76,18 @@ public class WebTests {
         properties.setProperty("SUSPICIOUS_PATHS", ".env");
         properties.setProperty("IS_THE_BRIG_ENABLED", "true");
         context = buildTestingContext("unit_tests",properties);
+        maxQueryStringKeysCount = context.getConstants().maxQueryStringKeysCount;
         es = context.getExecutorService();
-        inputStreamUtils = context.getInputStreamUtils();
+        inputStreamUtils = new InputStreamUtils(context.getConstants());
         logger = (TestLogger)context.getLogger();
+        fileUtils = new FileUtils(logger, context.getConstants());
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
     }
 
 
     @AfterClass
     public static void tearDownClass() {
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), logger);
         shutdownTestingContext(context);
     }
 
@@ -93,7 +96,7 @@ public class WebTests {
      */
     @Test
     public void test_ThrowingExceptionInThread() {
-        es.submit(() -> {
+        var future = es.submit(() -> {
             try {
                 throw new RuntimeException("No worries folks, just testing the exception handling, from test \"What happens if we throw an exception in a thread\"");
             } catch (Exception ex) {
@@ -101,6 +104,7 @@ public class WebTests {
             }
         });
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+        assertThrows(RuntimeException.class, future::get);
         assertTrue(logger.doesMessageExist("No worries folks, just testing the exception handling", 8));
     }
 
@@ -114,7 +118,7 @@ public class WebTests {
     static class Summation {
         static Response addTwoNumbers(Request r) {
             int aValue = Integer.parseInt(r.requestLine().queryString().get("a"));
-            int bValue = Integer.parseInt(r.requestLine().getPathDetails().queryString().get("b"));
+            int bValue = Integer.parseInt(r.requestLine().getPathDetails().getQueryString().get("b"));
             int sum = aValue + bValue;
             String sumString = String.valueOf(sum);
             return Response.htmlOk(sumString);
@@ -145,7 +149,8 @@ public class WebTests {
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                    Headers hi = Headers.make(context).extractHeaderInformation(is);
+                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers hi = new Headers(allHeaders);
 
                     assertEquals(hi.valueByKey("server"), List.of("minum"));
                     assertTrue(hi.valueByKey("date") != null);
@@ -188,15 +193,15 @@ public class WebTests {
 
     @Test
     public void test_StartLine_Post() {
-        RequestLine sl = RequestLine.empty(context).extractRequestLine("POST /something HTTP/1.0");
+        RequestLine sl = RequestLine.empty().extractRequestLine("POST /something HTTP/1.0");
         assertEquals(sl.getMethod(), POST);
     }
 
     @Test
     public void test_StartLine_EmptyPath() {
-        RequestLine sl = RequestLine.empty(context).extractRequestLine("GET / HTTP/1.1");
+        RequestLine sl = RequestLine.empty().extractRequestLine("GET / HTTP/1.1");
         assertEquals(sl.getMethod(), GET);
-        assertEquals(sl.getPathDetails().isolatedPath(), "");
+        assertEquals(sl.getPathDetails().getIsolatedPath(), "");
     }
 
     @Test
@@ -211,9 +216,9 @@ public class WebTests {
                     ""
             );
             for (String s : badStartLines) {
-                assertEquals(RequestLine.empty(context).extractRequestLine(s), RequestLine.empty(context));
+                assertEquals(RequestLine.empty().extractRequestLine(s), RequestLine.empty());
             }
-            assertThrows(InvariantException.class, () -> RequestLine.empty(context).extractRequestLine(null));
+            assertThrows(InvariantException.class, () -> RequestLine.empty().extractRequestLine(null));
     }
 
     @Test
@@ -311,7 +316,7 @@ public class WebTests {
 
     /**
      * What happens if we are dealing with a form having many values?
-     * By the way, the maximum allowed is set by {@link com.renomad.minum.Constants#maxBodyKeysUrlEncoded}
+     * By the way, the maximum allowed is set by {@link Constants#maxBodyKeysUrlEncoded}
      */
     @Test
     public void test_ParseForm_EdgeCase_ManyFormValues() {
@@ -375,7 +380,8 @@ public class WebTests {
 
                     // the server will respond to us.  Check everything is legit.
                     StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    Headers hi = Headers.make(context).extractHeaderInformation(client.getInputStream());
+                    List<String> allHeaders = Headers.getAllHeaders(client.getInputStream(), context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers hi = new Headers(allHeaders);
                     String body = readBody(is, hi.contentLength());
 
                     assertEquals(body, "123");
@@ -459,11 +465,11 @@ public class WebTests {
         List<byte[]> result = bp.split(multiPartData, "\r\n--i_am_a_boundary");
 
         assertEquals(result.size(), 2);
-        assertEquals(new String(result.get(0)), "Content-Type: text/plain\r\n" +
+        assertEquals(new String(result.get(0), StandardCharsets.UTF_8), "Content-Type: text/plain\r\n" +
                 "Content-Disposition: form-data; name=\"text1\"\r\n" +
                 "\r\n" +
                 "I am a value that is text");
-        assertEquals(new String(result.get(1)), "Content-Type: application/octet-stream\r\n" +
+        assertEquals(new String(result.get(1), StandardCharsets.UTF_8), "Content-Type: application/octet-stream\r\n" +
                 "Content-Disposition: form-data; name=\"image_uploads\"; filename=\"photo_preview.jpg\"\r\n" +
                 "\r\n" +
                 "\u0001\u0002\u0003");
@@ -546,10 +552,10 @@ public class WebTests {
 
         final ThrowingFunction<Request, Response> testHandler = r -> {
             if (r.body().asString("text1").equals("I am a value that is text") &&
-                    (r.body().asBytes("image_uploads")).length == 3 &&
-                    (r.body().asBytes("image_uploads"))[0] == 1 &&
-                    (r.body().asBytes("image_uploads"))[1] == 2 &&
-                    (r.body().asBytes("image_uploads"))[2] == 3
+                    r.body().asBytes("image_uploads").length == 3 &&
+                    r.body().asBytes("image_uploads")[0] == 1 &&
+                    r.body().asBytes("image_uploads")[1] == 2 &&
+                    r.body().asBytes("image_uploads")[2] == 3
             ) {
                 return Response.htmlOk("<p>everything was ok</p>");
             } else {
@@ -652,7 +658,7 @@ public class WebTests {
 
     @Test
     public void test_Headers_Multiple() {
-        Headers headers = new Headers(List.of("foo: a", "foo: b"), context);
+        Headers headers = new Headers(List.of("foo: a", "foo: b"));
         assertEqualsDisregardOrder(headers.valueByKey("foo"), List.of("a","b"));
     }
 
@@ -668,7 +674,7 @@ public class WebTests {
         String startLineString = "GET /.well-known/acme-challenge/foobar HTTP/1.1";
 
         // Convert it to a typed value
-        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var startLine = RequestLine.empty().extractRequestLine(startLineString);
 
         // instantiate a web framework to do the processing.  We're TDD'ing some new
         // code inside this.
@@ -676,7 +682,7 @@ public class WebTests {
 
         // register a path to handle this pattern.  Wishful-thinking for the win.
         webFramework.registerPartialPath(GET, ".well-known/acme-challenge", request -> {
-            String path = request.requestLine().getPathDetails().isolatedPath();
+            String path = request.requestLine().getPathDetails().getIsolatedPath();
             return Response.htmlOk("value was " + path);
         });
 
@@ -684,16 +690,16 @@ public class WebTests {
         var endpoint = webFramework.findEndpointForThisStartline(startLine);
 
         // now we create a whole request to stuff into this handler. We only
-        // care about the startline.
+        // care about the request line.
         Request request = new Request(
-                new Headers(List.of(), context),
+                new Headers(List.of()),
                 startLine,
                 Body.EMPTY,
                 "");
 
         // when we run that handler against the request, it works.
         Response response = endpoint.apply(request);
-        assertEquals(StringUtils.byteArrayToString(response.body()), "value was .well-known/acme-challenge/foobar");
+        assertEquals(StringUtils.byteArrayToString(response.getBody()), "value was .well-known/acme-challenge/foobar");
     }
 
     /**
@@ -712,7 +718,6 @@ public class WebTests {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
-                    Headers headers = Headers.make(context);
 
                     // send a GET request
                     client.sendHttpLine("GET /some_endpoint HTTP/1.0");
@@ -722,7 +727,8 @@ public class WebTests {
 
                     StatusLine statusLine1 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine1.status(), CODE_200_OK);
-                    Headers headers1 = headers.extractHeaderInformation(is);
+                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers headers1 = new Headers(allHeaders);
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                     new BodyProcessor(context).extractData(is, headers1);
 
@@ -734,7 +740,8 @@ public class WebTests {
 
                     StatusLine statusLine2 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine2.status(), CODE_200_OK);
-                    Headers headers2 = headers.extractHeaderInformation(is);
+                    List<String> allHeaders2 = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers headers2 = new Headers(allHeaders2);
                     assertTrue(headers2.valueByKey("keep-alive") == null);
                 }
             }
@@ -755,8 +762,8 @@ public class WebTests {
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
-                    Headers headers = Headers.make(context);
-                    Headers headers1 = headers.extractHeaderInformation(is);
+                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers headers1 = new Headers(allHeaders);
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                 }
             }
@@ -809,21 +816,21 @@ public class WebTests {
     @Test
     public void test_IsThereABody_ContentType() {
         // content-type: foo is illegitimate, but it will cause the system to look closer
-        var headers1 = new Headers(List.of("content-type: foo"), context);
+        var headers1 = new Headers(List.of("content-type: foo"));
         assertFalse(WebFramework.isThereIsABody(headers1));
     }
 
     @Test
     public void test_IsThereABody_TransferEncodingFoo() {
         // transfer-encoding: foo is illegitimate, it will look for chunked but won't find it.
-        var headers2 = new Headers(List.of("content-type: foo", "transfer-encoding: foo"), context);
+        var headers2 = new Headers(List.of("content-type: foo", "transfer-encoding: foo"));
         assertFalse(WebFramework.isThereIsABody(headers2));
     }
 
     @Test
     public void test_IsThereABody_TransferEncodingChunked() {
         // transfer-encoding: chunked is acceptable, it will return true here
-        var headers3 = new Headers(List.of("content-type: foo", "transfer-encoding: chunked"), context);
+        var headers3 = new Headers(List.of("content-type: foo", "transfer-encoding: chunked"));
         assertTrue(WebFramework.isThereIsABody(headers3));
     }
 
@@ -834,7 +841,7 @@ public class WebTests {
     public void test_PartialMatch_NothingRegistered() {
         var webFramework = new WebFramework(context, default_zdt);
 
-        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
@@ -848,7 +855,7 @@ public class WebTests {
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
@@ -859,7 +866,7 @@ public class WebTests {
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
@@ -870,7 +877,7 @@ public class WebTests {
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new RequestLine(POST, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(POST, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
@@ -882,7 +889,7 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
         webFramework.registerPartialPath(GET, "m", helloHandler);
 
-        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
@@ -891,19 +898,19 @@ public class WebTests {
      */
     @Test
     public void test_QueryString_NullPathdetails() {
-        var startLine = new RequestLine(GET, null, ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, null, ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertEquals(startLine.queryString(), new HashMap<>());
     }
 
     @Test
     public void test_QueryString_NullQueryString() {
-        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", null), ONE_DOT_ONE, "", context);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", null), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertEquals(startLine.queryString(), new HashMap<>());
     }
 
     @Test
     public void test_QueryString_EmptyQueryString() {
-        var startLIne = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", context);
+        var startLIne = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
         assertEquals(startLIne.queryString(), new HashMap<>());
     }
 
@@ -914,11 +921,11 @@ public class WebTests {
     @Test
     public void test_StartLine_Hashing() {
         var startLines = Map.of(
-                new RequestLine(GET, new RequestLine.PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", context),   "foo",
-                new RequestLine(GET, new RequestLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context),   "bar",
-                new RequestLine(GET, new RequestLine.PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", context),   "baz"
+                new RequestLine(GET, new PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount),   "foo",
+                new RequestLine(GET, new PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount),   "bar",
+                new RequestLine(GET, new PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount),   "baz"
         );
-        assertEquals(startLines.get(new RequestLine(GET, new RequestLine.PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", context)), "bar");
+        assertEquals(startLines.get(new RequestLine(GET, new PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount)), "bar");
     }
 
     /**
@@ -930,7 +937,7 @@ public class WebTests {
         for (int i = 0; i < context.getConstants().maxQueryStringKeysCount + 2; i++) {
                 sb.append(String.format("foo%d=bar%d&", i, i));
         }
-        RequestLine requestLine = RequestLine.empty(context);
+        RequestLine requestLine = RequestLine.empty();
         assertThrows(ForbiddenUseException.class, () -> requestLine.extractMapFromQueryString(sb.toString()));
     }
 
@@ -939,7 +946,7 @@ public class WebTests {
      */
     @Test
     public void test_ExtractMapFromQueryString_NoEqualsSign() {
-        RequestLine requestLine = RequestLine.empty(context);
+        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger, 20);
         var result = requestLine.extractMapFromQueryString("foo");
         assertEquals(result, Map.of());
     }
@@ -1112,7 +1119,7 @@ public class WebTests {
     @Test
     public void testAbsoluteForm() throws Exception {
         String startLineString = "GET https://foo.bar.baz HTTP/1.1";
-        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var startLine = RequestLine.empty().extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
         ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
@@ -1133,7 +1140,7 @@ public class WebTests {
     @Test
     public void testAuthorityComponent() {
         String startLineString = "CONNECT  foo.bar:80 HTTP/1.1";
-        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var startLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger, 0).extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
         ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
@@ -1148,7 +1155,7 @@ public class WebTests {
     @Test
     public void testAsteriskForm() {
         String startLineString = "OPTIONS * HTTP/1.1";
-        var startLine = RequestLine.empty(context).extractRequestLine(startLineString);
+        var startLine = RequestLine.empty().extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
         ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
@@ -1169,21 +1176,21 @@ public class WebTests {
             result = webFramework.processRequest(
                     sw,
                     new RequestLine(POST,
-                            new RequestLine.PathDetails(
+                            new PathDetails(
                                     "FOO",
                                     "",
                                     Map.of()
                             ),
                             ONE_DOT_ONE,
                             "POST /FOO HTTP/1.1",
-                            context
+                            logger, maxQueryStringKeysCount
                     ),
                     null,
                     null);
         }
 
         assertEquals(result.resultingResponse(), new Response(CODE_404_NOT_FOUND));
-        assertEquals(result.clientRequest().requestLine().toString(), "StartLine{method=POST, pathDetails=PathDetails[isolatedPath=FOO, rawQueryString=, queryString={}], version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1'}");
+        assertEquals(result.clientRequest().requestLine().toString(), "RequestLine{method=POST, pathDetails=PathDetails{isolatedPath='FOO', rawQueryString='', queryString={}}, version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1', logger=TestLogger using queue: loggerPrinterunit_tests, maxQueryStringKeysCount=50}");
         assertEquals(result.clientRequest().remoteRequester(), "tester");
     }
 
@@ -1200,10 +1207,10 @@ public class WebTests {
                     new Request(
                             null,
                             new RequestLine(HEAD,
-                                    new RequestLine.PathDetails("fake testing path", null, null),
+                                    new PathDetails("fake testing path", null, null),
                                     null,
                                     null,
-                                    context),
+                                    logger, maxQueryStringKeysCount),
                             null,
                             null),
                     null);
@@ -1235,7 +1242,7 @@ public class WebTests {
 
             result = webFramework.getProcessedRequestLine(sw, "");
         }
-        assertEquals(result, RequestLine.empty(context));
+        assertEquals(result, RequestLine.empty());
     }
 
     @Test
@@ -1246,7 +1253,7 @@ public class WebTests {
 
             result = webFramework.getProcessedRequestLine(sw, "FOO FOO the FOO");
         }
-        assertEquals(result, RequestLine.empty(context));
+        assertEquals(result, RequestLine.empty());
     }
 
     /**
@@ -1266,10 +1273,10 @@ public class WebTests {
             ex = assertThrows(ForbiddenUseException.class, () -> webFramework.checkIfSuspiciousPath(
                     sw,
                     new RequestLine(GET,
-                            new RequestLine.PathDetails(".env", null, null),
+                            new PathDetails(".env", null, null),
                             ONE_DOT_ONE,
                             null,
-                            context)
+                            logger, maxQueryStringKeysCount)
             ));
         }
         assertEquals(ex.getMessage(), "tester is looking for a vulnerability, for this: .env");
@@ -1304,8 +1311,8 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_EdgeCase_HttpVersionNone() {
-        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.NONE, "", context);
-        Headers headers = new Headers(List.of("connection: keep-alive"), context);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.NONE, "", logger, maxQueryStringKeysCount);
+        Headers headers = new Headers(List.of("connection: keep-alive"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertFalse(isKeepAlive);
     }
@@ -1315,8 +1322,8 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotOne() {
-        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, ONE_DOT_ONE, "", context);
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, Headers.make(context), logger);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, new Headers(List.of()), logger);
         assertTrue(isKeepAlive);
     }
 
@@ -1325,8 +1332,8 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotZero() {
-        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", context);
-        Headers headers = new Headers(List.of("connection: keep-alive"), context);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger, maxQueryStringKeysCount);
+        Headers headers = new Headers(List.of("connection: keep-alive"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertTrue(isKeepAlive);
     }
@@ -1336,8 +1343,8 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotZero_NoHeader() {
-        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", context);
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, Headers.make(context), logger);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger, maxQueryStringKeysCount);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, new Headers(List.of()), logger);
         assertFalse(isKeepAlive);
     }
 
@@ -1346,8 +1353,8 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotZero_ConnectionClose() {
-        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", context);
-        Headers headers = new Headers(List.of("connection: close"), context);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger, maxQueryStringKeysCount);
+        Headers headers = new Headers(List.of("connection: close"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertFalse(isKeepAlive);
     }
@@ -1357,8 +1364,8 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotOne_ConnectionClose() {
-        RequestLine requestLine = new RequestLine(GET, RequestLine.PathDetails.empty, ONE_DOT_ONE, "", context);
-        Headers headers = new Headers(List.of("connection: close"), context);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        Headers headers = new Headers(List.of("connection: close"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertFalse(isKeepAlive);
     }

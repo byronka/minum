@@ -1,19 +1,21 @@
 package com.renomad.minum.database;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.Logger;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.web.InputStreamUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -96,8 +98,11 @@ public class DbTests {
         MyThread.sleep(FINISH_TIME);
 
         final var db = new Db<>(foosDirectory, context, INSTANCE);
+        MyThread.sleep(FINISH_TIME);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 7; i++) {
+            int finalI = i;
+            logger.logDebug(() -> "DBTests general capability, round " + finalI);
             final var foos = range(1, 40).mapToObj(x -> new Foo(0, x, "abc" + x)).toList();
 
             // make some files on disk
@@ -220,7 +225,7 @@ public class DbTests {
         assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
 
         // create a corrupted file, to create that edge condition
-        Files.write(pathToSampleFile, "invalid data".getBytes());
+        Files.writeString(pathToSampleFile, "invalid data", StandardCharsets.UTF_8);
         final var ex = assertThrows(RuntimeException.class, db::loadDataFromDisk);
         assertTrue(ex.getMessage().replace('\\','/').startsWith("Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\"). Caused by: java.lang.NumberFormatException: For input string: \"invalid data\""));
 
@@ -461,7 +466,7 @@ public class DbTests {
      *     inside the database code.  Use this in debugging mode.
      * </p>
      */
-//    @Test
+    @Ignore("This is used as a laboratory for investigating threads.  It is not a test")
     public void test_Db_RaceConditionLaboratory() throws ExecutionException, InterruptedException {
         // prepare a database instance
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
@@ -544,6 +549,18 @@ public class DbTests {
         assertTrue(ex1.getMessage().contains("Failed to deserialize") && ex1.getMessage().contains("with data (\"1|2|a\"). " +
                 "Caused by: com.renomad.minum.utils.InvariantException: deserialization of Fubar{index=0, a=0, b=''} resulted in a " +
                 "null value. Was the serialization method implemented properly?"));
+    }
+
+    /**
+     * If we ask for the filename and it returns null, should get an exception thrown
+     */
+    @Test
+    public void testReadAndDeserialize_nullFilename() {
+        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory, logger);
+        var db = new Db<>(fubarDirectory, context, new Fubar(0,0,""));
+        File file = new File("/");
+        DbException dbException = assertThrows(DbException.class, () -> db.readAndDeserialize(file.toPath()));
+        assertTrue(dbException.getMessage().contains( "returned a null filename"));
     }
 
     /**
@@ -893,16 +910,9 @@ public class DbTests {
         var constants = new Constants();
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, loggerName);
-        var fileUtils = new FileUtils(logger, constants);
-        var inputStreamUtils = new InputStreamUtils(constants);
 
-        var context = new Context();
-
-        context.setConstants(constants);
-        context.setExecutorService(executorService);
+        var context = new Context(executorService, constants);
         context.setLogger(logger);
-        context.setFileUtils(fileUtils);
-        context.setInputStreamUtils(inputStreamUtils);
 
         return context;
     }

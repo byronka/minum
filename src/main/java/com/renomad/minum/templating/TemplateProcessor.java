@@ -149,7 +149,7 @@ public final class TemplateProcessor {
         return new TemplateProcessor(tSections);
     }
 
-    static StringBuilder processSectionInside(StringBuilder builder, ArrayList<TemplateSection> tSections) {
+    static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {
         if (!builder.isEmpty()) {
             tSections.add(new TemplateSection(null, builder.toString(), 0));
             builder = new StringBuilder();
@@ -157,7 +157,7 @@ public final class TemplateProcessor {
         return builder;
     }
 
-    static StringBuilder processSectionOutside(StringBuilder builder, ArrayList<TemplateSection> tSections, int indent) {
+    static StringBuilder processSectionOutside(StringBuilder builder, List<TemplateSection> tSections, int indent) {
         if (!builder.isEmpty()) {
             tSections.add(new TemplateSection(builder.toString().trim(), null, indent));
             builder = new StringBuilder();

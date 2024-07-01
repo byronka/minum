@@ -1,11 +1,12 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.queue.ActionQueueKiller;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.Logger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
 import java.io.File;
@@ -25,6 +26,7 @@ public final class FullSystem {
 
     final ILogger logger;
     private final Constants constants;
+    private final FileUtils fileUtils;
     private IServer server;
     private WebFramework webFramework;
     private IServer sslServer;
@@ -47,6 +49,7 @@ public final class FullSystem {
     public FullSystem(Context context) {
         this.logger = context.getLogger();
         this.constants = context.getConstants();
+        this.fileUtils = new FileUtils(logger, constants);
         this.es = context.getExecutorService();
         this.context = context;
         context.setFullSystem(this);
@@ -60,16 +63,9 @@ public final class FullSystem {
         var constants = new Constants();
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, "primary logger");
-        var fileUtils = new FileUtils(logger, constants);
-        var inputStreamUtils = new InputStreamUtils(constants);
 
-        var context = new Context();
-
-        context.setConstants(constants);
-        context.setExecutorService(executorService);
+        var context = new Context(executorService, constants);
         context.setLogger(logger);
-        context.setFileUtils(fileUtils);
-        context.setInputStreamUtils(inputStreamUtils);
 
         return context;
     }
@@ -140,7 +136,7 @@ public final class FullSystem {
      * that will indicate the system is active
      */
     private void createSystemRunningMarker() {
-        context.getFileUtils().writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
+        fileUtils.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
@@ -188,7 +184,7 @@ public final class FullSystem {
             server.close();
             logger.logDebug(() -> " Stopping the SSL server: " + server);
             sslServer.close();
-            logger.logDebug(() -> "Killing all the action queues: " + context.getAqQueue());
+            logger.logDebug(() -> "Killing all the action queues: " + context.getActionQueueState().aqQueueAsString());
             new ActionQueueKiller(context).killAllQueues();
             logger.logDebug(() -> String.format(
                     "%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), fullSystemName));
@@ -241,5 +237,14 @@ public final class FullSystem {
             Thread.currentThread().interrupt();
             throw new WebServerException(ex);
         }
+    }
+
+    /**
+     * Intentionally return just the default object toString, this is only used
+     * to differentiate between multiple instances in memory.
+     */
+    @Override
+    public String toString() {
+        return super.toString();
     }
 }

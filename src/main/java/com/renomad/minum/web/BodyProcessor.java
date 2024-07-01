@@ -1,8 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StringUtils;
 
@@ -37,7 +37,7 @@ final class BodyProcessor {
     BodyProcessor(Context context) {
         this.context = context;
         this.logger = context.getLogger();
-        this.inputStreamUtils = context.getInputStreamUtils();
+        this.inputStreamUtils = new InputStreamUtils(context.getConstants());
     }
 
     /**
@@ -175,7 +175,8 @@ final class BodyProcessor {
         for (byte[] df : partitions) {
             final var is = new ByteArrayInputStream(df);
 
-            Headers headers = Headers.make(context).extractHeaderInformation(is);
+            List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+            Headers headers = new Headers(allHeaders);
 
             List<String> cds = headers.valueByKey("Content-Disposition");
             String contentDisposition = String.join(";", cds == null ? List.of("") : cds);

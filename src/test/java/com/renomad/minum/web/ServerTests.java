@@ -1,8 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.logging.TestLoggerException;
+import com.renomad.minum.state.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

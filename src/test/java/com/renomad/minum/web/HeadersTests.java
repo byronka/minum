@@ -1,8 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ThrowingSupplier;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -96,7 +96,7 @@ public class HeadersTests {
      */
     @Test
     public void test_ContentType_HappyPath() {
-        Headers headers = new Headers(List.of("content-type: foo"), context);
+        Headers headers = new Headers(List.of("content-type: foo"));
         String contentType = headers.contentType();
         assertEquals(contentType, "content-type: foo");
     }
@@ -106,9 +106,9 @@ public class HeadersTests {
      */
     @Test
     public void test_ContentType_TooMany() {
-        Headers headers = new Headers(List.of("content-type: foo", "content-type: bar"), context);
-        var ex = assertThrows(WebServerException.class, () -> headers.contentType());
-        assertEquals(ex.getMessage(), "The number of content-type headers must be exactly zero or one.  Recieved: [content-type: foo, content-type: bar]");
+        Headers headers = new Headers(List.of("content-type: foo", "content-type: bar"));
+        var ex = assertThrows(WebServerException.class, headers::contentType);
+        assertEquals(ex.getMessage(), "The number of content-type headers must be exactly zero or one.  Received: [content-type: foo, content-type: bar]");
     }
 
     /**
@@ -116,29 +116,29 @@ public class HeadersTests {
      */
     @Test
     public void test_ContentLength_TooMany() {
-        Headers headers = new Headers(List.of("content-length: 12", "content-length: 44"), context);
-        var ex = assertThrows(WebServerException.class, () -> headers.contentLength());
+        Headers headers = new Headers(List.of("content-length: 12", "content-length: 44"));
+        var ex = assertThrows(WebServerException.class, headers::contentLength);
         assertEquals(ex.getMessage(), "The number of content-length headers must be exactly zero or one.  Received: [content-length: 12, content-length: 44]");
     }
 
     @Test
     public void test_ContentLength_Negative() {
-        Headers headers = new Headers(List.of("content-length: -123"), context);
-        var ex = assertThrows(InvariantException.class, () -> headers.contentLength());
+        Headers headers = new Headers(List.of("content-length: -123"));
+        var ex = assertThrows(InvariantException.class, headers::contentLength);
         assertEquals(ex.getMessage(), "Content-length cannot be negative");
     }
 
     @Test
     public void test_HasKeepAlive() {
-        Headers headers = new Headers(List.of("connection: keep-alive"), context);
+        Headers headers = new Headers(List.of("connection: keep-alive"));
         assertTrue(headers.hasKeepAlive(), "should have keep-alive on");
-        Headers headers2 = new Headers(List.of(""), context);
+        Headers headers2 = new Headers(List.of(""));
         assertFalse(headers2.hasKeepAlive(), "should not have keep-alive on");
     }
 
     @Test
     public void test_HasConnectionClose() {
-        Headers headers = new Headers(List.of("connection: close"), context);
+        Headers headers = new Headers(List.of("connection: close"));
         assertTrue(headers.hasConnectionClose());
     }
 

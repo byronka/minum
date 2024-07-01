@@ -1,15 +1,16 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.Inmate;
 import com.renomad.minum.security.UnderInvestigation;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.IFileReader;
 import com.renomad.minum.utils.InvariantException;
+import com.renomad.minum.utils.ThrowingRunnable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,27 +46,27 @@ public class WebFrameworkTests {
     public void test_readStaticFile_CSS() {
         Response response = webFramework.readStaticFile("main.css");
 
-        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
-        assertTrue(response.body().length > 0);
-        assertEquals(response.extraHeaders().get("content-type"), "text/css");
+        assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertTrue(response.getBody().length > 0);
+        assertEquals(response.getExtraHeaders().get("content-type"), "text/css");
     }
 
     @Test
     public void test_readStaticFile_JS() {
         Response response = webFramework.readStaticFile("index.js");
 
-        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
-        assertTrue(response.body().length > 0);
-        assertEquals(response.extraHeaders().get("content-type"), "application/javascript");
+        assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertTrue(response.getBody().length > 0);
+        assertEquals(response.getExtraHeaders().get("content-type"), "application/javascript");
     }
 
     @Test
     public void test_readStaticFile_HTML() {
         Response response = webFramework.readStaticFile("index.html");
 
-        assertEquals(response.statusCode(), StatusLine.StatusCode.CODE_200_OK);
-        assertTrue(response.body().length > 0);
-        assertEquals(response.extraHeaders().get("content-type"), "text/html");
+        assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
+        assertTrue(response.getBody().length > 0);
+        assertEquals(response.getExtraHeaders().get("content-type"), "text/html");
     }
 
     /**
@@ -76,7 +77,7 @@ public class WebFrameworkTests {
     public void test_readStaticFile_Edge_OutsideDirectory() {
         Response response = webFramework.readStaticFile("../templates/auth/login_page_template.html");
 
-        assertEquals(response.statusCode(), CODE_400_BAD_REQUEST);
+        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
 
     /**
@@ -86,7 +87,7 @@ public class WebFrameworkTests {
     public void test_ReadFile_Edge_ForwardSlashes() {
         Response response = webFramework.readStaticFile("//index.html");
 
-        assertEquals(response.statusCode(), CODE_400_BAD_REQUEST);
+        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
 
     /**
@@ -96,7 +97,7 @@ public class WebFrameworkTests {
     public void test_readStaticFile_Edge_Colon() {
         Response response = webFramework.readStaticFile(":");
 
-        assertEquals(response.statusCode(), CODE_400_BAD_REQUEST);
+        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
 
     /**
@@ -106,7 +107,7 @@ public class WebFrameworkTests {
     public void test_readStaticFile_Edge_Directory() {
         Response response = webFramework.readStaticFile("src/test/resources/");
 
-        assertEquals(response.statusCode(), CODE_404_NOT_FOUND);
+        assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
 
     /**
@@ -116,7 +117,7 @@ public class WebFrameworkTests {
     public void test_readStaticFile_Edge_CurrentDirectory() {
         Response response = webFramework.readStaticFile("./");
 
-        assertEquals(response.statusCode(), CODE_404_NOT_FOUND);
+        assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
 
     /**
@@ -126,7 +127,7 @@ public class WebFrameworkTests {
     public void test_readStaticFile_EdgeCase() {
         Response response = webFramework.readStaticFile("./");
 
-        assertEquals(response.statusCode(), CODE_404_NOT_FOUND);
+        assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
 
     /**
@@ -137,7 +138,7 @@ public class WebFrameworkTests {
         webFramework = new WebFramework(context, default_zdt, throwingFileReader);
         Response response = webFramework.readStaticFile("foo");
 
-        assertEquals(response.statusCode(), CODE_400_BAD_REQUEST);
+        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
 
     /**
@@ -149,7 +150,7 @@ public class WebFrameworkTests {
     @Test
     public void test_Edge_ApplicationOctetStream() {
         var response = webFramework.readStaticFile("Foo");
-        assertEquals(response.extraHeaders().get("content-type"), "application/octet-stream");
+        assertEquals(response.getExtraHeaders().get("content-type"), "application/octet-stream");
     }
 
     /**
@@ -160,7 +161,7 @@ public class WebFrameworkTests {
     public void test_ExtraMimeMappings() {
         var input = List.of("png","image/png","wav","audio/wav");
         webFramework.readExtraMimeMappings(input);
-        var mappings = webFramework.getSuffixToMime();
+        var mappings = webFramework.getSuffixToMimeMappings();
         assertEquals(mappings.get("png"), "image/png");
         assertEquals(mappings.get("wav"), "audio/wav");
     }
@@ -180,7 +181,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_ExtraMimeMappings_NoValues() {
-        var mappings = webFramework.getSuffixToMime();
+        var mappings = webFramework.getSuffixToMimeMappings();
         int before = mappings.size();
         List<String> input = List.of();
 
@@ -192,7 +193,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_ExtraMimeMappings_Null() {
-        var mappings = webFramework.getSuffixToMime();
+        var mappings = webFramework.getSuffixToMimeMappings();
         int before = mappings.size();
 
         webFramework.readExtraMimeMappings(null);
@@ -275,44 +276,6 @@ public class WebFrameworkTests {
         assertTrue(logger.doesMessageExist("theBrig is null at handleForbiddenUse, will not store address in database"));
     }
 
-    /**
-     * If an IOException occurs while running the makePrimaryHttpHandler
-     */
-    @Test
-    public void test_makePrimaryHttpHandler_IOException() throws Exception {
-        var myContext = buildTestingContext("webframework_testing_makePrimaryHttpHandler");
-        var myLogger = (TestLogger)myContext.getLogger();
-
-        myContext.setInputStreamUtils(throwingInputStreamUtils);
-        var myWebFramework = new WebFramework(myContext, default_zdt);
-
-        myWebFramework.makePrimaryHttpHandler(new FakeSocketWrapper(), theBrigMock).run();
-        assertTrue(myLogger.doesMessageExist("This is to test how makePrimaryHttpHandler handles IOExceptions"));
-    }
-
-    IInputStreamUtils throwingInputStreamUtils = new IInputStreamUtils() {
-        @Override
-        public byte[] readUntilEOF(InputStream inputStream) {
-            return new byte[0];
-        }
-
-        @Override
-        public byte[] read(int lengthToRead, InputStream inputStream) {
-            return new byte[0];
-        }
-
-        @Override
-        public byte[] readChunkedEncoding(InputStream inputStream) {
-            return new byte[0];
-        }
-
-        @Override
-        public String readLine(InputStream inputStream) throws IOException {
-            throw new IOException("This is to test how makePrimaryHttpHandler handles IOExceptions");
-        }
-
-    };
-
     ITheBrig theBrigMock = new ITheBrig() {
 
         final Map<String, Long> jail = new HashMap<>();
@@ -343,6 +306,19 @@ public class WebFrameworkTests {
             return null;
         }
     };
+
+    @Test
+    public void test_makePrimaryHttpHandler_throwingIOException() throws Exception {
+        FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
+        fakeSocketWrapper.is = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Testing IOExceptions");
+            }
+        };
+        ThrowingRunnable throwingRunnable = webFramework.makePrimaryHttpHandler(fakeSocketWrapper, theBrigMock);
+        throwingRunnable.run();
+    }
 
 
 

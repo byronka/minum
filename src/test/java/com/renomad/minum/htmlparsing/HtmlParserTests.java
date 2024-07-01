@@ -1,7 +1,7 @@
 package com.renomad.minum.htmlparsing;
 
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.state.Context;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.FileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -20,7 +20,7 @@ public class HtmlParserTests {
     @BeforeClass
     public static void init() {
         context = buildTestingContext("unit_tests");
-        fileUtils = context.getFileUtils();
+        fileUtils = new FileUtils(context.getLogger(), context.getConstants());
     }
 
     @AfterClass
@@ -199,12 +199,12 @@ public class HtmlParserTests {
                 """;
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(html);
         assertEquals(htmlRoots.size(), 1);
-        assertEquals(htmlRoots.getFirst().tagInfo().tagName(), TagName.BUTTON);
+        assertEquals(htmlRoots.getFirst().getTagInfo().getTagName(), TagName.BUTTON);
     }
 
     /**
      * If the parser is given content that exceeds the
-     * maximum size, it will throw a {@link com.renomad.minum.exceptions.ForbiddenUseException},
+     * maximum size, it will throw a {@link ForbiddenUseException},
      * which will put the offending client in the brig.
      */
     @Test
@@ -268,7 +268,7 @@ public class HtmlParserTests {
     @Test
     public void test_HtmlParser_SingleQuote() {
         HtmlParseNode paragraphElement = new HtmlParser().parse("<p foo='bar'></p>").getFirst();
-        assertEquals(paragraphElement.tagInfo().attributes().get("foo"), "bar");
+        assertEquals(paragraphElement.getTagInfo().getAttribute("foo"), "bar");
     }
 
     @Test

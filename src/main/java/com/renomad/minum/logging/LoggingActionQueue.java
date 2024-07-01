@@ -1,20 +1,21 @@
 package com.renomad.minum.logging;
 
-import com.renomad.minum.Constants;
+import com.renomad.minum.queue.AbstractActionQueue;
+import com.renomad.minum.queue.ActionQueue;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.utils.*;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 /**
- * This class is very similar to {@link com.renomad.minum.utils.ActionQueue} but is
+ * This class is very similar to {@link ActionQueue} but is
  * focused on Logging.
  * <p>
  *     It is necessary to create independent classes for logging to avoid circular dependencies
  * </p>
  */
-final class LoggingActionQueue implements com.renomad.minum.utils.AbstractActionQueue {
+final class LoggingActionQueue implements AbstractActionQueue {
     private final String name;
     private final ExecutorService executorService;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
@@ -76,6 +77,7 @@ final class LoggingActionQueue implements com.renomad.minum.utils.AbstractAction
      * @param count how many loops to wait before we crash it closed
      * @param sleepTime how long to wait in milliseconds between loops
      */
+    @Override
     public void stop(int count, int sleepTime) {
         Logger.logHelper(() -> String.format("%s Stopping queue %s%n", TimeUtils.getTimestampIsoInstant(), this), LoggingLevel.DEBUG, enabledLogLevels, this);
         stop = true;
@@ -100,7 +102,6 @@ final class LoggingActionQueue implements com.renomad.minum.utils.AbstractAction
         stop(5, 20);
     }
 
-    @Override
     public Thread getQueueThread() {
         return queueThread;
     }

@@ -7,8 +7,8 @@ Directories:
 - .mvn: necessary files for the Maven wrapper
 - src: All the source code
 - utils: scripts and utilities for the system
-- out: artifacts required during the publishing process
-- target: the default Maven build directory
+- out: artifacts from the publishing process
+- target: the default Maven build directory, built after it runs
 
 
 Root-level files:

@@ -1,7 +1,7 @@
 package com.renomad.minum.sampledomain;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.auth.AuthUtils;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.FileUtils;
@@ -33,13 +33,11 @@ public class ListPhotos {
     private final UploadPhoto up;
     private final AuthUtils auth;
     private final Map<String, byte[]> lruCache;
-    private final Constants constants;
-    private final FileUtils fileUtils;
 
     public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
         this.logger = context.getLogger();
-        this.fileUtils = context.getFileUtils();
-        this.constants = context.getConstants();
+        Constants constants = context.getConstants();
+        FileUtils fileUtils = new FileUtils(logger, constants);
         this.dbDir = Path.of(constants.dbDirectory);
         listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/list_photos_template.html"));
         this.up = up;

@@ -1,7 +1,7 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.UtilsException;
 
 import java.io.ByteArrayOutputStream;

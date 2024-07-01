@@ -1,7 +1,7 @@
 package com.renomad.minum.auth;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.CryptoUtils;
@@ -11,11 +11,9 @@ import com.renomad.minum.utils.StringUtils;
 import com.renomad.minum.web.Request;
 import com.renomad.minum.web.Response;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import static com.renomad.minum.auth.RegisterResultStatus.ALREADY_EXISTING_USER;
@@ -40,7 +38,6 @@ public class AuthUtils {
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
-    private final FileUtils fileUtils;
 
     public AuthUtils(Db<SessionId> sessionDiskData,
                      Db<User> userDiskData,
@@ -50,7 +47,7 @@ public class AuthUtils {
         this.sessionDiskData = sessionDiskData;
         emptySessionId = SessionId.EMPTY;
         this.logger = context.getLogger();
-        this.fileUtils = context.getFileUtils();
+        FileUtils fileUtils = new FileUtils(logger, constants);
 
         loginPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/login_page_template.html");
         registerPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/register_page_template.html");
@@ -104,7 +101,7 @@ public class AuthUtils {
 
         // Did we find that session identifier in the database?
         final SessionId sessionFoundInDatabase = sessionDiskData.values().stream()
-                .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(), listOfSessionIds.getFirst().toLowerCase()))
+                .filter(x -> Objects.equals(x.getSessionCode().toLowerCase(Locale.ROOT), listOfSessionIds.getFirst().toLowerCase(Locale.ROOT)))
                 .findFirst()
                 .orElse(emptySessionId);
 
@@ -112,7 +109,7 @@ public class AuthUtils {
         final var isAuthenticated = !Objects.equals(sessionFoundInDatabase, emptySessionId);
 
         if (! isAuthenticated) {
-            return new AuthResult(false, ZonedDateTime.now(), User.EMPTY);
+            return new AuthResult(false, ZonedDateTime.now(ZoneId.of("UTC")), User.EMPTY);
         }
 
         // find the user

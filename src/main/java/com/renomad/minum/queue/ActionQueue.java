@@ -1,10 +1,10 @@
-package com.renomad.minum.utils;
+package com.renomad.minum.queue;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.utils.*;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 /**
  * This class provides the ability to pop items into
@@ -35,13 +35,14 @@ public final class ActionQueue implements AbstractActionQueue {
         this.name = name;
         this.queueExecutor = context.getExecutorService();
         this.queue = new LinkedBlockingQueue<>();
-        context.getAqQueue().offer(this);
+        context.getActionQueueState().offerToQueue(this);
         this.logger = context.getLogger();
     }
 
     // Regarding the InfiniteLoopStatement - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @SuppressWarnings("InfiniteLoopStatement")
+    @Override
     public ActionQueue initialize() {
         Runnable centralLoop = () -> {
             Thread.currentThread().setName(name);
@@ -87,6 +88,7 @@ public final class ActionQueue implements AbstractActionQueue {
      * </pre>
      * </p>
      */
+    @Override
     public void enqueue(String description, ThrowingRunnable action) {
         if (! stop) {
             queue.add(new RunnableWithDescription(action, description));
@@ -111,7 +113,7 @@ public final class ActionQueue implements AbstractActionQueue {
             MyThread.sleep(sleepTime);
         }
         isStoppedStatus = true;
-        logger.logDebug(() ->  String.format("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s", timestamp, this, queue.size(), queue));
+        logger.logDebug(() -> String.format("%s Queue %s has %d elements left but we're done waiting.  Queue toString: %s", timestamp, this, queue.size(), queue));
     }
 
     /**
@@ -121,6 +123,7 @@ public final class ActionQueue implements AbstractActionQueue {
      * when a call is made to [enqueue]) and will
      * block until the queue is empty.
      */
+    @Override
     public void stop() {
         stop(5, 20);
     }
@@ -130,16 +133,16 @@ public final class ActionQueue implements AbstractActionQueue {
         return this.name;
     }
 
-    @Override
-    public Thread getQueueThread() {
+    Thread getQueueThread() {
         return queueThread;
     }
 
     @Override
     public LinkedBlockingQueue<RunnableWithDescription> getQueue() {
-        return queue;
+        return new LinkedBlockingQueue<>(queue);
     }
 
+    @Override
     public boolean isStopped() {
         return isStoppedStatus;
     }

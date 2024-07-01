@@ -1,13 +1,11 @@
 package com.renomad.minum.testing;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.utils.ActionQueueKiller;
-import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.queue.ActionQueueKiller;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.web.FullSystem;
-import com.renomad.minum.web.InputStreamUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -107,7 +105,7 @@ public final class TestFramework {
         List<? extends CharSequence> orderedRight = right.stream().sorted().toList();
 
         for (int i = 0; i < left.size(); i++) {
-            if (!orderedLeft.get(i).equals(orderedRight.get(i))) {
+            if (!orderedLeft.get(i).toString().contentEquals(orderedRight.get(i))) {
                 throw new TestFailureException(
                         String.format(
                                 "%n%ndifferent values:%n%nleft:  %s%nright: %s%n%nfull left:%n-----------%n%s%n%nfull right:%n-----------%n%s%n",
@@ -256,16 +254,10 @@ public final class TestFramework {
         var constants = new Constants(properties);
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new TestLogger(constants, executorService, loggerName);
-        var fileUtils = new FileUtils(logger, constants);
-        var inputStreamUtils = new InputStreamUtils(constants);
 
-        var context = new Context();
+        var context = new Context(executorService, constants);
 
-        context.setConstants(constants);
-        context.setExecutorService(executorService);
         context.setLogger(logger);
-        context.setFileUtils(fileUtils);
-        context.setInputStreamUtils(inputStreamUtils);
 
         return context;
     }

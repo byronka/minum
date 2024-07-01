@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.renomad.minum.testing.TestFramework.assertEquals;
 
@@ -19,7 +20,23 @@ public class HtmlParseNodeTests {
 
     @Test
     public void testInnerText_HappyPath() {
-        assertEquals(HtmlParseNode.innerText(List.of(new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, List.of(), "This is the text"))), "This is the text");
+        HtmlParseNode innerNode = new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, List.of(), "This is the text");
+        String innerText = HtmlParseNode.innerText(List.of(innerNode));
+        assertEquals(innerText, "This is the text");
+    }
+
+    @Test
+    public void testHappyPath() {
+        HtmlParseNode node1 = new HtmlParseNode(ParseNodeType.CHARACTERS, TagInfo.EMPTY, List.of(), "This is the text");
+        HtmlParseNode node2 = new HtmlParseNode(ParseNodeType.ELEMENT, new TagInfo(TagName.P, Map.of()), List.of(node1), "");
+
+        assertEquals(node1.getType(), ParseNodeType.CHARACTERS);
+        assertEquals(node1.getInnerContent(), List.of());
+        assertEquals(node1.getTextContent(), "This is the text");
+
+        assertEquals(node2.getType(), ParseNodeType.ELEMENT);
+        assertEquals(node2.getInnerContent(), List.of(node1));
+        assertEquals(node2.getTextContent(), "");
     }
 
     @Test

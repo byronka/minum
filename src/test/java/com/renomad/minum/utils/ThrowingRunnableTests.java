@@ -1,10 +1,12 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.concurrent.Future;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -36,8 +38,9 @@ public class ThrowingRunnableTests {
             throw new RuntimeException(message);
         }, logger);
 
-        context.getExecutorService().submit(runnable);
+        Future<?> result = context.getExecutorService().submit(runnable);
 
+        assertThrows(RuntimeException.class, result::get);
         MyThread.sleep(50);
         String foundLog = logger.findFirstMessageThatContains(message, 6);
         assertTrue(foundLog.contains(message));

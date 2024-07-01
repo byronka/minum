@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>4.0.3</version>
+    <version>5.0.0</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 
@@ -63,19 +63,52 @@
 
         <plugins>
             <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.6.0</version>
+                <configuration>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>1.12.0</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
                 <configuration>
                     <source>21</source>
                     <target>21</target>
-                    <useIncrementalCompilation>false</useIncrementalCompilation>
+                    <encoding>UTF-8</encoding>
                     <compilerArgs>
-                        <!-- The output of Xlint is not shown by default, but we activate it for the QA bot
-                        to be able to get more warnings -->
-                        <arg>-Xlint:all</arg>
-                        <!-- Prevents recompilation due to missing package-info.class, see MCOMPILER-205 -->
-                        <arg>-Xpkginfo:always</arg>
+                        <arg>-XDcompilePolicy=simple</arg>
+                        <arg>-Xplugin:ErrorProne
+                        -XepOpt:NullAway:TreatGeneratedAsUnannotated=true
+                        -XepOpt:NullAway:AnnotatedPackages=io.github
+                        -XepOpt:NullAway:AcknowledgeRestrictiveAnnotations=true
+                        -Xep:NullAway:ERROR</arg>
                     </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.google.errorprone</groupId>
+                            <artifactId>error_prone_core</artifactId>
+                            <version>2.28.0</version>
+                        </path>
+                        <path>
+                            <groupId>com.uber.nullaway</groupId>
+                            <artifactId>nullaway</artifactId>
+                            <version>0.11.0</version>
+                        </path>
+                        <!-- Other annotation processors go here.
+
+                        If 'annotationProcessorPaths' is set, processors will no longer be
+                        discovered on the regular -classpath; see also 'Using Error Prone
+                        together with other annotation processors' below. -->
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>

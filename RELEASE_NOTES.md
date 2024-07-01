@@ -1,3 +1,48 @@
+v5.0.0 - July 1, 2024
+---------------------
+
+Excellent test coverage enables fearless refactoring.
+
+It is closing in on a year past beta. We have stability and high test 
+coverage, let's apply the recommendations from linting tools, informed 
+by our tests and usage scenarios.
+
+Improvements:
+* Several class methods and constructors would pass mutable data, leading to the possibility of
+  subtle bugs.  Where possible, these have been corrected.
+* Made several methods package-private, to lower scope.  Removed methods if possible - e.g. see `Context`.
+* Consistency and conventionality improvements.
+* Applying recommendations from linting tools that would forestall bugs, such as setting the charset
+  instead of relying on the system default.
+* Organizing the files better.  All files are now in subpackages of "minum".
+* Improved documentation.
+* Removed need for `Context` object during construction of some classes.
+* Added new tools for regular examination of the code - information is provided during compilation
+  and running `make lint`.
+
+Moved to different package:
+* Context (globally adjust like this: `find src/ -type f -name "*.java" -exec sed -i 's/com\.renomad\.minum\.Context/com.renomad.minum.state.Context/g' {} \;`)
+* Constants (globally adjust like this: `find src/ -type f -name "*.java" -exec sed -i 's/com\.renomad\.minum\.Constants/com.renomad.minum.state.Constants/g' {} \;`)
+* ActionQueue (globally adjust like this: `find src/ -type f -name "*.java" -exec sed -i 's/com\.renomad\.minum\.utils\.ActionQueue/com.renomad.minum.queue.ActionQueue/g' {} \;`)
+
+Removed:
+* Context.getFileUtils - instead of obtaining from Context, build: `new FileUtils(logger, constants);`
+* Several other public methods from Context that only related to Minum internals
+
+Adjusted:
+* PathDetails is no longer a record.  Its methods moved to be prefixed with "get" with adjusted capitalization
+* TagInfo, same thing
+* HtmlParseNode, same thing
+* On TagInfo, the attributes are further encapsulated - it is no longer possible to grab the collection.  Get an attribute with "getAttribute()"
+
+Removed use of `Context` in constructors:
+* Headers
+* RequestLine
+
+Moved:
+* RequestLine.PathDetails was moved to its own file.  It can now be called on its own, "PathDetails" (globally adjust like 
+  this: `find src/ -type f -name "*.java" -exec sed -i 's/RequestLine\.PathDetails/PathDetails/g' {} \;`)
+
 v4.0.3 - June 22, 2024
 ----------------------
 

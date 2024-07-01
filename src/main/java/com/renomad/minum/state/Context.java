@@ -1,17 +1,13 @@
-package com.renomad.minum;
+package com.renomad.minum.state;
 
 import com.renomad.minum.database.Db;
 import com.renomad.minum.database.DbData;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.AbstractActionQueue;
-import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.queue.ActionQueueState;
 import com.renomad.minum.web.FullSystem;
-import com.renomad.minum.web.IInputStreamUtils;
 
 import java.nio.file.Path;
-import java.util.Queue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -21,46 +17,20 @@ import java.util.concurrent.LinkedBlockingQueue;
  *     around lets us reduce some boilerplate code,
  *     but more importantly, it lets us lower the scope.
  * </p>
- * <p>
- *     Previously, some of this was made available as
- *     static values and methods, which added a bit of
- *     complication when reviewing stack traces, and also
- *     prevented including logging in some areas.
- * </p>
  */
 public final class Context {
 
-    public static final Context EMPTY = new Context();
-    private IInputStreamUtils inputStreamUtils;
-    private FileUtils fileUtils;
+    public static final Context EMPTY = new Context(null, null);
     private ILogger logger;
-    private ExecutorService executorService;
-    private Constants constants;
+    private final ExecutorService executorService;
+    private final Constants constants;
     private FullSystem fullSystem;
-    private final Queue<AbstractActionQueue> aqQueue;
+    private final ActionQueueState actionQueueState;
 
-    /**
-     * In order to avoid statics or singletons allow certain objects to be widely
-     * available, we'll store them in this class.
-     */
-    public Context() {
-        this.aqQueue = new LinkedBlockingQueue<>();
-    }
-
-    public void setInputStreamUtils(IInputStreamUtils inputStreamUtils) {
-        this.inputStreamUtils = inputStreamUtils;
-    }
-
-    public IInputStreamUtils getInputStreamUtils() {
-        return inputStreamUtils;
-    }
-
-    public FileUtils getFileUtils() {
-        return fileUtils;
-    }
-
-    public void setFileUtils(FileUtils fileUtils) {
-        this.fileUtils = fileUtils;
+    public Context(ExecutorService executorService, Constants constants) {
+        this.executorService = executorService;
+        this.constants = constants;
+        actionQueueState = new ActionQueueState();
     }
 
     public void setLogger(ILogger logger) {
@@ -71,17 +41,10 @@ public final class Context {
         return logger;
     }
 
-    public void setExecutorService(ExecutorService executorService) {
-        this.executorService = executorService;
-    }
-
     public ExecutorService getExecutorService() {
         return executorService;
     }
 
-    public void setConstants(Constants constants) {
-        this.constants = constants;
-    }
     public Constants getConstants() {
         return constants;
     }
@@ -94,8 +57,8 @@ public final class Context {
         return fullSystem;
     }
 
-    public Queue<AbstractActionQueue> getAqQueue() {
-            return aqQueue;
+    public ActionQueueState getActionQueueState() {
+        return actionQueueState;
     }
 
     /**

@@ -1,7 +1,7 @@
 package com.renomad.minum.logging;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

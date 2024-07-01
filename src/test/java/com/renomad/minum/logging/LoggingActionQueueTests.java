@@ -1,6 +1,6 @@
 package com.renomad.minum.logging;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.RunnableWithDescription;
 import com.renomad.minum.utils.UtilsException;

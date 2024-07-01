@@ -1,7 +1,7 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import org.junit.After;
 import org.junit.Before;
@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class FileReaderTests {
         Files.writeString(path, "Hello test!");
         var fileReader = new FileReader(lruCache, false, logger);
         byte[] bytes = fileReader.readFile("target/testingreadfile.txt");
-        assertEquals(new String(bytes), "Hello test!");
+        assertEquals(new String(bytes, StandardCharsets.UTF_8), "Hello test!");
         Files.deleteIfExists(path);
     }
 

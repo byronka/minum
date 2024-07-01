@@ -39,6 +39,8 @@ Quick summary:
 
 package minum.sampledomain;
 
+import com.renomad.minum.utils.FileUtils;
+
 public class SampleDomain {
 
     /* ****************** */
@@ -50,12 +52,12 @@ public class SampleDomain {
         all the PersonName data. 
      */
     private final Db<PersonName> db;
-    
+
     /*
         The AuthUtils are used to authenticate / authorize the user
      */
     private final AuthUtils auth;
-    
+
     /*
         A TemplateProcessor is how we use templates.  See the
         constructor for details on usage. You should store
@@ -69,7 +71,7 @@ public class SampleDomain {
         goes under static.
      */
     private final TemplateProcessor nameEntryTemplate;
-    
+
     /*
         You may decide to keep non-template strings in the template directory,
         simply because it is easier to organize, and they won't be publicly 
@@ -78,21 +80,18 @@ public class SampleDomain {
     private final String authHomepage;
     private final String unauthHomepage;
 
-    private final FileUtils fileUtils;
-    private final ILogger logger;
-    
     /* ****************** */
     /* Constructor        */
     /* ****************** */
-    
-    public SampleDomain(Db<PersonName> diskData, AuthUtils auth, Context context) {
-        this.db = diskData;
+
+    public SampleDomain(Db<PersonName> db, AuthUtils auth, Context context) {
+        this.db = db;
         this.auth = auth;
-        this.fileUtils = context.getFileUtils();
-        this.logger = context.getLogger();
-        nameEntryTemplate = TemplateProcessor.buildProcessor(fileUtils.readTemplate("sampledomain/name_entry.html"));
-        authHomepage = FileUtils.readTemplate("sampledomain/auth_homepage.html");
-        unauthHomepage = FileUtils.readTemplate("sampledomain/unauth_homepage.html");
+        FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
+        nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
+        authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
+        unauthHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/unauth_homepage.html");
     }
 
     /*
@@ -103,14 +102,14 @@ public class SampleDomain {
         method, which will look at the data coming from the client - headers, mainly - 
         and calculate whether this is an authenticated request.
      */
-    
+
     public Response formEntry(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED);
+            return new Response(CODE_401_UNAUTHORIZED);
         }
-        final String names = personNames
-                .stream().sorted(Comparator.comparingLong(PersonName::getIndex))
+        final String names = db
+                .values().stream().sorted(Comparator.comparingLong(PersonName::getIndex))
                 .map(x -> "<li>" + StringUtils.safeHtml(x.getFullname()) + "</li>\n")
                 .collect(Collectors.joining());
 
@@ -120,16 +119,21 @@ public class SampleDomain {
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(_401_UNAUTHORIZED);
+            return new Response(CODE_401_UNAUTHORIZED);
         }
 
         final var nameEntry = r.body().asString("name_entry");
 
-        final var newPersonName = new PersonName(newPersonIndex.getAndIncrement(), nameEntry);
-        db.persistToDisk(newPersonName);
-        return new Response(_303_SEE_OTHER, List.of("Location: formentry"));
+        final var newPersonName = new PersonName(0L, nameEntry);
+        db.write(newPersonName);
+        return new Response(CODE_303_SEE_OTHER, Map.of("Location","formentry"));
     }
 
+    /**
+     * This is an example of a homepage for a domain.  Here we examine
+     * whether the user is authenticated.  If not, we request them to
+     * log in.  If already, then we show some features and the log-out link.
+     */
     public Response sampleDomainIndex(Request request) {
         final var authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {

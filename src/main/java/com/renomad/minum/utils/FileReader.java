@@ -23,8 +23,7 @@ public final class FileReader implements IFileReader {
     private final ILogger logger;
 
     public FileReader(Map<String, byte[]> lruCache, boolean useCacheForStaticFiles, ILogger logger) {
-
-        this.lruCache = lruCache;
+        this.lruCache = LRUCache.getLruCache(lruCache);
         this.useCacheForStaticFiles = useCacheForStaticFiles;
         this.logger = logger;
     }

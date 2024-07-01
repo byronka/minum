@@ -1,4 +1,7 @@
-package com.renomad.minum.utils;
+package com.renomad.minum.queue;
+
+import com.renomad.minum.utils.RunnableWithDescription;
+import com.renomad.minum.utils.ThrowingRunnable;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -47,12 +50,6 @@ public interface AbstractActionQueue {
      * block until the queue is empty.
      */
     void stop();
-
-    /**
-     * This returns the thread that is being used to run the
-     * infinite central loop
-     */
-    Thread getQueueThread();
 
     /**
      * Get the {@link java.util.Queue} of data that is supposed to get

@@ -1,6 +1,6 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

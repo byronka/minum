@@ -1,6 +1,7 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.queue.ActionQueue;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import org.junit.AfterClass;

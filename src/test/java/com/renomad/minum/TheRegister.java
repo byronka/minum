@@ -8,8 +8,10 @@ import com.renomad.minum.sampledomain.PersonName;
 import com.renomad.minum.sampledomain.SampleDomain;
 import com.renomad.minum.sampledomain.UploadPhoto;
 import com.renomad.minum.sampledomain.photo.Photograph;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.web.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static com.renomad.minum.web.RequestLine.Method.GET;
@@ -31,10 +33,10 @@ public class TheRegister {
     private final WebFramework webFramework;
     private final ILogger logger;
 
-    public TheRegister(Context context) {
+    public TheRegister(Context context, WebFramework wf) {
         this.context = context;
         this.logger = context.getLogger();
-        this.webFramework = context.getFullSystem().getWebFramework();
+        this.webFramework = wf;
     }
 
     public void registerDomains() {
@@ -85,7 +87,7 @@ public class TheRegister {
     }
 
     private static Response lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
-        switch (inputs.response().statusCode()) {
+        switch (inputs.response().getStatusCode()) {
             case CODE_404_NOT_FOUND -> {
                 return new Response(
                         StatusLine.StatusCode.CODE_404_NOT_FOUND,
@@ -96,7 +98,7 @@ public class TheRegister {
                 Response response = inputs.response();
                 return new Response(
                         StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR,
-                        "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.body()) + "</p>",
+                        "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.getBody(), StandardCharsets.UTF_8) + "</p>",
                         Map.of("Content-Type", "text/html; charset=UTF-8"));
             }
             default -> {
@@ -115,7 +117,7 @@ public class TheRegister {
                 request.requestLine().getRawValue(),
                 request.remoteRequester()));
 
-        String path = request.requestLine().getPathDetails().isolatedPath();
+        String path = request.requestLine().getPathDetails().getIsolatedPath();
 
         // redirect to https if they are on the plain-text connection and the path is "whoops"
         if (path.contains("whoops") &&

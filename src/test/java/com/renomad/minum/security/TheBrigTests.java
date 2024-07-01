@@ -1,10 +1,9 @@
 package com.renomad.minum.security;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.SearchUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,6 +17,7 @@ public class TheBrigTests {
 
     private static Context context;
     private static TestLogger logger;
+    private static FileUtils fileUtils;
 
     @BeforeClass
     public static void init() {
@@ -26,6 +26,7 @@ public class TheBrigTests {
         props.setProperty("IS_THE_BRIG_ENABLED", "true");
         context = buildTestingContext("unit_tests", props);
         logger = (TestLogger) context.getLogger();
+        fileUtils = new FileUtils(logger, context.getConstants());
     }
 
     @AfterClass
@@ -40,7 +41,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_Basic() {
         MyThread.sleep(50);
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var b = new TheBrig(10, context).initialize();
         // give the database time to start
         MyThread.sleep(20);
@@ -104,7 +105,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_RegularStop() {
         MyThread.sleep(50);
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var b = new TheBrig(10, context).initialize();
         MyThread.sleep(10);
         b.stop();
@@ -120,7 +121,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_Uninitialized() {
         var b = new TheBrig(10, context);
-        var ex = assertThrows(SecurityException.class, b::stop);
+        var ex = assertThrows(MinumSecurityException.class, b::stop);
         assertEquals(ex.getMessage(), "TheBrig was told to stop, but it was uninitialized");
     }
 
@@ -132,7 +133,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_ExistingInmate() {
         MyThread.sleep(50);
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
         var b = new TheBrig(10, context).initialize();
         b.sendToJail("1.2.3.4_too_freq_downloads", 20);
         Long releaseTime = b.getInmates().getFirst().getReleaseTime();
@@ -161,8 +162,6 @@ public class TheBrigTests {
         properties.setProperty("IS_THE_BRIG_ENABLED", "false");
         var disabledBrigContext = buildTestingContext("testing brig disabled", properties);
 
-        var constants = new Constants(properties);
-        disabledBrigContext.setConstants(constants);
         var theBrig = new TheBrig(10, disabledBrigContext);
 
         assertFalse(theBrig.sendToJail("", 0));

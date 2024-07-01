@@ -1,9 +1,8 @@
-package com.renomad.minum.utils;
+package com.renomad.minum.queue;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.ILogger;
-
-import java.util.Queue;
+import com.renomad.minum.utils.TimeUtils;
 
 /**
  * This class exists to properly kill off multiple action queues
@@ -30,24 +29,22 @@ public final class ActionQueueKiller {
      * instantiated in this call tree.
      */
     public void killAllQueues() {
-        killAllQueues(context.getAqQueue());
-    }
-
-    void killAllQueues(Queue<AbstractActionQueue> aqQueue) {
         logger.logDebug(() -> TimeUtils.getTimestampIsoInstant() + " Killing all queue threads. ");
-        for (AbstractActionQueue aq = aqQueue.poll(); aq != null ; aq = aqQueue.poll()) {
+        for (AbstractActionQueue aq = context.getActionQueueState().pollFromQueue(); aq != null ; aq = context.getActionQueueState().pollFromQueue()) {
             AbstractActionQueue finalAq = aq;
             finalAq.stop();
-            logger.logDebug(() -> TimeUtils.getTimestampIsoInstant() + " killing " + finalAq.getQueueThread());
-            if (finalAq.getQueueThread() != null) {
+            logger.logDebug(() -> TimeUtils.getTimestampIsoInstant() + " killing " + ((ActionQueue)finalAq).getQueueThread());
+            if (((ActionQueue)finalAq).getQueueThread() != null) {
                 hadToInterrupt = true;
                 System.out.println("had to interrupt " + finalAq);
-                finalAq.getQueueThread().interrupt();
+                ((ActionQueue)finalAq).getQueueThread().interrupt();
             }
         }
     }
 
     /**
+     * A helpful indicator of whether this object was interrupted while
+     * looping through the list of action queues
      * @return true If we were interrupted while attempting to cleanly kill the
      *         action queues
      */

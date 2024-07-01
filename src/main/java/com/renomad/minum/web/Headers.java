@@ -1,8 +1,6 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
+import com.renomad.minum.security.ForbiddenUseException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,34 +30,23 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  */
 public final class Headers{
 
-    public static final Headers EMPTY = new Headers(List.of(), Context.EMPTY);
-    private final IInputStreamUtils inputStreamUtils;
+    public static final Headers EMPTY = new Headers(List.of());
+
     /**
      * Each line of the headers is read into this data structure
      */
     private final List<String> headerStrings;
-    private final Constants constants;
-    private final Context context;
     private final Map<String, List<String>> headersMap;
 
-
-    /**
-     * It is rare you will use this constructor.  Instead, see {@link #make(Context)}
-     * when you have to extract the headers from a live {@link InputStream}
-     */
     public Headers(
-            List<String> headerStrings,
-            Context context
+            List<String> headerStrings
     ) {
-        this.context = context;
-        inputStreamUtils = context.getInputStreamUtils();
-        this.constants = context.getConstants();
-        this.headerStrings = headerStrings;
+        this.headerStrings = new ArrayList<>(headerStrings);
         this.headersMap = Collections.unmodifiableMap(extractHeadersToMap(headerStrings));
     }
 
     public List<String> getHeaderStrings() {
-        return headerStrings;
+        return new ArrayList<>(headerStrings);
     }
 
     /**
@@ -67,23 +54,6 @@ public final class Headers{
      * responses from servers
      */
     private static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
-
-    /**
-     * Run this command to build a Headers object.
-     */
-    public static Headers make(Context context) {
-        return new Headers(List.of(), context);
-    }
-
-    /**
-     * Loops through reading text lines from the socket wrapper,
-     * returning a list of what it has found when it hits an empty line.
-     * This is the HTTP convention.
-     */
-    public Headers extractHeaderInformation(InputStream is) {
-        List<String> headers = getAllHeaders(is, constants.maxHeadersCount, inputStreamUtils);
-        return new Headers(headers, context);
-    }
 
     /**
      * Obtain any desired header by looking it up in this map.  All keys
@@ -121,7 +91,7 @@ public final class Headers{
         // find the header that starts with content-type
         List<String> cts = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
         if (cts.size() > 1) {
-            throw new WebServerException("The number of content-type headers must be exactly zero or one.  Recieved: " + cts);
+            throw new WebServerException("The number of content-type headers must be exactly zero or one.  Received: " + cts);
         }
         if (!cts.isEmpty()) {
             return cts.getFirst();
@@ -159,7 +129,7 @@ public final class Headers{
     public boolean hasKeepAlive() {
         List<String> connectionHeader = headersMap.get("connection");
         if (connectionHeader == null) return false;
-        return connectionHeader.stream().anyMatch(x -> x.toLowerCase().contains("keep-alive"));
+        return connectionHeader.stream().anyMatch(x -> x.toLowerCase(Locale.ROOT).contains("keep-alive"));
     }
 
     /**
@@ -169,7 +139,7 @@ public final class Headers{
     public boolean hasConnectionClose() {
         List<String> connectionHeader = headersMap.get("connection");
         if (connectionHeader == null) return false;
-        return connectionHeader.stream().anyMatch(x -> x.toLowerCase().contains("close"));
+        return connectionHeader.stream().anyMatch(x -> x.toLowerCase(Locale.ROOT).contains("close"));
     }
 
     /**

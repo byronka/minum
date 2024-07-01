@@ -59,7 +59,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>4.0.3</version>
+    <version>5.0.0</version>
 </dependency>
 ```
 
@@ -73,6 +73,7 @@ Features:
 - [Logging framework](src/main/java/com/renomad/minum/logging)
 - [Testing framework](src/main/java/com/renomad/minum/testing)
 - [HTML parsing](src/main/java/com/renomad/minum/htmlparsing) 
+- [Background queue processor](src/main/java/com/renomad/minum/queue) 
 
 
 Size Comparison:
@@ -84,7 +85,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,409 | 141,048 | 1,085,405   |
+| 4,551 | 141,048 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 
@@ -233,4 +234,10 @@ Getting a body parameter from a request, as a byte array:
 
 ```java
 byte[] photoBytes = body.asBytes("image_uploads");
+```
+
+Checking for a log message during tests:
+
+```java
+assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
 ```

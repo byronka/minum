@@ -1,4 +1,4 @@
-package com.renomad.minum.exceptions;
+package com.renomad.minum.security;
 
 import java.io.Serial;
 

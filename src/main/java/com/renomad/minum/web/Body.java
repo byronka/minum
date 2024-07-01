@@ -2,10 +2,7 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.utils.StringUtils;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * This class represents the body of an HTML message.
@@ -52,9 +49,9 @@ public final class Body {
      *                         including content length and content type, and possibly more.
      */
     public Body(Map<String, byte[]> bodyMap, byte[] raw, Map<String, Headers> partitionHeaders) {
-        this.bodyMap = bodyMap;
-        this.raw = raw;
-        this.headers = partitionHeaders;
+        this.bodyMap = new HashMap<>(bodyMap);
+        this.raw = raw.clone();
+        this.headers = new HashMap<>(partitionHeaders);
     }
 
     /**
@@ -106,7 +103,7 @@ public final class Body {
      * Returns the raw bytes of this HTTP message's body
      */
     public byte[] asBytes() {
-        return this.raw;
+        return this.raw.clone();
     }
 
     /**

@@ -7,15 +7,35 @@ import java.util.Objects;
 /**
  * This type is used to contain the results of modifications
  * applied to the outgoing data just before sending
- * @param statusLineAndHeaders string values separated by CRLF, per HTTP spec
- * @param body the body of the message, as bytes.  May be compressed.
  */
-record PreparedResponse(String statusLineAndHeaders, byte[] body){
+final class PreparedResponse {
+
+    private final String statusLineAndHeaders;
+    private final byte[] body;
+
+    /**
+     * Construct a {@link PreparedResponse}
+     * @param statusLineAndHeaders string values separated by CRLF, per HTTP spec
+     * @param body the body of the message, as bytes.  May be compressed.
+     */
+    PreparedResponse(String statusLineAndHeaders, byte[] body) {
+
+        this.statusLineAndHeaders = statusLineAndHeaders;
+        this.body = body.clone();
+    }
+
+    public String getStatusLineAndHeaders() {
+        return statusLineAndHeaders;
+    }
+
+    public byte[] getBody() {
+        return body.clone();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PreparedResponse that = (PreparedResponse) o;
+        if (!(o instanceof PreparedResponse that)) return false;
         return Objects.equals(statusLineAndHeaders, that.statusLineAndHeaders) && Arrays.equals(body, that.body);
     }
 

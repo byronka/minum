@@ -1,9 +1,7 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
-import com.renomad.minum.exceptions.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.StringUtils;
 
 import java.util.*;
@@ -23,9 +21,8 @@ public final class RequestLine {
     private final PathDetails pathDetails;
     private final HttpVersion version;
     private final String rawValue;
-    private final Context context;
-    private final Constants constants;
     private final ILogger logger;
+    private final int maxQueryStringKeysCount;
 
     /**
      * @param method GET, POST, etc.
@@ -38,15 +35,15 @@ public final class RequestLine {
             PathDetails pathDetails,
             HttpVersion version,
             String rawValue,
-            Context context
+            ILogger logger,
+            int maxQueryStringKeysCount
     ) {
         this.method = method;
         this.pathDetails = pathDetails;
         this.version = version;
         this.rawValue = rawValue;
-        this.context = context;
-        this.constants = context.getConstants();
-        this.logger = context.getLogger();
+        this.logger = logger;
+        this.maxQueryStringKeysCount = maxQueryStringKeysCount;
     }
 
     /**
@@ -64,8 +61,8 @@ public final class RequestLine {
 
     static final Pattern startLineRegex = Pattern.compile(REQUEST_LINE_PATTERN);
 
-    public static RequestLine empty(Context context) {
-        return new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", context);
+    public static RequestLine empty() {
+        return new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", null, 0);
     }
 
     /**
@@ -74,10 +71,10 @@ public final class RequestLine {
      * have a key of name and a value of alice.
      */
     public Map<String, String> queryString() {
-        if (pathDetails == null || pathDetails.queryString == null || pathDetails.queryString.isEmpty()) {
+        if (pathDetails == null || pathDetails.getQueryString().isEmpty()) {
             return new HashMap<>();
         } else {
-            return new HashMap<>(pathDetails.queryString);
+            return new HashMap<>(pathDetails.getQueryString());
         }
 
     }
@@ -112,13 +109,13 @@ public final class RequestLine {
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return RequestLine.empty(context);
+            return RequestLine.empty();
         }
         Method myMethod = extractMethod(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
         HttpVersion httpVersion = getHttpVersion(m.group(3));
 
-        return new RequestLine(myMethod, pd, httpVersion, value, context);
+        return new RequestLine(myMethod, pd, httpVersion, value, logger, maxQueryStringKeysCount);
     }
 
     private Method extractMethod(String methodString) {
@@ -146,20 +143,6 @@ public final class RequestLine {
         return pd;
     }
 
-    /**
-     * Some essential characteristics of the path portion of the start line
-     * @param isolatedPath the isolated path is found after removing the query string
-     * @param rawQueryString the raw query is the string after a question mark (if it exists - it's optional)
-     *                       if there is no query string, then we leave rawQuery as a null value
-     * @param queryString the query is a map of the keys -> values found in the query string
-     */
-    public record PathDetails (
-        String isolatedPath,
-        String rawQueryString,
-        Map<String, String> queryString
-    ){
-        public static final PathDetails empty = new PathDetails("", "", Map.of());
-    }
 
     /**
      * Given a string containing the combined key-values in
@@ -171,7 +154,7 @@ public final class RequestLine {
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
         // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
         for (int i = 0; tokenizer.hasMoreTokens(); i++) {
-            if (i >= constants.maxQueryStringKeysCount) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + constants.maxQueryStringKeysCount);
+            if (i >= maxQueryStringKeysCount) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + maxQueryStringKeysCount);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
@@ -218,21 +201,23 @@ public final class RequestLine {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RequestLine that = (RequestLine) o;
-        return method == that.method && Objects.equals(pathDetails, that.pathDetails) && version == that.version && Objects.equals(rawValue, that.rawValue) && Objects.equals(context, that.context) && Objects.equals(constants, that.constants) && Objects.equals(logger, that.logger);
+        return maxQueryStringKeysCount == that.maxQueryStringKeysCount && method == that.method && Objects.equals(pathDetails, that.pathDetails) && version == that.version && Objects.equals(rawValue, that.rawValue) && Objects.equals(logger, that.logger);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(method, pathDetails, version, rawValue, context, constants, logger);
+        return Objects.hash(method, pathDetails, version, rawValue, logger, maxQueryStringKeysCount);
     }
 
     @Override
     public String toString() {
-        return "StartLine{" +
+        return "RequestLine{" +
                 "method=" + method +
                 ", pathDetails=" + pathDetails +
                 ", version=" + version +
                 ", rawValue='" + rawValue + '\'' +
+                ", logger=" + logger +
+                ", maxQueryStringKeysCount=" + maxQueryStringKeysCount +
                 '}';
     }
 }

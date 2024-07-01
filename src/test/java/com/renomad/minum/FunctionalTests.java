@@ -2,6 +2,8 @@ package com.renomad.minum;
 
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.TagName;
+import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.web.*;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
@@ -27,14 +29,18 @@ public class FunctionalTests {
     private static TestLogger logger;
     private static Context context;
     private static FunctionalTesting ft;
+    private static FullSystem fullSystem;
 
     @BeforeClass
     public static void init() {
         context = buildTestingContext("_integration_test");
-        context.getFileUtils().deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
-        new FullSystem(context).start();
-        new TheRegister(context).registerDomains();
         logger = (TestLogger) context.getLogger();
+        var fileUtils = new FileUtils(logger, context.getConstants());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fullSystem = new FullSystem(context);
+        fullSystem.start();
+        new TheRegister(context, fullSystem.getWebFramework()).registerDomains();
+
         ft = new FunctionalTesting(
                 context,
                 context.getConstants().hostName,
@@ -45,15 +51,14 @@ public class FunctionalTests {
     public static void cleanup() {
         // delay a sec so our system has time to finish before we start deleting files
         MyThread.sleep(500);
-        var fs = context.getFullSystem();
-        fs.shutdown();
+        fullSystem.shutdown();
         context.getLogger().stop();
         context.getExecutorService().shutdownNow();
     }
 
     @Test
     public void testEndToEnd_Functional() {
-        context.getFullSystem().getWebFramework().addMimeForSuffix("png", "image/png");
+        fullSystem.getWebFramework().addMimeForSuffix("png", "image/png");
 
         logger.test("Request a static png image that needed a mime type we just provided");
         assertEquals(ft.get("moon.png").statusLine().status(), CODE_200_OK);
@@ -66,7 +71,7 @@ public class FunctionalTests {
         logger.test("Get just the headers from the index file");
         TestResponse headResponse = ft.send(RequestLine.Method.HEAD, "index.html");
         assertEquals(headResponse.statusLine().status(), CODE_200_OK);
-        assertFalse(headResponse.headers().equals(Headers.make(context)));
+        assertFalse(headResponse.headers().equals(new Headers(List.of())));
         assertEquals(headResponse.body(), Body.EMPTY);
 
         logger.test("Second time, it gets loaded from cache");
@@ -144,7 +149,7 @@ public class FunctionalTests {
         logger.test("check out what's on the photos page now, unauthenticated");
         TestResponse response1 = ft.get("photos");
         var response2 = response1.searchOne(TagName.IMG, Map.of("alt", "photo alt text"));
-        String photoUrl = response2.tagInfo().attributes().get("src");
+        String photoUrl = response2.getTagInfo().getAttribute("src");
         assertTrue(photoUrl.contains("photo?name="));
 
         logger.test("look at the contents of a particular photo, unauthenticated");

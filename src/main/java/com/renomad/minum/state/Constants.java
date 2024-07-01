@@ -1,9 +1,10 @@
-package com.renomad.minum;
+package com.renomad.minum.state;
 
 import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.utils.TimeUtils;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -271,7 +272,7 @@ public final class Constants {
             System.out.println(TimeUtils.getTimestampIsoInstant() +
                     " found properties file at ./minum.config.  Loading properties");
             props.load(fis);
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             System.out.println(CONFIG_ERROR_MESSAGE);
         }
         return props;

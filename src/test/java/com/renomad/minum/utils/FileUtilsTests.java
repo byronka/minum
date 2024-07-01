@@ -1,7 +1,7 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import org.junit.AfterClass;
@@ -19,14 +19,13 @@ public class FileUtilsTests {
     private static FileUtils fileUtils;
     private static TestLogger logger;
     private static Context context;
-    private static Constants constants;
 
 
     @BeforeClass
     public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger) context.getLogger();
-        constants = context.getConstants();
+        Constants constants = context.getConstants();
         fileUtils = new FileUtils(logger, constants);
     }
 

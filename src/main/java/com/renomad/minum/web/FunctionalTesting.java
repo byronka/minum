@@ -1,11 +1,11 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.HtmlParser;
 import com.renomad.minum.htmlparsing.TagName;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StacktraceUtils;
 
@@ -39,7 +39,7 @@ public final class FunctionalTesting {
         this.host = host;
         this.port = port;
 
-        this.inputStreamUtils = context.getInputStreamUtils();
+        this.inputStreamUtils = new InputStreamUtils(constants);
         this.logger = context.getLogger();
     }
 
@@ -199,7 +199,8 @@ public final class FunctionalTesting {
         client.send(payload);
 
         StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-        Headers headers = Headers.make(context).extractHeaderInformation(is);
+        List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+        Headers headers = new Headers(allHeaders);
         BodyProcessor bodyProcessor = new BodyProcessor(context);
 
         if (WebFramework.isThereIsABody(headers) && method != RequestLine.Method.HEAD) {

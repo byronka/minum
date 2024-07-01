@@ -1,6 +1,6 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Context;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +28,13 @@ public class RequestLineTests {
 
     @Test
     public void test_GetRawValue() {
-        var startLine = new RequestLine(GET, new RequestLine.PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "testing test", context);
+        var startLine = new RequestLine(
+                GET,
+                new PathDetails("mypath", "", Map.of()),
+                ONE_DOT_ONE,
+                "testing test",
+                context.getLogger(),
+                context.getConstants().maxQueryStringKeysCount);
         String rawValue = startLine.getRawValue();
         assertEquals(rawValue, "testing test");
     }

@@ -1,8 +1,8 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.Constants;
-import com.renomad.minum.Context;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.MyThread;
 import org.junit.Test;
 
