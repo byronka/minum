@@ -35,6 +35,7 @@ Table of contents
 - [Theme](#theme)
 - [ActionQueue](#actionqueue)
 - [Dependency Injections](#dependency-injection)
+- [Sending larger and streaming data](#sending-larger-and-streaming-data)
 
 
 Features:
