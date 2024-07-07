@@ -85,7 +85,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,551 | 141,048 | 1,085,405   |
+| 4,570 | 141,048 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 

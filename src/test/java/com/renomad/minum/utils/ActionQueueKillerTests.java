@@ -80,7 +80,7 @@ public class ActionQueueKillerTests {
         var aqk = new ActionQueueKiller(context);
         Thread.ofVirtual().start(() -> {
                 aq.enqueue("testing interruption", () -> {
-                    MyThread.sleep(10);
+                    MyThread.sleep(40);
                     System.out.println("hello");
                 });
         });

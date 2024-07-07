@@ -13,7 +13,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -57,7 +62,7 @@ public class FunctionalTests {
     }
 
     @Test
-    public void testEndToEnd_Functional() {
+    public void testEndToEnd_Functional() throws IOException {
         fullSystem.getWebFramework().addMimeForSuffix("png", "image/png");
 
         logger.test("Request a static png image that needed a mime type we just provided");
@@ -143,18 +148,42 @@ public class FunctionalTests {
         assertEquals(uploadNodeFound1.innerText(), "Choose images to upload (PNG, JPG)");
 
         logger.test("upload some content, authenticated");
-        ft.post("upload", "image_uploads=123&short_descriptionbar=&long_description=foofoo", authHeader);
+        ft.post("upload", "image_uploads=123&short_description=bar&long_description=foofoo", authHeader);
+        // this will create a photo file that is large enough to test out the fileChannel streaming
+        // capability of Response.
+        byte[] fakePhotoByteArray = new byte[5000];
+        Arrays.fill(fakePhotoByteArray, (byte)3);
+        String urlEncodedBinaryData = URLEncoder.encode(Arrays.toString(fakePhotoByteArray), StandardCharsets.UTF_8);
+        ft.post("upload", "image_uploads="+urlEncodedBinaryData+"&short_description=fooz&long_description=foofoo", authHeader);
         checkForClosedSocket();
 
         logger.test("check out what's on the photos page now, unauthenticated");
         TestResponse response1 = ft.get("photos");
-        var response2 = response1.searchOne(TagName.IMG, Map.of("alt", "photo alt text"));
-        String photoUrl = response2.getTagInfo().getAttribute("src");
-        assertTrue(photoUrl.contains("photo?name="));
+        var photoResponses = response1.search(TagName.IMG, Map.of("alt", "photo alt text"));
+
+        var firstPhotoResponse = photoResponses.getFirst();
+        String firstPhotoUrl = firstPhotoResponse.getTagInfo().getAttribute("src");
+        assertTrue(firstPhotoUrl.contains("photo?name="));
+
+        var secondPhotoResponse = photoResponses.getLast();
+        String secondPhotoUrl = secondPhotoResponse.getTagInfo().getAttribute("src");
+        assertTrue(secondPhotoUrl.contains("photo?name="));
 
         logger.test("look at the contents of a particular photo, unauthenticated");
-        var photoResponse = ft.get(photoUrl);
-        assertTrue(photoResponse.body().asBytes().length > 2);
+        var photoOne = ft.get(firstPhotoUrl);
+        assertEquals(photoOne.body().asBytes().length, 3);
+
+        logger.test("look at the contents of a larger photo, unauthenticated");
+        var photoTwo = ft.get(secondPhotoUrl);
+        assertEquals(photoTwo.body().asBytes().length, 15000);
+
+        logger.test("ask for the photo again, looking for the cached value");
+        var photoOneCached = ft.get(firstPhotoUrl);
+        assertEquals(photoOneCached.body().asBytes().length, 3);
+
+        logger.test("ask for the large photo again, looking for the cached value");
+        var photoTwoCached = ft.get(secondPhotoUrl);
+        assertEquals(photoTwoCached.body().asBytes().length, 15000);
 
         logger.test("check out what's on the sample domain page, authenticated");
         assertTrue(ft.get("index", authHeader).body().asString().contains("Enter a name"));
@@ -175,6 +204,19 @@ public class FunctionalTests {
         TestResponse staticResponse = ft.get("main.css");
         assertEquals(staticResponse.headers().contentType(), "content-type: text/css");
         assertTrue(staticResponse.body().asString().contains("margin-left: 0;"));
+
+        /*
+         * If a large static asset (more than a million bytes) is requested by the client, it will switch to use
+         * a streaming mechanism, specifically it will read the file using FileChannel.
+         */
+        logger.test("Request a large static asset");
+        Files.writeString(Path.of("src/test/webapp/static/largefile.txt"), "a".repeat(1_000_000 + 1));
+        MyThread.sleep(20);
+        TestResponse largeResponse = ft.get("largefile.txt");
+        assertEquals(largeResponse.body().asString().length(), 1_000_000 + 1);
+        MyThread.sleep(20);
+        Files.delete(Path.of("src/test/webapp/static/largefile.txt"));
+        MyThread.sleep(20);
 
         // testing some edge cases of #searchOne
 

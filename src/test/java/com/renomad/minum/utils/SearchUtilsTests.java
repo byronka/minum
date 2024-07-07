@@ -1,6 +1,6 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.auth.User;
+import com.renomad.minum.sampledomain.auth.User;
 import org.junit.Test;
 
 import java.util.ArrayList;

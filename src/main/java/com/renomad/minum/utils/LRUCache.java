@@ -15,7 +15,7 @@ public final class LRUCache<K,V> extends LinkedHashMap<K, V> {
 
     // max number of entries allowed in this cache
     private static final int DEFAULT_MAX_ENTRIES = 100;
-    private int maxSize;
+    private final int maxSize;
 
     @Override
     protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
@@ -26,10 +26,6 @@ public final class LRUCache<K,V> extends LinkedHashMap<K, V> {
         // uses the same load factor as found in java.util.Hashmap.DEFAULT_LOAD_FACTOR
         super(maxSize + 1, 0.75f, true);
         this.maxSize = maxSize;
-    }
-
-    private LRUCache(Map<? extends K, ? extends V> m) {
-        super(m);
     }
 
     /**
@@ -59,9 +55,5 @@ public final class LRUCache<K,V> extends LinkedHashMap<K, V> {
      */
     public static <K,V> Map<K, V> getLruCache(int maxSize) {
         return new LRUCache<>(maxSize);
-    }
-
-    public static <K,V> Map<K, V> getLruCache(Map<K, V> lruCache) {
-        return new LRUCache<>(lruCache);
     }
 }

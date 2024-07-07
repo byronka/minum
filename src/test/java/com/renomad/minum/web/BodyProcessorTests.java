@@ -313,9 +313,9 @@ public class BodyProcessorTests {
 
     @Test
     public void test_GettingCorrectContentType_MissingContentType() {
-        var response = new Response(CODE_200_OK, "foo foo");
-        var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response));
-        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, body=[102, 111, 111, 32, 102, 111, 111]} Request: null");
+        var response = Response.buildResponse(CODE_200_OK, Map.of(), "foo foo");
+        var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response, new StringBuilder()));
+        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, body=[102, 111, 111, 32, 102, 111, 111], bodyLength=7} Request: null");
     }
 
     @Test
@@ -325,13 +325,14 @@ public class BodyProcessorTests {
         Map<String, String> extraHeaders = Map.of("content-type", "text/plain");
         VaryHeader varyHeader = new VaryHeader();
 
-        byte[] bytes = WebFramework.potentiallyCompress(
+        Response response = Response.buildResponse(CODE_200_OK, extraHeaders, "foo bar".repeat(1000));
+        var response2 = WebFramework.potentiallyCompress(
                 headers,
-                new Response(CODE_200_OK, "foo bar".repeat(1000), extraHeaders),
+                response,
                 headerStringBuilder,
                 varyHeader);
 
-        assertEquals(bytes.length, 55);
+        assertEquals(response2.getBodyLength(), (long) 55);
     }
 
     /**
@@ -344,13 +345,14 @@ public class BodyProcessorTests {
         Map<String, String> extraHeaders = Map.of("content-type", "");
         VaryHeader varyHeader = new VaryHeader();
 
-        byte[] bytes = WebFramework.potentiallyCompress(
+        Response response = Response.buildResponse(CODE_200_OK, extraHeaders, "foo bar".repeat(1000));
+        WebFramework.potentiallyCompress(
                 headers,
-                new Response(CODE_200_OK, "foo bar".repeat(1000), extraHeaders),
+                response,
                 headerStringBuilder,
                 varyHeader);
 
-        assertEquals(bytes.length, 7000);
+        assertEquals(response.getBodyLength(),  (long) 7000);
     }
 
     /**

@@ -113,7 +113,7 @@ public class DbTests {
             // check that the files are now there.
             // note that since our minum.database is *eventually* synced to disk, we need to wait a
             // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(FINISH_TIME);
+            MyThread.sleep(70);
             for (var foo : foos) {
                 Path foundFile = foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX);
                 assertTrue(Files.exists(foundFile), "should find file at " + foundFile);

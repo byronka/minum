@@ -11,10 +11,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -559,7 +556,7 @@ public class WebTests {
             ) {
                 return Response.htmlOk("<p>everything was ok</p>");
             } else {
-              return new Response(CODE_404_NOT_FOUND);
+              return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
         };
 
@@ -627,7 +624,7 @@ public class WebTests {
             ) {
                 return Response.htmlOk("<p>everything was ok</p>");
             } else {
-              return new Response(CODE_404_NOT_FOUND);
+              return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
         };
 
@@ -650,6 +647,119 @@ public class WebTests {
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
+                }
+            }
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
+
+    /**
+     * It is allowed for users to send back a streaming response with no
+     * content length set - meaning the framework will add a header of
+     * transfer-encoding: chunked.
+     * <br>
+     * This will put the burden of processing the outgoing data on the
+     * shoulders of the developer.
+     * <br>
+     * See {@link #test_StreamingResponse_KnownContentLength()} to see an example
+     * where the data is streamed but the content length is known.
+     */
+    @Test
+    public void test_StreamingResponse_NoContentLength() throws Exception {
+        // this is the data we will stream out.  Three blocks of strings.
+        List<String> dataToSend = List.of("abc", "def", "ghi");
+
+        // This is the core of the test - here's where we'll process receiving a multipart data
+
+        final ThrowingFunction<Request, Response> testHandler = r -> {
+            return Response.buildStreamingResponse(CODE_200_OK, Map.of("Content-Type", "text/plain"), socketWrapper -> {
+                for (var data : dataToSend) {
+                    logger.logDebug(() -> "sending length: " + data.length());
+                    socketWrapper.send(String.valueOf(data.length()));
+                    socketWrapper.send("\r\n");
+                    logger.logDebug(() -> "sending data: " + data);
+                    socketWrapper.send(data);
+                    socketWrapper.send("\r\n");
+                }
+                socketWrapper.send("0\r\n\r\n");
+                socketWrapper.close();
+            });
+        };
+
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        wf.registerPath(GET, "some_endpoint", testHandler);
+        try (IServer primaryServer = webEngine.startServer()) {
+            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                    InputStream is = client.getInputStream();
+
+                    // send a GET request
+                    client.sendHttpLine("GET /some_endpoint HTTP/1.0");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Connection: keep-alive");
+                    client.sendHttpLine("");
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    assertEquals(statusLine.status(), CODE_200_OK);
+                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers headers1 = new Headers(allHeaders);
+                    assertEquals(headers1.valueByKey("transfer-encoding"), List.of("Chunked"));
+
+                    byte[] bytes = inputStreamUtils.readChunkedEncoding(is);
+                    String s = new String(bytes, StandardCharsets.UTF_8);
+                    assertEquals("abcdefghi", s);
+                }
+            }
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
+    /**
+     * Similar to {@link #test_StreamingResponse_NoContentLength()} but the length
+     * is known in advance, so content-length is sent to the client.
+     */
+    @Test
+    public void test_StreamingResponse_KnownContentLength() throws Exception {
+        // this is the data we will stream out.  Three blocks of strings.
+        String dataToSend = "I am the data to send";
+
+        // This is the core of the test - here's where we'll process receiving a multipart data
+
+        final ThrowingFunction<Request, Response> testHandler = r -> {
+            return Response.buildStreamingResponse(
+                    CODE_200_OK,
+                    Map.of("Content-Type", "text/plain"),
+                    socketWrapper -> socketWrapper.send(dataToSend),
+                    (long) dataToSend.length());
+        };
+
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        wf.registerPath(GET, "some_endpoint", testHandler);
+        try (IServer primaryServer = webEngine.startServer()) {
+            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                    InputStream is = client.getInputStream();
+
+                    // send a GET request
+                    client.sendHttpLine("GET /some_endpoint HTTP/1.0");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("Connection: keep-alive");
+                    client.sendHttpLine("");
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    assertEquals(statusLine.status(), CODE_200_OK);
+                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    Headers headers1 = new Headers(allHeaders);
+                    int length = Integer.parseInt(headers1.valueByKey("content-length").getFirst());
+
+                    byte[] bytes = inputStreamUtils.read(length, is);
+                    String s = new String(bytes, StandardCharsets.UTF_8);
+                    assertEquals("I am the data to send", s);
                 }
             }
         }
@@ -1073,7 +1183,8 @@ public class WebTests {
     }
 
     private String readBody(InputStream is, int length) {
-        return StringUtils.byteArrayToString(inputStreamUtils.read(length, is));
+        byte[] read = inputStreamUtils.read(length, is);
+        return StringUtils.byteArrayToString(read);
     }
 
     /**
@@ -1085,12 +1196,15 @@ public class WebTests {
     public void testCompression() {
         var stringBuilder = new StringBuilder();
 
-        byte[] compressedBody = WebFramework.compressBodyIfRequested(
-                gettysburgAddress.getBytes(StandardCharsets.UTF_8),
-                List.of("gzip"),
-                stringBuilder, 0);
+        Response response = Response.htmlOk(gettysburgAddress);
 
-        byte[] bytes = CompressionUtils.gzipDecompress(compressedBody);
+        Response response1 = WebFramework.compressBodyIfRequested(
+                response,
+                List.of("gzip"),
+                stringBuilder,
+                0);
+
+        byte[] bytes = CompressionUtils.gzipDecompress(response1.getBody());
         String body = new String(bytes, StandardCharsets.UTF_8);
         assertEquals(body, gettysburgAddress);
         assertEquals(stringBuilder.toString(), "Content-Encoding: gzip"  + HTTP_CRLF);
@@ -1103,11 +1217,14 @@ public class WebTests {
     @Test
     public void testCompression_EdgeCase_NoGzip() {
         var stringBuilder = new StringBuilder();
+        Response response = Response.htmlOk(gettysburgAddress);
 
-        byte[] bytes = WebFramework.compressBodyIfRequested(
-                gettysburgAddress.getBytes(StandardCharsets.UTF_8), List.of("deflate"), stringBuilder, 0);
+        WebFramework.compressBodyIfRequested(
+                response,
+                List.of("deflate"),
+                stringBuilder, 0);
 
-        String body = new String(bytes, StandardCharsets.UTF_8);
+        String body = new String(response.getBody(), StandardCharsets.UTF_8);
         assertEquals(body, gettysburgAddress);
         assertEquals(stringBuilder.toString(), "");
     }
@@ -1124,7 +1241,7 @@ public class WebTests {
 
         ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
 
-        assertEquals(response.apply(null), new Response(CODE_400_BAD_REQUEST));
+        assertEquals(response.apply(null), Response.buildLeanResponse(CODE_400_BAD_REQUEST));
     }
 
 
@@ -1189,42 +1306,9 @@ public class WebTests {
                     null);
         }
 
-        assertEquals(result.resultingResponse(), new Response(CODE_404_NOT_FOUND));
+        assertEquals(result.resultingResponse(), Response.buildLeanResponse(CODE_404_NOT_FOUND));
         assertEquals(result.clientRequest().requestLine().toString(), "RequestLine{method=POST, pathDetails=PathDetails{isolatedPath='FOO', rawQueryString='', queryString={}}, version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1', logger=TestLogger using queue: loggerPrinterunit_tests, maxQueryStringKeysCount=50}");
         assertEquals(result.clientRequest().remoteRequester(), "tester");
-    }
-
-    /**
-     * This method handles actually sending the data on the socket.
-     * If we get a HEAD request, we send the headers but no body.
-     */
-    @Test
-    public void testSendingResponse_Head() throws IOException {
-        var webFramework = new WebFramework(context);
-        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
-            var preparedResponse = new PreparedResponse("fake status line and headers", new byte[0]);
-            var processingResult = new WebFramework.ProcessingResult(
-                    new Request(
-                            null,
-                            new RequestLine(HEAD,
-                                    new PathDetails("fake testing path", null, null),
-                                    null,
-                                    null,
-                                    logger, maxQueryStringKeysCount),
-                            null,
-                            null),
-                    null);
-            webFramework.sendResponse(sw, preparedResponse, processingResult);
-        }
-
-        String msg = logger.findFirstMessageThatContains("is requesting HEAD");
-        assertEquals(msg, "client null is requesting HEAD for fake testing path.  Excluding body from response");
-    }
-
-    @Test
-    public void testPreparedResponseString() {
-        var preparedResponse = new PreparedResponse("fake status line and headers", new byte[0]);
-        assertEquals(preparedResponse.toString(), "PreparedResponse{statusLineAndHeaders='fake status line and headers', body=[]}");
     }
 
     /**

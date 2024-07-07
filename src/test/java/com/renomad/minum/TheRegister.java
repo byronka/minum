@@ -1,12 +1,12 @@
 package com.renomad.minum;
 
-import com.renomad.minum.auth.*;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.sampledomain.ListPhotos;
 import com.renomad.minum.sampledomain.PersonName;
 import com.renomad.minum.sampledomain.SampleDomain;
 import com.renomad.minum.sampledomain.UploadPhoto;
+import com.renomad.minum.sampledomain.auth.*;
 import com.renomad.minum.sampledomain.photo.Photograph;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.web.*;
@@ -89,17 +89,19 @@ public class TheRegister {
     private static Response lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
         switch (inputs.response().getStatusCode()) {
             case CODE_404_NOT_FOUND -> {
-                return new Response(
+                return Response.buildResponse(
                         StatusLine.StatusCode.CODE_404_NOT_FOUND,
-                        "<p>No document was found</p>",
-                        Map.of("Content-Type", "text/html; charset=UTF-8"));
+                        Map.of("Content-Type", "text/html; charset=UTF-8"),
+                        "<p>No document was found</p>"
+                        );
             }
             case CODE_500_INTERNAL_SERVER_ERROR -> {
                 Response response = inputs.response();
-                return new Response(
+                return Response.buildResponse(
                         StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR,
-                        "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.getBody(), StandardCharsets.UTF_8) + "</p>",
-                        Map.of("Content-Type", "text/html; charset=UTF-8"));
+                        Map.of("Content-Type", "text/html; charset=UTF-8"),
+                        "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.getBody(), StandardCharsets.UTF_8) + "</p>"
+                        );
             }
             default -> {
                 return inputs.response();
@@ -132,7 +134,7 @@ public class TheRegister {
             if (authResult.isAuthenticated()) {
                 return endpoint.apply(request);
             } else {
-                return new Response(CODE_403_FORBIDDEN);
+                return Response.buildLeanResponse(CODE_403_FORBIDDEN);
             }
         }
 

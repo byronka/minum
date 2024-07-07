@@ -23,7 +23,7 @@ public final class FileReader implements IFileReader {
     private final ILogger logger;
 
     public FileReader(Map<String, byte[]> lruCache, boolean useCacheForStaticFiles, ILogger logger) {
-        this.lruCache = LRUCache.getLruCache(lruCache);
+        this.lruCache = lruCache;
         this.useCacheForStaticFiles = useCacheForStaticFiles;
         this.logger = logger;
     }
@@ -51,7 +51,7 @@ public final class FileReader implements IFileReader {
         try (RandomAccessFile reader = new RandomAccessFile(path, "r");
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             FileChannel channel = reader.getChannel();
-            int bufferSize = 1024;
+            int bufferSize = 8 * 1024;
             if (bufferSize > channel.size()) {
                 bufferSize = (int) channel.size();
             }
@@ -71,6 +71,7 @@ public final class FileReader implements IFileReader {
                 logger.logTrace(() -> s);
 
                 if (useCacheForStaticFiles) {
+                    logger.logDebug(() -> "Storing " + path + " in the cache");
                     lruCache.put(path, bytes);
                 }
                 return bytes;

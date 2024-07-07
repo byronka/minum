@@ -2,7 +2,7 @@ package com.renomad.minum.sampledomain;
 
 import com.renomad.minum.state.Context;
 import com.renomad.minum.TheRegister;
-import com.renomad.minum.auth.AuthUtils;
+import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.utils.FileUtils;
@@ -49,7 +49,7 @@ public class SampleDomain {
     public Response formEntry(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(CODE_401_UNAUTHORIZED);
+            return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);
         }
         final String names = db
                 .values().stream().sorted(Comparator.comparingLong(PersonName::getIndex))
@@ -62,14 +62,14 @@ public class SampleDomain {
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(CODE_401_UNAUTHORIZED);
+            return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);
         }
 
         final var nameEntry = r.body().asString("name_entry");
 
         final var newPersonName = new PersonName(0L, nameEntry);
         db.write(newPersonName);
-        return new Response(CODE_303_SEE_OTHER, Map.of("Location","formentry"));
+        return Response.buildLeanResponse(CODE_303_SEE_OTHER, Map.of("Location","formentry"));
     }
 
     /**

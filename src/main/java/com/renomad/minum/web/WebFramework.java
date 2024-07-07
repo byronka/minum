@@ -1,10 +1,10 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.state.Constants;
-import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.UnderInvestigation;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
@@ -19,7 +19,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.renomad.minum.utils.CompressionUtils.gzipCompress;
 import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
@@ -113,16 +112,44 @@ public final class WebFramework {
                         logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
                         break;
                     }
+                    // check if the user is seeming to attack us.
                     checkIfSuspiciousPath(sw, sl);
+
+                    // React to what the user requested, generate a result
                     Headers hi = getHeaders(sw);
                     boolean isKeepAlive = determineIfKeepAlive(sl, hi, logger);
-                    Body body = determineIfBody(sw, hi);
-                    ProcessingResult result = processRequest(sw, sl, hi, body);
-                    PreparedResponse preparedResponse = prepareResponseData(
-                            result.clientRequest(),
-                            result.resultingResponse(),
-                            isKeepAlive);
-                    sendResponse(sw, preparedResponse, result);
+                    Body requestBody = determineIfBody(sw, hi);
+                    ProcessingResult result = processRequest(sw, sl, hi, requestBody);
+                    Request request = result.clientRequest();
+                    Response response = result.resultingResponse();
+
+                    // calculate proper headers for the response
+                    StringBuilder headerStringBuilder = addDefaultHeaders(response);
+                    addOptionalExtraHeaders(response, headerStringBuilder);
+                    addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
+                    VaryHeader varyHeader = new VaryHeader();
+
+                    // inspect the response being sent, see whether we can compress the data.
+                    Response adjustedResponse = potentiallyCompress(request.headers(), response, headerStringBuilder, varyHeader);
+                    applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
+                    confirmBodyHasContentType(request, response, headerStringBuilder);
+                    headerStringBuilder.append(varyHeader).append(HTTP_CRLF);
+
+                    // send the headers
+                    sw.send(headerStringBuilder.append(HTTP_CRLF).toString());
+
+                    // if the user sent a HEAD request, we send everything back except the body.
+                    // even though we skip the body, this requires full processing to get the
+                    // numbers right, like content-length.
+                    if (request.requestLine().getMethod().equals(RequestLine.Method.HEAD)) {
+                        logger.logDebug(() -> "client " + request.remoteRequester() +
+                                " is requesting HEAD for "+ request.requestLine().getPathDetails().getIsolatedPath() +
+                                ".  Excluding body from response");
+                    } else {
+                        // send the body
+                        adjustedResponse.sendBody(sw);
+                    }
+                    // print how long this processing took
                     long endMillis = System.currentTimeMillis();
                     logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, endMillis - startMillis));
                     if (!isKeepAlive) break;
@@ -172,24 +199,11 @@ public final class WebFramework {
         }
     }
 
-
-    void sendResponse(ISocketWrapper sw, PreparedResponse preparedResponse, ProcessingResult result) throws IOException {
-        // Here is where the bytes actually go out on the socket
-        String statusLineAndHeaders = preparedResponse.getStatusLineAndHeaders() + HTTP_CRLF;
-
-        logger.logTrace(() -> "Sending headers back: " + statusLineAndHeaders);
-        sw.send(statusLineAndHeaders);
-
-        if (result.clientRequest().requestLine().getMethod().equals(RequestLine.Method.HEAD)) {
-            Request finalClientRequest = result.clientRequest();
-            logger.logDebug(() -> "client " + finalClientRequest.remoteRequester() +
-                    " is requesting HEAD for "+ finalClientRequest.requestLine().getPathDetails().getIsolatedPath() +
-                    ".  Excluding body from response");
-        } else {
-            sw.send(preparedResponse.getBody());
-        }
-    }
-
+    /**
+     * Logic for how to process an incoming request.  For example, did the developer
+     * write a function to handle this? Is it a request for a static file, like an image
+     * or script?  Did the user provide a "pre" or "post" handler?
+     */
     ProcessingResult processRequest(
             ISocketWrapper sw,
             RequestLine requestLine,
@@ -199,7 +213,7 @@ public final class WebFramework {
         Response response;
         ThrowingFunction<Request, Response> endpoint = findEndpointForThisStartline(requestLine);
         if (endpoint == null) {
-            response = new Response(CODE_404_NOT_FOUND);
+            response = Response.buildLeanResponse(CODE_404_NOT_FOUND);
         } else {
             long millisAtStart = System.currentTimeMillis();
             try {
@@ -215,7 +229,7 @@ public final class WebFramework {
                 // information in the logs, which have that same value.
                 int randomNumber = randomErrorCorrelationId.nextInt();
                 logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                response = new Response(CODE_500_INTERNAL_SERVER_ERROR, "Server error: " + randomNumber, Map.of("Content-Type", "text/plain;charset=UTF-8"));
+                response = Response.buildResponse(CODE_500_INTERNAL_SERVER_ERROR, Map.of("Content-Type", "text/plain;charset=UTF-8"), "Server error: " + randomNumber);
             }
             long millisAtEnd = System.currentTimeMillis();
             logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, millisAtEnd - millisAtStart));
@@ -360,15 +374,16 @@ public final class WebFramework {
     }
 
     /**
-     * This is where our strongly-typed {@link Response} gets converted
-     * to a string and sent on the socket.
+     * Prepare some of the basic server response headers, like the status code, the
+     * date-time stamp, the server name.
      */
-    private PreparedResponse prepareResponseData(Request request, Response response, boolean isKeepAlive) {
+    private StringBuilder addDefaultHeaders(Response response) {
+
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
         // we'll store the status line and headers in this
         StringBuilder headerStringBuilder = new StringBuilder();
-        VaryHeader varyHeader = new VaryHeader();
+
 
         // add the status line
         headerStringBuilder.append("HTTP/1.1 ").append(response.getStatusCode().code).append(" ").append(response.getStatusCode().shortDescription).append(HTTP_CRLF);
@@ -379,21 +394,11 @@ public final class WebFramework {
         // add the server name
         headerStringBuilder.append("Server: minum").append(HTTP_CRLF);
 
-        addOptionalExtraHeaders(response, headerStringBuilder);
-
-        addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
-
-        // body stuff
-        confirmBodyHasContentType(request, response);
-        byte[] bodyBytes = potentiallyCompress(request.headers(), response, headerStringBuilder, varyHeader);
-        applyContentLength(headerStringBuilder, bodyBytes);
-        headerStringBuilder.append(varyHeader).append(HTTP_CRLF);
-
-        return new PreparedResponse(headerStringBuilder.toString(), bodyBytes);
+        return headerStringBuilder;
     }
 
     /**
-     * Add extra headers specified by the business logic
+     * Add extra headers specified by the business logic (set by the developer)
      */
     private static void addOptionalExtraHeaders(Response response, StringBuilder stringBuilder) {
         stringBuilder.append(
@@ -405,12 +410,12 @@ public final class WebFramework {
     /**
      * If a response body exists, it needs to have a content-type specified, or throw an exception.
      */
-    static void confirmBodyHasContentType(Request request, Response response) {
+    static void confirmBodyHasContentType(Request request, Response response, StringBuilder headerStringBuilder) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
         boolean hasContentType = response.getExtraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
 
         // if there *is* data, we had better be returning a content type
-        if (response.getBody().length > 0) {
+        if ((response.getBodyLength() != null && response.getBodyLength() > 0) || headerStringBuilder.indexOf("Transfer-Encoding: Chunked") != -1) {
             mustBeTrue(hasContentType, "a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
         }
     }
@@ -430,22 +435,17 @@ public final class WebFramework {
      * The rules regarding the content-length header are byzantine.  Even in the cases
      * where you aren't returning anything, servers can use this header to determine when the
      * response is finished.
-     * <br>
-     * There are a few rules when you MUST include it, MUST NOT, blah blah blah, but I'm
-     * not following that stuff too closely because this code skips a lot of the spec.
-     * For example, we don't handle OPTIONS or return any 1xx response types.
-     * <br>
      * See <a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length">Content-Length in the HTTP spec</a>
      */
-    private static void applyContentLength(StringBuilder stringBuilder, byte[] bodyBytes) {
-        stringBuilder.append("Content-Length: ").append(bodyBytes.length).append(HTTP_CRLF);
+    private static void applyContentLength(StringBuilder stringBuilder, Long bodyLength) {
+        stringBuilder.append("Content-Length: ").append(bodyLength).append(HTTP_CRLF);
     }
 
     /**
      * This method will examine the request headers and response content-type, and
      * compress the outgoing data if necessary.
      */
-    static byte[] potentiallyCompress(Headers headers, Response response, StringBuilder headerStringBuilder, VaryHeader varyHeader) {
+    static Response potentiallyCompress(Headers headers, Response response, StringBuilder headerStringBuilder, VaryHeader varyHeader) {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
@@ -454,18 +454,17 @@ public final class WebFramework {
         // regardless of whether the client requests compression in their Accept-Encoding header,
         // if the data we're sending back is not of an appropriate type, we won't bother
         // compressing it.  Basically, we're going to compress plain text.
-        Map.Entry<String, String> contentTypeHeader = SearchUtils.findExactlyOne(
-                response.getExtraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
+        Map.Entry<String, String> contentTypeHeader = SearchUtils.findExactlyOne(response.getExtraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
 
-        byte[] bodyBytes = response.getBody();
         if (contentTypeHeader != null) {
             String contentType = contentTypeHeader.getValue().toLowerCase(Locale.ROOT);
             if (contentType.contains("text/")) {
-                bodyBytes = compressBodyIfRequested(response.getBody(), acceptEncoding, headerStringBuilder, 2048);
+                Response compressedResponse = compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, 2048);
                 varyHeader.addHeader("accept-encoding");
+                return compressedResponse;
             }
         }
-        return bodyBytes;
+        return response;
     }
 
     /**
@@ -474,7 +473,6 @@ public final class WebFramework {
      * bytes, using the GZIP compression algorithm, as long as the response body
      * is greater than minNumberBytes bytes.
      *
-     * @param bodyBytes      the incoming bytes, not yet compressed
      * @param acceptEncoding headers sent by the client about what compression
      *                       algorithms will be understood.
      * @param stringBuilder  the string we are gradually building up to send back to
@@ -483,14 +481,13 @@ public final class WebFramework {
      *                       if we successfully compress data as gzip.
      * @param minNumberBytes number of bytes must be larger than this to compress.
      */
-    static byte[] compressBodyIfRequested(byte[] bodyBytes, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
+    static Response compressBodyIfRequested(Response response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
-        if (bodyBytes.length >= minNumberBytes && acceptEncoding != null && allContentEncodingHeaders.contains("gzip")) {
+        if (response.getBodyLength() != null && response.getBodyLength() >= minNumberBytes && acceptEncoding != null && allContentEncodingHeaders.contains("gzip")) {
             stringBuilder.append("Content-Encoding: gzip" + HTTP_CRLF);
-            return gzipCompress(bodyBytes);
-        } else {
-            return bodyBytes;
+            return response.compressBody();
         }
+        return response;
     }
 
     /**
@@ -553,39 +550,43 @@ public final class WebFramework {
     Response readStaticFile(String path) {
         if (badFilePathPatterns.matcher(path).find()) {
             logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
-            return new Response(CODE_400_BAD_REQUEST);
+            return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
         String mimeType = null;
 
-        byte[] fileContents;
         try {
             Path staticFilePath = Path.of(constants.staticFilesDirectory).resolve(path);
             if (!Files.isRegularFile(staticFilePath)) {
                 logger.logDebug(() -> String.format("No readable file found at %s", path));
-                return new Response(CODE_404_NOT_FOUND);
+                return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
-            fileContents = fileReader.readFile(staticFilePath.toString());
+
+            // if the provided path has a dot in it, use that
+            // to obtain a suffix for determining file type
+            int suffixBeginIndex = path.lastIndexOf('.');
+            if (suffixBeginIndex > 0) {
+                String suffix = path.substring(suffixBeginIndex+1);
+                mimeType = fileSuffixToMime.get(suffix);
+            }
+
+            // if we don't find any registered mime types for this
+            // suffix, or if it doesn't have a suffix, set the mime type
+            // to application/octet-stream
+            if (mimeType == null) {
+                mimeType = "application/octet-stream";
+            }
+
+            if (Files.size(staticFilePath) < 1_000_000) {
+                var fileContents = fileReader.readFile(staticFilePath.toString());
+                return createOkResponseForStaticFiles(fileContents, mimeType);
+            } else {
+                return createOkResponseForLargeStaticFiles(mimeType, staticFilePath);
+            }
+
         } catch (IOException e) {
             logger.logAsyncError(() -> String.format("Error while reading file: %s. %s", path, StacktraceUtils.stackTraceToString(e)));
-            return new Response(CODE_400_BAD_REQUEST);
+            return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
-
-        // if the provided path has a dot in it, use that
-        // to obtain a suffix for determining file type
-        int suffixBeginIndex = path.lastIndexOf('.');
-        if (suffixBeginIndex > 0) {
-            String suffix = path.substring(suffixBeginIndex+1);
-            mimeType = fileSuffixToMime.get(suffix);
-        }
-
-        // if we don't find any registered mime types for this
-        // suffix, or if it doesn't have a suffix, set the mime type
-        // to application/octet-stream
-        if (mimeType == null) {
-            mimeType = "application/octet-stream";
-        }
-
-        return createOkResponseForStaticFiles(fileContents, mimeType);
     }
 
     /**
@@ -596,10 +597,24 @@ public final class WebFramework {
                 "cache-control", "max-age=" + constants.staticFileCacheTime,
                 "content-type", mimeType);
 
-        return new Response(
-                StatusLine.StatusCode.CODE_200_OK,
+        return Response.buildResponse(
+                CODE_200_OK,
                 headers,
                 fileContents);
+    }
+
+    /**
+     * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
+     */
+    private Response createOkResponseForLargeStaticFiles(String mimeType, Path filePath) throws IOException {
+        var headers = Map.of(
+                "cache-control", "max-age=" + constants.staticFileCacheTime,
+                "content-type", mimeType);
+
+        return Response.buildLargeFileResponse(
+                CODE_200_OK,
+                headers,
+                filePath.toString());
     }
 
 

@@ -6,4 +6,4 @@
  * authorization: are you allowed to access (data/page/whatever)?
  * </pre>
  */
-package com.renomad.minum.auth;
+package com.renomad.minum.sampledomain.auth;

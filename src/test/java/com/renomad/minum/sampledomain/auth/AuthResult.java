@@ -1,4 +1,4 @@
-package com.renomad.minum.auth;
+package com.renomad.minum.sampledomain.auth;
 
 import java.time.ZonedDateTime;
 

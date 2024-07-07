@@ -2,8 +2,8 @@ package com.renomad.minum.sampledomain;
 
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.auth.AuthResult;
-import com.renomad.minum.auth.AuthUtils;
+import com.renomad.minum.sampledomain.auth.AuthResult;
+import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.sampledomain.photo.Photograph;
@@ -42,7 +42,7 @@ public class UploadPhoto {
     public Response uploadPage(Request r) {
         AuthResult authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
-            return new Response(CODE_401_UNAUTHORIZED);
+            return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);
         }
         return Response.htmlOk(uploadPhotoTemplateHtml);
     }
@@ -50,7 +50,7 @@ public class UploadPhoto {
     public Response uploadPageReceivePost(Request request) {
         AuthResult authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
-            return new Response(CODE_401_UNAUTHORIZED);
+            return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);
         }
         var photoBytes = request.body().asBytes("image_uploads");
         var shortDescription = request.body().asString("short_description");
@@ -73,7 +73,7 @@ public class UploadPhoto {
             Files.write(photoPath, photoBytes);
         } catch (IOException e) {
             logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-            return new Response(CODE_500_INTERNAL_SERVER_ERROR, e.toString(), Map.of("Content-Type", "text/plain;charset=UTF-8"));
+            return Response.buildResponse(CODE_500_INTERNAL_SERVER_ERROR, Map.of("Content-Type", "text/plain;charset=UTF-8"), e.toString());
         }
         db.write(newPhotograph);
         return Response.redirectTo("photos");

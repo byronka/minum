@@ -22,3 +22,7 @@ SYSTEM_RUNNING
 
 # Sometimes the Java compiler will fail and output these files, like javac.20230430_000504.args
 *.args
+
+# One of the functional tests puts a file in the static directory that is very large.
+# we don't want to add this to our repo.
+src/test/webapp/static/largefile.txt

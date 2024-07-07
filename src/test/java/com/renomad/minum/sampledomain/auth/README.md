@@ -1,0 +1,1 @@
+These files provide some basic authentication capabilities for the sample project

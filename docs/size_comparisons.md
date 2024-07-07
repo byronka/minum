@@ -6,7 +6,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,551 | 141,048 | 1,085,405   |
+| 4,570 | 141,048 | 1,085,405   |
 
 
 #### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -28,7 +28,7 @@ Web server
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 1897  | 163,000 | 242,000 |
+| 1921  | 163,000 | 242,000 |
 
 Templating
 ----------
@@ -67,7 +67,7 @@ Testing
 
 | Minum | JUnit4 |
 |-------|--------|
-| 192   | 10,834 |
+| 184   | 10,834 |
 
 
 Background task processing
@@ -83,7 +83,7 @@ Various helpful utilities
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 592   | 18,045            |
+| 587   | 18,045            |
 
 Appendix
 --------

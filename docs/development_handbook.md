@@ -199,7 +199,14 @@ Versioning
 ----------
 
 The version of the project is set in the Makefile, with a property name of VERSION.
-We have followed semantic versioning.
+We have followed semantic versioning.  The versions are numbered like 3.1.0, with the
+first number being the major number, the second being the feature number, and the last
+being the patch number.  If the major number is increased, that means it will cause
+known breaking changes - it will be necessary to update the code in systems with a
+dependency on Minum.  The feature number increasing means that there will be new
+capabilities in the system, but nothing should be broken or needing adjustment. The
+last number means corrections or improvements were applied - bug fixes, refactorings,
+documentation.
 
 Mutation Testing
 ----------------
@@ -702,3 +709,18 @@ Minum does not provide this, opting for simpler non-automated approaches, exempl
 in its own programming and projects like [Memoria](https://github.com/byronka/memoria_project)
 
 See [this blogpost](https://renomad.com/blogposts/minum_ioc.html) for further explanation.
+
+
+Sending larger and streaming data
+---------------------------------
+
+Minum provides the capability to transmit large data, such as large files or streaming
+content.  This feature was built with a primary use case in mind - sending videos as
+part of web pages.
+
+There are a few ways to do this:
+
+1) Any data in the static files directory that is larger than a million bytes will
+   be sent by streaming.
+2) In a web handler, when returning a Response object, there is a constructor that
+   expects a 

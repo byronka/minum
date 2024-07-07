@@ -37,7 +37,9 @@ public class EqualsTests {
     public void equalsTest() {
         EqualsVerifier.forClass(Constants.class).verify();
 
-        EqualsVerifier.forClass(Response.class).verify();
+        EqualsVerifier.forClass(Response.class)
+                .withIgnoredFields("outputGenerator")
+                .verify();
 
         EqualsVerifier.forClass(Body.class)
                 .withPrefabValues(Headers.class,

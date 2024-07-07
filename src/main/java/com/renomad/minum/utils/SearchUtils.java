@@ -24,6 +24,7 @@ public final class SearchUtils {
      * there to be just one of a thing in a database, like if we're searching
      * for Persons by id.
      * @param searchPredicate a {@link Predicate} run to search for an element in the stream.
+     * @throws InvariantException if there are two or more results found
      */
     public static <T> T findExactlyOne(Stream<T> streamOfSomething, Predicate<? super T> searchPredicate) {
         return findExactlyOne(streamOfSomething, searchPredicate, () -> null);
@@ -31,13 +32,14 @@ public final class SearchUtils {
 
     /**
      * This is similar to {@link #findExactlyOne(Stream, Predicate)} except that you
-     * can provide what gets returned in the alternate case - so instead of
+     * can provide what gets returned if there are none found - so instead of
      * returning null, it can return something else.
      * <br>
      * The values will be pre-filtered to skip any null values.
      * <br>
-     * @param alternate a {@link Callable} that will be run to calculate the alternate case.
+     * @param alternate a {@link Callable} that will be run when no elements were found.
      * @param searchPredicate a {@link Predicate} run to search for an element in the stream.
+     * @throws InvariantException if there are two or more results found
      */
     public static <T> T findExactlyOne(Stream<T> streamOfSomething, Predicate<? super T> searchPredicate, Callable<T> alternate) {
         List<T> listOfThings = streamOfSomething.filter(Objects::nonNull).filter(searchPredicate).toList();

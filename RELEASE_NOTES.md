@@ -1,3 +1,33 @@
+v5.1.0 - July 7, 2024
+---------------------
+
+New feature: streaming output from server
+
+Breaking change: Response constructors converted to factory methods.  Order of parameters adjusted in
+certain cases for greater consistency.
+
+A missing capability of the Minum server was to send large files.  Yes, it was
+reasonable to send files up to around several megabytes, but before this change, 
+the data would take room in the server's memory.  If the server were making a large
+file available and there were many requests, it could easily eat up the entire
+memory.
+
+Now, the Response object and WebFramework have had their code adjusted to enable this
+without undue requirements.  The constructors in `Response` were converted to factory methods, and some of these are
+intended to be used for streaming large data, such as `buildLargeFileResponse` and `buildStreamingResponse`.
+
+There is no limit to the file size being served.  Memory usage will be minimally impactful.
+
+#### To migrate to version 6 more easily:
+
+Do a global search and replace: "new Response" -> "Response.buildLeanResponse".
+That will fix a bunch of the cases.  The rest are likely "Response.buildResponse", but update those as necessary.  In several
+cases, it will be required to reorder the parameters - the extraHeaders parameter is now the second parameter
+in almost all the Response factory methods.  In some cases, you will find calls to a now-deleted constructor
+which would provide a status code and body but no extra headers.  These should be fixed to include the necessary headers,
+such as `Map.of("Content-Type", "text/plain")`
+
+
 v5.0.0 - July 1, 2024
 ---------------------
 
@@ -106,7 +136,7 @@ v3.2.1 - May 26, 2024
 ---------------------
 
 * Adjust maximum partitions in serializer.  A bug was found: text that was large but
-  but still reasonably sized (it more than ten thousand lines) was 
+  but still reasonably sized (it was more than ten thousand lines) was 
   causing a failure in templating. The serializer utility allowed a maximum of ten thousand 
   "partitions" (i.e. lines) before throwing an exception.  While it does make sense to 
   set a maximum on any loop, ten thousand was too low.  This value was raised to ten 
