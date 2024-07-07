@@ -722,5 +722,7 @@ There are a few ways to do this:
 
 1) Any data in the static files directory that is larger than a million bytes will
    be sent by streaming.
-2) In a web handler, when returning a Response object, there is a constructor that
-   expects a 
+2) In a web handler, when returning a Response object, there is a factory method
+   expecting a file path.  Using this will send the file's data as a stream, and
+   is thread safe.  See `Response.buildLargeFileResponse`
+3) There is also a factory method for sending a custom stream.  See `Response.buildStreamingResponse`
