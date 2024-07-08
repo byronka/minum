@@ -1,4 +1,38 @@
-v5.1.0 - July 7, 2024
+Recap, all changes to date since beta release
+---------------------------------------------
+
+* Converted project to use Maven instead of Make, following convention for file locations
+* Increased test coverage to 100% statement and branch
+* Refactoring
+  * Many small adjustments to expose critical parts for easier testing
+  * Made most classes "final" to disallow extending
+  * Simplified HTTP parsing design to improve debugging
+* System primarily runs on virtual threads
+* Improved documentation - JavaDocs on variables and methods, developer handbook
+* Tutorial added
+* Large example project added (Memoria_project)
+* Removed StaticFileCache - static files are kept outside the binary, with a configurable option (STATIC_FILE_CACHE_TIME) for how long they are cached.
+* Many small renamings and tunings
+* Applying suggestions from several linting tools, including SonarQube, EqualsVerifier, SpotBugs, and ErrorProne
+* Fixing bugs
+* Usability improvements
+  * If lacking a minum.config file, system will still function
+  * More robust processing of list-style configuration values, such as EXTRA_MIME_MAPPINGS
+  * All test assertions allow adding a message to be shown at failure
+  * Fewer CRUD methods on database.  Instead of write and update, it is now only write.  An index of 0 means to create,
+    and a positive index means to update.
+* New features added
+  * New ability to add code before and after endpoint processing (registerPreHandler and registerLastMinuteHandler)
+  * GZIP compression for text HTTP responses
+  * In templating:
+    * values with newlines will all get indented
+    * less lenient about unused keys - an exception will be thrown
+  * Streaming - this allows the server to send very large data without incurring heavy memory usage.  Helper
+    methods provided to enable easier streaming of files, and methods exist to write custom streaming code.
+* No new major capabilities added
+* Subtle improvements to security programs
+
+v6.0.0 - July 7, 2024
 ---------------------
 
 New feature: streaming output from server

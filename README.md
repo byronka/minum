@@ -79,7 +79,7 @@ Features:
 Size Comparison:
 ----------------
 
-Compiled size: 150 kilobytes.
+Compiled size: 180 kilobytes.
 
 _Lines of production code (including required dependencies)_
 
