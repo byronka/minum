@@ -13,4 +13,4 @@ package com.renomad.minum.web;
  *                 It is valuable to get the previously-calculated response data, in case there is
  *                 something useful - like valuable error messages.
  */
-public record LastMinuteHandlerInputs(Request request, Response response){}
+public record LastMinuteHandlerInputs(IRequest request, IResponse response){}

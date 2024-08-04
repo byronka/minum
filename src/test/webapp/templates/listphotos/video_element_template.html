@@ -1,0 +1,14 @@
+<li>
+    <video controls preload="none" poster="video_poster.jpg">
+        <source src="video?name={{ video_id }}" type="video/mp4" />
+        <p>Your browser doesn't support HTML video.
+            Here is a <a
+                    href="video?name={{ video_id }}"
+                    download="video?name={{ video_id }}">
+                        link to the video
+                        </a>
+            instead.</p>
+    </video>
+    <p>{{ short_description }}</p>
+    <p>{{ long_description }}</p>
+</li>

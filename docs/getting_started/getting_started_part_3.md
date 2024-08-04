@@ -48,7 +48,7 @@ Add Junit as a dependency in the file at `pom.xml`:
         <dependency>
             <groupId>com.renomad</groupId>
             <artifactId>minum</artifactId>
-            <version>5.0.0</version>
+            <version>7.0.0</version>
         </dependency>
 
         <!-- JUnit is a testing framework -->
@@ -104,7 +104,7 @@ public class MainTests {
     private static FunctionalTesting ft;
 
     @BeforeClass
-    public static void init() throws Exception {
+    public static void init() {
         context = buildTestingContext("_integration_test");
         FullSystem fullSystem = new FullSystem(context).start();
         new Endpoints(fullSystem).registerEndpoints();
@@ -125,7 +125,7 @@ public class MainTests {
      * the program.
      */
     @Test
-    public void testFullSystem() throws Exception {
+    public void testFullSystem() {
         // send a GET request to the server
         var testResponse = ft.get("");
 

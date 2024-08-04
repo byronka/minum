@@ -1,6 +1,7 @@
 package com.renomad.minum.htmlparsing;
 
 import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.utils.RingBuffer;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -90,7 +91,7 @@ public final class HtmlParser {
         recordLocation(currentChar, state);
 
         // keep track of previous twelve characters, to check if inside comments and scripts
-        addShift(state.previousCharacters, currentChar);
+        state.previousCharacters.add(currentChar);
         determineCommentState(state);
         determineScriptState(state);
         if (state.isInsideComment) {
@@ -121,26 +122,6 @@ public final class HtmlParser {
             state.lineColumn = 0;
         }
         state.lineColumn += 1;
-    }
-
-    /**
-     * This method adds a new character to the end of the
-     * twelve-character array, shifting over characters to
-     * fit.  Characters overflow off the left side.
-     */
-    private void addShift(char[] previousCharacters, char newChar) {
-        previousCharacters[0] = previousCharacters[1];
-        previousCharacters[1] = previousCharacters[2];
-        previousCharacters[2] = previousCharacters[3];
-        previousCharacters[3] = previousCharacters[4];
-        previousCharacters[4] = previousCharacters[5];
-        previousCharacters[5] = previousCharacters[6];
-        previousCharacters[6] = previousCharacters[7];
-        previousCharacters[7] = previousCharacters[8];
-        previousCharacters[8] = previousCharacters[9];
-        previousCharacters[9] = previousCharacters[10];
-        previousCharacters[10] = previousCharacters[11];
-        previousCharacters[11] = newChar;
     }
 
     private void processGreaterThan(char currentChar, State state, List<HtmlParseNode> nodes) {
@@ -278,13 +259,16 @@ public final class HtmlParser {
         return !tagName.isEmpty() && isInsideTag;
     }
 
+    static final List<Character> startOfComment = List.of('<', '!', '-', '-');
+    static final List<Character> endOfComment = List.of('-', '-', '>');
+
     /**
      * Returns whether we are inside an HTML comment,
      * that is {@code <!-- -->}
      */
     private void determineCommentState(State state) {
-        boolean atCommentStart = Arrays.equals(new char[]{'<','!','-','-'}, 0, 4, state.previousCharacters, 8, 12);
-        boolean atCommentEnd = Arrays.equals(new char[]{'-','-','>'}, 0, 3, state.previousCharacters, 8, 11);
+        boolean atCommentStart = state.previousCharacters.containsAt(startOfComment, 8);
+        boolean atCommentEnd = state.previousCharacters.containsAt(endOfComment, 8);
         boolean isInsideTag = state.isInsideTag;
         boolean hasEncounteredTagName = state.hasEncounteredTagName;
         if (isInsideTag && !hasEncounteredTagName && atCommentStart) {
@@ -295,12 +279,14 @@ public final class HtmlParser {
         }
     }
 
+    static final List<Character> scriptElement = List.of('<','/','s','c','r','i','p','t','>');
+
     /**
      * Determines whether we have hit the end of the script block
      * by looking for the closing script tag.
      */
     private void determineScriptState(State state) {
-        boolean isScriptFinished = Arrays.equals(new char[]{'<','/','s','c','r','i','p','t','>'}, 0, 9, state.previousCharacters, 3, 12);
+        boolean isScriptFinished = state.previousCharacters.containsAt(scriptElement, 3);
         boolean wasInsideScript = state.isInsideScript;
         state.isInsideScript = state.isInsideScript && !isScriptFinished;
         boolean justClosedScriptTag = wasInsideScript && !state.isInsideScript;
@@ -547,7 +533,7 @@ public final class HtmlParser {
     static class State {
 
         static State buildNewState() {
-            char[] previousCharacters = new char[12];
+            RingBuffer<Character> previousCharacters = new RingBuffer<>(12, Character.class);
             int lineColumn1 = 0;
             int lineRow1 = 1;
             boolean isHalfClosedTag1 = false;
@@ -648,10 +634,10 @@ public final class HtmlParser {
         int lineColumn;
 
         /**
-         * This is used to check for comments. That is,
-         *     {@code <!-- -->}
+         * This is used to check for comments and script tags, like:
+         *     {@code <!-- -->} and {@code <script>}
          */
-        final char[] previousCharacters;
+        final RingBuffer<Character> previousCharacters;
 
         /**
          * Indicates whether we are inside a comment
@@ -669,7 +655,7 @@ public final class HtmlParser {
                      boolean isStartTag, boolean isInsideAttributeValueQuoted, String tagName,
                      String currentAttributeKey, Map<String, String> attributes, QuoteType quoteType,
                      boolean isReadingAttributeKey, boolean isHalfClosedTag, int lineRow, int lineColumn,
-                     char[] previousCharacters, boolean isInsideComment, boolean isInsideScript) {
+                     RingBuffer<Character> previousCharacters, boolean isInsideComment, boolean isInsideScript) {
 
             this.charsRead = charsRead;
             this.isInsideTag = isInsideTag;

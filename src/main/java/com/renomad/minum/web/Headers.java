@@ -31,6 +31,7 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
 public final class Headers{
 
     public static final Headers EMPTY = new Headers(List.of());
+    private static final int MAX_HEADERS_COUNT = 70;
 
     /**
      * Each line of the headers is read into this data structure
@@ -145,11 +146,11 @@ public final class Headers{
     /**
      * Loop through the lines of header in the HTTP message
      */
-    static List<String> getAllHeaders(InputStream is, int maxHeadersCount, IInputStreamUtils inputStreamUtils) {
+    static List<String> getAllHeaders(InputStream is, IInputStreamUtils inputStreamUtils) {
         List<String> headers = new ArrayList<>();
         for (int i = 0;; i++) {
-            if (i >=maxHeadersCount) {
-                throw new ForbiddenUseException("User tried sending too many headers.  Current max: " + maxHeadersCount);
+            if (i >=MAX_HEADERS_COUNT) {
+                throw new ForbiddenUseException("User tried sending too many headers.  max: " + MAX_HEADERS_COUNT);
             }
             String value;
             try {
@@ -175,5 +176,25 @@ public final class Headers{
      */
     public List<String> valueByKey(String key) {
         return headersMap.get(key.toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Headers headers = (Headers) o;
+        return Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(headerStrings, headersMap);
+    }
+
+    @Override
+    public String toString() {
+        return "Headers{" +
+                "headerStrings=" + headerStrings +
+                '}';
     }
 }

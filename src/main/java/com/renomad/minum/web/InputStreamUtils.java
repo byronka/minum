@@ -1,6 +1,5 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.state.Constants;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.UtilsException;
 
@@ -8,81 +7,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-
-import static com.renomad.minum.utils.Invariants.*;
-import static com.renomad.minum.utils.ByteUtils.byteListToArray;
 
 /**
  * Handy helpful utilities for working with input streams.
  */
 public final class InputStreamUtils implements IInputStreamUtils {
 
-    private final Constants constants;
-
-
-    public InputStreamUtils(Constants constants) {
-        this.constants = constants;
-    }
-
-    @Override
-    public byte[] readUntilEOF(InputStream inputStream) {
-        final var result = new ArrayList<Byte>();
-        try {
-            for (int i = 0; ; i++) {
-                if (i >= constants.maxReadSizeBytes) {
-                    inputStream.close();
-                    throw new ForbiddenUseException("client sent more bytes than allowed.  Current max: " + constants.maxReadSizeBytes);
-                }
-                int a = inputStream.read();
-                if (a == -1) {
-                    return byteListToArray(result);
-                }
-
-                result.add((byte) a);
-            }
-        } catch (IOException ex) {
-            throw new UtilsException(ex);
-        }
-    }
-
-    @Override
-    public byte[] readChunkedEncoding(InputStream inputStream) {
-        final var result = new ByteArrayOutputStream( );
-        try {
-            while (true) {
-                String countToReadString = readLine(inputStream);
-                if (countToReadString.isEmpty()) {
-                    return new byte[0];
-                }
-                mustNotBeNull(countToReadString);
-                int countToRead = Integer.parseInt(countToReadString, 16);
-
-                result.write(read(countToRead, inputStream));
-
-                readLine(inputStream);
-                if (countToRead == 0) {
-                    readLine(inputStream);
-                    break;
-                }
-
-            }
-        } catch (IOException ex) {
-            throw new UtilsException(ex);
-        }
-        return result.toByteArray();
-    }
+    public static final int MAX_READ_LINE_SIZE_BYTES = 1024;
 
     @Override
     public String readLine(InputStream inputStream) throws IOException  {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
-        final var result = new ByteArrayOutputStream(constants.maxReadLineSizeBytes / 3);
+        final var result = new ByteArrayOutputStream(MAX_READ_LINE_SIZE_BYTES / 3);
         for (int i = 0;; i++) {
-            if (i >= constants.maxReadLineSizeBytes) {
+            if (i >= MAX_READ_LINE_SIZE_BYTES) {
                 inputStream.close();
-                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  Current max: " + constants.maxReadLineSizeBytes);
+                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + MAX_READ_LINE_SIZE_BYTES);
             }
             int a = inputStream.read();
             if (a == -1) return result.toString(StandardCharsets.UTF_8);
@@ -95,9 +37,6 @@ public final class InputStreamUtils implements IInputStreamUtils {
 
     @Override
     public byte[] read(int lengthToRead, InputStream inputStream) {
-        if (lengthToRead >= constants.maxReadSizeBytes) {
-            throw new ForbiddenUseException("client requested to send more bytes than allowed.  Current max: " + constants.maxReadSizeBytes + " asked to receive: " + lengthToRead);
-        }
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.
         byte[] data;

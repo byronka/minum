@@ -2,6 +2,8 @@ package com.renomad.minum.utils;
 
 import org.junit.Test;
 
+import java.security.NoSuchAlgorithmException;
+
 import static com.renomad.minum.testing.TestFramework.assertEquals;
 import static com.renomad.minum.testing.TestFramework.assertThrows;
 
@@ -16,7 +18,7 @@ public class CryptoUtilsTests {
 
     @Test
     public void testCreatePasswordHash_BadAlgorithm() {
-        var ex = assertThrows(RuntimeException.class, () -> CryptoUtils.createPasswordHash("foo_password", "mysalt", "badalgorithm"));
+        var ex = assertThrows(UtilsException.class, () -> CryptoUtils.createPasswordHash("foo_password", "mysalt", "badalgorithm"));
         assertEquals(ex.getMessage(), "java.security.NoSuchAlgorithmException: badalgorithm SecretKeyFactory not available");
     }
 

@@ -33,8 +33,7 @@ public class RequestLineTests {
                 new PathDetails("mypath", "", Map.of()),
                 ONE_DOT_ONE,
                 "testing test",
-                context.getLogger(),
-                context.getConstants().maxQueryStringKeysCount);
+                context.getLogger());
         String rawValue = startLine.getRawValue();
         assertEquals(rawValue, "testing test");
     }

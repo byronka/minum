@@ -34,14 +34,11 @@ public class HeadersTests {
 
     @Test
     public void test_GetAllHeaders_EdgeCase_TooMany() {
-        String input = """
-                foo: bar
-                biz: baz
-                """;
+        String input = "foo: bar\r\n".repeat(72);
         InputStream inputStream = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
 
-        var ex = assertThrows(ForbiddenUseException.class, () -> Headers.getAllHeaders(inputStream, 0, mockInputStreamUtils(() -> "")));
-        assertEquals(ex.getMessage(), "User tried sending too many headers.  Current max: 0");
+        var ex = assertThrows(ForbiddenUseException.class, () -> Headers.getAllHeaders(inputStream, mockInputStreamUtils(() -> "foo: bar")));
+        assertEquals(ex.getMessage(), "User tried sending too many headers.  max: 70");
     }
 
     @Test
@@ -52,7 +49,7 @@ public class HeadersTests {
                 """;
         InputStream inputStream = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
 
-        var result = Headers.getAllHeaders(inputStream, 1, mockInputStreamUtils(() -> null));
+        var result = Headers.getAllHeaders(inputStream, mockInputStreamUtils(() -> null));
         assertEquals(result, new ArrayList<>());
     }
 
@@ -67,15 +64,13 @@ public class HeadersTests {
             throw new IOException("just a test");
         });
 
-        var ex = assertThrows(RuntimeException.class, () -> Headers.getAllHeaders(inputStream, 1, throwingInputStreamUtils));
+        var ex = assertThrows(WebServerException.class, () -> Headers.getAllHeaders(inputStream, throwingInputStreamUtils));
         assertEquals(ex.getMessage(), "java.io.IOException: just a test");
     }
 
     private IInputStreamUtils mockInputStreamUtils(ThrowingSupplier<String, IOException> readLineAction) {
 
         return new IInputStreamUtils() {
-            @Override public byte[] readUntilEOF(InputStream inputStream) {return new byte[0];}
-            @Override public byte[] readChunkedEncoding(InputStream inputStream) {return new byte[0];}
             @Override public String readLine(InputStream inputStream) throws IOException { return readLineAction.get(); }
             @Override public byte[] read(int lengthToRead, InputStream inputStream) {return new byte[0];}
         };

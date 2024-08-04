@@ -30,6 +30,7 @@ final class SocketWrapper implements ISocketWrapper {
     SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) throws IOException {
         this.socket = socket;
         this.hostName = hostName;
+        logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));
         this.socket.setSoTimeout(timeoutMillis);
         this.inputStream = socket.getInputStream();
         writer = socket.getOutputStream();

@@ -38,7 +38,7 @@ public class WebEngineTests {
      */
     @Test
     public void test_createSslSocketWithSpecificKeystore_EdgeCase() {
-        var ex = assertThrows(RuntimeException.class, () -> {
+        var ex = assertThrows(WebServerException.class, () -> {
                 webEngine.createSslSocketWithSpecificKeystore(
                         1234,
                         new URI("http://example.com/").toURL(),

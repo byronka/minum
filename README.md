@@ -20,8 +20,7 @@ public class Main {
 What is this?
 --------------
 
-This web framework, "Minum", provides an all-in-one minimalist foundation for a highly-maintainable 
-single-binary web application. For TDD, by TDD.
+This web framework, "Minum", provides a full-powered minimalist foundation for a web application. For TDD, by TDD.
 
 * Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
 * Around 100% test coverage that runs in 30 seconds without any special setup (`make test_coverage`)
@@ -59,7 +58,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>5.0.0</version>
+    <version>7.0.0</version>
 </dependency>
 ```
 
@@ -79,13 +78,13 @@ Features:
 Size Comparison:
 ----------------
 
-Compiled size: 180 kilobytes.
+Compiled size: 200 kilobytes.
 
 _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,570 | 141,048 | 1,085,405   |
+| 5,027 | 141,048 | 1,085,405   |
 
 See [details](docs/size_comparisons.md)
 

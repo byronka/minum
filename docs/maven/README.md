@@ -25,12 +25,15 @@ Deployment checklist
 - [ ] local testing with new version number
 - [ ] spot-check test logs
 - [ ] confirm howtos
+- [ ] uncomment linting tools in maven-compiler-plugin and examine the output during build.  Note this will be
+     full of false positives, so examine with a critical eye.
+- [ ] adjust code in sample programs as needed, run their test programs 
 - [ ] review generated bundle.jar, particularly its pom and manifest
 - [ ] update versions in quick start, tutorial, and example projects
 - [ ] squash the changes to a single commit
-- [ ] generate reports: site page, pitest report, javadoc
-- [ ] add Github release
-
+- [ ] generate and examine reports: site page, pitest report, javadoc
+- [ ] publish to Maven central
+- [ ] push to Github, add Release
 
 Gnupg - GNU privacy guard
 -------------------------

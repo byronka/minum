@@ -102,7 +102,7 @@ public class SearchUtilsTests {
         items.add(null);
 
         // if we find it, return it
-        var ex = assertThrows(RuntimeException.class, () -> {
+        var ex = assertThrows(UtilsException.class, () -> {
             findExactlyOne(items.stream(), x -> x.equals("b"), () -> {
                 throw new Exception("Just testing");
             });

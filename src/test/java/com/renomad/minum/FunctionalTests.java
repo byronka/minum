@@ -145,7 +145,7 @@ public class FunctionalTests {
 
         logger.test("visit the page for uploading photos, authenticated");
         HtmlParseNode uploadNodeFound1 = ft.get("upload", authHeader).searchOne(TagName.LABEL, Map.of("for", "image_uploads"));
-        assertEquals(uploadNodeFound1.innerText(), "Choose images to upload (PNG, JPG)");
+        assertTrue(uploadNodeFound1.innerText().contains("Choose images to upload (PNG, JPG)"));
 
         logger.test("upload some content, authenticated");
         ft.post("upload", "image_uploads=123&short_description=bar&long_description=foofoo", authHeader);
@@ -242,7 +242,7 @@ public class FunctionalTests {
         // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
 
         try {
-            ft.get("a".repeat(context.getConstants().maxReadLineSizeBytes + 1));
+            ft.get("a".repeat(InputStreamUtils.MAX_READ_LINE_SIZE_BYTES + 1));
         } catch (Exception ex) {
             // this is kind of a weird case I'm looking into.
             // On Windows, this runs right through without failing, but on Mac,
@@ -258,8 +258,7 @@ public class FunctionalTests {
         // remember, we're the client, we don't have immediate access to the server here.  So,
         // we have to wait for it to get through some processing before we check.
         MyThread.sleep(70);
-        String failureMsg = logger.findFirstMessageThatContains("client sent more bytes", 10);
-        assertTrue(failureMsg.contains("is looking for vulnerabilities, for this: client sent more bytes than allowed for a single line.  Current max: 1024"));
+        assertTrue(logger.doesMessageExist("127.0.0.1 is looking for vulnerabilities, for this: client sent more bytes than allowed for a single line.  max: 1024", 10));
     }
 
     /**

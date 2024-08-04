@@ -1,13 +1,22 @@
 Recap, all changes to date since beta release
 ---------------------------------------------
 
-* Converted project to use Maven instead of Make, following convention for file locations
-* Increased test coverage to 100% statement and branch
-* Refactoring
+* Major versions:
+  * 7: Ability to read bodies more efficiently from Request streams
+  * 6: Able to stream responses to clients
+  * 5: Applying recommendations from linters, aggressive refactoring
+  * 4: Aggressive refactoring, system exclusively on virtual threads, stricter key usage in templates
+  * 3: Code coverage at 100%, new pre and post handler, leaner database API, template respects indentation
+  * 2: Renamings to align with HTTP spec, new tutorial added, added Gzip compression
+  * 1: Various adjustments per recommendations, heavy refactoring, switch to use Maven as build tool
+  * 0: Beta release
+* Converted project to use Maven for building instead of Make, adjusting to follow Maven directory conventions.
+* Increased test code coverage to 100% (statement and branch)
+* Refactorings:
   * Many small adjustments to expose critical parts for easier testing
-  * Made most classes "final" to disallow extending
+  * Made all classes "final" to disallow extending
   * Simplified HTTP parsing design to improve debugging
-* System primarily runs on virtual threads
+* System exclusively runs on virtual threads
 * Improved documentation - JavaDocs on variables and methods, developer handbook
 * Tutorial added
 * Large example project added (Memoria_project)
@@ -21,16 +30,64 @@ Recap, all changes to date since beta release
   * All test assertions allow adding a message to be shown at failure
   * Fewer CRUD methods on database.  Instead of write and update, it is now only write.  An index of 0 means to create,
     and a positive index means to update.
+  * Different handling of data for form-urlencoded request bodies versus multipart.
 * New features added
   * New ability to add code before and after endpoint processing (registerPreHandler and registerLastMinuteHandler)
   * GZIP compression for text HTTP responses
   * In templating:
     * values with newlines will all get indented
     * less lenient about unused keys - an exception will be thrown
-  * Streaming - this allows the server to send very large data without incurring heavy memory usage.  Helper
-    methods provided to enable easier streaming of files, and methods exist to write custom streaming code.
-* No new major capabilities added
+  * Streaming:
+    * Allow the server to send very large data without incurring heavy memory usage.  Helper
+      methods provided to enable easier streaming of files, and methods exist to write custom streaming code.
+    * Request object provides access to ISocketWrapper, enabling user-built web handlers to control
+      data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
+* No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
+
+v7.0.0 - July 14, 2024
+----------------------
+
+Handle incoming body better
+
+Breaking changes: 
+* Request and Response have had interfaces extracted, and the WebFramework.registerPath method
+  has been adjusted to take a parameter expecting those interfaces.  This was done because close
+  testing of the handler requires an instantiated Request object, and building this as a concrete
+  implementation was more arduous than the alternative of using an interface.
+* Request has converted from a record to a class, with appropriate getter methods renamed:
+  * headers() becomes getHeaders()
+  * body() becomes getBody()
+  * requestLine() becomes getRequestLine()
+  * remoteRequester() becomes getRemoteRequester()
+* constants removed from configuration file:
+  * MAX_READ_LINE_SIZE_BYTES - permanently set to 1kb.  a kilobyte is a sane default for the maximum header line we expect to read.
+  * MAX_QUERY_STRING_KEYS_COUNT - permanently set to 50 key-value pairs, which is certainly enough for a query in a URL.
+  * MOST_COOKIES_WELL_LOOK_THROUGH - this shouldn't have even been configurable - it's for a sample authentication program.
+  * MAX_HEADERS_COUNT - permanently set to 70, which is the most headers our server should handle, and that should be way more than enough.
+  * MAX_BODY_KEYS_URL_ENCODED - removed entirely.  Since the developer is in charge of what they are sending, we'll just let them send whatever.
+                                the difference between this and the query string is that the body is only read
+* Handling multipart/form-data is done differently
+  * Previously, the intention was making reasonable assumptions to avoid overly 
+    complicating the API.  However, due to the way multipart data is sent by browsers,
+    it was necessary to change.  Now, the request type is indicated by its property Body.getBodyType.
+    Users must access their data in different ways, depending on the bodytype.  For url-encoded forms,
+    continue to use .asBytes and .asString, but for multipart it is necessary to use .getPartitionHeaders
+    and getPartitionByName to get partitions, and then to examine the contentDisposition.
+* Both multipart and url-encoded data are pulled from the network by custom InputStream implementations.  This provides
+  flexibility and consistency - developers may choose to pull the whole body like before, which is convenient,
+  but if they want to pull larger data, it is supported through getUrlEncodedDataIterable and
+  getMultiPartIterable in BodyProcessor.
+
+* New getter added to Request:
+  * getSocketWrapper - The `Request` object was previously of type "record", which provides getters for its data automatically.
+    It was necessary to convert `Request` to a class, so we could control the `getBody()` method better.  Now, when calling
+    to `getBody()`, it will process the data off the socket at that time.  Previously, the server would process every 
+    incoming body, taking memory to do so.  This gives an opportunity to choose whether to read the whole body at once, or
+    to pull in the data in more fine-grained fashion by using `getSocketWRapper()`.  Thanks to this adjustment, the 
+    security concerns around reading large bodies is somewhat mitigated, and so `MAX_READ_SIZE_BYTES` is no longer needed.
+* Updated versions of some test-tool and maven plugin dependencies.
+
 
 v6.0.0 - July 7, 2024
 ---------------------

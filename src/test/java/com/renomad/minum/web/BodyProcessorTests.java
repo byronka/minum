@@ -1,16 +1,14 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.utils.InvariantException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,28 +36,54 @@ public class BodyProcessorTests {
     }
 
     /**
-     * Edge case - if a multipart form body is missing a valid name value in its headers
+     * Edge case - if a multipart form body is missing a valid name value in its headers, ah
+     * well, such is life.  WOn't be particularly useful - but then, if we're getting
+     * such malformed data, probably warrants further investigation into what exactly
+     * is going on.
      */
     @Test
     public void test_MultiPart_EdgeCase_MissingNameInHeaders() {
         String body = """
-                \r
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
                 Content-Disposition: form-data; NO_NAME="text1"\r
                 \r
                 I am a value that is text\r
                 --i_am_a_boundary--\r
-                """.stripIndent();
+                """.stripLeading();
         var bodyProcessor = new BodyProcessor(context);
 
-        var bodyResult = bodyProcessor.extractBodyFromBytes(
+        bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: multipart/form-data; boundary=i_am_a_boundary",
-                body.getBytes(StandardCharsets.UTF_8)
-                );
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: Error: No name value set on multipart partition"));
+    }
 
-        assertEquals(bodyResult, new Body(Map.of(), body.getBytes(StandardCharsets.UTF_8), Map.of()));
+    /**
+     * It is absolutely possible to have basically nothing returned in one of the
+     * partitions - all that needs to happen is for the user to provide no data for
+     * an input.
+     */
+    @Test
+    public void test_MultiPart_EdgeCase_NoContentInPartition() {
+        String multipartBody = """
+                --i_am_a_boundary\r
+                Content-Disposition: form-data; name="text1"\r
+                \r
+                \r
+                --i_am_a_boundary--\r
+                """.stripLeading();
+        var bodyProcessor = new BodyProcessor(context);
+
+        Body body = bodyProcessor.extractBodyFromInputStream(
+                multipartBody.length(),
+                "content-type: multipart/form-data; boundary=i_am_a_boundary",
+                new ByteArrayInputStream(multipartBody.getBytes(StandardCharsets.US_ASCII)));
+
+        var text = body.getPartitionByName("text1").getFirst();
+        assertEquals("", text.getContentAsString());
+
     }
 
     /**
@@ -68,21 +92,16 @@ public class BodyProcessorTests {
      */
     @Test
     public void test_UrlEncoded_EdgeCase_Malformed() {
-        String body = """
-                Foo
-                """.strip();
+        String body = "Foo";
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
 
-        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body");
-        assertEquals(unableToParseThisBody, "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: Range [0, -1) out of bounds for length 3");
-        assertEquals(bodyResult.getKeys(), Set.of());
-        assertEquals(bodyResult.asString(), "Foo");
+        assertTrue(logger.doesMessageExist("Unable to parse this body. no key found during parsing"));
+        assertEquals(bodyResult.getBodyType(), BodyType.UNRECOGNIZED);
     }
 
     /**
@@ -94,47 +113,15 @@ public class BodyProcessorTests {
         String body = "a".repeat(BodyProcessor.MAX_SIZE_DATA_RETURNED_IN_EXCEPTION + 1);
         var bodyProcessor = new BodyProcessor(context);
 
-        var bodyResult = bodyProcessor.extractBodyFromBytes(
+        var bodyResult = bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
 
-        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body");
-        assertEquals(unableToParseThisBody, "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: Range [0, -1) out of bounds for length 1025");
+        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body", 1);
+        assertEquals(unableToParseThisBody, "Unable to parse this body. returning what we have so far.  Exception message: Maximum size for name attribute is 50 ascii characters");
         assertEquals(bodyResult.getKeys(), Set.of());
-        assertTrue(bodyResult.asString().contains("aaaaaaaaaa ... (remainder of data trimmed)"));
-    }
-
-
-    /**
-     * Edge case - if a multipart form body is missing a valid name value in its headers, with large data
-     */
-    @Test
-    public void test_MultiPart_EdgeCase_MissingNameInHeaders_LargeData() {
-        String body =
-                """
-                \r
-                --i_am_a_boundary\r
-                Content-Type: text/plain\r
-                Content-Disposition: form-data; NO_NAME="text1"\r
-                \r
-                I am a value that is
-                """ +
-                        "a".repeat(BodyProcessor.MAX_SIZE_DATA_RETURNED_IN_EXCEPTION+1) +
-                """
-                text\r
-                --i_am_a_boundary--\r
-                """.stripIndent();
-        var bodyProcessor = new BodyProcessor(context);
-
-        var bodyResult = bodyProcessor.extractBodyFromBytes(
-                body.length(),
-                "content-type: multipart/form-data; boundary=i_am_a_boundary",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
-
-        assertEquals(bodyResult, new Body(Map.of(), body.getBytes(StandardCharsets.UTF_8), Map.of()));
+        assertEquals(bodyResult.toString(), "Body{bodyMap={}, raw=[], partitions=[], bodyType=UNRECOGNIZED}");
     }
 
     /**
@@ -145,7 +132,6 @@ public class BodyProcessorTests {
     @Test
     public void test_MultiPart_Avoid_ExtraBytes() {
         String body = """
-                \r
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
                 Content-Type: text/plain\r
@@ -155,12 +141,11 @@ public class BodyProcessorTests {
                 """;
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
-        assertEqualByteArray(bodyResult.asBytes("myfile"), "1".getBytes(StandardCharsets.UTF_8));
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+        assertEqualByteArray(bodyResult.getPartitionByName("myfile").getFirst().getContent(), "1".getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -171,7 +156,6 @@ public class BodyProcessorTests {
     @Test
     public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions() {
         String body = """
-                \r
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
                 Content-Type: text/plain\r
@@ -186,13 +170,12 @@ public class BodyProcessorTests {
                 """;
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
-        assertEqualByteArray(bodyResult.asBytes("myfile"), "1".getBytes(StandardCharsets.UTF_8));
-        assertEqualByteArray(bodyResult.asBytes("myfile2"), "2".getBytes(StandardCharsets.UTF_8));
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+        assertEqualByteArray(bodyResult.getPartitionByName("myfile").getFirst().getContent(), "1".getBytes(StandardCharsets.UTF_8));
+        assertEqualByteArray(bodyResult.getPartitionByName("myfile2").getFirst().getContent(), "2".getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -203,7 +186,6 @@ public class BodyProcessorTests {
     @Test
     public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions_Bytes() {
         String body = """
-                \r
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
                 Content-Type: application/octet-stream\r
@@ -220,13 +202,49 @@ public class BodyProcessorTests {
                 """;
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
-        assertEqualByteArray(bodyResult.asBytes("myfile"), new byte[]{1,2,3});
-        assertEqualByteArray(bodyResult.asBytes("myfile2"), new byte[]{4,5,6});
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+        assertTrue(bodyResult.asBytes("myfile") == null);
+        assertTrue(bodyResult.asBytes("myfile2") == null);
+        assertEqualByteArray(bodyResult.getPartitionByName("myfile").getFirst().getContent(), new byte[]{1,2,3});
+        assertEqualByteArray(bodyResult.getPartitionByName("myfile2").getFirst().getContent(), new byte[]{4,5,6});
+    }
+
+    /**
+     * If the input element has the "multiple" attribute, the multipart
+     * message will have the name multiple times, but with differing
+     * filenames.  How should we handle that?
+     */
+    @Test
+    public void test_MultiPart_MultipleFilesSameInputName() {
+        String body = """
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
+                Content-Type: application/octet-stream\r
+                \r
+                """+new String(new byte[]{1,2,3}, StandardCharsets.UTF_8)+"""
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
+                Content-Disposition: form-data; name="myfile"; filename="two.txt"\r
+                Content-Type: application/octet-stream\r
+                \r
+                """+new String(new byte[]{4,5,6}, StandardCharsets.UTF_8)+"""
+                \r
+                ------WebKitFormBoundaryEdMgstSu0ppszI8o--\r
+                """;
+        var bodyProcessor = new BodyProcessor(context);
+
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
+                body.length(),
+                "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+        assertTrue(bodyResult.asBytes("myfile") == null);
+        assertTrue(bodyResult.asBytes("myfile2") == null);
+        List<Partition> filePartitions = bodyResult.getPartitionByName("myfile");
+        assertEqualByteArray(filePartitions.getFirst().getContent(), new byte[]{1,2,3});
+        assertEqualByteArray(filePartitions.getLast().getContent(), new byte[]{4,5,6});
     }
 
     @Test
@@ -235,18 +253,19 @@ public class BodyProcessorTests {
 
         // the content type should be multipart form data and also mention the boundary value -
         // we are not including it, leading to this edge case branch being invoked.
-        Body result = bodyProcessor.extractBodyFromBytes(25, "multipart/form-data", new byte[0]);
+        Body result = bodyProcessor.extractBodyFromInputStream(25, "multipart/form-data", new ByteArrayInputStream(new byte[0]));
 
-        assertTrue(logger.doesMessageExist("Did not find a valid boundary value for the multipart input"));
-        assertEquals(result, new Body(Map.of(), new byte[0], Map.of()));
+        assertTrue(logger.doesMessageExist("The boundary value was blank for the multipart input. Returning an empty map"));
+        assertEquals(result, new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED));
     }
 
     @Test
     public void test_extractBodyFromBytes_EdgeCase_contentLengthZero() {
         var bodyProcessor = new BodyProcessor(context);
-        Body result = bodyProcessor.extractBodyFromBytes(0, "application/x-www-form-urlencoded", new byte[0]);
+        Body result = bodyProcessor.extractBodyFromInputStream(0, "application/x-www-form-urlencoded", new ByteArrayInputStream(new byte[0]));
         assertEqualByteArray(result.asBytes(), new byte[0]);
-        assertTrue(logger.doesMessageExist("did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body"));
+        assertEquals(result.getBodyType(), BodyType.NONE);
+        assertTrue(logger.doesMessageExist("the length of the body was 0, returning an empty Body"));
     }
 
     /**
@@ -258,7 +277,6 @@ public class BodyProcessorTests {
         final var baos = new ByteArrayOutputStream();
         baos.write(
                 """
-                 \r
                  ------WebKitFormBoundaryGlzbZJMmR2xSuAaT\r
                  Content-Disposition: form-data; name="person_id"\r
                  \r
@@ -277,82 +295,59 @@ public class BodyProcessorTests {
                 """.getBytes(StandardCharsets.UTF_8));
         var bodyProcessor = new BodyProcessor(context);
         byte[] byteArray = baos.toByteArray();
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(byteArray);
 
-        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+        StopwatchUtils stopwatch = new StopwatchUtils().startTimer();
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
                 byteArray.length,
                 "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryGlzbZJMmR2xSuAaT",
-                byteArray
-        );
+                inputStream);
 
-        byte[] bytes = bodyResult.asBytes("image_uploads");
+        byte[] bytes = bodyResult.getPartitionByName("image_uploads").getFirst().getContent();
         assertEquals(kittyImageBytes.length, bytes.length);
+        assertEquals(bodyResult.getBodyType(), BodyType.MULTIPART);
         assertEqualByteArray(kittyImageBytes, bytes);
+        long timeTakenMillis = stopwatch.stopTimer();
+        logger.logDebug(() -> "Took " + timeTakenMillis + " milliseconds to process this multipart data");
     }
 
-    @Test
-    public void test_tokenizer_HappyPath() {
-        List<String> results = BodyProcessor.tokenizer("a,b,c", ',', 10);
-        assertEqualsDisregardOrder(results, List.of("a","b","c"));
-    }
 
-    @Test
-    public void test_tokenizer_PartitionCountExceeded() {
-        var ex = assertThrows(ForbiddenUseException.class, () -> BodyProcessor.tokenizer("a,b,c", ',', 2));
-        assertEquals(ex.getMessage(), "Request made for too many partitions in the tokenizer.  Current max: 2");
-    }
 
+
+    /**
+     * Current design decision is to log that we
+     * don't handle this and return an empty body.
+     */
     @Test
-    public void test_extractData() {
+    public void test_ChunkedTransfer_NegativeCase() {
         var bodyProcessor = new BodyProcessor(context);
         var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
-        Headers headers = new Headers(List.of("Content-Length: 0"));
+        Headers headers = new Headers(List.of("Transfer-Encoding: chunked"));
 
         Body body = bodyProcessor.extractData(inputStream, headers);
-        assertEquals(body.asString(), "ab");
+        assertEquals(body.asString(), "");
+        assertTrue(logger.doesMessageExist("client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type."));
+    }
+
+    /**
+     * If we receive a request with a content type but no data, we'll return
+     * an empty body instance.
+     */
+    @Test
+    public void test_extractData_Empty() {
+        var bodyProcessor = new BodyProcessor(context);
+        var inputStream = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
+        Headers headers = new Headers(List.of());
+
+        Body body = bodyProcessor.extractData(inputStream, headers);
+        assertEquals(body, Body.EMPTY);
     }
 
     @Test
     public void test_GettingCorrectContentType_MissingContentType() {
-        var response = Response.buildResponse(CODE_200_OK, Map.of(), "foo foo");
-        var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response, new StringBuilder()));
+        var response = (Response)Response.buildResponse(CODE_200_OK, Map.of(), "foo foo");
+        var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response));
         assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, body=[102, 111, 111, 32, 102, 111, 111], bodyLength=7} Request: null");
-    }
-
-    @Test
-    public void test_PotentiallyCompress_HappyPath() {
-        StringBuilder headerStringBuilder = new StringBuilder();
-        Headers headers = new Headers(List.of("accept-encoding: gzip"));
-        Map<String, String> extraHeaders = Map.of("content-type", "text/plain");
-        VaryHeader varyHeader = new VaryHeader();
-
-        Response response = Response.buildResponse(CODE_200_OK, extraHeaders, "foo bar".repeat(1000));
-        var response2 = WebFramework.potentiallyCompress(
-                headers,
-                response,
-                headerStringBuilder,
-                varyHeader);
-
-        assertEquals(response2.getBodyLength(), (long) 55);
-    }
-
-    /**
-     * If the content type does not include "text", we won't compress.
-     */
-    @Test
-    public void test_PotentiallyCompress_MissingContentType() {
-        StringBuilder headerStringBuilder = new StringBuilder();
-        Headers headers = new Headers(List.of("accept-encoding: gzip"));
-        Map<String, String> extraHeaders = Map.of("content-type", "");
-        VaryHeader varyHeader = new VaryHeader();
-
-        Response response = Response.buildResponse(CODE_200_OK, extraHeaders, "foo bar".repeat(1000));
-        WebFramework.potentiallyCompress(
-                headers,
-                response,
-                headerStringBuilder,
-                varyHeader);
-
-        assertEquals(response.getBodyLength(),  (long) 7000);
     }
 
     /**
@@ -362,17 +357,20 @@ public class BodyProcessorTests {
     @Test
     public void test_DataByKey_HappyPath() {
         String body = "a=hello&b=123";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII));
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromBytes(
+        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                body.getBytes(StandardCharsets.UTF_8)
-        );
+                inputStream);
 
         assertEquals(bodyResult.getKeys(), Set.of("a","b"));
         assertEquals(bodyResult.asString("a"), "hello");
         assertEquals(bodyResult.asString("b"), "123");
+        assertEquals(bodyResult.getBodyType(), BodyType.FORM_URL_ENCODED);
 
     }
+
+
 }

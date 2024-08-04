@@ -10,6 +10,7 @@ import java.net.SocketAddress;
 /**
  * This is the public interface to {@link ISocketWrapper}, whose
  * purpose is to make our lives easier when working with {@link java.net.Socket}.
+ * Created to provide better testing access
  */
 public interface ISocketWrapper extends Closeable {
 

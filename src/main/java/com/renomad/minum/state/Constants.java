@@ -31,11 +31,6 @@ public final class Constants {
         keystorePath = properties.getProperty("KEYSTORE_PATH",  "");
         keystorePassword = properties.getProperty("KEYSTORE_PASSWORD",  "");
         maxReadSizeBytes = getProp("MAX_READ_SIZE_BYTES",  10 * 1024 * 1024);
-        maxReadLineSizeBytes = getProp("MAX_READ_LINE_SIZE_BYTES", 1024);
-        maxQueryStringKeysCount = getProp("MAX_QUERY_STRING_KEYS_COUNT", 50);
-        mostCookiesWellLookThrough = getProp("MOST_COOKIES_WELL_LOOK_THROUGH", 5);
-        maxHeadersCount = getProp("MAX_HEADERS_COUNT", 70);
-        maxBodyKeysUrlEncoded = getProp("MAX_BODY_KEYS_URL_ENCODED", 1000);
         socketTimeoutMillis = getProp("SOCKET_TIMEOUT_MILLIS", 7 * 1000);
         keepAliveTimeoutSeconds = getProp("KEEP_ALIVE_TIMEOUT_SECONDS", 3);
         vulnSeekingJailDuration = getProp("VULN_SEEKING_JAIL_DURATION", 10 * 1000);
@@ -90,39 +85,9 @@ public final class Constants {
     public final String keystorePassword;
 
     /**
-     * this is the most bytes we'll read from a socket
+     * this is the most bytes we'll read while parsing the Request body
      */
     public final int maxReadSizeBytes;
-
-    /**
-     * The most bytes we'll read as a single line.
-     * Could be pretty large, for example, I have seen cases where
-     * the cookies being sent, like on localhost, could
-     * be in excess of 500 bytes.
-     */
-    public final int maxReadLineSizeBytes;
-
-    /**
-     * A user can only provide up to this many query string keys
-     */
-    public final int maxQueryStringKeysCount;
-
-    /**
-     * Totally nonsense if we find more than this many matches of
-     * cookies in the headers.
-     */
-    public final int mostCookiesWellLookThrough;
-
-    /**
-     * We'll only read this many headers off a message.  Anything more is bonkers / hacking.
-     */
-    public final int maxHeadersCount;
-
-    /**
-     * We have a tokenizer that can split a string into partitions.  When
-     * would we ever need it to split this many?
-     */
-    public final int maxBodyKeysUrlEncoded;
 
     /**
      * How long will we let a socket live before we crash it closed?
@@ -317,12 +282,12 @@ public final class Constants {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Constants constants = (Constants) o;
-        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && maxQueryStringKeysCount == constants.maxQueryStringKeysCount && mostCookiesWellLookThrough == constants.mostCookiesWellLookThrough && maxHeadersCount == constants.maxHeadersCount && maxBodyKeysUrlEncoded == constants.maxBodyKeysUrlEncoded && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
+        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, maxReadLineSizeBytes, maxQueryStringKeysCount, mostCookiesWellLookThrough, maxHeadersCount, maxBodyKeysUrlEncoded, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxElementsLruCacheStaticFiles);
+        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxElementsLruCacheStaticFiles);
     }
 }
 

@@ -1,95 +1,138 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StringUtils;
 
-import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
-
 /**
  * This code is responsible for extracting the {@link Body} from
  * an HTTP request.
  */
-final class BodyProcessor {
+final class BodyProcessor implements IBodyProcessor {
 
     private final ILogger logger;
     private final IInputStreamUtils inputStreamUtils;
-    private final Context context;
-
-    /**
-     * When parsing fails, we would like to send the raw text
-     * back to the user so the development team can determine
-     * why parsing went awry.  But, when we are sent a huge file,
-     * we would rather not include all that data in the logs.
-     * So we will cap out at this value.
-     */
-    static final int MAX_SIZE_DATA_RETURNED_IN_EXCEPTION = 1024;
+    private int countOfPartitions;
+    private final Constants constants;
 
     BodyProcessor(Context context) {
-        this.context = context;
+        this.constants = context.getConstants();
         this.logger = context.getLogger();
-        this.inputStreamUtils = new InputStreamUtils(context.getConstants());
+        this.inputStreamUtils = new InputStreamUtils();
+        this.countOfPartitions = 0;
     }
 
-    /**
-     * read the body if one exists
-     * <br>
-     * There are really only two ways to read the body.
-     * 1. the client tells us how many bytes to read
-     * 2. the client uses "transfer-encoding: chunked"
-     * <br>
-     * In either case, it is absolutely critical that the client gives us
-     * a way to know ahead of time how many bytes to read, so we (the server)
-     * can stop reading at precisely the right point.  There's simply no
-     * other way to reasonably do this.
-     */
-    Body extractData(InputStream is, Headers h) {
+    @Override
+    public Body extractData(InputStream is, Headers h) {
         final var contentType = h.contentType();
 
-        byte[] bodyBytes = h.contentLength() > 0 ?
-                inputStreamUtils.read(h.contentLength(), is) :
-                inputStreamUtils.readChunkedEncoding(is);
+        if (h.contentLength() >= 0) {
+            if (h.contentLength() >= constants.maxReadSizeBytes) {
+                throw new ForbiddenUseException("It is disallowed to process a body with a length more than " + constants.maxReadSizeBytes + " bytes");
+            }
+        } else {
+            // we don't process chunked transfer encodings.  just bail.
+            List<String> transferEncodingHeaders = h.valueByKey("transfer-encoding");
+            if (List.of("chunked").equals(transferEncodingHeaders)) {
+                logger.logDebug(() -> "client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type.");
+            }
+            return Body.EMPTY;
+        }
 
-        return extractBodyFromBytes(h.contentLength(), contentType, bodyBytes);
+        return extractBodyFromInputStream(h.contentLength(), contentType, is);
     }
 
     /**
      * Handles the parsing of the body data for either form-urlencoded or
      * multipart/form-data
+     *
      * @param contentType a mime value which must be either application/x-www-form-urlencoded
      *                    or multipart/form-data.  Anything else will cause a new Body to
      *                    be created with the body bytes, unparsed.  There are a number of
      *                    cases where this makes sense - if the user is sending us plain text,
      *                    html, json, or css, we want to simply accept the data and not try to parse it.
-     * @param bodyBytes the full body of this HTTP message, as bytes.
      */
-    Body extractBodyFromBytes(int contentLength, String contentType, byte[] bodyBytes) {
-        if (contentLength > 0 && contentType.contains("application/x-www-form-urlencoded")) {
-            return parseUrlEncodedForm(StringUtils.byteArrayToString(bodyBytes));
-        } else if (contentType.contains("multipart/form-data")) {
-            String boundaryKey = "boundary=";
-            int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
-            if (indexOfBoundaryKey > 0) {
-                // grab all the text after the key
-                String boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
-                return parseMultiform(bodyBytes, boundaryValue);
-            }
-            String parsingError = "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
-            logger.logDebug(() -> parsingError);
-            return new Body(Map.of(), bodyBytes, Map.of());
-        } else {
-            logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning an empty map and the raw bytes for the body");
-            return new Body(Map.of(), bodyBytes, Map.of());
+    Body extractBodyFromInputStream(int contentLength, String contentType, InputStream is) {
+        // if the body is zero bytes long, just return
+        if (contentLength == 0) {
+            logger.logDebug(() -> "the length of the body was 0, returning an empty Body");
+            return Body.EMPTY;
         }
+
+        if (contentType.contains("application/x-www-form-urlencoded")) {
+            return parseUrlEncodedForm(is, contentLength);
+        } else if (contentType.contains("multipart/form-data")) {
+            String boundaryValue = determineBoundaryValue(contentType);
+            return parseMultipartForm(contentLength, boundaryValue, is);
+        } else {
+            logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning the raw bytes for the body.  Content-Type was: " + contentType);
+            // we can return the whole byte array here because we never read from it
+            return new Body(Map.of(), inputStreamUtils.read(contentLength, is), List.of(), BodyType.UNRECOGNIZED);
+        }
+    }
+
+    /**
+     * Parse multipart/form protocol.
+     * @param contentLength the length of incoming data, found in the "content-length" header
+     * @param boundaryValue the randomly-generated boundary value between the partitions.  Research
+     *                      multipart/form data protocol for further information.
+     * @param inputStream A stream of bytes coming from the socket.
+     */
+    private Body parseMultipartForm(int contentLength, String boundaryValue, InputStream inputStream) {
+
+        if (boundaryValue.isBlank()) {
+            logger.logDebug(() -> "The boundary value was blank for the multipart input. Returning an empty map");
+            return new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED);
+        }
+
+        List<Partition> partitions = new ArrayList<>();
+
+        try {
+            for (StreamingMultipartPartition p : getMultiPartIterable(inputStream, boundaryValue, contentLength)) {
+                countOfPartitions += 1;
+                if (countOfPartitions >= MAX_BODY_KEYS_URL_ENCODED) {
+                    throw new WebServerException("Error: body had excessive number of partitions (" + countOfPartitions + ").  Maximum allowed: " + MAX_BODY_KEYS_URL_ENCODED);
+                }
+                partitions.add(new Partition(p.getHeaders(), p.readAllBytes(), p.getContentDisposition()));
+            }
+
+
+        } catch (Exception ex) {
+            logger.logDebug(() -> "Unable to parse this body. returning what we have so far.  Exception message: " + ex.getMessage());
+            // we have to return nothing for the raw bytes, because at this point we are halfway through
+            // reading the inputstream and don't want to return broken data
+            return new Body(Map.of(), new byte[0], partitions, BodyType.MULTIPART);
+        }
+        if (partitions.isEmpty()) {
+            return new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED);
+        } else {
+            return new Body(Map.of(), new byte[0], partitions, BodyType.MULTIPART);
+        }
+    }
+
+    /**
+     * Given the "content-type" header, determine the boundary value.  A typical
+     * multipart content-type header might look like this: <pre>Content-Type: multipart/form-data; boundary=i_am_a_boundary</pre>
+     */
+    private static String determineBoundaryValue(String contentType) {
+        String boundaryKey = "boundary=";
+        String boundaryValue = "";
+        int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
+        if (indexOfBoundaryKey > 0) {
+            // grab all the text after the key to obtain the boundary value
+            boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
+        }
+        return boundaryValue;
     }
 
 
@@ -101,47 +144,40 @@ final class BodyProcessor {
      * <p>
      * for example, {@code valuea=3&valueb=this+is+something}
      */
-    Body parseUrlEncodedForm(String input) {
-        if (input.isEmpty()) return Body.EMPTY;
+    Body parseUrlEncodedForm(InputStream is, int contentLength) {
+        if (contentLength == 0) {
+            return Body.EMPTY;
+        }
         final var postedPairs = new HashMap<String, byte[]>();
 
         try {
-            final var splitByAmpersand = tokenizer(input, '&', context.getConstants().maxBodyKeysUrlEncoded);
 
-            for (final var s : splitByAmpersand) {
-                final var pair = splitKeyAndValue(s);
-                mustBeTrue(!pair[0].isBlank(), "The key must not be blank");
-                final var value = StringUtils.decode(pair[1]);
-                final var convertedValue = value == null ? "".getBytes(StandardCharsets.UTF_8) : value.getBytes(StandardCharsets.UTF_8);
-                final var result = postedPairs.put(pair[0], convertedValue);
+            for (final var keyValue : getUrlEncodedDataIterable(is, contentLength)) {
+                countOfPartitions += 1;
+                if (countOfPartitions >= MAX_BODY_KEYS_URL_ENCODED) {
+                    throw new WebServerException("Error: body had excessive number of partitions ("+countOfPartitions+").  Maximum allowed: " + MAX_BODY_KEYS_URL_ENCODED);
+                }
+                String value = new String(keyValue.getUedg().readAllBytes(), StandardCharsets.US_ASCII);
+                String key = keyValue.getKey();
+                final var decodedValue = StringUtils.decode(value);
+                final var convertedValue = decodedValue == null ? "".getBytes(StandardCharsets.UTF_8) : decodedValue.getBytes(StandardCharsets.UTF_8);
+
+                final var result = postedPairs.put(key, convertedValue);
 
                 if (result != null) {
-                    throw new InvariantException(pair[0] + " was duplicated in the post body - had values of " + StringUtils.byteArrayToString(result) + " and " + pair[1]);
+                    throw new WebServerException("Error: key (" +key + ") was duplicated in the post body - previous version was " + new String(result, StandardCharsets.US_ASCII) + " and recent data was " + decodedValue);
                 }
             }
         } catch (Exception ex) {
-            String dataToReturn = input;
-            if (input.length() > MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) {
-                dataToReturn = input.substring(0, MAX_SIZE_DATA_RETURNED_IN_EXCEPTION) + " ... (remainder of data trimmed)";
-            }
-            logger.logDebug(() -> "Unable to parse this body. returning an empty map and the raw bytes for the body.  Exception message: " + ex.getMessage());
-            return new Body(Map.of(), dataToReturn.getBytes(StandardCharsets.UTF_8), Map.of());
+            logger.logDebug(() -> "Unable to parse this body. returning what we have so far.  Exception message: " + ex.getMessage());
+            // we have to return nothing for the raw bytes, because at this point we are halfway through
+            // reading the inputstream and don't want to return broken data
+            return new Body(postedPairs, new byte[0], List.of(), BodyType.UNRECOGNIZED);
         }
-        return new Body(postedPairs, input.getBytes(StandardCharsets.UTF_8), Map.of());
-    }
-
-    /**
-     * This splits a key from its value, following the HTTP pattern
-     * of "key=value". (that is, a key string, concatenated to an "equals"
-     * character, concatenated to the value, with no spaces [and the key
-     * and value are URL-encoded])
-     * @param formInputValue a string like "key=value"
-     */
-    private String[] splitKeyAndValue(String formInputValue) {
-        final var locationOfEqual = formInputValue.indexOf("=");
-        return new String[] {
-                formInputValue.substring(0, locationOfEqual),
-                formInputValue.substring(locationOfEqual+1)};
+        // we return nothing for the raw bytes because the code for parsing the streaming data
+        // doesn't begin with a fully-read byte array - it pulls data off the stream one byte
+        // at a time.
+        return new Body(postedPairs, new byte[0], List.of(), BodyType.FORM_URL_ENCODED);
     }
 
     /**
@@ -161,109 +197,134 @@ final class BodyProcessor {
      * </pre>
      */
     private static final Pattern multiformNameRegex = Pattern.compile("\\bname\\b=\"(?<namevalue>.*?)\"");
+    private static final Pattern multiformFilenameRegex = Pattern.compile("\\bfilename\\b=\"(?<namevalue>.*?)\"");
 
-    /**
-     * Extract multipart/form data from a body.  See docs/http_protocol/returning_values_from_multipart_rfc_7578.txt
-     */
-    Body parseMultiform(byte[] body, String boundaryValue) {
-        // how to split this up? It's a mix of strings and bytes.
-        List<byte[]> partitions = split(body, "\r\n--" + boundaryValue);
-        // What we can bear in mind is that once we've read the headers, and gotten
-        // past the single blank line, *everything else* is pure data.
-        final var result = new HashMap<String, byte[]>();
-        final var partitionHeaders = new HashMap<String, Headers>();
-        for (byte[] df : partitions) {
-            final var is = new ByteArrayInputStream(df);
+    @Override
+    public Iterable<UrlEncodedKeyValue> getUrlEncodedDataIterable(InputStream inputStream, long contentLength) {
+        return () -> new Iterator<>() {
 
-            List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
-            Headers headers = new Headers(allHeaders);
+            final CountBytesRead countBytesRead = new CountBytesRead();
 
-            List<String> cds = headers.valueByKey("Content-Disposition");
-            String contentDisposition = String.join(";", cds == null ? List.of("") : cds);
+            @Override
+            public boolean hasNext() {
+                return countBytesRead.getCount() < contentLength;
+            }
 
-            Matcher matcher = multiformNameRegex.matcher(contentDisposition);
+            @Override
+            public UrlEncodedKeyValue next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                String key = "";
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                while(true) {
+                    int result = 0;
+                    try {
+                        result = inputStream.read();
+                        countBytesRead.increment();
+                    } catch (IOException e) {
+                        throw new WebServerException(e);
+                    }
+                    // if this is true, the inputstream is closed
+                    if (result == -1) break;
+                    byte myByte = (byte) result;
+                    // if this is true, we're done with the key
+                    if (myByte == '=') {
+                        // URL encoding is in ASCII only.
+                        key = byteArrayOutputStream.toString(StandardCharsets.US_ASCII);
+                        break;
+                    } else {
+                        if (byteArrayOutputStream.size() >= MAX_KEY_SIZE_BYTES) {
+                            throw new WebServerException("Maximum size for name attribute is " + MAX_KEY_SIZE_BYTES + " ascii characters");
+                        }
+                        byteArrayOutputStream.write(myByte);
+                    }
+                }
 
-            if (matcher.find()) {
-                String name = matcher.group("namevalue");
+                if (key.isBlank()) {
+                    throw new WebServerException("Unable to parse this body. no key found during parsing");
+                } else if (countBytesRead.getCount() == contentLength) {
+                    // if the only thing sent was the key and there's no further data, return the key with a null input stream
+                    // that will immediately return
+                    return new UrlEncodedKeyValue(key, new UrlEncodedDataGetter(InputStream.nullInputStream(), countBytesRead, contentLength));
+                } else {
+                    return new UrlEncodedKeyValue(key, new UrlEncodedDataGetter(inputStream, countBytesRead, contentLength));
+                }
+            }
+        };
+    }
+
+
+    @Override
+    public Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, int contentLength) {
+        return () -> new Iterator<>() {
+
+            final CountBytesRead countBytesRead = new CountBytesRead();
+            boolean hasReadFirstPartition = false;
+
+            @Override
+            public boolean hasNext() {
+                // determining if we have more to read is a little tricky because we have a buffer
+                // filled by reading ahead, looking for the boundary value
+                return (contentLength - countBytesRead.getCount()) > boundaryValue.length();
+            }
+
+            @Override
+            public StreamingMultipartPartition next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                // confirm that the boundary value is as expected, as a sanity check,
+                // and avoid including the boundary value in the first set of headers
+                if (! hasReadFirstPartition) {
+                    String s;
+                    try {
+                        s = inputStreamUtils.readLine(inputStream);
+                        countBytesRead.incrementBy(s.length() + 2);
+                        hasReadFirstPartition = true;
+                        if (!s.contains(boundaryValue)) {
+                            throw new IOException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
+                        }
+                    } catch (IOException e) {
+                        throw new WebServerException(e);
+                    }
+                }
+                List<String> allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
+                int lengthOfHeaders = allHeaders.stream().map(String::length).reduce(0, Integer::sum);
+                // each line has a CR + LF (that's two bytes) and the headers end with a second pair of CR+LF.
+                int extraCrLfs = (2 * allHeaders.size()) + 2;
+                countBytesRead.incrementBy(lengthOfHeaders + extraCrLfs);
+
+                Headers headers = new Headers(allHeaders);
+
+                List<String> cds = headers.valueByKey("Content-Disposition");
+                if (cds == null) {
+                    throw new WebServerException("Error: no Content-Disposition header on partition in Multipart/form data");
+                }
+                String contentDisposition = String.join(";", cds);
+
+                Matcher nameMatcher = multiformNameRegex.matcher(contentDisposition);
+                Matcher filenameMatcher = multiformFilenameRegex.matcher(contentDisposition);
+
+                String name = "";
+                if (nameMatcher.find()) {
+                    name = nameMatcher.group("namevalue");
+                } else {
+                    throw new WebServerException("Error: No name value set on multipart partition");
+                }
+                String filename = "";
+                if (filenameMatcher.find()) {
+                    filename = filenameMatcher.group("namevalue");
+                }
+
                 // at this point our inputstream pointer is at the beginning of the
                 // body data.  From here until the end it's pure data.
 
-                var data = inputStreamUtils.readUntilEOF(is);
-                result.put(name, data);
-                partitionHeaders.put(name, headers);
+                return new StreamingMultipartPartition(headers, inputStream, new ContentDisposition(name, filename), boundaryValue, countBytesRead, contentLength);
             }
 
-        }
-        return new Body(result, body, partitionHeaders);
-    }
 
-
-    /**
-     * Given a multipart-formatted data, return a list of byte arrays
-     * between the boundary values
-     */
-    List<byte[]> split(byte[] body, String boundaryValue) {
-        List<byte[]> result = new ArrayList<>();
-        List<Integer> indexesOfEndsOfBoundaries = determineEndsOfBoundaries(body, boundaryValue);
-        // now we know where the boundaries are in this hunk of data.  Partition time!
-        int indexInBody = 0;
-        for (int endOfBoundaryIndex : indexesOfEndsOfBoundaries) {
-            // the minus one plus two silliness is to make clear that we're calculating for two extra chars after the boundary
-            if (indexInBody != endOfBoundaryIndex-(boundaryValue.length() + 2 - 1)) {
-                result.add(Arrays.copyOfRange(body, indexInBody, endOfBoundaryIndex-(boundaryValue.length() + 2 -1)));
-            }
-            indexInBody = endOfBoundaryIndex+1;
-        }
-        return result;
-    }
-
-    private static List<Integer> determineEndsOfBoundaries(byte[] body, String boundaryValue) {
-        List<Integer> indexesOfEndsOfBoundaries = new ArrayList<>();
-        byte[] boundaryValueBytes = boundaryValue.getBytes(StandardCharsets.UTF_8);
-        int indexIntoBoundaryValue = 0;
-        for (int i = 0; i < body.length; i++) {
-            if (body[i] == boundaryValueBytes[indexIntoBoundaryValue]) {
-                if (indexIntoBoundaryValue == boundaryValueBytes.length - 1) {
-                    // have to add two to account for *either* CR+LF or two dashes.  Multipart
-                    // form is so complicated!
-                    indexesOfEndsOfBoundaries.add(i + 2);
-                    indexIntoBoundaryValue = 0;
-                }
-                indexIntoBoundaryValue += 1;
-            } else {
-                indexIntoBoundaryValue = 0;
-            }
-        }
-        return indexesOfEndsOfBoundaries;
-    }
-
-
-    /**
-     * Splits up a string into tokens.
-     * @param serializedText the string we are splitting up
-     * @param delimiter the character acting as a boundary between sections
-     * @param maxTokenizerPartitions the maximum partitions of text we'll allow.  e.g. "a,b,c" might create 3 partitions.
-     * @return a list of strings.  If the delimiter is not found, we will just return the whole string
-     */
-    static List<String> tokenizer(String serializedText, char delimiter, int maxTokenizerPartitions) {
-        final var resultList = new ArrayList<String>();
-        var currentPlace = 0;
-        // when would we have a need to tokenize anything into more than MAX_TOKENIZER_PARTITIONS partitions?
-        for(int i = 0;; i++) {
-            if (i >= maxTokenizerPartitions) {
-                throw new ForbiddenUseException("Request made for too many partitions in the tokenizer.  Current max: " + maxTokenizerPartitions);
-            }
-            final var nextDelimiterIndex = serializedText.indexOf(delimiter, currentPlace);
-            if (nextDelimiterIndex == -1) {
-                // if we don't see any delimiter symbols ahead, grab the rest of the text from our current place
-                resultList.add(serializedText.substring(currentPlace));
-                break;
-            }
-            resultList.add(serializedText.substring(currentPlace, nextDelimiterIndex));
-            currentPlace = nextDelimiterIndex + 1;
-        }
-
-        return resultList;
+        };
     }
 
 }

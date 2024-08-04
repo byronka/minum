@@ -6,3 +6,4 @@ SHA             Description
 fb685570        simple ORM for external db, r3z-style minum.database
 84c24363        Crypto utilities - hashing
 27d1f189        HTTP/2
+v7.0.0          http transfer by chunked encoding

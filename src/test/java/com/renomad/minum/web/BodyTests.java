@@ -10,5 +10,6 @@ public class BodyTests {
     public void testGettingValue_EdgeCase_WhenNotFound() {
         Body empty = Body.EMPTY;
         assertEquals(empty.asString("foo"), "");
+        assertEquals(empty.getBodyType(), BodyType.NONE);
     }
 }

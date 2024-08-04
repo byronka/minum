@@ -1,7 +1,6 @@
 package com.renomad.minum.state;
 
 import com.renomad.minum.logging.LoggingLevel;
-import com.renomad.minum.state.Constants;
 import org.junit.Test;
 
 import java.util.List;
@@ -53,7 +52,7 @@ public class ConstantsTests {
         assertEquals(constants.serverPort, 1234);
         assertEquals(constants.dbDirectory, "/some/directory/here");
         // if a property does not exist, it will use defaults
-        assertEquals(constants.maxReadLineSizeBytes, 1024);
+        assertEquals(constants.socketTimeoutMillis, 7000);
     }
 
     @Test

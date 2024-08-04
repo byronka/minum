@@ -32,7 +32,7 @@ public final class WebFramework {
     private final Constants constants;
     private final UnderInvestigation underInvestigation;
     private final IInputStreamUtils inputStreamUtils;
-    private final BodyProcessor bodyProcessor;
+    private final IBodyProcessor bodyProcessor;
     /**
      * This is a variable storing a pseudo-random (non-secure) number
      * that is shown to users when a serious error occurs, which
@@ -53,25 +53,25 @@ public final class WebFramework {
     /**
      * The list of paths that our system is registered to handle.
      */
-    private final Map<MethodPath, ThrowingFunction<Request, Response>> registeredDynamicPaths;
+    private final Map<MethodPath, ThrowingFunction<IRequest, IResponse>> registeredDynamicPaths;
 
     /**
      * These are registrations for paths that partially match, for example,
      * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
      * and we want to match ".well-known/acme-challenge"
      */
-    private final Map<MethodPath, ThrowingFunction<Request, Response>> registeredPartialPaths;
+    private final Map<MethodPath, ThrowingFunction<IRequest, IResponse>> registeredPartialPaths;
 
     /**
      * A function that will be run instead of the ordinary business code. Has
      * provisions for running the business code as well.  See {@link #registerPreHandler(ThrowingFunction)}
      */
-    private ThrowingFunction<PreHandlerInputs, Response> preHandler;
+    private ThrowingFunction<PreHandlerInputs, IResponse> preHandler;
 
     /**
      * A function run after the ordinary business code
      */
-    private ThrowingFunction<LastMinuteHandlerInputs, Response> lastMinuteHandler;
+    private ThrowingFunction<LastMinuteHandlerInputs, IResponse> lastMinuteHandler;
 
     private final IFileReader fileReader;
     private final Map<String, String> fileSuffixToMime;
@@ -80,6 +80,11 @@ public final class WebFramework {
     private final ZonedDateTime overrideForDateTime;
     private final FullSystem fs;
     private final ILogger logger;
+
+    /**
+     * This is the minimum number of bytes in a text response to apply gzip.
+     */
+    private static final int MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS = 2048;
 
     /**
      * This is the brains of how the server responds to web clients.  Whatever
@@ -118,22 +123,22 @@ public final class WebFramework {
                     // React to what the user requested, generate a result
                     Headers hi = getHeaders(sw);
                     boolean isKeepAlive = determineIfKeepAlive(sl, hi, logger);
-                    Body requestBody = determineIfBody(sw, hi);
-                    ProcessingResult result = processRequest(sw, sl, hi, requestBody);
-                    Request request = result.clientRequest();
-                    Response response = result.resultingResponse();
+                    if (isThereIsABody(hi)) {
+                        logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
+                    }
+                    ProcessingResult result = processRequest(sw, sl, hi);
+                    IRequest request = result.clientRequest();
+                    Response response = (Response)result.resultingResponse();
 
                     // calculate proper headers for the response
                     StringBuilder headerStringBuilder = addDefaultHeaders(response);
                     addOptionalExtraHeaders(response, headerStringBuilder);
                     addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
-                    VaryHeader varyHeader = new VaryHeader();
 
                     // inspect the response being sent, see whether we can compress the data.
-                    Response adjustedResponse = potentiallyCompress(request.headers(), response, headerStringBuilder, varyHeader);
+                    Response adjustedResponse = potentiallyCompress(request.getHeaders(), response, headerStringBuilder);
                     applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
-                    confirmBodyHasContentType(request, response, headerStringBuilder);
-                    headerStringBuilder.append(varyHeader).append(HTTP_CRLF);
+                    confirmBodyHasContentType(request, response);
 
                     // send the headers
                     sw.send(headerStringBuilder.append(HTTP_CRLF).toString());
@@ -141,9 +146,9 @@ public final class WebFramework {
                     // if the user sent a HEAD request, we send everything back except the body.
                     // even though we skip the body, this requires full processing to get the
                     // numbers right, like content-length.
-                    if (request.requestLine().getMethod().equals(RequestLine.Method.HEAD)) {
-                        logger.logDebug(() -> "client " + request.remoteRequester() +
-                                " is requesting HEAD for "+ request.requestLine().getPathDetails().getIsolatedPath() +
+                    if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
+                        logger.logDebug(() -> "client " + request.getRemoteRequester() +
+                                " is requesting HEAD for "+ request.getRequestLine().getPathDetails().getIsolatedPath() +
                                 ".  Excluding body from response");
                     } else {
                         // send the body
@@ -207,11 +212,10 @@ public final class WebFramework {
     ProcessingResult processRequest(
             ISocketWrapper sw,
             RequestLine requestLine,
-            Headers hi,
-            Body body) throws Exception {
-        Request clientRequest = new Request(hi, requestLine, body, sw.getRemoteAddr());
-        Response response;
-        ThrowingFunction<Request, Response> endpoint = findEndpointForThisStartline(requestLine);
+            Headers hi) throws Exception {
+        IRequest clientRequest = new Request(hi, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+        IResponse response;
+        ThrowingFunction<IRequest, IResponse> endpoint = findEndpointForThisStartline(requestLine);
         if (endpoint == null) {
             response = Response.buildLeanResponse(CODE_404_NOT_FOUND);
         } else {
@@ -244,7 +248,7 @@ public final class WebFramework {
         return new ProcessingResult(clientRequest, response);
     }
 
-    record ProcessingResult(Request clientRequest, Response resultingResponse) { }
+    record ProcessingResult(IRequest clientRequest, IResponse resultingResponse) { }
 
     private Headers getHeaders(ISocketWrapper sw) {
     /*
@@ -257,38 +261,10 @@ public final class WebFramework {
        we're receiving a multipart, there will be no content-length, but
        the content-type will include the boundary string.
     */
-        List<String> allHeaders = Headers.getAllHeaders(sw.getInputStream(), constants.maxHeadersCount, inputStreamUtils);
+        List<String> allHeaders = Headers.getAllHeaders(sw.getInputStream(), inputStreamUtils);
         Headers hi = new Headers(allHeaders);
         logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
         return hi;
-    }
-
-    /**
-     * Determine whether there is a body (a block of data) in this request
-     */
-    private Body determineIfBody(ISocketWrapper sw, Headers hi) {
-        Body body = Body.EMPTY;
-        if (isThereIsABody(hi)) {
-            logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
-            body = bodyProcessor.extractData(sw.getInputStream(), hi);
-            Body finalBody = body;
-
-            logger.logTrace(() -> getBodyStringForTraceLog(finalBody.asString()));
-        }
-        return body;
-    }
-
-    static String getBodyStringForTraceLog(String bodyString) {
-        if (bodyString == null) {
-            return "The body was null";
-        }
-        String possiblyTruncatedBody;
-        if (bodyString.length() > 50) {
-            possiblyTruncatedBody = bodyString.substring(0,50);
-        } else {
-            possiblyTruncatedBody = bodyString;
-        }
-        return "The body is: " + possiblyTruncatedBody;
     }
 
     /**
@@ -312,8 +288,7 @@ public final class WebFramework {
                 RequestLine.Method.NONE,
                 PathDetails.empty,
                 HttpVersion.NONE,
-                "", logger,
-                constants.maxQueryStringKeysCount);
+                "", logger);
         RequestLine extractedRequestLine = rl.extractRequestLine(rawStartLine);
         logger.logTrace(() -> sw + ": RequestLine has been derived: " + extractedRequestLine);
         return extractedRequestLine;
@@ -377,7 +352,7 @@ public final class WebFramework {
      * Prepare some of the basic server response headers, like the status code, the
      * date-time stamp, the server name.
      */
-    private StringBuilder addDefaultHeaders(Response response) {
+    private StringBuilder addDefaultHeaders(IResponse response) {
 
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
@@ -400,7 +375,7 @@ public final class WebFramework {
     /**
      * Add extra headers specified by the business logic (set by the developer)
      */
-    private static void addOptionalExtraHeaders(Response response, StringBuilder stringBuilder) {
+    private static void addOptionalExtraHeaders(IResponse response, StringBuilder stringBuilder) {
         stringBuilder.append(
                 response.getExtraHeaders().entrySet().stream()
                 .map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF)
@@ -410,12 +385,12 @@ public final class WebFramework {
     /**
      * If a response body exists, it needs to have a content-type specified, or throw an exception.
      */
-    static void confirmBodyHasContentType(Request request, Response response, StringBuilder headerStringBuilder) {
+    static void confirmBodyHasContentType(IRequest request, Response response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
         boolean hasContentType = response.getExtraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
 
         // if there *is* data, we had better be returning a content type
-        if ((response.getBodyLength() != null && response.getBodyLength() > 0) || headerStringBuilder.indexOf("Transfer-Encoding: Chunked") != -1) {
+        if (response.getBodyLength() > 0) {
             mustBeTrue(hasContentType, "a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
         }
     }
@@ -437,7 +412,7 @@ public final class WebFramework {
      * response is finished.
      * See <a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-content-length">Content-Length in the HTTP spec</a>
      */
-    private static void applyContentLength(StringBuilder stringBuilder, Long bodyLength) {
+    private static void applyContentLength(StringBuilder stringBuilder, long bodyLength) {
         stringBuilder.append("Content-Length: ").append(bodyLength).append(HTTP_CRLF);
     }
 
@@ -445,7 +420,7 @@ public final class WebFramework {
      * This method will examine the request headers and response content-type, and
      * compress the outgoing data if necessary.
      */
-    static Response potentiallyCompress(Headers headers, Response response, StringBuilder headerStringBuilder, VaryHeader varyHeader) {
+    static Response potentiallyCompress(Headers headers, Response response, StringBuilder headerStringBuilder) throws IOException {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
@@ -459,9 +434,7 @@ public final class WebFramework {
         if (contentTypeHeader != null) {
             String contentType = contentTypeHeader.getValue().toLowerCase(Locale.ROOT);
             if (contentType.contains("text/")) {
-                Response compressedResponse = compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, 2048);
-                varyHeader.addHeader("accept-encoding");
-                return compressedResponse;
+                return compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS);
             }
         }
         return response;
@@ -481,10 +454,11 @@ public final class WebFramework {
      *                       if we successfully compress data as gzip.
      * @param minNumberBytes number of bytes must be larger than this to compress.
      */
-    static Response compressBodyIfRequested(Response response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
+    static Response compressBodyIfRequested(Response response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) throws IOException {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
-        if (response.getBodyLength() != null && response.getBodyLength() >= minNumberBytes && acceptEncoding != null && allContentEncodingHeaders.contains("gzip")) {
+        if (response.getBodyLength() >= minNumberBytes && acceptEncoding != null && allContentEncodingHeaders.contains("gzip")) {
             stringBuilder.append("Content-Encoding: gzip" + HTTP_CRLF);
+            stringBuilder.append("Vary: accept-encoding" + HTTP_CRLF);
             return response.compressBody();
         }
         return response;
@@ -495,8 +469,8 @@ public final class WebFramework {
      * or the static cache and returns the appropriate one (If we
      * do not find anything, return null)
      */
-    ThrowingFunction<Request, Response> findEndpointForThisStartline(RequestLine sl) {
-        ThrowingFunction<Request, Response> handler;
+    ThrowingFunction<IRequest, IResponse> findEndpointForThisStartline(RequestLine sl) {
+        ThrowingFunction<IRequest, IResponse> handler;
         logger.logTrace(() -> "Seeking a handler for " + sl);
 
         // first we check if there's a simple direct match
@@ -527,12 +501,12 @@ public final class WebFramework {
      * last ditch effort - look on disk.  This response will either
      * be the file to return, or null if we didn't find anything.
      */
-    private ThrowingFunction<Request, Response> findHandlerByFilesOnDisk(RequestLine sl) {
+    private ThrowingFunction<IRequest, IResponse> findHandlerByFilesOnDisk(RequestLine sl) {
         if (sl.getMethod() != RequestLine.Method.GET && sl.getMethod() != RequestLine.Method.HEAD) {
             return null;
         }
         String requestedPath = sl.getPathDetails().getIsolatedPath();
-        Response response = readStaticFile(requestedPath);
+        IResponse response = readStaticFile(requestedPath);
         return request -> response;
     }
 
@@ -547,7 +521,7 @@ public final class WebFramework {
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    Response readStaticFile(String path) {
+    IResponse readStaticFile(String path) {
         if (badFilePathPatterns.matcher(path).find()) {
             logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
@@ -592,7 +566,7 @@ public final class WebFramework {
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
-    private Response createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
+    private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
         var headers = Map.of(
                 "cache-control", "max-age=" + constants.staticFileCacheTime,
                 "content-type", mimeType);
@@ -606,7 +580,7 @@ public final class WebFramework {
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
-    private Response createOkResponseForLargeStaticFiles(String mimeType, Path filePath) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath) throws IOException {
         var headers = Map.of(
                 "cache-control", "max-age=" + constants.staticFileCacheTime,
                 "content-type", mimeType);
@@ -636,7 +610,7 @@ public final class WebFramework {
     /**
      * let's see if we can match the registered paths against a **portion** of the startline
      */
-    ThrowingFunction<Request, Response> findHandlerByPartialMatch(RequestLine sl) {
+    ThrowingFunction<IRequest, IResponse> findHandlerByPartialMatch(RequestLine sl) {
         String requestedPath = sl.getPathDetails().getIsolatedPath();
         var methodPathFunctionEntry = registeredPartialPaths.entrySet().stream()
                 .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
@@ -673,13 +647,13 @@ public final class WebFramework {
         this.registeredDynamicPaths = new HashMap<>();
         this.registeredPartialPaths = new HashMap<>();
         this.underInvestigation = new UnderInvestigation(constants);
-        this.inputStreamUtils = new InputStreamUtils(constants);
+        this.inputStreamUtils = new InputStreamUtils();
         this.bodyProcessor = new BodyProcessor(context);
 
         // This random value is purely to help provide correlation between
         // error messages in the UI and error logs.  There are no security concerns.
         this.randomErrorCorrelationId = new Random();
-        this.emptyRequestLine = RequestLine.empty();
+        this.emptyRequestLine = RequestLine.EMPTY;
 
         // this allows us to inject a IFileReader for deeper testing
         if (fileReader != null) {
@@ -716,7 +690,7 @@ public final class WebFramework {
      * so for example with {@code http://foo.com/mypath}, you provide us "mypath"
      * here.
      */
-    public void registerPath(RequestLine.Method method, String pathName, ThrowingFunction<Request, Response> webHandler) {
+    public void registerPath(RequestLine.Method method, String pathName, ThrowingFunction<IRequest, IResponse> webHandler) {
         registeredDynamicPaths.put(new MethodPath(method, pathName), webHandler);
     }
 
@@ -732,7 +706,7 @@ public final class WebFramework {
      *     overlap with other URL's for your app, such as endpoints and static files.
      * </p>
      */
-    public void registerPartialPath(RequestLine.Method method, String pathName, ThrowingFunction<Request, Response> webHandler) {
+    public void registerPartialPath(RequestLine.Method method, String pathName, ThrowingFunction<IRequest, IResponse> webHandler) {
         registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
     }
 
@@ -751,10 +725,10 @@ public final class WebFramework {
      *
      *      ...
      *
-     *      private Response preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
+     *      private IResponse preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
      *          // log all requests
      *          Request request = preHandlerInputs.clientRequest();
-     *          ThrowingFunction<Request, Response> endpoint = preHandlerInputs.endpoint();
+     *          ThrowingFunction<IRequest, IResponse> endpoint = preHandlerInputs.endpoint();
      *          ISocketWrapper sw = preHandlerInputs.sw();
      *
      *          logger.logTrace(() -> String.format("Request: %s by %s",
@@ -776,7 +750,7 @@ public final class WebFramework {
      *              if (authResult.isAuthenticated()) {
      *                  return endpoint.apply(request);
      *              } else {
-     *                  return new Response(CODE_403_FORBIDDEN);
+     *                  return Response.buildLeanResponse(CODE_403_FORBIDDEN);
      *              }
      *          }
      *
@@ -785,7 +759,7 @@ public final class WebFramework {
      *      }
      * }</pre>
      */
-        public void registerPreHandler(ThrowingFunction<PreHandlerInputs, Response> preHandler) {
+        public void registerPreHandler(ThrowingFunction<PreHandlerInputs, IResponse> preHandler) {
         this.preHandler = preHandler;
     }
 
@@ -810,7 +784,7 @@ public final class WebFramework {
      *
      * ...
      *
-     *     private static Response lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
+     *     private static IResponse lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
      *         switch (inputs.response().statusCode()) {
      *             case CODE_404_NOT_FOUND -> {
      *                 return new Response(
@@ -820,7 +794,7 @@ public final class WebFramework {
      *             }
      *             case CODE_500_INTERNAL_SERVER_ERROR -> {
      *                 Response response = inputs.response();
-     *                 return new Response(
+     *                 return Response.buildResponse(
      *                         StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR,
      *                         "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.body()) + "</p>",
      *                         Map.of("Content-Type", "text/html; charset=UTF-8"));
@@ -835,7 +809,7 @@ public final class WebFramework {
      * @param lastMinuteHandler a function that will take a request and return a response, exactly like
      *                   we use in the other registration methods for this class.
      */
-    public void registerLastMinuteHandler(ThrowingFunction<LastMinuteHandlerInputs, Response> lastMinuteHandler) {
+    public void registerLastMinuteHandler(ThrowingFunction<LastMinuteHandlerInputs, IResponse> lastMinuteHandler) {
         this.lastMinuteHandler = lastMinuteHandler;
     }
 

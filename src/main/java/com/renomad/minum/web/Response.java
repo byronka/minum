@@ -1,18 +1,20 @@
 package com.renomad.minum.web;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.zip.GZIPOutputStream;
 
-import static com.renomad.minum.utils.CompressionUtils.gzipCompress;
 import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
 /**
  * Represents an HTTP response. This is what will get sent back to the
@@ -57,25 +59,26 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  *</ul>
 
  */
-public final class Response {
+public final class Response implements IResponse {
 
     private final StatusLine.StatusCode statusCode;
     private final Map<String, String> extraHeaders;
     private final byte[] body;
     private final ThrowingConsumer<ISocketWrapper> outputGenerator;
-    private final Long bodyLength;
+    private final long bodyLength;
 
     /**
      * This is the constructor that provides access to all fields.  It is not intended
      * to be used from outside this class.
      * @param extraHeaders extra headers we want to return with the response.
      * @param outputGenerator a {@link ThrowingConsumer} that will use a {@link ISocketWrapper} parameter
-     *                        to send bytes on the wire back to the client.
+     *                        to send bytes on the wire back to the client.  See the static factory methods
+     *                        such as {@link #buildResponse(StatusLine.StatusCode, Map, byte[])} for more details on this.
      * @param bodyLength this is used to set the content-length header for the response.  If this is
      *                   not provided, we set the header to "transfer-encoding: chunked", or in other words, streaming.
      */
-    private Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body,
-                    ThrowingConsumer<ISocketWrapper> outputGenerator, Long bodyLength) {
+    Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body,
+             ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
         this.statusCode = statusCode;
         this.extraHeaders = new HashMap<>(extraHeaders);
         this.body = body;
@@ -85,17 +88,14 @@ public final class Response {
 
     /**
      * This factory method is intended for situations where the user wishes to stream data
-     * but lacks the content length.  This will cause a header of "transfer-encoding: chunked" to
-     * be applied automatically.
+     * but lacks the content length.  This is only for unusual situations where the developer
+     * needs the extra control.  In most cases, other methods are more suitable.
      * @param extraHeaders any extra headers for the response, such as the content-type
      * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
      *                        ability to send bytes on the socket.
      */
-    public static Response buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
-        Map<String, String> addedHeaders = new HashMap<>();
-        addedHeaders.put("Transfer-Encoding", "Chunked");
-        addedHeaders.putAll(extraHeaders);
-        return new Response(statusCode, addedHeaders, null, outputGenerator, null);
+    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
+        return new Response(statusCode, extraHeaders, null, outputGenerator, 0);
     }
 
     /**
@@ -106,7 +106,7 @@ public final class Response {
      *                        ability to send bytes on the socket.
      * @param bodyLength the length, in bytes, of the data to be sent to the client
      */
-    public static Response buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
+    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
         return new Response(statusCode, extraHeaders, null, outputGenerator, bodyLength);
     }
 
@@ -120,17 +120,17 @@ public final class Response {
      *
      * @param extraHeaders any extra headers for the response, such as the content-type.
      */
-    public static Response buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body) {
-        return new Response(statusCode, extraHeaders, body, socketWrapper -> sendByteArrayResponse(socketWrapper, body), (long) body.length);
+    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body) {
+        return new Response(statusCode, extraHeaders, body, socketWrapper -> sendByteArrayResponse(socketWrapper, body), body.length);
     }
 
     /**
      * Build an ordinary response, with a known body
      * @param extraHeaders extra HTTP headers, like <pre>content-type: text/html</pre>
      */
-    public static Response buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String body) {
+    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String body) {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), (long) bytes.length);
+        return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length);
     }
 
     /**
@@ -145,28 +145,34 @@ public final class Response {
      * a parent directory or other dangerous location.
      * @param extraHeaders any extra headers for the response, such as the content-type.
      */
-    public static Response buildLargeFileResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String filePath) throws IOException {
+    public static IResponse buildLargeFileResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String filePath) throws IOException {
         if (badFilePathPatterns.matcher(filePath).find()) {
             throw new WebServerException(String.format("Bad path requested at readFile: %s", filePath));
         }
-        RandomAccessFile reader = new RandomAccessFile(filePath, "r");
-        var fileChannel = reader.getChannel();
-        return new Response(statusCode, extraHeaders, null, socketWrapper -> sendFileChannelResponse(socketWrapper, fileChannel), fileChannel.size());
+
+        ThrowingConsumer<ISocketWrapper> outputGenerator = socketWrapper -> {
+            try (RandomAccessFile reader = new RandomAccessFile(filePath, "r")) {
+                var fileChannel = reader.getChannel();
+                sendFileChannelResponse(socketWrapper, fileChannel);
+            }
+        };
+        long fileSize = Files.size(Path.of(filePath));
+        return new Response(statusCode, extraHeaders, null, outputGenerator, fileSize);
     }
 
     /**
      * Build a {@link Response} with just a status code and headers, without a body
      * @param extraHeaders extra HTTP headers
      */
-    public static Response buildLeanResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders) {
-        return new Response(statusCode, extraHeaders, null, socketWrapper -> sendByteArrayResponse(socketWrapper, new byte[0]), (long) 0);
+    public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders) {
+        return new Response(statusCode, extraHeaders, null, socketWrapper -> {}, 0);
     }
 
     /**
      * Build a {@link Response} with only a status code, with no body and no extra headers.
      */
-    public static Response buildLeanResponse(StatusLine.StatusCode statusCode) {
-        return new Response(statusCode, Map.of(), null, socketWrapper -> sendByteArrayResponse(socketWrapper, new byte[0]), (long) 0);
+    public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode) {
+        return new Response(statusCode, Map.of(), null, socketWrapper -> {}, 0);
     }
 
 
@@ -175,7 +181,7 @@ public final class Response {
      * 303 status code ("see other").  Provide a url that will
      * be handed to the browser.  This url may be relative or absolute.
      */
-    public static Response redirectTo(String locationUrl) {
+    public static IResponse redirectTo(String locationUrl) {
         return buildLeanResponse(StatusLine.StatusCode.CODE_303_SEE_OTHER, Map.of("location", locationUrl));
     }
 
@@ -185,7 +191,7 @@ public final class Response {
      * lets you add extra headers on top of the basic content-type headers
      * that are needed to specify this is HTML.
      */
-    public static Response htmlOk(String body, Map<String, String> extraHeaders) {
+    public static IResponse htmlOk(String body, Map<String, String> extraHeaders) {
         var headers = new HashMap<String, String>();
         headers.put("Content-Type", "text/html; charset=UTF-8");
         headers.putAll(extraHeaders);
@@ -196,14 +202,16 @@ public final class Response {
      * If you are returning HTML text with a 200 ok, this is a helper that
      * lets you skip some of the boilerplate.
      */
-    public static Response htmlOk(String body) {
+    public static IResponse htmlOk(String body) {
         return htmlOk(body, Map.of());
     }
 
+    @Override
     public Map<String, String> getExtraHeaders() {
         return new HashMap<>(extraHeaders);
     }
 
+    @Override
     public StatusLine.StatusCode getStatusCode() {
         return statusCode;
     }
@@ -214,9 +222,9 @@ public final class Response {
      * length() method.  If the outgoing data is set by a lambda, the user
      * will set the bodyLength value.
      */
-    Long getBodyLength() {
+    long getBodyLength() {
         if (body != null) {
-            return (long) body.length;
+            return body.length;
         } else {
             return bodyLength;
         }
@@ -253,22 +261,27 @@ public final class Response {
         sw.send(body);
     }
 
-    /**
-     * If you are using this getter to obtain the length, stop, and
-     * use {@link #getBodyLength()} instead.
-     */
+    @Override
     public byte[] getBody() {
         return body;
     }
 
     /**
-     * Compress the data in this body using gzip
+     * Compress the data in this body using gzip.
+     * <br>
+     * This operates by getting the body field from this instance of {@link Response} and
+     * creating a new Response with the compressed data.
      */
-    Response compressBody() {
-        return Response.buildResponse(
+    Response compressBody() throws IOException {
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        var gos = new GZIPOutputStream(out);
+        gos.write(body);
+        gos.finish();
+        return (Response)Response.buildResponse(
                 statusCode,
                 extraHeaders,
-                gzipCompress(body)
+                out.toByteArray()
         );
     }
 
@@ -277,7 +290,7 @@ public final class Response {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Response response = (Response) o;
-        return statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Arrays.equals(body, response.body) && Objects.equals(bodyLength, response.bodyLength);
+        return bodyLength == response.bodyLength && statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Arrays.equals(body, response.body);
     }
 
     @Override

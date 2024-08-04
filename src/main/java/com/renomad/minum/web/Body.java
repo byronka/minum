@@ -32,32 +32,32 @@ public final class Body {
     private static final byte[] EMPTY_BYTES = new byte[0];
     private final Map<String, byte[]> bodyMap;
     private final byte[] raw;
-    private final Map<String, Headers> headers;
+    private final List<Partition> partitions;
+    private final BodyType bodyType;
 
     /**
      * An empty body instance, useful when you
      * need an instantiated body.
      */
-    public static final Body EMPTY = new Body(Map.of(), EMPTY_BYTES, Map.of());
+    public static final Body EMPTY = new Body(Map.of(), EMPTY_BYTES, List.of(), BodyType.NONE);
 
     /**
      * Build a body for an HTTP message
      * @param bodyMap a map of key-value pairs, presumably extracted from form data.  Empty
      *                if our body isn't one of the form data protocols we understand.
      * @param raw the raw bytes of this body
-     * @param partitionHeaders if the body is of type form/multipart, each partition will have its own headers,
-     *                         including content length and content type, and possibly more.
+     * @param partitions if the body is of type form/multipart, these will be the list of partitions
      */
-    public Body(Map<String, byte[]> bodyMap, byte[] raw, Map<String, Headers> partitionHeaders) {
+    public Body(Map<String, byte[]> bodyMap, byte[] raw, List<Partition> partitions, BodyType bodyType) {
         this.bodyMap = new HashMap<>(bodyMap);
         this.raw = raw.clone();
-        this.headers = new HashMap<>(partitionHeaders);
+        this.partitions = partitions;
+        this.bodyType = bodyType;
     }
 
     /**
-     * Return the body as a string, presuming
-     * that the Request body data is organized
-     * as key-value pairs.
+     * Return the value for a key, as a string. This method
+     * presumes the data was sent URL-encoded.
      * <p>
      *     If there is no value found for the
      *     provided key, an empty string will be
@@ -89,38 +89,26 @@ public final class Body {
     }
 
     /**
-     * Return the bytes of this request body by its
-     * key.  HTTP requests often
-     * organize the data as key-value pairs,
-     * and thus if you were expecting that organization,
-     * this will get the value by its key.
+     * Return the bytes of this request body by its key.  This method
+     * presumes the data was sent URL-encoded.
      */
     public byte[] asBytes(String key) {
         return bodyMap.get(key);
     }
 
     /**
-     * Returns the raw bytes of this HTTP message's body
+     * Returns the raw bytes of this HTTP message's body. This method
+     * presumes the data was sent URL-encoded.
      */
     public byte[] asBytes() {
         return this.raw.clone();
     }
 
     /**
-     * If the body is of type form/multipart, return the headers
-     * for a particular partition.
+     * If the body is of type form/multipart, return the partitions
      * <p>
-     *     For example, given a partition with the name text1,
-     *     as seen in the following example, the headers
-     *     would be
+     *     For example:
      * </p>
-     * <pre>
-     * Content-Type: text/plain
-     * Content-Disposition: form-data; name="text1"
-     * </pre>
-     * <pr>
-     *     Here is the multipart data:
-     * </pr>
      * <pre>
      * --i_am_a_boundary
      *  Content-Type: text/plain
@@ -132,8 +120,37 @@ public final class Body {
      *  Content-Disposition: form-data; name="image_uploads"; filename="photo_preview.jpg"
      * </pre>
      */
-    public Headers partitionHeaders(String partitionName) {
-        return this.headers.get(partitionName);
+    public List<Partition> getPartitionHeaders() {
+        return new ArrayList<>(partitions);
+    }
+
+    /**
+     * A helper method for getting the partitions with a particular name set in its
+     * content-disposition.  This returns a list of partitions because there is nothing
+     * preventing the browser doing this, and in fact it will typically send partitions
+     * with the same name when sending multiple files from one input.  (HTML5 provides the
+     * ability to select multiple files on the input with type=file)
+     */
+    public List<Partition> getPartitionByName(String name) {
+        return getPartitionHeaders().stream().filter(x -> x.getContentDisposition().getName().equalsIgnoreCase(name)).toList();
+    }
+
+    /**
+     * Returns the {@link BodyType}, which is necessary to distinguish
+     * which methods to run for accessing data. For instance, if the body
+     * is of type FORM_URL_ENCODED, you may use methods
+     * like {@link #getKeys()}, {@link #asBytes(String)}, or {@link #asString(String)}
+     * <br>
+     * On the other hand, if the type is MULTIPART, you will need to use {@link #getPartitionHeaders()}
+     * to get a list of the partitions.
+     * <br>
+     * If the body type is UNRECOGNIZED, you can use {@link #asBytes()} to get the body.
+     * <br>
+     * Don't forget, there is also an option to obtain the body's {@link java.io.InputStream} by
+     * using {@link Request#getSocketWrapper()}, but that needs to be done before running {@link Request#getBody()}
+     */
+    public BodyType getBodyType() {
+        return bodyType;
     }
 
     /**
@@ -148,13 +165,24 @@ public final class Body {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Body body = (Body) o;
-        return Objects.equals(bodyMap, body.bodyMap) && Arrays.equals(raw, body.raw) && Objects.equals(headers, body.headers);
+        return Objects.equals(bodyMap, body.bodyMap) && Arrays.equals(raw, body.raw) && Objects.equals(partitions, body.partitions) && bodyType == body.bodyType;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(bodyMap, headers);
+        int result = Objects.hash(bodyMap, partitions, bodyType);
         result = 31 * result + Arrays.hashCode(raw);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "Body{" +
+                "bodyMap=" + bodyMap +
+                ", raw=" + Arrays.toString(raw) +
+                ", partitions=" + partitions +
+                ", bodyType=" + bodyType +
+                '}';
+    }
+
 }

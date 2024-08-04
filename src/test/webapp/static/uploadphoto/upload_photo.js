@@ -51,6 +51,7 @@ const fileTypes = [
     'image/svg+xml',
     'image/tiff',
     'image/webp',
+    'video/mp4'
     `image/x-icon`
 ];
 

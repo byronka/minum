@@ -8,7 +8,6 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StacktraceUtils;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
@@ -22,25 +21,25 @@ import java.util.Map;
  */
 public final class FunctionalTesting {
 
-    private final Context context;
     private final String host;
     private final int port;
     private final IInputStreamUtils inputStreamUtils;
     private final ILogger logger;
     private final Constants constants;
+    private final IBodyProcessor bodyProcessor;
 
     /**
      * Allows the user to set the host and port to target
      * for testing.
      */
     public FunctionalTesting(Context context, String host, int port) {
-        this.context = context;
         this.constants = context.getConstants();
         this.host = host;
         this.port = port;
 
-        this.inputStreamUtils = new InputStreamUtils(constants);
+        this.inputStreamUtils = new InputStreamUtils();
         this.logger = context.getLogger();
+        bodyProcessor = new BodyProcessor(context);
     }
 
     /**
@@ -199,9 +198,9 @@ public final class FunctionalTesting {
         client.send(payload);
 
         StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-        List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+        List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
         Headers headers = new Headers(allHeaders);
-        BodyProcessor bodyProcessor = new BodyProcessor(context);
+
 
         if (WebFramework.isThereIsABody(headers) && method != RequestLine.Method.HEAD) {
             logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
@@ -209,5 +208,6 @@ public final class FunctionalTesting {
         }
         return new TestResponse(statusLine, headers, body);
     }
+
 
 }

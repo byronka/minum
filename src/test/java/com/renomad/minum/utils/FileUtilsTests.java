@@ -11,6 +11,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -57,7 +58,7 @@ public class FileUtilsTests {
      */
     @Test
     public void test_WriteString_IOException() {
-        var ex = assertThrows(RuntimeException.class,
+        var ex = assertThrows(UtilsException.class,
                 () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
         assertTrue(RegexUtils.isFound("java.nio.file.NoSuchFileException: target.foo.bar", ex.getMessage()));
     }

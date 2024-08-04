@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>6.0.0</version>
+    <version>7.0.0</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>nl.jqno.equalsverifier</groupId>
             <artifactId>equalsverifier-nodep</artifactId>
-            <version>3.15.8</version>
+            <version>3.16.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -40,10 +40,6 @@
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.11.0</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-clean-plugin</artifactId>
-                    <version>3.3.1</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
@@ -84,11 +80,16 @@
                     <source>21</source>
                     <target>21</target>
                     <encoding>UTF-8</encoding>
-                    <compilerArgs>
+
+                <!-- The following section is used as advice, but is not needed on every build.  -->
+                <!-- This project depends on heavy testing for its quality, with linting tools   -->
+                <!-- providing a valuable "second opinion"                                       -->
+
+                   <!-- <compilerArgs>
                         <arg>-XDcompilePolicy=simple</arg>
                         <arg>-Xplugin:ErrorProne
                         -XepOpt:NullAway:TreatGeneratedAsUnannotated=true
-                        -XepOpt:NullAway:AnnotatedPackages=io.github
+                        -XepOpt:NullAway:AnnotatedPackages=com.renomad
                         -XepOpt:NullAway:AcknowledgeRestrictiveAnnotations=true
                         -Xep:NullAway:ERROR</arg>
                     </compilerArgs>
@@ -103,20 +104,12 @@
                             <artifactId>nullaway</artifactId>
                             <version>0.11.0</version>
                         </path>
-                        <!-- Other annotation processors go here.
+                        &lt;!&ndash; Other annotation processors go here.
 
                         If 'annotationProcessorPaths' is set, processors will no longer be
                         discovered on the regular -classpath; see also 'Using Error Prone
-                        together with other annotation processors' below. -->
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <mainClass>com.renomad.Main</mainClass>
+                        together with other annotation processors' below. &ndash;&gt;
+                    </annotationProcessorPaths>-->
                 </configuration>
             </plugin>
             <plugin>

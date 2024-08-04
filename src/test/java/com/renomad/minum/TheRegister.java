@@ -8,7 +8,9 @@ import com.renomad.minum.sampledomain.SampleDomain;
 import com.renomad.minum.sampledomain.UploadPhoto;
 import com.renomad.minum.sampledomain.auth.*;
 import com.renomad.minum.sampledomain.photo.Photograph;
+import com.renomad.minum.sampledomain.photo.Video;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.web.*;
 
 import java.nio.charset.StandardCharsets;
@@ -32,11 +34,13 @@ public class TheRegister {
     private final Context context;
     private final WebFramework webFramework;
     private final ILogger logger;
+    private final FileUtils fileUtils;
 
     public TheRegister(Context context, WebFramework wf) {
         this.context = context;
         this.logger = context.getLogger();
         this.webFramework = wf;
+        this.fileUtils = new FileUtils(logger, context.getConstants());
     }
 
     public void registerDomains() {
@@ -52,14 +56,19 @@ public class TheRegister {
         // sample domain stuff
         webFramework.registerPath(GET, "formentry", sd::formEntry);
         webFramework.registerPath(POST, "testform", sd::testform);
-        webFramework.registerPath(POST, "testform", sd::testform);
         webFramework.registerPath(GET, "hello", sd::helloName);
 
         // photos stuff
         webFramework.registerPath(GET, "photos", lp::ListPhotosPage);
+        // it is necessary to register this image so explicitly because this is all in the test directory and the image
+        // is not stored in the static files directory where it would normally be.
+        webFramework.registerPath(GET, "video_poster.jpg", request -> Response.buildResponse(StatusLine.StatusCode.CODE_200_OK, Map.of("Content-Type", "image/jpg"), fileUtils.readBinaryFile("src/test/resources/video_poster.jpg")));
         webFramework.registerPath(GET, "upload", up::uploadPage);
+        webFramework.registerPath(GET, "upload_video", up::uploadVideoPage);
         webFramework.registerPath(POST, "upload", up::uploadPageReceivePost);
+        webFramework.registerPath(POST, "upload_video", up::uploadVideoReceivePost);
         webFramework.registerPath(GET, "photo", lp::grabPhoto);
+        webFramework.registerPath(GET, "video", lp::grabVideo);
 
         // minum.auth stuff
         webFramework.registerPath(GET, "login", auth::login);
@@ -86,7 +95,7 @@ public class TheRegister {
         webFramework.registerLastMinuteHandler(TheRegister::lastMinuteHandlerCode);
     }
 
-    private static Response lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
+    private static IResponse lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
         switch (inputs.response().getStatusCode()) {
             case CODE_404_NOT_FOUND -> {
                 return Response.buildResponse(
@@ -96,7 +105,7 @@ public class TheRegister {
                         );
             }
             case CODE_500_INTERNAL_SERVER_ERROR -> {
-                Response response = inputs.response();
+                IResponse response = inputs.response();
                 return Response.buildResponse(
                         StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR,
                         Map.of("Content-Type", "text/html; charset=UTF-8"),
@@ -109,17 +118,17 @@ public class TheRegister {
         }
     }
 
-    private Response preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
+    private IResponse preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
         // log all requests
-        Request request = preHandlerInputs.clientRequest();
-        ThrowingFunction<Request, Response> endpoint = preHandlerInputs.endpoint();
+        IRequest request = preHandlerInputs.clientRequest();
+        ThrowingFunction<IRequest, IResponse> endpoint = preHandlerInputs.endpoint();
         ISocketWrapper sw = preHandlerInputs.sw();
 
         logger.logTrace(() -> String.format("Request: %s by %s",
-                request.requestLine().getRawValue(),
-                request.remoteRequester()));
+                request.getRequestLine().getRawValue(),
+                request.getRemoteRequester()));
 
-        String path = request.requestLine().getPathDetails().getIsolatedPath();
+        String path = request.getRequestLine().getPathDetails().getIsolatedPath();
 
         // redirect to https if they are on the plain-text connection and the path is "whoops"
         if (path.contains("whoops") &&
@@ -153,7 +162,8 @@ public class TheRegister {
 
     private UploadPhoto setupUploadPhotos(AuthUtils auth) {
         var photoDb = context.getDb("photos", Photograph.EMPTY);
-        return new UploadPhoto(photoDb, auth, context);
+        var videoDb = context.getDb("videos", Video.EMPTY);
+        return new UploadPhoto(photoDb, videoDb, auth, context);
     }
 
     private AuthUtils buildAuthDomain() {

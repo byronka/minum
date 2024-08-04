@@ -85,7 +85,7 @@ public class LoopingSessionReviewing {
      * as their live sessions
      */
     public static List<SessionId> determineSessionsToKill(List<User> users, List<SessionId> sessions) {
-        // TODO: This definitely has some poor design for performance.
+        // This definitely has some poor design for performance. But it's just a sample implementation
         // This is an O(n^2) algorithm. yuck.  If there are a bunch of live sessions,
         // and a bunch of sessions to examine, then for each session we need to review the
         // list of live sessions against it.

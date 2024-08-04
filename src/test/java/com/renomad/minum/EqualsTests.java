@@ -56,8 +56,6 @@ public class EqualsTests {
 
         EqualsVerifier.simple().forClass(Inmate.class).verify();
 
-        EqualsVerifier.forClass(VaryHeader.class).verify();
-
         EqualsVerifier.forClass(HtmlParseNode.class)
                 .withPrefabValues(HtmlParseNode.class,
                         new HtmlParseNode(
@@ -75,6 +73,15 @@ public class EqualsTests {
         EqualsVerifier.forClass(TagInfo.class).verify();
 
         EqualsVerifier.forClass(PathDetails.class).verify();
+
+        EqualsVerifier.forClass(ContentDisposition.class).verify();
+
+        EqualsVerifier.forClass(Partition.class).verify();
+
+        EqualsVerifier.forClass(UrlEncodedKeyValue.class).verify();
+
+        EqualsVerifier.forClass(Headers.class).verify();
+
     }
 
 

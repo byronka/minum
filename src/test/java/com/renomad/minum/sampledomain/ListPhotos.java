@@ -9,7 +9,8 @@ import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.LRUCache;
 import com.renomad.minum.utils.StacktraceUtils;
-import com.renomad.minum.web.Request;
+import com.renomad.minum.web.IRequest;
+import com.renomad.minum.web.IResponse;
 import com.renomad.minum.web.Response;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import static com.renomad.minum.web.StatusLine.StatusCode.*;
 public class ListPhotos {
 
     private final TemplateProcessor listPhotosTemplateProcessor;
+    private final TemplateProcessor videoHtmlTemplateProcessor;
     private final ILogger logger;
     private final Path dbDir;
 
@@ -41,13 +43,14 @@ public class ListPhotos {
         this.dbDir = Path.of(constants.dbDirectory);
         this.staticFileCacheTime = constants.staticFileCacheTime;
         listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/list_photos_template.html"));
+        videoHtmlTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/video_element_template.html"));
         this.up = up;
         this.auth = auth;
         this.lruCache = LRUCache.getLruCache();
         this.fileReader = new FileReader(lruCache, true, logger);
     }
 
-    public Response ListPhotosPage(Request r) {
+    public IResponse ListPhotosPage(IRequest r) {
 
         String photoHtml = up.getPhotographs().stream().map(x ->
         """
@@ -58,16 +61,21 @@ public class ListPhotos {
         </li>
         """.formatted(x.getPhotoUrl(), x.getShortDescription(), x.getDescription())).collect(Collectors.joining ("\n"));
 
-        String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload</a></p>" : "";
+        String videoHtml = up.getVideos().stream()
+                .map(x -> videoHtmlTemplateProcessor.renderTemplate(Map.of("video_id", x.getVideoUrl(), "short_description", x.getShortDescription(), "long_description", x.getDescription())))
+                .collect(Collectors.joining ("\n"));
+
+        String navBar = auth.processAuth(r).isAuthenticated() ? "<p><a href=\"logout\">Logout</a></p><p><a href=\"upload\">Upload Photo</a></p><p><a href=\"upload_video\">Upload Video</a></p>" : "";
 
         String listPhotosHtml = listPhotosTemplateProcessor.renderTemplate(Map.of(
                 "nav_bar", navBar,
-                "photo_html", photoHtml
+                "photo_html", photoHtml,
+                "video_html", videoHtml
         ));
         return Response.htmlOk(listPhotosHtml);
     }
 
-    public Response ListPhotosPage2(Request r) {
+    public IResponse ListPhotosPage2(IRequest r) {
 
         String photoHtml = up.getPhotographs().stream().map(x ->
         """
@@ -81,7 +89,7 @@ public class ListPhotos {
         """.formatted(x.getPhotoUrl(), x.getShortDescription(), x.getDescription())).collect(Collectors.joining ("\n"));
 
         String navBar;
-        List<String> headerStrings = r.headers().valueByKey("x-preapproved");
+        List<String> headerStrings = r.getHeaders().valueByKey("x-preapproved");
         if (headerStrings != null && headerStrings.contains("true")) {
             navBar = "<p><a href=\"/logout\">Logout</a></p><p><a href=\"/upload\">Upload</a></p>";
         } else {
@@ -98,9 +106,9 @@ public class ListPhotos {
     /**
      * Like you would think - a way to read a photo from disk to put on the wire
      */
-    public Response grabPhoto(Request r) {
-        String filename = r.requestLine().queryString().get("name");
-        logger.logAudit(() -> r.remoteRequester() + " is looking for a photo named " + filename);
+    public IResponse grabPhoto(IRequest r) {
+        String filename = r.getRequestLine().queryString().get("name");
+        logger.logAudit(() -> r.getRemoteRequester() + " is looking for a photo named " + filename);
 
         // if the name query is null or blank, return 404
         if (filename == null || filename.isBlank()) {
@@ -131,7 +139,36 @@ public class ListPhotos {
         // otherwise, read the bytes
         logger.logDebug(() -> "about to read file at " + photoPath);
 
-        return readStaticFile(photoPath.toString());
+        return readStaticFile(photoPath.toString(), "image/jpeg");
+
+    }
+
+    /**
+     * Returns videos we have stored
+     */
+    public IResponse grabVideo(IRequest r) {
+        String filename = r.getRequestLine().queryString().get("name");
+        logger.logAudit(() -> r.getRemoteRequester() + " is looking for a video named " + filename);
+
+        // if the name query is null or blank, return 404
+        if (filename == null || filename.isBlank()) {
+            return Response.buildLeanResponse(CODE_404_NOT_FOUND);
+        }
+
+        // let's check to see whether the file is even there.
+        Path videoPath = dbDir.resolve("video_files").resolve(filename);
+        boolean doesFileExist = Files.exists(videoPath);
+
+        // if it's not there, return 404
+        if (! doesFileExist) {
+            logger.logDebug(() -> "filename of " + filename + " does not exist in the directory");
+            return Response.buildLeanResponse(CODE_404_NOT_FOUND);
+        }
+
+        // otherwise, read the bytes
+        logger.logDebug(() -> "about to read file at " + videoPath);
+
+        return readStaticFile(videoPath.toString(), "video/mp4");
 
     }
 
@@ -143,10 +180,12 @@ public class ListPhotos {
      *     bad characters.  See {@link FileUtils#badFilePathPatterns}
      * </p>
      *
+     * @param path the path to the file on disk.
+     * @param mimeType a mime type e.g. "image/jpg" or "video/mp4"
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    Response readStaticFile(String path) {
+    IResponse readStaticFile(String path, String mimeType) {
         if (badFilePathPatterns.matcher(path).find()) {
             logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
@@ -170,10 +209,10 @@ public class ListPhotos {
                 // code repo huge.
                 if (fileSize < 3000) {
                     logger.logDebug(() -> String.format("File: (%s) was smaller than 3000 bytes, reading into cache.", staticFilePath));
-                    return createOkResponseForStaticFiles(staticFilePath);
+                    return createOkResponseForStaticFiles(staticFilePath, mimeType);
                 } else {
                     logger.logDebug(() -> String.format("File: (%s) was larger than 3000 bytes, reading directly from disk", staticFilePath));
-                    return createOkResponseForLargeStaticFiles(staticFilePath);
+                    return createOkResponseForLargeStaticFiles(staticFilePath, mimeType);
                 }
             }
         } catch (IOException e) {
@@ -185,10 +224,11 @@ public class ListPhotos {
 
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
+     * @param mimeType a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private Response createOkResponseForLargeStaticFiles(Path staticFilePath) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType) throws IOException {
         var headers = Map.of(
-                "Content-Type", "image/jpeg",
+                "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);
 
         return Response.buildLargeFileResponse(
@@ -200,11 +240,13 @@ public class ListPhotos {
 
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
+     * @param mimeType a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private Response createOkResponseForStaticFiles(Path staticFilePath) throws IOException {
+    private IResponse createOkResponseForStaticFiles(Path staticFilePath, String mimeType) throws IOException {
+        // this mild-looking method, "readFile", will cache the file contents.
         var fileContents = fileReader.readFile(staticFilePath.toString());
         var headers = Map.of(
-                "Content-Type", "image/jpeg",
+                "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);
 
         return Response.buildResponse(

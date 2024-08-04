@@ -6,5 +6,5 @@ package com.renomad.minum.web;
  * @param endpoint      the endpoint that was properly chosen for the combination
  *                      of path and verb.
  */
-public record PreHandlerInputs(Request clientRequest, ThrowingFunction<Request, Response> endpoint, ISocketWrapper sw) {
+public record PreHandlerInputs(IRequest clientRequest, ThrowingFunction<IRequest, IResponse> endpoint, ISocketWrapper sw) {
 }

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        <title>Complete file example</title>
+        <link rel="stylesheet" href="uploadphoto/upload_photo.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+    <form action="upload_video" method="POST" enctype="multipart/form-data">
+        <div>
+            <label for="image_uploads">Choose video to upload (must be mp4)</label>
+            <input type="file" id="image_uploads" name="image_uploads" accept=".mp4, .mpeg" >
+        </div>
+        <div class="preview">
+            <p>No files currently selected for upload</p>
+        </div>
+        <div>
+            <div>
+                <label for="short_description">Short description:</label>
+                <textarea id="short_description" name="short_description" placeholder="short caption"></textarea>
+            </div>
+
+            <div>
+                <label for="long_description">Long description:</label>
+                <textarea id="long_description" name="long_description" placeholder="longer description"></textarea>
+            </div>
+        </div>
+        <div>
+            <button>Submit</button>
+        </div>
+    </form>
+    <script src="uploadPhoto/upload_photo.js"></script>
+    </body>
+</html>

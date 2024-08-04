@@ -19,7 +19,11 @@ public class TestFrameworkTests {
 
     @Test
     public void test_AssertThrows_AssertOnMessage() {
-        assertThrows(TestFailureException.class, "Did not get expected message (I am foo). Instead, got: Failed to throw exception", () -> assertThrows(RuntimeException.class, "I am foo", () -> {}));
+        assertThrows(
+                TestFailureException.class,
+                "Did not get expected message (I am foo). Instead, got: Failed to throw exception",
+                () -> assertThrows(TestFailureException.class, "I am foo", () -> {})
+        );
     }
 
     @Test

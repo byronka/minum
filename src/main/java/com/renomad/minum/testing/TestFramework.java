@@ -48,7 +48,7 @@ public final class TestFramework {
             r.run();
             throw new TestFailureException("Failed to throw exception");
         } catch (Exception ex) {
-            if (!myEx.isInstance(ex)) {
+            if (!myEx.getTypeName().equals(ex.getClass().getTypeName())) {
                 String msg = String.format("This did not throw the expected exception type (%s).  Instead, (%s) was thrown", myEx, ex);
                 throw new TestFailureException(msg);
             }

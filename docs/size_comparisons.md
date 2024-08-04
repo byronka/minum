@@ -27,7 +27,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 4,570 | 141,048 | 1,085,405   |
+| 5,027 | 141,048 | 1,085,405   |
 
 
 #### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -53,7 +53,7 @@ well-tested and there are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 1921  | 163,000 | 242,000 |
+| 2353  | 163,000 | 242,000 |
 
 
 Templating
@@ -100,7 +100,7 @@ own HTML code, for such reasons as extracting data or testing.
 
 | Minum | JSoup  |
 |-------|--------|
-| 565   | 14,337 |
+| 555   | 14,337 |
 
 
 Testing
@@ -134,7 +134,7 @@ there is a basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 587   | 18,045            |
+| 632   | 18,045            |
 
 
 Javascript utilities

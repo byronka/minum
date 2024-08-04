@@ -24,8 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.renomad.minum.testing.TestFramework.*;
-import static com.renomad.minum.web.StatusLine.StatusCode.CODE_400_BAD_REQUEST;
-import static com.renomad.minum.web.StatusLine.StatusCode.CODE_404_NOT_FOUND;
+import static com.renomad.minum.web.StatusLine.StatusCode.*;
 
 public class WebFrameworkTests {
 
@@ -44,7 +43,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_readStaticFile_CSS() {
-        Response response = webFramework.readStaticFile("main.css");
+        IResponse response = webFramework.readStaticFile("main.css");
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
@@ -53,7 +52,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_readStaticFile_JS() {
-        Response response = webFramework.readStaticFile("index.js");
+        IResponse response = webFramework.readStaticFile("index.js");
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
@@ -62,7 +61,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_readStaticFile_HTML() {
-        Response response = webFramework.readStaticFile("index.html");
+        IResponse response = webFramework.readStaticFile("index.html");
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
@@ -75,7 +74,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_OutsideDirectory() {
-        Response response = webFramework.readStaticFile("../templates/auth/login_page_template.html");
+        IResponse response = webFramework.readStaticFile("../templates/auth/login_page_template.html");
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -85,7 +84,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_ReadFile_Edge_ForwardSlashes() {
-        Response response = webFramework.readStaticFile("//index.html");
+        IResponse response = webFramework.readStaticFile("//index.html");
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -95,7 +94,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_Colon() {
-        Response response = webFramework.readStaticFile(":");
+        IResponse response = webFramework.readStaticFile(":");
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -105,7 +104,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_Directory() {
-        Response response = webFramework.readStaticFile("src/test/resources/");
+        IResponse response = webFramework.readStaticFile("src/test/resources/");
 
         assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
@@ -115,7 +114,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_CurrentDirectory() {
-        Response response = webFramework.readStaticFile("./");
+        IResponse response = webFramework.readStaticFile("./");
 
         assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
@@ -125,7 +124,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_EdgeCase() {
-        Response response = webFramework.readStaticFile("./");
+        IResponse response = webFramework.readStaticFile("./");
 
         assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
@@ -136,7 +135,7 @@ public class WebFrameworkTests {
     @Test
     public void test_readStaticFile_IOException() {
         webFramework = new WebFramework(context, default_zdt, throwingFileReader);
-        Response response = webFramework.readStaticFile("foo");
+        IResponse response = webFramework.readStaticFile("foo");
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -320,6 +319,14 @@ public class WebFrameworkTests {
         throwingRunnable.run();
     }
 
+    @Test
+    public void test_compressIfRequested() throws IOException {
+        StringBuilder stringBuilder = new StringBuilder();
+        Response incomingResponse = (Response)Response.buildResponse(CODE_200_OK, Map.of("content-type", "text/plain"), "a".repeat(1000));
+        IResponse compressedResponse = WebFramework.compressBodyIfRequested(incomingResponse, List.of("accept-encoding: gzip"), stringBuilder, 999);
+        assertTrue(incomingResponse.getBody().length > compressedResponse.getBody().length);
+
+    }
 
 
 }

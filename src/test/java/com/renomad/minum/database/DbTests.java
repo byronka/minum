@@ -101,6 +101,7 @@ public class DbTests {
         MyThread.sleep(FINISH_TIME);
 
         for (int i = 0; i < 7; i++) {
+
             int finalI = i;
             logger.logDebug(() -> "DBTests general capability, round " + finalI);
             final var foos = range(1, 40).mapToObj(x -> new Foo(0, x, "abc" + x)).toList();
@@ -110,19 +111,16 @@ public class DbTests {
                 db.write(foo);
             }
 
+            MyThread.sleep(100);
+
             // check that the files are now there.
-            // note that since our minum.database is *eventually* synced to disk, we need to wait a
-            // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(70);
             for (var foo : foos) {
                 Path foundFile = foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX);
                 assertTrue(Files.exists(foundFile), "should find file at " + foundFile);
             }
 
-            // rebuild some objects from what was written to disk
-            // note that since our minum.database is *eventually* synced to disk, we need to wait a
-            // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(90);
+            MyThread.sleep(FINISH_TIME);
+
             assertEqualsDisregardOrder(
                     db.values().stream().map(Foo::toString).toList(),
                     foos.stream().map(Foo::toString).toList());
@@ -135,10 +133,8 @@ public class DbTests {
                 db.write(newFoo);
             }
 
-            // rebuild some objects from what was written to disk
-            // note that since our minum.database is *eventually* synced to disk, we need to wait a
-            // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(FINISH_TIME);
+            MyThread.sleep(100);
+
             assertEqualsDisregardOrder(
                     db.values().stream().map(Foo::toString).toList(),
                     updatedFoos.stream().map(Foo::toString).toList());
@@ -148,15 +144,13 @@ public class DbTests {
                 db.delete(foo);
             }
 
-            // check that all the files are now gone
-            // note that since our minum.database is *eventually* synced to disk, we need to wait a
-            // (milli)second or two here for them to get onto the disk before we check for them.
-            MyThread.sleep(90);
+            // check that the files are all gone
+            MyThread.sleep(100);
+            
             for (var foo : foos) {
                 assertFalse(Files.exists(foosDirectory.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
             }
         }
-
         // give the action queue time to save files to disk
         // then shut down.
         db.stop();
@@ -198,7 +192,7 @@ public class DbTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
         final var db_throwaway = new Db<>(foosDirectory, context, INSTANCE);
 
-        var ex = assertThrows(RuntimeException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
+        var ex = assertThrows(DbException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
         assertEquals(ex.getMessage(), "no data was found with index of 123");
 
         db_throwaway.stop();
@@ -226,7 +220,7 @@ public class DbTests {
 
         // create a corrupted file, to create that edge condition
         Files.writeString(pathToSampleFile, "invalid data", StandardCharsets.UTF_8);
-        final var ex = assertThrows(RuntimeException.class, db::loadDataFromDisk);
+        final var ex = assertThrows(DbException.class, db::loadDataFromDisk);
         assertTrue(ex.getMessage().replace('\\','/').startsWith("Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\"). Caused by: java.lang.NumberFormatException: For input string: \"invalid data\""));
 
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
@@ -296,7 +290,7 @@ public class DbTests {
         final var pathToIndex = foosDirectory.resolve("index.ddps");
         // this file should not be empty, but we are making it empty
         Files.writeString(pathToIndex,"");
-        var ex = assertThrows(RuntimeException.class, () -> new Db<>(foosDirectory, context, INSTANCE));
+        var ex = assertThrows(DbException.class, () -> new Db<>(foosDirectory, context, INSTANCE));
         // because the error message includes a path that varies depending on which OS, using regex to search.
         assertTrue(RegexUtils.isFound("Exception while reading out.simple_db.foos.index.ddps in Db constructor",ex.getMessage()));
         MyThread.sleep(FINISH_TIME);
@@ -407,7 +401,7 @@ public class DbTests {
     public void test_Db_Delete_EdgeCase_DoesNotExist() {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
         var db = new Db<>(foosDirectory, context, INSTANCE);
-        var ex = assertThrows(RuntimeException.class, () -> db.delete(new Foo(1, 2, "a")));
+        var ex = assertThrows(DbException.class, () -> db.delete(new Foo(1, 2, "a")));
         assertEquals(ex.getMessage(), "no data was found with index of 1");
         MyThread.sleep(FINISH_TIME);
     }
@@ -791,7 +785,6 @@ public class DbTests {
             this.b = b;
         }
 
-        static final Fubar3 INSTANCE = new Fubar3(0,0,"");
 
         @Override
         public String serialize() {
@@ -836,8 +829,6 @@ public class DbTests {
             this.b = b;
         }
 
-        static final Fubar3 INSTANCE = new Fubar3(0,0,"");
-
         @Override
         public String serialize() {
             return null;
@@ -880,8 +871,6 @@ public class DbTests {
             this.a = a;
             this.b = b;
         }
-
-        static final Fubar3 INSTANCE = new Fubar3(0,0,"");
 
         @Override
         public String serialize() {

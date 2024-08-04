@@ -5,6 +5,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.concurrent.Future;
 
+/**
+ * An interface for the {@link Server} implementation.
+ * Solely created to provide better testing access
+ */
 public interface IServer extends Closeable {
 
     /**

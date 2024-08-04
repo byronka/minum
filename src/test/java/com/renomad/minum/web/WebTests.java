@@ -4,8 +4,8 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
-import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFailureException;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -29,7 +29,6 @@ import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
 import static com.renomad.minum.web.RequestLine.Method.*;
 import static com.renomad.minum.web.RequestLine.startLineRegex;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
-import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
 /**
  <pre>
@@ -54,8 +53,7 @@ public class WebTests {
     static private Context context;
     static private TestLogger logger;
     private static String gettysburgAddress;
-    private static int maxQueryStringKeysCount;
-    
+
     /**
      * The length of time, in milliseconds, we will wait for the server to close
      * before letting computation continue.
@@ -72,10 +70,10 @@ public class WebTests {
         properties.setProperty("SERVER_PORT", "7777");
         properties.setProperty("SUSPICIOUS_PATHS", ".env");
         properties.setProperty("IS_THE_BRIG_ENABLED", "true");
+        properties.setProperty("SOCKET_TIMEOUT_MILLIS", "300");
         context = buildTestingContext("unit_tests",properties);
-        maxQueryStringKeysCount = context.getConstants().maxQueryStringKeysCount;
         es = context.getExecutorService();
-        inputStreamUtils = new InputStreamUtils(context.getConstants());
+        inputStreamUtils = new InputStreamUtils();
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
@@ -101,7 +99,7 @@ public class WebTests {
             }
         });
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-        assertThrows(RuntimeException.class, future::get);
+        assertThrows(TestFailureException.class, future::get);
         assertTrue(logger.doesMessageExist("No worries folks, just testing the exception handling", 8));
     }
 
@@ -113,9 +111,9 @@ public class WebTests {
      * object that gets ferried along to the client.
      */
     static class Summation {
-        static Response addTwoNumbers(Request r) {
-            int aValue = Integer.parseInt(r.requestLine().queryString().get("a"));
-            int bValue = Integer.parseInt(r.requestLine().getPathDetails().getQueryString().get("b"));
+        static IResponse addTwoNumbers(IRequest r) {
+            int aValue = Integer.parseInt(r.getRequestLine().queryString().get("a"));
+            int bValue = Integer.parseInt(r.getRequestLine().getPathDetails().getQueryString().get("b"));
             int sum = aValue + bValue;
             String sumString = String.valueOf(sum);
             return Response.htmlOk(sumString);
@@ -146,7 +144,7 @@ public class WebTests {
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
-                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers hi = new Headers(allHeaders);
 
                     assertEquals(hi.valueByKey("server"), List.of("minum"));
@@ -190,13 +188,13 @@ public class WebTests {
 
     @Test
     public void test_StartLine_Post() {
-        RequestLine sl = RequestLine.empty().extractRequestLine("POST /something HTTP/1.0");
+        RequestLine sl = RequestLine.EMPTY.extractRequestLine("POST /something HTTP/1.0");
         assertEquals(sl.getMethod(), POST);
     }
 
     @Test
     public void test_StartLine_EmptyPath() {
-        RequestLine sl = RequestLine.empty().extractRequestLine("GET / HTTP/1.1");
+        RequestLine sl = RequestLine.EMPTY.extractRequestLine("GET / HTTP/1.1");
         assertEquals(sl.getMethod(), GET);
         assertEquals(sl.getPathDetails().getIsolatedPath(), "");
     }
@@ -213,9 +211,9 @@ public class WebTests {
                     ""
             );
             for (String s : badStartLines) {
-                assertEquals(RequestLine.empty().extractRequestLine(s), RequestLine.empty());
+                assertEquals(RequestLine.EMPTY.extractRequestLine(s), RequestLine.EMPTY);
             }
-            assertThrows(InvariantException.class, () -> RequestLine.empty().extractRequestLine(null));
+            assertThrows(InvariantException.class, () -> RequestLine.EMPTY.extractRequestLine(null));
     }
 
     @Test
@@ -253,7 +251,7 @@ public class WebTests {
 
     @Test
     public void test_StatusLine_InvalidHttpVersion() {
-        assertThrows(RuntimeException.class,
+        assertThrows(WebServerException.class,
                 "HTTP version was not an acceptable value. Given: 1.3",
                 () -> StatusLine.extractStatusLine("HTTP/1.3 200 OK"));
     }
@@ -280,71 +278,45 @@ public class WebTests {
     @Test
     public void test_ParseForm_UrlEncoded() {
         final var expected = Map.of("value_a", "123", "value_b", "456");
-        final var result = new BodyProcessor(context).parseUrlEncodedForm("value_a=123&value_b=456");
+        byte[] bytes = "value_a=123&value_b=456".getBytes(StandardCharsets.US_ASCII);
+        final var result = new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
         assertEquals(expected.get("value_a"), result.asString("value_a"));
         assertEquals(expected.get("value_b"), result.asString("value_b"));
     }
 
     @Test
     public void test_ParseForm_EdgeCase_BlankKey() {
-        new BodyProcessor(context).parseUrlEncodedForm("=123");
-        var logs = logger.findFirstMessageThatContains("The key must not be blank");
-        assertTrue(!logs.isBlank());
+        byte[] bytes = "=123".getBytes(StandardCharsets.US_ASCII);
+        new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
+        assertTrue(logger.doesMessageExist("Unable to parse this body. no key found during parsing"));
     }
 
     @Test
     public void test_ParseForm_EdgeCase_DuplicateKey() {
-        new BodyProcessor(context).parseUrlEncodedForm("a=123&a=123");
-        var logs = logger.findFirstMessageThatContains("a was duplicated in the post body - had values of 123 and 123");
+        byte[] bytes = "a=123&a=123".getBytes(StandardCharsets.US_ASCII);
+        new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
+        var logs = logger.findFirstMessageThatContains("key (a) was duplicated in the post body - previous version was 123 and recent data was 123");
         assertTrue(!logs.isBlank());
     }
 
     @Test
     public void test_ParseForm_EdgeCase_EmptyValue() {
-        final var result = new BodyProcessor(context).parseUrlEncodedForm("mykey=");
+        byte[] bytes = "mykey=".getBytes(StandardCharsets.US_ASCII);
+        final var result = new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
         assertEquals(result.asString("mykey"), "");
     }
 
     @Test
     public void test_ParseForm_EdgeCase_NullValue() {
-        final var result2 = new BodyProcessor(context).parseUrlEncodedForm("mykey=%NULL%");
+        byte[] bytes = "mykey=%NULL%".getBytes(StandardCharsets.US_ASCII);
+        final var result2 = new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
         assertEquals(result2.asString("mykey"), "");
-    }
-
-    /**
-     * What happens if we are dealing with a form having many values?
-     * By the way, the maximum allowed is set by {@link Constants#maxBodyKeysUrlEncoded}
-     */
-    @Test
-    public void test_ParseForm_EdgeCase_ManyFormValues() {
-        final var result2 = new BodyProcessor(context)
-                .parseUrlEncodedForm("foo0=&" +
-                        "foo1=&" +
-                        "foo2=bar&" +
-                        "foo3=&" +
-                        "foo4=&" +
-                        "foo5=&" +
-                        "foo6=&" +
-                        "foo7=&" +
-                        "foo8=&" +
-                        "foo9=&" +
-                        "foo10=&" +
-                        "foo11=3&" +
-                        "foo12=wedding+date&" +
-                        "foo13=date&" +
-                        "foo14=2006-9-18&" +
-                        "foo15=graduation+date&" +
-                        "foo16=date&" +
-                        "foo17=1998-04-04&" +
-                        "foo18=birthplace+-+city&" +
-                        "foo19=string&" +
-                        "foo20=Encino");
-        assertEquals(result2.asString("foo18"), "birthplace - city");
     }
 
     @Test
     public void test_ParseForm_Empty() {
-        final var result = new BodyProcessor(context).parseUrlEncodedForm("");
+        byte[] bytes = "".getBytes(StandardCharsets.US_ASCII);
+        final var result = new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
         assertEquals(result, Body.EMPTY);
     }
 
@@ -359,7 +331,7 @@ public class WebTests {
                     wf.registerPath(
                             POST,
                             "some_post_endpoint",
-                            request -> Response.htmlOk(request.body().asString("value_a"))
+                            request -> Response.htmlOk(request.getBody().asString("value_a"))
                     );
 
                     InputStream is = client.getInputStream();
@@ -373,11 +345,11 @@ public class WebTests {
                     client.sendHttpLine(contentLengthLine);
                     client.sendHttpLine("Content-Type: application/x-www-form-urlencoded");
                     client.sendHttpLine("");
-                    client.sendHttpLine(postedData);
+                    client.send(postedData);
 
                     // the server will respond to us.  Check everything is legit.
                     StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
-                    List<String> allHeaders = Headers.getAllHeaders(client.getInputStream(), context.getConstants().maxHeadersCount, inputStreamUtils);
+                    List<String> allHeaders = Headers.getAllHeaders(client.getInputStream(), inputStreamUtils);
                     Headers hi = new Headers(allHeaders);
                     String body = readBody(is, hi.contentLength());
 
@@ -410,89 +382,13 @@ public class WebTests {
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
-    /**
-     * If a client is POSTing data to our server, there are two allowed ways of doing it
-     * in HTTP/1.1.  One is to include the content-length, and the other is to do
-     * transfer-encoding: chunked.  This test is to drive implementation of chunk encoding.
-     * see https://www.rfc-editor.org/rfc/rfc7230#section-3.3.3
-     */
-    @Test
-    public void test_TransferEncodingChunked() throws Exception {
-        String receivedData =
-            """
-            HTTP/1.1 200 OK
-            Content-Type: text/plain
-            Transfer-Encoding: chunked
-            \r
-            4\r
-            Wiki\r
-            6\r
-            pedia \r
-            E\r
-            in \r
-            \r
-            chunks.
-            0\r
-            \r
-            """.stripLeading();
-
-        // read through the headers to get to the sweet juicy body below
-        InputStream inputStream = new ByteArrayInputStream(receivedData.getBytes(StandardCharsets.UTF_8));
-        while(!inputStreamUtils.readLine(inputStream).isEmpty()){
-            // do nothing, just going through the bytes of this stream
-        }
-
-        // and now, the magic of encoded chunks
-        final var result = StringUtils.byteArrayToString(inputStreamUtils.readChunkedEncoding(inputStream));
-
-        assertEquals(result, """
-            Wikipedia in \r
-            \r
-            chunks.""".stripLeading());
-    }
-
-    /**
-     * Looking into how to split a byte array using a string delimiter
-     */
-    @Test
-    public void test_MutiPartForm_Splitting() {
-        byte[] multiPartData = makeTestMultiPartData();
-        var bp = new BodyProcessor(context);
-
-        List<byte[]> result = bp.split(multiPartData, "\r\n--i_am_a_boundary");
-
-        assertEquals(result.size(), 2);
-        assertEquals(new String(result.get(0), StandardCharsets.UTF_8), "Content-Type: text/plain\r\n" +
-                "Content-Disposition: form-data; name=\"text1\"\r\n" +
-                "\r\n" +
-                "I am a value that is text");
-        assertEquals(new String(result.get(1), StandardCharsets.UTF_8), "Content-Type: application/octet-stream\r\n" +
-                "Content-Disposition: form-data; name=\"image_uploads\"; filename=\"photo_preview.jpg\"\r\n" +
-                "\r\n" +
-                "\u0001\u0002\u0003");
-    }
-
-    /**
-     * Examining the algorithm for parsing multipart data
-     */
-    @Test
-    public void test_MultiPartForm_Algorithm() {
-        byte[] multiPartData = makeTestMultiPartData();
-        var bp = new BodyProcessor(context);
-
-        Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
-
-        assertEquals(result.asString("text1"), "I am a value that is text");
-        assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
-    }
-
     @Test
     public void test_MultiPartForm_NoContentDisposition() {
         byte[] multiPartData = makeTestMultiPartDataNoContentDisposition();
         var bp = new BodyProcessor(context);
 
-        Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
-        assertTrue(result.asString().contains("I am a value that is text"));
+        bp.extractBodyFromInputStream(multiPartData.length, "multipart/form-data; boundary=i_am_a_boundary", new ByteArrayInputStream(multiPartData));
+        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: Error: no Content-Disposition header on partition in Multipart/form data"));
     }
 
     /**
@@ -507,12 +403,13 @@ public class WebTests {
         byte[] multiPartData = makeTestMultiPartData();
         var bp = new BodyProcessor(context);
 
-        Body result = bp.parseMultiform(multiPartData, "i_am_a_boundary");
+        Body result = bp.extractBodyFromInputStream(multiPartData.length, "multipart/form-data; boundary=i_am_a_boundary", new ByteArrayInputStream(multiPartData));
 
-        assertEquals(result.asString("text1"), "I am a value that is text");
-        assertEquals(result.partitionHeaders("text1").valueByKey("content-type"), List.of("text/plain"));
-        assertEquals(result.partitionHeaders("text1").valueByKey("content-disposition"), List.of("form-data; name=\"text1\""));
-        assertEqualByteArray(result.asBytes("image_uploads"), new byte[]{1, 2, 3});
+        Partition text1Partition = result.getPartitionByName("text1").getFirst();
+        assertEquals(text1Partition.getContentAsString(), "I am a value that is text");
+        assertEquals(text1Partition.getHeaders().valueByKey("content-type"), List.of("text/plain"));
+        assertEquals(text1Partition.getHeaders().valueByKey("content-disposition"), List.of("form-data; name=\"text1\""));
+        assertEqualByteArray(result.getPartitionByName("image_uploads").getFirst().getContent(), new byte[]{1, 2, 3});
     }
 
 
@@ -547,12 +444,13 @@ public class WebTests {
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final ThrowingFunction<Request, Response> testHandler = r -> {
-            if (r.body().asString("text1").equals("I am a value that is text") &&
-                    r.body().asBytes("image_uploads").length == 3 &&
-                    r.body().asBytes("image_uploads")[0] == 1 &&
-                    r.body().asBytes("image_uploads")[1] == 2 &&
-                    r.body().asBytes("image_uploads")[2] == 3
+        final ThrowingFunction<IRequest, IResponse> testHandler = r -> {
+            byte[] imageUploads = r.getBody().getPartitionByName("image_uploads").getFirst().getContent();
+            if (r.getBody().getPartitionByName("text1").getFirst().getContentAsString().equals("I am a value that is text") &&
+                    imageUploads.length == 3 &&
+                    imageUploads[0] == 1 &&
+                    imageUploads[1] == 2 &&
+                    imageUploads[2] == 3
             ) {
                 return Response.htmlOk("<p>everything was ok</p>");
             } else {
@@ -615,12 +513,12 @@ public class WebTests {
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final ThrowingFunction<Request, Response> testHandler = r -> {
+        final ThrowingFunction<IRequest, IResponse> testHandler = r -> {
             byte[] kittyPic = Files.readAllBytes(Path.of("src/test/resources/kitty.jpg"));
-            if (r.body().asString("text1").equals("I am a value that is text") &&
-                    isEqualByteArray(r.body().asBytes("image_uploads"), new byte[]{1,2,3}) &&
-                    isEqualByteArray(r.body().asBytes("kitty1"), kittyPic) &&
-                    isEqualByteArray(r.body().asBytes("kitty2"), kittyPic)
+            if (r.getBody().getPartitionByName("text1").getFirst().getContentAsString().equals("I am a value that is text") &&
+                    isEqualByteArray(r.getBody().getPartitionByName("image_uploads").getFirst().getContent(), new byte[]{1,2,3}) &&
+                    isEqualByteArray(r.getBody().getPartitionByName("kitty1").getFirst().getContent(), kittyPic) &&
+                    isEqualByteArray(r.getBody().getPartitionByName("kitty2").getFirst().getContent(), kittyPic)
             ) {
                 return Response.htmlOk("<p>everything was ok</p>");
             } else {
@@ -655,62 +553,77 @@ public class WebTests {
 
 
     /**
-     * It is allowed for users to send back a streaming response with no
-     * content length set - meaning the framework will add a header of
-     * transfer-encoding: chunked.
-     * <br>
-     * This will put the burden of processing the outgoing data on the
-     * shoulders of the developer.
-     * <br>
-     * See {@link #test_StreamingResponse_KnownContentLength()} to see an example
-     * where the data is streamed but the content length is known.
+     * Similar to {@link #test_MultiPartForm_HappyPath_MoreImages()} but uses a multipart-form
+     * data with an input having the "multiple" option set, meaning that the data will be transmitted with
+     * the same input name multiple times but differing filenames.  For example:
+     * <pre>
+     * POST http://localhost:8080/upload HTTP/1.1
+     * Host: localhost:8080
+     * Connection: keep-alive
+     * Content-Length: 585
+     * Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryOvAP22uXpkpUKh5g
+     *
+     * ------WebKitFormBoundaryOvAP22uXpkpUKh5g
+     * Content-Disposition: form-data; name="image_uploads"; filename="kitty.jpg"
+     * Content-Type: image/jpeg
+     *
+     * ...binary here...
+     * ------WebKitFormBoundaryOvAP22uXpkpUKh5g
+     * Content-Disposition: form-data; name="image_uploads"; filename="kitty_2.jpg"
+     * Content-Type: image/jpeg
+     *
+     * ...binary here...
+     * ------WebKitFormBoundaryOvAP22uXpkpUKh5g
+     * Content-Disposition: form-data; name="short_description"
+     *
+     * asfd
+     * ------WebKitFormBoundaryOvAP22uXpkpUKh5g
+     * Content-Disposition: form-data; name="long_description"
+     *
+     *
+     * ------WebKitFormBoundaryOvAP22uXpkpUKh5g--
+     * </pre>
      */
     @Test
-    public void test_StreamingResponse_NoContentLength() throws Exception {
-        // this is the data we will stream out.  Three blocks of strings.
-        List<String> dataToSend = List.of("abc", "def", "ghi");
+    public void test_MultiPartForm_HappyPath_MultipleImages() throws Exception {
+        byte[] multiPartData = makeTestMultiPartData_InputWithMultipleOption();
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final ThrowingFunction<Request, Response> testHandler = r -> {
-            return Response.buildStreamingResponse(CODE_200_OK, Map.of("Content-Type", "text/plain"), socketWrapper -> {
-                for (var data : dataToSend) {
-                    logger.logDebug(() -> "sending length: " + data.length());
-                    socketWrapper.send(String.valueOf(data.length()));
-                    socketWrapper.send("\r\n");
-                    logger.logDebug(() -> "sending data: " + data);
-                    socketWrapper.send(data);
-                    socketWrapper.send("\r\n");
-                }
-                socketWrapper.send("0\r\n\r\n");
-                socketWrapper.close();
-            });
+        final ThrowingFunction<IRequest, IResponse> testHandler = r -> {
+            byte[] kittyPic = Files.readAllBytes(Path.of("src/test/resources/kitty.jpg"));
+            List<Partition> kitty = r.getBody().getPartitionByName("kitty");
+            if (r.getBody().getPartitionByName("text1").getFirst().getContentAsString().equals("I am a value that is text") &&
+
+                    isEqualByteArray(r.getBody().getPartitionByName("image_uploads").getFirst().getContent(), new byte[]{1,2,3}) &&
+                    isEqualByteArray(kitty.get(0).getContent(), kittyPic) &&
+                    isEqualByteArray(kitty.get(1).getContent(), kittyPic)
+            ) {
+                return Response.htmlOk("<p>everything was ok</p>");
+            } else {
+                return Response.buildLeanResponse(CODE_500_INTERNAL_SERVER_ERROR);
+            }
         };
 
         var wf = new WebFramework(context, default_zdt);
         var webEngine = new WebEngine(context, wf);
 
-        wf.registerPath(GET, "some_endpoint", testHandler);
+        wf.registerPath(POST, "some_endpoint", testHandler);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
                 try (ISocketWrapper client = webEngine.startClient(socket)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
-                    client.sendHttpLine("GET /some_endpoint HTTP/1.0");
+                    client.sendHttpLine("POST /some_endpoint HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
-                    client.sendHttpLine("Connection: keep-alive");
+                    client.sendHttpLine("Content-Type: multipart/form-data; boundary=i_am_a_boundary");
+                    client.sendHttpLine("Content-length: " + multiPartData.length);
                     client.sendHttpLine("");
+                    client.send(multiPartData);
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
-                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
-                    Headers headers1 = new Headers(allHeaders);
-                    assertEquals(headers1.valueByKey("transfer-encoding"), List.of("Chunked"));
-
-                    byte[] bytes = inputStreamUtils.readChunkedEncoding(is);
-                    String s = new String(bytes, StandardCharsets.UTF_8);
-                    assertEquals("abcdefghi", s);
                 }
             }
         }
@@ -718,22 +631,20 @@ public class WebTests {
     }
 
     /**
-     * Similar to {@link #test_StreamingResponse_NoContentLength()} but the length
-     * is known in advance, so content-length is sent to the client.
+     * the length is known in advance, so content-length is sent to the client.
      */
     @Test
     public void test_StreamingResponse_KnownContentLength() throws Exception {
-        // this is the data we will stream out.  Three blocks of strings.
         String dataToSend = "I am the data to send";
 
         // This is the core of the test - here's where we'll process receiving a multipart data
 
-        final ThrowingFunction<Request, Response> testHandler = r -> {
+        final ThrowingFunction<IRequest, IResponse> testHandler = r -> {
             return Response.buildStreamingResponse(
                     CODE_200_OK,
                     Map.of("Content-Type", "text/plain"),
                     socketWrapper -> socketWrapper.send(dataToSend),
-                    (long) dataToSend.length());
+                    dataToSend.length());
         };
 
         var wf = new WebFramework(context, default_zdt);
@@ -753,7 +664,7 @@ public class WebTests {
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
-                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers1 = new Headers(allHeaders);
                     int length = Integer.parseInt(headers1.valueByKey("content-length").getFirst());
 
@@ -784,7 +695,7 @@ public class WebTests {
         String startLineString = "GET /.well-known/acme-challenge/foobar HTTP/1.1";
 
         // Convert it to a typed value
-        var startLine = RequestLine.empty().extractRequestLine(startLineString);
+        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
 
         // instantiate a web framework to do the processing.  We're TDD'ing some new
         // code inside this.
@@ -792,7 +703,7 @@ public class WebTests {
 
         // register a path to handle this pattern.  Wishful-thinking for the win.
         webFramework.registerPartialPath(GET, ".well-known/acme-challenge", request -> {
-            String path = request.requestLine().getPathDetails().getIsolatedPath();
+            String path = request.getRequestLine().getPathDetails().getIsolatedPath();
             return Response.htmlOk("value was " + path);
         });
 
@@ -801,14 +712,15 @@ public class WebTests {
 
         // now we create a whole request to stuff into this handler. We only
         // care about the request line.
-        Request request = new Request(
+        IRequest request = new Request(
                 new Headers(List.of()),
                 startLine,
-                Body.EMPTY,
-                "");
+                "",
+                new FakeSocketWrapper(),
+                new BodyProcessor(context));
 
         // when we run that handler against the request, it works.
-        Response response = endpoint.apply(request);
+        IResponse response = endpoint.apply(request);
         assertEquals(StringUtils.byteArrayToString(response.getBody()), "value was .well-known/acme-challenge/foobar");
     }
 
@@ -818,7 +730,7 @@ public class WebTests {
     @Test
     public void test_KeepAlive_Http_1_0() throws Exception {
 
-        final ThrowingFunction<Request, Response> testHandler =  r -> Response.htmlOk("looking good!");
+        final ThrowingFunction<IRequest, IResponse> testHandler = r -> Response.htmlOk("looking good!");
 
         var wf = new WebFramework(context, default_zdt);
         var webEngine = new WebEngine(context, wf);
@@ -837,7 +749,7 @@ public class WebTests {
 
                     StatusLine statusLine1 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine1.status(), CODE_200_OK);
-                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers1 = new Headers(allHeaders);
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                     new BodyProcessor(context).extractData(is, headers1);
@@ -850,7 +762,7 @@ public class WebTests {
 
                     StatusLine statusLine2 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine2.status(), CODE_200_OK);
-                    List<String> allHeaders2 = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    List<String> allHeaders2 = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers2 = new Headers(allHeaders2);
                     assertTrue(headers2.valueByKey("keep-alive") == null);
                 }
@@ -872,7 +784,7 @@ public class WebTests {
 
                     StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
-                    List<String> allHeaders = Headers.getAllHeaders(is, context.getConstants().maxHeadersCount, inputStreamUtils);
+                    List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers1 = new Headers(allHeaders);
                     assertTrue(headers1.valueByKey("keep-alive").contains("timeout=3"));
                 }
@@ -951,7 +863,7 @@ public class WebTests {
     public void test_PartialMatch_NothingRegistered() {
         var webFramework = new WebFramework(context, default_zdt);
 
-        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
@@ -961,45 +873,45 @@ public class WebTests {
     @Test
     public void test_PartialMatch_PerfectMatch() {
         var webFramework = new WebFramework(context, default_zdt);
-        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
     @Test
     public void test_PartialMatch_DoesNotMatch() {
         var webFramework = new WebFramework(context, default_zdt);
-        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new RequestLine(GET, new PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(GET, new PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", logger);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
     @Test
     public void test_PartialMatch_DifferentMethod() {
         var webFramework = new WebFramework(context, default_zdt);
-        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
-        var startLine = new RequestLine(POST, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(POST, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
         assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
     }
 
     @Test
     public void test_PartialMatch_MatchTooMuch() {
         var webFramework = new WebFramework(context, default_zdt);
-        ThrowingFunction<Request, Response> helloHandler = request -> Response.htmlOk("hello");
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
 
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
         webFramework.registerPartialPath(GET, "m", helloHandler);
 
-        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
         assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
     }
 
@@ -1008,19 +920,19 @@ public class WebTests {
      */
     @Test
     public void test_QueryString_NullPathdetails() {
-        var startLine = new RequestLine(GET, null, ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(GET, null, ONE_DOT_ONE, "", logger);
         assertEquals(startLine.queryString(), new HashMap<>());
     }
 
     @Test
     public void test_QueryString_NullQueryString() {
-        var startLine = new RequestLine(GET, new PathDetails("mypath", "", null), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", null), ONE_DOT_ONE, "", logger);
         assertEquals(startLine.queryString(), new HashMap<>());
     }
 
     @Test
     public void test_QueryString_EmptyQueryString() {
-        var startLIne = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        var startLIne = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
         assertEquals(startLIne.queryString(), new HashMap<>());
     }
 
@@ -1031,11 +943,11 @@ public class WebTests {
     @Test
     public void test_StartLine_Hashing() {
         var startLines = Map.of(
-                new RequestLine(GET, new PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount),   "foo",
-                new RequestLine(GET, new PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount),   "bar",
-                new RequestLine(GET, new PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount),   "baz"
+                new RequestLine(GET, new PathDetails("foo", "", Map.of()), ONE_DOT_ONE, "", logger),   "foo",
+                new RequestLine(GET, new PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", logger),   "bar",
+                new RequestLine(GET, new PathDetails("baz", "", Map.of()), ONE_DOT_ONE, "", logger),   "baz"
         );
-        assertEquals(startLines.get(new RequestLine(GET, new PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", logger, maxQueryStringKeysCount)), "bar");
+        assertEquals(startLines.get(new RequestLine(GET, new PathDetails("bar", "", Map.of()), ONE_DOT_ONE, "", logger)), "bar");
     }
 
     /**
@@ -1044,10 +956,10 @@ public class WebTests {
     @Test
     public void test_ExtractMapFromQueryString_TooManyPairs() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < context.getConstants().maxQueryStringKeysCount + 2; i++) {
+        for (int i = 0; i < RequestLine.MAX_QUERY_STRING_KEYS_COUNT + 2; i++) {
                 sb.append(String.format("foo%d=bar%d&", i, i));
         }
-        RequestLine requestLine = RequestLine.empty();
+        RequestLine requestLine = RequestLine.EMPTY;
         assertThrows(ForbiddenUseException.class, () -> requestLine.extractMapFromQueryString(sb.toString()));
     }
 
@@ -1056,7 +968,7 @@ public class WebTests {
      */
     @Test
     public void test_ExtractMapFromQueryString_NoEqualsSign() {
-        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger, 20);
+        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
         var result = requestLine.extractMapFromQueryString("foo");
         assertEquals(result, Map.of());
     }
@@ -1070,7 +982,6 @@ public class WebTests {
             final var baos = new ByteArrayOutputStream();
             baos.write(
                 """
-                \r
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
                 Content-Disposition: form-data; name="text1"\r
@@ -1110,7 +1021,6 @@ public class WebTests {
             final var baos = new ByteArrayOutputStream();
             baos.write(
                 """
-                \r
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
                 Content-Disposition: form-data; name="text1"\r
@@ -1135,6 +1045,62 @@ public class WebTests {
                         --i_am_a_boundary\r
                         Content-Type: application/octet-stream\r
                         Content-Disposition: form-data; name="kitty2"; filename="kitty2.jpg"\r
+                        \r
+                        """.getBytes(StandardCharsets.UTF_8));
+            baos.write(kittyBytes);
+            baos.write(
+                    """
+                    \r
+                    --i_am_a_boundary--\r
+                    
+                    """.getBytes(StandardCharsets.UTF_8));
+
+
+            return baos.toByteArray();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * This creates a multipart request resembling what is generated when the user
+     * chooses the "multiple" option on a file input element.
+     */
+    private static byte[] makeTestMultiPartData_InputWithMultipleOption() {
+        try {
+        /*
+        Per the specs for multipart, the boundary is preceded by
+        two dashes.
+         */
+            Path kittyPath = Path.of("src/test/resources/kitty.jpg");
+            byte[] kittyBytes = Files.readAllBytes(kittyPath);
+            final var baos = new ByteArrayOutputStream();
+            baos.write(
+                """
+                --i_am_a_boundary\r
+                Content-Type: text/plain\r
+                Content-Disposition: form-data; name="text1"\r
+                \r
+                I am a value that is text\r
+                --i_am_a_boundary\r
+                Content-Type: application/octet-stream\r
+                Content-Disposition: form-data; name="image_uploads"; filename="photo_preview.jpg"\r
+                \r
+                """.getBytes(StandardCharsets.UTF_8));
+            baos.write(new byte[]{1, 2, 3});
+            baos.write("""
+                        \r
+                        --i_am_a_boundary\r
+                        Content-Type: application/octet-stream\r
+                        Content-Disposition: form-data; name="kitty"; filename="kitty1.jpg"\r
+                        \r
+                        """.getBytes(StandardCharsets.UTF_8));
+            baos.write(kittyBytes);
+            baos.write("""
+                        \r
+                        --i_am_a_boundary\r
+                        Content-Type: application/octet-stream\r
+                        Content-Disposition: form-data; name="kitty"; filename="kitty2.jpg"\r
                         \r
                         """.getBytes(StandardCharsets.UTF_8));
             baos.write(kittyBytes);
@@ -1188,36 +1154,13 @@ public class WebTests {
     }
 
     /**
-     * A client may request for data to be compressed, using the Accept-Encoding
-     * header.  For example, "Accept-Encoding: gzip" will tell us that the client
-     * will be able to decompress gzip.
-     */
-    @Test
-    public void testCompression() {
-        var stringBuilder = new StringBuilder();
-
-        Response response = Response.htmlOk(gettysburgAddress);
-
-        Response response1 = WebFramework.compressBodyIfRequested(
-                response,
-                List.of("gzip"),
-                stringBuilder,
-                0);
-
-        byte[] bytes = CompressionUtils.gzipDecompress(response1.getBody());
-        String body = new String(bytes, StandardCharsets.UTF_8);
-        assertEquals(body, gettysburgAddress);
-        assertEquals(stringBuilder.toString(), "Content-Encoding: gzip"  + HTTP_CRLF);
-    }
-
-    /**
      * If the user sends us an Accept-Encoding with anything else besides
      * gzip, we won't compress.
      */
     @Test
-    public void testCompression_EdgeCase_NoGzip() {
+    public void testCompression_EdgeCase_NoGzip() throws IOException {
         var stringBuilder = new StringBuilder();
-        Response response = Response.htmlOk(gettysburgAddress);
+        Response response = (Response) Response.htmlOk(gettysburgAddress);
 
         WebFramework.compressBodyIfRequested(
                 response,
@@ -1236,10 +1179,10 @@ public class WebTests {
     @Test
     public void testAbsoluteForm() throws Exception {
         String startLineString = "GET https://foo.bar.baz HTTP/1.1";
-        var startLine = RequestLine.empty().extractRequestLine(startLineString);
+        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
-        ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine);
 
         assertEquals(response.apply(null), Response.buildLeanResponse(CODE_400_BAD_REQUEST));
     }
@@ -1257,10 +1200,10 @@ public class WebTests {
     @Test
     public void testAuthorityComponent() {
         String startLineString = "CONNECT  foo.bar:80 HTTP/1.1";
-        var startLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger, 0).extractRequestLine(startLineString);
+        var startLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger).extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
-        ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine);
 
         assertTrue(response == null);
     }
@@ -1272,10 +1215,10 @@ public class WebTests {
     @Test
     public void testAsteriskForm() {
         String startLineString = "OPTIONS * HTTP/1.1";
-        var startLine = RequestLine.empty().extractRequestLine(startLineString);
+        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
-        ThrowingFunction<Request, Response> response = webFramework.findEndpointForThisStartline(startLine);
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine);
 
         assertTrue(response == null);
     }
@@ -1300,15 +1243,14 @@ public class WebTests {
                             ),
                             ONE_DOT_ONE,
                             "POST /FOO HTTP/1.1",
-                            logger, maxQueryStringKeysCount
+                            logger
                     ),
-                    null,
                     null);
         }
 
         assertEquals(result.resultingResponse(), Response.buildLeanResponse(CODE_404_NOT_FOUND));
-        assertEquals(result.clientRequest().requestLine().toString(), "RequestLine{method=POST, pathDetails=PathDetails{isolatedPath='FOO', rawQueryString='', queryString={}}, version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1', logger=TestLogger using queue: loggerPrinterunit_tests, maxQueryStringKeysCount=50}");
-        assertEquals(result.clientRequest().remoteRequester(), "tester");
+        assertEquals(result.clientRequest().getRequestLine().toString(), "RequestLine{method=POST, pathDetails=PathDetails{isolatedPath='FOO', rawQueryString='', queryString={}}, version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1', logger=TestLogger using queue: loggerPrinterunit_tests}");
+        assertEquals(result.clientRequest().getRemoteRequester(), "tester");
     }
 
     /**
@@ -1326,7 +1268,7 @@ public class WebTests {
 
             result = webFramework.getProcessedRequestLine(sw, "");
         }
-        assertEquals(result, RequestLine.empty());
+        assertEquals(result, RequestLine.EMPTY);
     }
 
     @Test
@@ -1337,7 +1279,7 @@ public class WebTests {
 
             result = webFramework.getProcessedRequestLine(sw, "FOO FOO the FOO");
         }
-        assertEquals(result, RequestLine.empty());
+        assertEquals(result, RequestLine.EMPTY);
     }
 
     /**
@@ -1360,7 +1302,7 @@ public class WebTests {
                             new PathDetails(".env", null, null),
                             ONE_DOT_ONE,
                             null,
-                            logger, maxQueryStringKeysCount)
+                            logger)
             ));
         }
         assertEquals(ex.getMessage(), "tester is looking for a vulnerability, for this: .env");
@@ -1395,7 +1337,7 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_EdgeCase_HttpVersionNone() {
-        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.NONE, "", logger, maxQueryStringKeysCount);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.NONE, "", logger);
         Headers headers = new Headers(List.of("connection: keep-alive"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertFalse(isKeepAlive);
@@ -1406,7 +1348,7 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotOne() {
-        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger);
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, new Headers(List.of()), logger);
         assertTrue(isKeepAlive);
     }
@@ -1416,7 +1358,7 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotZero() {
-        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger, maxQueryStringKeysCount);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger);
         Headers headers = new Headers(List.of("connection: keep-alive"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertTrue(isKeepAlive);
@@ -1427,7 +1369,7 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotZero_NoHeader() {
-        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger, maxQueryStringKeysCount);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger);
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, new Headers(List.of()), logger);
         assertFalse(isKeepAlive);
     }
@@ -1437,7 +1379,7 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotZero_ConnectionClose() {
-        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger, maxQueryStringKeysCount);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger);
         Headers headers = new Headers(List.of("connection: close"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertFalse(isKeepAlive);
@@ -1448,7 +1390,7 @@ public class WebTests {
      */
     @Test
     public void testDetermineIfKeepAlive_OneDotOne_ConnectionClose() {
-        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger, maxQueryStringKeysCount);
+        RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger);
         Headers headers = new Headers(List.of("connection: close"));
         boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
         assertFalse(isKeepAlive);
@@ -1470,21 +1412,6 @@ public class WebTests {
     public void test_dumpAttackerNullChecks_NullFullSystem() {
         var webFramework = new WebFramework(context);
         assertFalse(webFramework.dumpIfAttacker(null, (FullSystem) null));
-    }
-
-    /**
-     * Because this trace logging can get a little tricky..
-     */
-    @Test
-    public void test_GettingBodyStringForTraceLogging() {
-        assertEquals(WebFramework.getBodyStringForTraceLog("a"), "The body is: a");
-        assertEquals(WebFramework.getBodyStringForTraceLog(""), "The body is: ");
-        assertEquals(WebFramework.getBodyStringForTraceLog("abc"), "The body is: abc");
-        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(49)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(50)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(51)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assertEquals(WebFramework.getBodyStringForTraceLog("a".repeat(52)), "The body is: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assertEquals(WebFramework.getBodyStringForTraceLog(null), "The body was null");
     }
 
 }

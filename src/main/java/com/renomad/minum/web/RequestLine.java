@@ -22,7 +22,7 @@ public final class RequestLine {
     private final HttpVersion version;
     private final String rawValue;
     private final ILogger logger;
-    private final int maxQueryStringKeysCount;
+    static final int MAX_QUERY_STRING_KEYS_COUNT = 50;
 
     /**
      * @param method GET, POST, etc.
@@ -35,15 +35,13 @@ public final class RequestLine {
             PathDetails pathDetails,
             HttpVersion version,
             String rawValue,
-            ILogger logger,
-            int maxQueryStringKeysCount
+            ILogger logger
     ) {
         this.method = method;
         this.pathDetails = pathDetails;
         this.version = version;
         this.rawValue = rawValue;
         this.logger = logger;
-        this.maxQueryStringKeysCount = maxQueryStringKeysCount;
     }
 
     /**
@@ -61,9 +59,7 @@ public final class RequestLine {
 
     static final Pattern startLineRegex = Pattern.compile(REQUEST_LINE_PATTERN);
 
-    public static RequestLine empty() {
-        return new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", null, 0);
-    }
+    public static final RequestLine EMPTY = new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", null);
 
     /**
      * Returns a map of the key-value pairs in the URL,
@@ -109,13 +105,13 @@ public final class RequestLine {
         // run the regex
         var doesMatch = m.matches();
         if (!doesMatch) {
-            return RequestLine.empty();
+            return RequestLine.EMPTY;
         }
         Method myMethod = extractMethod(m.group(1));
         PathDetails pd = extractPathDetails(m.group(2));
         HttpVersion httpVersion = getHttpVersion(m.group(3));
 
-        return new RequestLine(myMethod, pd, httpVersion, value, logger, maxQueryStringKeysCount);
+        return new RequestLine(myMethod, pd, httpVersion, value, logger);
     }
 
     private Method extractMethod(String methodString) {
@@ -154,7 +150,7 @@ public final class RequestLine {
         StringTokenizer tokenizer = new StringTokenizer(rawQueryString, "&");
         // we'll only take less than MAX_QUERY_STRING_KEYS_COUNT
         for (int i = 0; tokenizer.hasMoreTokens(); i++) {
-            if (i >= maxQueryStringKeysCount) throw new ForbiddenUseException("User tried providing too many query string keys.  Current max: " + maxQueryStringKeysCount);
+            if (i >= MAX_QUERY_STRING_KEYS_COUNT) throw new ForbiddenUseException("User tried providing too many query string keys.  max: " + MAX_QUERY_STRING_KEYS_COUNT);
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
@@ -201,12 +197,12 @@ public final class RequestLine {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RequestLine that = (RequestLine) o;
-        return maxQueryStringKeysCount == that.maxQueryStringKeysCount && method == that.method && Objects.equals(pathDetails, that.pathDetails) && version == that.version && Objects.equals(rawValue, that.rawValue) && Objects.equals(logger, that.logger);
+        return method == that.method && Objects.equals(pathDetails, that.pathDetails) && version == that.version && Objects.equals(rawValue, that.rawValue) && Objects.equals(logger, that.logger);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(method, pathDetails, version, rawValue, logger, maxQueryStringKeysCount);
+        return Objects.hash(method, pathDetails, version, rawValue, logger);
     }
 
     @Override
@@ -217,7 +213,6 @@ public final class RequestLine {
                 ", version=" + version +
                 ", rawValue='" + rawValue + '\'' +
                 ", logger=" + logger +
-                ", maxQueryStringKeysCount=" + maxQueryStringKeysCount +
                 '}';
     }
 }
