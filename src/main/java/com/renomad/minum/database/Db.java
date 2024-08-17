@@ -129,7 +129,30 @@ public final class Db<T extends DbData<?>> {
     }
 
     /**
-     * Write new data
+     * Write data to the database.  Use an index of 0 to store new data, and a positive
+     * non-zero value to update data.
+     * <p><em>
+     *     Example of adding new data to the database:
+     * </p></em>
+     * {@snippet :
+     *          final var newSalt = StringUtils.generateSecureRandomString(10);
+     *          final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
+     *          final var newUser = new User(0L, newUsername, hashedPassword, newSalt);
+     *          userDb.write(newUser);
+     * }
+     * <p><em>
+     *     Example of updating data:
+     * </p></em>
+     * {@snippet :
+     *         // write the updated salted password to the database
+     *         final var updatedUser = new User(
+     *                 user().getIndex(),
+     *                 user().getUsername(),
+     *                 hashedPassword,
+     *                 newSalt);
+     *         userDb.write(updatedUser);
+     * }
+     *
      * @param newData the data we are writing
      */
     public T write(T newData) {
@@ -190,7 +213,10 @@ public final class Db<T extends DbData<?>> {
 
     /**
      * Delete data
-     *
+     * <p><em>Example:</p></em>
+     * {@snippet :
+     *      userDb.delete(user);
+     * }
      * @param dataToDelete the data we are serializing and writing
      */
     public void delete(T dataToDelete) {
@@ -310,7 +336,16 @@ public final class Db<T extends DbData<?>> {
     }
 
     /**
-     * Obtain a {@link Collection} view of the data
+     * This method provides read capability for the values of a database.
+     * <br>
+     * The returned collection is a read-only view over the data, through {@link Collections#unmodifiableCollection(Collection)}
+     *
+     * <p><em>Example:</em></p>
+     * {@snippet :
+     * boolean doesUserAlreadyExist(String username) {
+     *     return userDb.values().stream().anyMatch(x -> x.getUsername().equals(username));
+     * }
+     * }
      */
     public Collection<T> values() {
         // load data if needed

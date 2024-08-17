@@ -179,8 +179,6 @@ public final class Body {
     public String toString() {
         return "Body{" +
                 "bodyMap=" + bodyMap +
-                ", raw=" + Arrays.toString(raw) +
-                ", partitions=" + partitions +
                 ", bodyType=" + bodyType +
                 '}';
     }

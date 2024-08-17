@@ -121,7 +121,7 @@ public class BodyProcessorTests {
         String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body", 1);
         assertEquals(unableToParseThisBody, "Unable to parse this body. returning what we have so far.  Exception message: Maximum size for name attribute is 50 ascii characters");
         assertEquals(bodyResult.getKeys(), Set.of());
-        assertEquals(bodyResult.toString(), "Body{bodyMap={}, raw=[], partitions=[], bodyType=UNRECOGNIZED}");
+        assertEquals(bodyResult.toString(), "Body{bodyMap={}, bodyType=UNRECOGNIZED}");
     }
 
     /**
@@ -347,7 +347,7 @@ public class BodyProcessorTests {
     public void test_GettingCorrectContentType_MissingContentType() {
         var response = (Response)Response.buildResponse(CODE_200_OK, Map.of(), "foo foo");
         var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response));
-        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, body=[102, 111, 111, 32, 102, 111, 111], bodyLength=7} Request: null");
+        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, bodyLength=7} Request: null");
     }
 
     /**

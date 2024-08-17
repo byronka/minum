@@ -2,6 +2,7 @@ Recap, all changes to date since beta release
 ---------------------------------------------
 
 * Major versions:
+  * 8: Handle requests for partial ranges, enabling scrubbing through videos
   * 7: Ability to read bodies more efficiently from Request streams
   * 6: Able to stream responses to clients
   * 5: Applying recommendations from linters, aggressive refactoring
@@ -45,8 +46,34 @@ Recap, all changes to date since beta release
 * No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
 
-v7.0.0 - July 14, 2024
-----------------------
+v8.0.0 - Aug 17, 2024
+---------------------
+
+Implement partial range requests, enabling video scrubbing
+
+When a user requests a video and scrubs through, the browser will send requests for small portions
+of the file, using the "range" header.  Minum now properly responds to a common subset of this header,
+specifically a single-range.  Multiple ranges are ignored.
+
+Breaking changes:
+* `Response.buildLargeFileResponse` takes different parameters and may return different status codes
+  depending on the needs.
+* Methods in `FileUtils` did not need to take a logger for parameter since the methods have access
+  to the logger field in the instance.
+
+Other adjustments:
+* `toString` methods were adjusted to avoid printing array contents - these could be very large and
+  would overwhelm the log statements.
+* More options made available for sending data in SocketWrapper - using an offset and length from
+  an array, and sending individual bytes.
+* The `StatusCode` enum now includes all status codes.
+
+Bugs fixed:
+* large files had extra bytes appended in version 7.0.0 when using `Response.buildLargeFileResponse`.  This is now corrected.
+* 
+
+v7.0.0 - Aug 3, 2024
+--------------------
 
 Handle incoming body better
 

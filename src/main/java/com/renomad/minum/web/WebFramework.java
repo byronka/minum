@@ -212,10 +212,10 @@ public final class WebFramework {
     ProcessingResult processRequest(
             ISocketWrapper sw,
             RequestLine requestLine,
-            Headers hi) throws Exception {
-        IRequest clientRequest = new Request(hi, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+            Headers requestHeaders) throws Exception {
+        IRequest clientRequest = new Request(requestHeaders, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
         IResponse response;
-        ThrowingFunction<IRequest, IResponse> endpoint = findEndpointForThisStartline(requestLine);
+        ThrowingFunction<IRequest, IResponse> endpoint = findEndpointForThisStartline(requestLine, requestHeaders);
         if (endpoint == null) {
             response = Response.buildLeanResponse(CODE_404_NOT_FOUND);
         } else {
@@ -469,7 +469,7 @@ public final class WebFramework {
      * or the static cache and returns the appropriate one (If we
      * do not find anything, return null)
      */
-    ThrowingFunction<IRequest, IResponse> findEndpointForThisStartline(RequestLine sl) {
+    ThrowingFunction<IRequest, IResponse> findEndpointForThisStartline(RequestLine sl, Headers requestHeaders) {
         ThrowingFunction<IRequest, IResponse> handler;
         logger.logTrace(() -> "Seeking a handler for " + sl);
 
@@ -490,7 +490,7 @@ public final class WebFramework {
 
         if (handler == null) {
             logger.logTrace(() -> "No partial match found, checking files on disk for " + requestedPath );
-            handler = findHandlerByFilesOnDisk(sl);
+            handler = findHandlerByFilesOnDisk(sl, requestHeaders);
         }
 
         // we'll return this, and it could be a null.
@@ -501,12 +501,12 @@ public final class WebFramework {
      * last ditch effort - look on disk.  This response will either
      * be the file to return, or null if we didn't find anything.
      */
-    private ThrowingFunction<IRequest, IResponse> findHandlerByFilesOnDisk(RequestLine sl) {
+    private ThrowingFunction<IRequest, IResponse> findHandlerByFilesOnDisk(RequestLine sl, Headers requestHeaders) {
         if (sl.getMethod() != RequestLine.Method.GET && sl.getMethod() != RequestLine.Method.HEAD) {
             return null;
         }
         String requestedPath = sl.getPathDetails().getIsolatedPath();
-        IResponse response = readStaticFile(requestedPath);
+        IResponse response = readStaticFile(requestedPath, requestHeaders);
         return request -> response;
     }
 
@@ -521,7 +521,7 @@ public final class WebFramework {
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    IResponse readStaticFile(String path) {
+    IResponse readStaticFile(String path, Headers requestHeaders) {
         if (badFilePathPatterns.matcher(path).find()) {
             logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
@@ -550,11 +550,11 @@ public final class WebFramework {
                 mimeType = "application/octet-stream";
             }
 
-            if (Files.size(staticFilePath) < 1_000_000) {
+            if (Files.size(staticFilePath) < 100_000) {
                 var fileContents = fileReader.readFile(staticFilePath.toString());
                 return createOkResponseForStaticFiles(fileContents, mimeType);
             } else {
-                return createOkResponseForLargeStaticFiles(mimeType, staticFilePath);
+                return createOkResponseForLargeStaticFiles(mimeType, staticFilePath, requestHeaders);
             }
 
         } catch (IOException e) {
@@ -580,15 +580,18 @@ public final class WebFramework {
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
-    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) throws IOException {
         var headers = Map.of(
                 "cache-control", "max-age=" + constants.staticFileCacheTime,
-                "content-type", mimeType);
+                "content-type", mimeType,
+                "Accept-Ranges", "bytes"
+                );
 
         return Response.buildLargeFileResponse(
-                CODE_200_OK,
                 headers,
-                filePath.toString());
+                filePath.toString(),
+                requestHeaders
+                );
     }
 
 
@@ -787,17 +790,16 @@ public final class WebFramework {
      *     private static IResponse lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
      *         switch (inputs.response().statusCode()) {
      *             case CODE_404_NOT_FOUND -> {
-     *                 return new Response(
-     *                         StatusLine.StatusCode.CODE_404_NOT_FOUND,
-     *                         "<p>No document was found</p>",
-     *                         Map.of("Content-Type", "text/html; charset=UTF-8"));
+     *                 return Response.buildResponse(
+     *                         CODE_404_NOT_FOUND,
+     *                         Map.of("Content-Type", "text/html; charset=UTF-8"),
+     *                         "<p>No document was found</p>"));
      *             }
      *             case CODE_500_INTERNAL_SERVER_ERROR -> {
-     *                 Response response = inputs.response();
      *                 return Response.buildResponse(
-     *                         StatusLine.StatusCode.CODE_500_INTERNAL_SERVER_ERROR,
-     *                         "<p>Server error occurred.  A log entry with further information has been added with the following code . " + new String(response.body()) + "</p>",
-     *                         Map.of("Content-Type", "text/html; charset=UTF-8"));
+     *                         CODE_500_INTERNAL_SERVER_ERROR,
+     *                         Map.of("Content-Type", "text/html; charset=UTF-8"),
+     *                         "<p>Server error occurred.</p>" ));
      *             }
      *             default -> {
      *                 return inputs.response();

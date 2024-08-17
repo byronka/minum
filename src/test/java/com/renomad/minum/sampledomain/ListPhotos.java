@@ -9,6 +9,7 @@ import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.LRUCache;
 import com.renomad.minum.utils.StacktraceUtils;
+import com.renomad.minum.web.Headers;
 import com.renomad.minum.web.IRequest;
 import com.renomad.minum.web.IResponse;
 import com.renomad.minum.web.Response;
@@ -139,7 +140,7 @@ public class ListPhotos {
         // otherwise, read the bytes
         logger.logDebug(() -> "about to read file at " + photoPath);
 
-        return readStaticFile(photoPath.toString(), "image/jpeg");
+        return readStaticFile(photoPath.toString(), "image/jpeg", r.getHeaders());
 
     }
 
@@ -168,7 +169,7 @@ public class ListPhotos {
         // otherwise, read the bytes
         logger.logDebug(() -> "about to read file at " + videoPath);
 
-        return readStaticFile(videoPath.toString(), "video/mp4");
+        return readStaticFile(videoPath.toString(), "video/mp4", r.getHeaders());
 
     }
 
@@ -185,7 +186,7 @@ public class ListPhotos {
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    IResponse readStaticFile(String path, String mimeType) {
+    IResponse readStaticFile(String path, String mimeType, Headers requestHeaders) {
         if (badFilePathPatterns.matcher(path).find()) {
             logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
@@ -212,7 +213,7 @@ public class ListPhotos {
                     return createOkResponseForStaticFiles(staticFilePath, mimeType);
                 } else {
                     logger.logDebug(() -> String.format("File: (%s) was larger than 3000 bytes, reading directly from disk", staticFilePath));
-                    return createOkResponseForLargeStaticFiles(staticFilePath, mimeType);
+                    return createOkResponseForLargeStaticFiles(staticFilePath, mimeType, requestHeaders);
                 }
             }
         } catch (IOException e) {
@@ -224,19 +225,19 @@ public class ListPhotos {
 
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
-     * @param mimeType a mime type e.g. "image/jpg" or "video/mp4"
+     *
+     * @param mimeType       a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType) throws IOException {
-        var headers = Map.of(
+    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType, Headers requestHeaders) throws IOException {
+        var extraHeaders = Map.of(
                 "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);
 
         return Response.buildLargeFileResponse(
-                CODE_200_OK,
-                headers,
-                staticFilePath.toString());
+                extraHeaders,
+                staticFilePath.toString(),
+                requestHeaders);
     }
-
 
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds

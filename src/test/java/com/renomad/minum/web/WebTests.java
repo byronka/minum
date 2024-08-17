@@ -53,6 +53,7 @@ public class WebTests {
     static private Context context;
     static private TestLogger logger;
     private static String gettysburgAddress;
+    private static Headers defaultHeader = new Headers(List.of());
 
     /**
      * The length of time, in milliseconds, we will wait for the server to close
@@ -82,7 +83,7 @@ public class WebTests {
 
     @AfterClass
     public static void tearDownClass() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         shutdownTestingContext(context);
     }
 
@@ -409,7 +410,12 @@ public class WebTests {
         assertEquals(text1Partition.getContentAsString(), "I am a value that is text");
         assertEquals(text1Partition.getHeaders().valueByKey("content-type"), List.of("text/plain"));
         assertEquals(text1Partition.getHeaders().valueByKey("content-disposition"), List.of("form-data; name=\"text1\""));
-        assertEqualByteArray(result.getPartitionByName("image_uploads").getFirst().getContent(), new byte[]{1, 2, 3});
+        assertEquals(text1Partition.toString(), "Partition{headers=Headers{headerStrings=[Content-Type: text/plain, Content-Disposition: form-data; name=\"text1\"]}, contentDisposition=ContentDisposition{name='text1', filename=''}}");
+        assertEquals(text1Partition.getContentDisposition().toString(), "ContentDisposition{name='text1', filename=''}");
+        Partition imagePartition = result.getPartitionByName("image_uploads").getFirst();
+        assertEqualByteArray(imagePartition.getContent(), new byte[]{1, 2, 3});
+        assertEquals(imagePartition.toString(), "Partition{headers=Headers{headerStrings=[Content-Type: application/octet-stream, Content-Disposition: form-data; name=\"image_uploads\"; filename=\"photo_preview.jpg\"]}, contentDisposition=ContentDisposition{name='image_uploads', filename='photo_preview.jpg'}}");
+        assertEquals(imagePartition.getContentDisposition().toString(), "ContentDisposition{name='image_uploads', filename='photo_preview.jpg'}");
     }
 
 
@@ -708,7 +714,7 @@ public class WebTests {
         });
 
         // our code should properly find a handler for this endpoint
-        var endpoint = webFramework.findEndpointForThisStartline(startLine);
+        var endpoint = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
 
         // now we create a whole request to stuff into this handler. We only
         // care about the request line.
@@ -1182,7 +1188,7 @@ public class WebTests {
         var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine);
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
 
         assertEquals(response.apply(null), Response.buildLeanResponse(CODE_400_BAD_REQUEST));
     }
@@ -1203,7 +1209,7 @@ public class WebTests {
         var startLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger).extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine);
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
 
         assertTrue(response == null);
     }
@@ -1218,7 +1224,7 @@ public class WebTests {
         var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine);
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
 
         assertTrue(response == null);
     }

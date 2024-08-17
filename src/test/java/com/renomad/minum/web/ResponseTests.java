@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.renomad.minum.testing.TestFramework.assertEquals;
@@ -38,11 +39,11 @@ public class ResponseTests {
     @Test
     public void testToString() {
         IResponse response1 = Response.htmlOk("fooabcdefg");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111, 97, 98, 99, 100, 101, 102, 103], bodyLength=10}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=10}");
         response1 = Response.htmlOk("fooabcdefgh");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111, 97, 98, 99, 100, 101, 102, 103, 104], bodyLength=11}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=11}");
         response1 = Response.htmlOk("fooabcdefghi");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, body=[102, 111, 111, 97, 98, 99, 100, 101, 102, 103, 104, 105], bodyLength=12}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=12}");
     }
 
     /**
@@ -57,6 +58,8 @@ public class ResponseTests {
         ISocketWrapper mockSocketWrapper = new ISocketWrapper() {
             @Override public void send(String msg) {}
             @Override public void send(byte[] bodyContents) throws IOException {throw new IOException("This is just a test");}
+            @Override public void send(byte[] bodyContents, int off, int len) throws IOException {}
+            @Override public void send(int b) throws IOException {}
             @Override public void sendHttpLine(String msg) {}
             @Override public int getLocalPort() {return 0;}
             @Override public SocketAddress getRemoteAddrWithPort() {return null;}
@@ -76,9 +79,9 @@ public class ResponseTests {
      */
     @Test
     public void testResponse_EdgeCase_BadPathRequested() {
-        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(CODE_200_OK, Map.of(), "../foo"));
-        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(CODE_200_OK, Map.of(), "c:/foo"));
-        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(CODE_200_OK, Map.of(), "//foo"));
+        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(Map.of(), "../foo", new Headers(List.of())));
+        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", new Headers(List.of())));
+        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(Map.of(), "//foo", new Headers(List.of())));
     }
 
     @Test

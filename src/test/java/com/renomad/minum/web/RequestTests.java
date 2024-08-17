@@ -473,6 +473,7 @@ public class RequestTests {
         StreamingMultipartPartition part2 = iterator.next();
         byte[] part2Bytes = part2.readAllBytes();
         assertEquals(new String(part2Bytes, StandardCharsets.UTF_8), "ghi");
+        assertEquals(part2.getContentDisposition().toString(), "ContentDisposition{name='text2', filename=''}");
     }
 
     @Test
@@ -689,7 +690,7 @@ public class RequestTests {
         assertEquals(r.getBody(), Body.EMPTY);
         assertEquals(r.getRequestLine(), RequestLine.EMPTY);
         assertEquals(r.getHeaders(), new Headers(List.of()));
-        assertEquals(r.toString(), "Request{headers=Headers{headerStrings=[]}, requestLine=RequestLine{method=NONE, pathDetails=PathDetails{isolatedPath='', rawQueryString='', queryString={}}, version=NONE, rawValue='', logger=null}, body=Body{bodyMap={}, raw=[], partitions=[], bodyType=NONE}, remoteRequester='123.132.123.123', socketWrapper=fake socket wrapper, hasStartedReadingBody=false}");
+        assertEquals(r.toString(), "Request{headers=Headers{headerStrings=[]}, requestLine=RequestLine{method=NONE, pathDetails=PathDetails{isolatedPath='', rawQueryString='', queryString={}}, version=NONE, rawValue='', logger=null}, body=Body{bodyMap={}, bodyType=NONE}, remoteRequester='123.132.123.123', socketWrapper=fake socket wrapper, hasStartedReadingBody=false}");
     }
 
     @Test

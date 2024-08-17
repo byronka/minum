@@ -27,7 +27,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,027 | 141,048 | 1,085,405   |
+| 5,200 | 141,048 | 1,085,405   |
 
 
 #### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -53,7 +53,7 @@ well-tested and there are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2353  | 163,000 | 242,000 |
+| 2526  | 163,000 | 242,000 |
 
 
 Templating

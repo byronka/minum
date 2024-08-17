@@ -25,6 +25,10 @@ public interface ISocketWrapper extends Closeable {
      */
     void send(byte[] bodyContents) throws IOException;
 
+    void send(byte[] bodyContents, int off, int len) throws IOException;
+
+    void send(int b) throws IOException;
+
     /**
      * Sends a line of text, with carriage-return and line-feed
      * appended to the end, required for the HTTP protocol.

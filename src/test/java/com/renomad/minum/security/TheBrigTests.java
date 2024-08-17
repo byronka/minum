@@ -41,7 +41,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_Basic() {
         MyThread.sleep(50);
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
         // give the database time to start
         MyThread.sleep(20);
@@ -105,7 +105,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_RegularStop() {
         MyThread.sleep(50);
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
         MyThread.sleep(10);
         b.stop();
@@ -133,7 +133,7 @@ public class TheBrigTests {
     @Test
     public void test_TheBrig_ExistingInmate() {
         MyThread.sleep(50);
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
         b.sendToJail("1.2.3.4_too_freq_downloads", 20);
         Long releaseTime = b.getInmates().getFirst().getReleaseTime();

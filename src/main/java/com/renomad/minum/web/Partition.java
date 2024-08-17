@@ -54,7 +54,6 @@ public final class Partition {
     public String toString() {
         return "Partition{" +
                 "headers=" + headers +
-                ", content=" + Arrays.toString(content) +
                 ", contentDisposition=" + contentDisposition +
                 '}';
     }

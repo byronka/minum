@@ -41,7 +41,7 @@ public class FunctionalTests {
         context = buildTestingContext("_integration_test");
         logger = (TestLogger) context.getLogger();
         var fileUtils = new FileUtils(logger, context.getConstants());
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory), context.getLogger());
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         fullSystem = new FullSystem(context);
         fullSystem.start();
         new TheRegister(context, fullSystem.getWebFramework()).registerDomains();
@@ -176,6 +176,14 @@ public class FunctionalTests {
         logger.test("look at the contents of a larger photo, unauthenticated");
         var photoTwo = ft.get(secondPhotoUrl);
         assertEquals(photoTwo.body().asBytes().length, 15000);
+
+        logger.test("look at the contents of a larger photo with a range header, unauthenticated");
+        var photoThree = ft.get(secondPhotoUrl, List.of("Range: bytes=0-"));
+        assertEquals(photoThree.body().asBytes().length, 15000);
+
+        logger.test("look at the contents of a larger photo with a range header, unauthenticated");
+        var photoThreePartial = ft.get(secondPhotoUrl, List.of("Range: bytes=1-9000"));
+        assertEquals(photoThreePartial.body().asBytes().length, 9000);
 
         logger.test("ask for the photo again, looking for the cached value");
         var photoOneCached = ft.get(firstPhotoUrl);

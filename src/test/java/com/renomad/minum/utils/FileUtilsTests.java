@@ -86,20 +86,20 @@ public class FileUtilsTests {
 
     @Test
     public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_BadPattern() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("../foo"), logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("../foo"));
         assertTrue(logger.doesMessageExist("Bad path requested at deleteDirectoryRecursivelyIfExists"));
     }
 
     @Test
     public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/foo"), logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/foo"));
         assertTrue(logger.doesMessageExist("system was requested to delete directory"));
     }
     @Test
     public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_HappyPath() throws IOException {
         fileUtils.makeDirectory(Path.of("target/testing_delete_directory/foo"));
         Files.writeString(Path.of("target/testing_delete_directory/foo/bar.txt"), "hello there, this is a test file");
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/testing_delete_directory"), logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/testing_delete_directory"));
         assertFalse(Files.exists(Path.of("target/testing_delete_directory")));
     }
 
@@ -166,9 +166,10 @@ public class FileUtilsTests {
 
     @Test
     public void test_walkPathDeleting() {
+        FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
         assertThrows(UtilsException.class,
                 "Error during deleteDirectoryRecursivelyIfExists: java.nio.file.NoSuchFileException: foofoo",
-                () -> FileUtils.walkPathDeleting(Path.of("foofoo"), logger));
+                () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
     }
 
     @Test

@@ -81,7 +81,7 @@ public final class FileUtils {
      *     bad characters.  See {@link #badFilePathPatterns}
      * </p>
      */
-    public void deleteDirectoryRecursivelyIfExists(Path myPath, ILogger logger) {
+    public void deleteDirectoryRecursivelyIfExists(Path myPath) {
         if (badFilePathPatterns.matcher(myPath.toString()).find()) {
             logger.logDebug(() -> String.format("Bad path requested at deleteDirectoryRecursivelyIfExists: %s", myPath));
             return;
@@ -89,11 +89,11 @@ public final class FileUtils {
         if (!Files.exists(myPath)) {
             logger.logDebug(() -> "system was requested to delete directory: "+myPath+", but it did not exist");
         } else {
-            walkPathDeleting(myPath, logger);
+            walkPathDeleting(myPath);
         }
     }
 
-    static void walkPathDeleting(Path myPath, ILogger logger) {
+    void walkPathDeleting(Path myPath) {
         try (Stream<Path> walk = Files.walk(myPath)) {
 
             final var files = walk.sorted(Comparator.reverseOrder())

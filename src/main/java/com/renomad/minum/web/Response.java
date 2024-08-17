@@ -15,6 +15,8 @@ import java.util.Objects;
 import java.util.zip.GZIPOutputStream;
 
 import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
+import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
+import static com.renomad.minum.web.StatusLine.StatusCode.CODE_206_PARTIAL_CONTENT;
 
 /**
  * Represents an HTTP response. This is what will get sent back to the
@@ -67,6 +69,7 @@ public final class Response implements IResponse {
     private final ThrowingConsumer<ISocketWrapper> outputGenerator;
     private final long bodyLength;
 
+
     /**
      * This is the constructor that provides access to all fields.  It is not intended
      * to be used from outside this class.
@@ -114,7 +117,7 @@ public final class Response implements IResponse {
      * A constructor for situations where the developer wishes to send a small (less than a megabyte) byte array
      * to the client.  If there is need to send something of larger size, choose one these
      * alternate constructors:
-     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse}
+     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Map, String, Headers)}
      * Streaming - for more custom streaming control with a known body size: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer, long)}
      * Streaming - for more custom streaming control with body size unknown: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer)}
      *
@@ -133,31 +136,33 @@ public final class Response implements IResponse {
         return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length);
     }
 
-    /**
-     * A constructor for situations where the developer wishes to send a large file to the client. The
-     * file may be of any size - even extremely large - and will not negatively impact the memory usage.
-     * <br>
-     * If there is a need to send a streaming response without knowledge of its length, use
-     * this method: {@link #buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer)}. If streaming
-     * a known size, use this: {@link #buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer, long)}
-     * <br>
-     * the filePath parameter must have no symbols that could cause it to read from
-     * a parent directory or other dangerous location.
-     * @param extraHeaders any extra headers for the response, such as the content-type.
-     */
-    public static IResponse buildLargeFileResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String filePath) throws IOException {
+    public static IResponse buildLargeFileResponse(Map<String, String> extraHeaders, String filePath, Headers requestHeaders) throws IOException {
         if (badFilePathPatterns.matcher(filePath).find()) {
             throw new WebServerException(String.format("Bad path requested at readFile: %s", filePath));
         }
 
+        Map<String, String> adjustedHeaders = new HashMap<>(extraHeaders);
+        long fileSize = Files.size(Path.of(filePath));
+        var range = new Range(requestHeaders, fileSize);
+        StatusLine.StatusCode responseCode = CODE_200_OK;
+        long length = fileSize;
+        if (range.hasRangeHeader()) {
+            long offset = range.getOffset();
+            length = range.getLength();
+            var lastIndex = (offset + length) - 1;
+            adjustedHeaders.put("Content-Range", String.format("bytes %d-%d/%d", offset, lastIndex, fileSize));
+            responseCode = CODE_206_PARTIAL_CONTENT;
+        }
+
         ThrowingConsumer<ISocketWrapper> outputGenerator = socketWrapper -> {
             try (RandomAccessFile reader = new RandomAccessFile(filePath, "r")) {
+                reader.seek(range.getOffset());
                 var fileChannel = reader.getChannel();
-                sendFileChannelResponse(socketWrapper, fileChannel);
+                sendFileChannelResponse(socketWrapper, fileChannel, range.getLength());
             }
         };
-        long fileSize = Files.size(Path.of(filePath));
-        return new Response(statusCode, extraHeaders, null, outputGenerator, fileSize);
+
+        return new Response(responseCode, adjustedHeaders, null, outputGenerator, length);
     }
 
     /**
@@ -242,15 +247,30 @@ public final class Response implements IResponse {
         }
     }
 
-
-    private static void sendFileChannelResponse(ISocketWrapper sw, FileChannel fileChannel) throws IOException {
+    /**
+     * put bytes from a file into the socket, sending to the client
+     * @param fileChannel the file we are reading from, based on a {@link RandomAccessFile}
+     * @param length the number of bytes to send.  May be less than the full length of this {@link FileChannel}
+     */
+    private static void sendFileChannelResponse(ISocketWrapper sw, FileChannel fileChannel, long length) throws IOException {
         try {
             int bufferSize = 8 * 1024;
             ByteBuffer buff = ByteBuffer.allocate(bufferSize);
-
-            while (fileChannel.read(buff) > 0) {
-                sw.send(buff.array());
-                buff.clear();
+            long countBytesLeftToSend = length;
+            while (true) {
+                int countBytesRead = fileChannel.read(buff);
+                if (countBytesRead <= 0) {
+                    break;
+                } else {
+                    if (countBytesLeftToSend < countBytesRead) {
+                        sw.send(buff.array(), 0, (int)countBytesLeftToSend);
+                        break;
+                    } else {
+                        sw.send(buff.array(), 0, countBytesRead);
+                    }
+                    buff.clear();
+                }
+                countBytesLeftToSend -= countBytesRead;
             }
         } finally {
             fileChannel.close();
@@ -305,7 +325,6 @@ public final class Response implements IResponse {
         return "Response{" +
                 "statusCode=" + statusCode +
                 ", extraHeaders=" + extraHeaders +
-                ", body=" + Arrays.toString(body) +
                 ", bodyLength=" + bodyLength +
                 '}';
     }

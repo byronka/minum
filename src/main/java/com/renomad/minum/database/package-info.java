@@ -36,7 +36,7 @@
  * public Response formEntry(Request r) {
  *     final var authResult = auth.processAuth(r);
  *     if (! authResult.isAuthenticated()) {
- *         return new Response(CODE_401_UNAUTHORIZED);
+ *         return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);
  *     }
  *     final String names = db
  *             .values().stream().sorted(Comparator.comparingLong(PersonName::getIndex))

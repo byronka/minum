@@ -32,6 +32,11 @@ public class WebFrameworkTests {
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
     private Context context;
     private TestLogger logger;
+    /**
+     * Just a boring empty Headers instance for some of the methods that
+     * need it but where we aren't doing anything with it.
+     */
+    private Headers defaultHeaders = new Headers(List.of());
 
     @Before
     public void initialize() {
@@ -43,7 +48,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_readStaticFile_CSS() {
-        IResponse response = webFramework.readStaticFile("main.css");
+        IResponse response = webFramework.readStaticFile("main.css", defaultHeaders);
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
@@ -52,7 +57,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_readStaticFile_JS() {
-        IResponse response = webFramework.readStaticFile("index.js");
+        IResponse response = webFramework.readStaticFile("index.js", defaultHeaders);
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
@@ -61,7 +66,7 @@ public class WebFrameworkTests {
 
     @Test
     public void test_readStaticFile_HTML() {
-        IResponse response = webFramework.readStaticFile("index.html");
+        IResponse response = webFramework.readStaticFile("index.html", defaultHeaders);
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
@@ -74,7 +79,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_OutsideDirectory() {
-        IResponse response = webFramework.readStaticFile("../templates/auth/login_page_template.html");
+        IResponse response = webFramework.readStaticFile("../templates/auth/login_page_template.html", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -84,7 +89,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_ReadFile_Edge_ForwardSlashes() {
-        IResponse response = webFramework.readStaticFile("//index.html");
+        IResponse response = webFramework.readStaticFile("//index.html", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -94,7 +99,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_Colon() {
-        IResponse response = webFramework.readStaticFile(":");
+        IResponse response = webFramework.readStaticFile(":", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -104,7 +109,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_Directory() {
-        IResponse response = webFramework.readStaticFile("src/test/resources/");
+        IResponse response = webFramework.readStaticFile("src/test/resources/", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
@@ -114,7 +119,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_CurrentDirectory() {
-        IResponse response = webFramework.readStaticFile("./");
+        IResponse response = webFramework.readStaticFile("./", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
@@ -124,7 +129,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_EdgeCase() {
-        IResponse response = webFramework.readStaticFile("./");
+        IResponse response = webFramework.readStaticFile("./", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
     }
@@ -135,7 +140,7 @@ public class WebFrameworkTests {
     @Test
     public void test_readStaticFile_IOException() {
         webFramework = new WebFramework(context, default_zdt, throwingFileReader);
-        IResponse response = webFramework.readStaticFile("foo");
+        IResponse response = webFramework.readStaticFile("foo", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
     }
@@ -148,7 +153,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_Edge_ApplicationOctetStream() {
-        var response = webFramework.readStaticFile("Foo");
+        var response = webFramework.readStaticFile("Foo", defaultHeaders);
         assertEquals(response.getExtraHeaders().get("content-type"), "application/octet-stream");
     }
 

@@ -94,7 +94,7 @@ public class DbTests {
      */
     @Test
     public void test_GeneralCapability() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         MyThread.sleep(FINISH_TIME);
 
         final var db = new Db<>(foosDirectory, context, INSTANCE);
@@ -163,7 +163,7 @@ public class DbTests {
      */
     @Test
     public void test_Locking() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
 
         final var db = new Db<>(foosDirectory, context, INSTANCE);
 
@@ -189,7 +189,7 @@ public class DbTests {
     @Test
     public void test_Edge_DeleteFileDoesNotExist() {
         // clear out the directory to start
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         final var db_throwaway = new Db<>(foosDirectory, context, INSTANCE);
 
         var ex = assertThrows(DbException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
@@ -206,7 +206,7 @@ public class DbTests {
         // the directory gets deleted/corrupted.
 
         // clear out the directory to start
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         final var db = new Db<>(foosDirectory, context, INSTANCE);
         MyThread.sleep(10);
 
@@ -223,7 +223,7 @@ public class DbTests {
         final var ex = assertThrows(DbException.class, db::loadDataFromDisk);
         assertTrue(ex.getMessage().replace('\\','/').startsWith("Failed to deserialize out/simple_db/foos/1.ddps with data (\"invalid data\"). Caused by: java.lang.NumberFormatException: For input string: \"invalid data\""));
 
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         db.loadDataFromDisk();
         MyThread.sleep(10);
         String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing, adding nothing").replace('\\', '/');
@@ -244,7 +244,7 @@ public class DbTests {
         int loopCount = 50;
 
         // clear out the directory to start
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
 
         // build a Context without testlogger - testlogger would impact perf here
         Context contextWithRegularLogger = buildTestingContextWithRegularLogger("db_perf_testing");
@@ -323,7 +323,7 @@ public class DbTests {
         int stepDelay = 40;
 
         for (int i = 0; i < 3; i++) {
-            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+            fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
             var db = new Db<>(foosDirectory, context, INSTANCE);
             MyThread.sleep(stepDelay);
             Foo foo1 = new Foo(0, 2, "a");
@@ -399,7 +399,7 @@ public class DbTests {
      */
     @Test
     public void test_Db_Delete_EdgeCase_DoesNotExist() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(new Foo(1, 2, "a")));
         assertEquals(ex.getMessage(), "no data was found with index of 1");
@@ -414,7 +414,7 @@ public class DbTests {
      */
     @Test
     public void test_Db_Delete_EdgeCase_FileGone() throws IOException {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
         Foo foo = new Foo(0, 2, "a");
         db.write(foo);
@@ -436,7 +436,7 @@ public class DbTests {
      */
     @Test
     public void test_Db_Delete_EdgeCase_NullValue() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(null));
         assertEquals(ex.getMessage(), "Db.delete was given a null value to delete");
@@ -463,7 +463,7 @@ public class DbTests {
     @Ignore("This is used as a laboratory for investigating threads.  It is not a test")
     public void test_Db_RaceConditionLaboratory() throws ExecutionException, InterruptedException {
         // prepare a database instance
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var myDatabase = new Db<>(foosDirectory, context, INSTANCE);
         ExecutorService executor = Executors.newFixedThreadPool(4);
 
@@ -501,7 +501,7 @@ public class DbTests {
      */
     @Test
     public void testPoorlyNamedDbFile() throws IOException {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
 
         Foo foo1 = new Foo(0, 2, "a");
@@ -531,7 +531,7 @@ public class DbTests {
      */
     @Test
     public void testDeserializerComplaints() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory);
         var db = new Db<>(fubarDirectory, context, new Fubar(0,0,""));
 
         db.write(new Fubar(0, 2, "a"));
@@ -550,7 +550,7 @@ public class DbTests {
      */
     @Test
     public void testReadAndDeserialize_nullFilename() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory);
         var db = new Db<>(fubarDirectory, context, new Fubar(0,0,""));
         File file = new File("/");
         DbException dbException = assertThrows(DbException.class, () -> db.readAndDeserialize(file.toPath()));
@@ -563,7 +563,7 @@ public class DbTests {
      */
     @Test
     public void testWriteDeserializationComplaints() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory);
         var db = new Db<>(fubarDirectory, context, new Fubar3(0, 0, ""));
 
         db.write(new Fubar3(0, 2, "a"));
@@ -578,7 +578,7 @@ public class DbTests {
      */
     @Test
     public void testWriteDeserializationComplaints2() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(fubarDirectory);
         var db = new Db<>(fubarDirectory, context, new Fubar2(0, 0, ""));
 
         db.write(new Fubar2(0, 2, "a"));
@@ -594,7 +594,7 @@ public class DbTests {
     @Test
     public void testWalkAndLoad() {
         var bizDirectory = Path.of("out/simple_db/biz");
-        fileUtils.deleteDirectoryRecursivelyIfExists(bizDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(bizDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
         var ex = assertThrows(DbException.class,
                 () -> db.walkAndLoad(bizDirectory));
@@ -613,7 +613,7 @@ public class DbTests {
      */
     @Test
     public void testWrite_PositiveIndexNotExisting() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
 
         Foo foo1 = new Foo(1, 2, "a");
@@ -627,7 +627,7 @@ public class DbTests {
 
     @Test
     public void testWrite_NegativeIndex() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory, logger);
+        fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory);
         var db = new Db<>(foosDirectory, context, INSTANCE);
 
         Foo foo1 = new Foo(-1, 2, "a");

@@ -36,6 +36,16 @@ public class FakeSocketWrapper implements ISocketWrapper {
     }
 
     @Override
+    public void send(byte[] bodyContents, int off, int len) throws IOException {
+        os.write(bodyContents, off, len);
+    }
+
+    @Override
+    public void send(int b) throws IOException {
+        os.write(b);
+    }
+
+    @Override
     public void sendHttpLine(String msg) {
         sendHttpLineAction.accept(msg);
     }

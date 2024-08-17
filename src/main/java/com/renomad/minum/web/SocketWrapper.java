@@ -49,6 +49,16 @@ final class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
+    public void send(byte[] bodyContents, int off, int len) throws IOException {
+        writer.write(bodyContents, off, len);
+    }
+
+    @Override
+    public void send(int b) throws IOException {
+        writer.write(b);
+    }
+
+    @Override
     public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("%s sending: \"%s\"", this, msg));
         send(msg + WebEngine.HTTP_CRLF);
