@@ -74,7 +74,7 @@ public class WebTests {
         properties.setProperty("SOCKET_TIMEOUT_MILLIS", "300");
         context = buildTestingContext("unit_tests",properties);
         es = context.getExecutorService();
-        inputStreamUtils = new InputStreamUtils();
+        inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
@@ -198,6 +198,20 @@ public class WebTests {
         RequestLine sl = RequestLine.EMPTY.extractRequestLine("GET / HTTP/1.1");
         assertEquals(sl.getMethod(), GET);
         assertEquals(sl.getPathDetails().getIsolatedPath(), "");
+    }
+
+    @Test
+    public void test_StartLine_DeeperPath() {
+        RequestLine sl = RequestLine.EMPTY.extractRequestLine("GET /foo/bar/baz HTTP/1.1");
+        assertEquals(sl.getMethod(), GET);
+        assertEquals(sl.getPathDetails().getIsolatedPath(), "foo/bar/baz");
+    }
+
+    @Test
+    public void test_StartLine_DeeperPath2() {
+        RequestLine sl = RequestLine.EMPTY.extractRequestLine("GET /foo/bar/baz/ HTTP/1.1");
+        assertEquals(sl.getMethod(), GET);
+        assertEquals(sl.getPathDetails().getIsolatedPath(), "foo/bar/baz/");
     }
 
     @Test

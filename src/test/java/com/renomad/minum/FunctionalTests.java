@@ -250,7 +250,7 @@ public class FunctionalTests {
         // ******* IMPORTANT!!! This needs to be the last test, since it locks us out ************
 
         try {
-            ft.get("a".repeat(InputStreamUtils.MAX_READ_LINE_SIZE_BYTES + 1));
+            ft.get("a".repeat(context.getConstants().maxReadLineSizeBytes + 1));
         } catch (Exception ex) {
             // this is kind of a weird case I'm looking into.
             // On Windows, this runs right through without failing, but on Mac,

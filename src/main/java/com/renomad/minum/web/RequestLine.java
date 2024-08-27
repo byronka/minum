@@ -173,21 +173,32 @@ public final class RequestLine {
         }
     }
 
+    /**
+     * Return the method of this request-line.  For example, GET, PUT, POST...
+     */
     public Method getMethod() {
         return method;
     }
 
     /**
-     * See {@link PathDetails}
+     * This returns an object which contains essential information about the path
+     * in the request line.  For example, if the request line is "GET /sample?foo=bar HTTP/1.1",
+     * this would hold data for the path ("sample") and the query string ("foo=bar")
      */
     public PathDetails getPathDetails() {
         return pathDetails;
     }
 
+    /**
+     * Gets the HTTP version, either 1.0 or 1.1
+     */
     public HttpVersion getVersion() {
         return this.version;
     }
 
+    /**
+     * Get the string value of this request line, such as "GET /sample.html HTTP/1.1"
+     */
     public String getRawValue() {
         return rawValue;
     }

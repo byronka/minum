@@ -19,8 +19,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * This class is responsible for kicking off the entire system.
- * In particular, look at {@link #start()}
+ * This class is responsible for instantiating necessary classes
+ * for a valid system, in the proper order.
+ * @see #initialize()
+ * @see #start()
  */
 public final class FullSystem {
 
@@ -46,6 +48,11 @@ public final class FullSystem {
 
     private final Context context;
 
+    /**
+     * This constructor requires a {@link Context} object,
+     * but it is easier and recommended to use {@link #initialize()}
+     * instead.
+     */
     public FullSystem(Context context) {
         this.logger = context.getLogger();
         this.constants = context.getConstants();
@@ -71,7 +78,28 @@ public final class FullSystem {
     }
 
     /**
-     * Expected entry point for typical system instantiation
+     * This is the typical entry point for system instantiation.  It will build
+     * a {@link Context} object for you, and then properly instantiates the {@link FullSystem}.
+     * <p>
+     *     <em>Here is an example of a simple Main file using this method:</em>
+     * </p>
+     * <pre>{@code
+     *   package org.example;
+     *
+     *   import com.renomad.minum.web.FullSystem;
+     *   import com.renomad.minum.web.Response;
+     *
+     *   import static com.renomad.minum.web.RequestLine.Method.GET;
+     *
+     *   public class Main {
+     *
+     *       public static void main(String[] args) {
+     *           FullSystem fs = FullSystem.initialize();
+     *           fs.getWebFramework().registerPath(GET, "", request -> Response.htmlOk("<p>Hi there world!</p>"));
+     *           fs.block();
+     *       }
+     *   }
+     * }</pre>
      */
     public static FullSystem initialize() {
         var context = buildContext();
@@ -80,14 +108,10 @@ public final class FullSystem {
     }
 
     /**
-     * Kicks off the various bits and pieces.
-     * 
-     * <p>
-     *     There's a number of components to be built and run
-     *     to get this application up and running.  Feel free
-     *     to peruse this method's code to get a sense of it.
-     * </p>
-     * 
+     * This method runs the necessary methods for starting the Minum
+     * web server.  It is unlikely you will want to use this, unless you
+     * require it for more control in testing.
+     * @see #initialize()
      */
     public FullSystem start() {
         // create a file in our current working directory to indicate we are running
@@ -111,7 +135,7 @@ public final class FullSystem {
         server = webEngine.startServer();
         sslServer = webEngine.startSslServer();
 
-        // document how long to start up the system
+        // document how long it took to start up the system
         var now = ZonedDateTime.now(ZoneId.of("UTC"));
         var nowMillis = now.toInstant().toEpochMilli();
         var startupTime = nowMillis - constants.startTime;

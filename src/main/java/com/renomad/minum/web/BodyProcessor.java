@@ -28,7 +28,7 @@ final class BodyProcessor implements IBodyProcessor {
     BodyProcessor(Context context) {
         this.constants = context.getConstants();
         this.logger = context.getLogger();
-        this.inputStreamUtils = new InputStreamUtils();
+        this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.countOfPartitions = 0;
     }
 

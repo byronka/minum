@@ -53,7 +53,7 @@ well-tested and there are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2526  | 163,000 | 242,000 |
+| 2541  | 163,000 | 242,000 |
 
 
 Templating

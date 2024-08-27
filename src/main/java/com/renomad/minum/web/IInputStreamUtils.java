@@ -7,7 +7,7 @@ import java.io.InputStream;
  * An interface for the {@link InputStreamUtils} implementation.
  * Solely created to provide better testing access
  */
-public interface IInputStreamUtils {
+interface IInputStreamUtils {
 
     /**
      * Reads a line of text, stopping when reading a newline.

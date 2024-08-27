@@ -11,12 +11,21 @@ import java.util.concurrent.ExecutorService;
 
 
 /**
- * Holds important system-wide data and methods.
+ * Holds important system-wide data and methods, such as the
+ * logger, constants, and the {@link FullSystem} instance.
  * <p>
- *     Creating an instance of this and passing it
- *     around lets us reduce some boilerplate code,
- *     but more importantly, it lets us lower the scope.
+ *     The common situations:
  * </p>
+ * <ul>
+ *     <li>Building a Minum {@link Db} database</li>
+ *     <li>Getting system constants like the database directory</li>
+ *     <li>Getting the system {@link ExecutorService} for starting threads or an {@link com.renomad.minum.queue.ActionQueue}</li>
+ *     <li>Getting a {@link FullSystem} object, which has</li>
+ *     <ul>
+ *         <li>the {@link com.renomad.minum.web.WebFramework}, which registers endpoints</li>
+ *         <li>the {@link com.renomad.minum.security.TheBrig}, which handles bad actors on the internet</li>
+ *     </ul>
+ * </ul>
  */
 public final class Context {
 
@@ -67,17 +76,15 @@ public final class Context {
      * directory and the context.
      * <p>
      * Since this is a generic method, a bit of care is required when
-     * calling.  Try to use a pattern like this:
-     * <pre>
-     * {@code Db<Photograph> photoDb = context.getDb("photos");}
-     * </pre>
+     * calling.  Try to use a pattern like the following pseudocode:
+     * {@snippet :
+     *  Db<Photograph> photoDb = context.getDb("photos", new Photograph());
+     * }
      * @param name the name of this data.  Note that this will be used
      *             as the directory for the data, so use characters your
      *             operating system would allow.
-     * @param instance an instance of the {@link DbData} data, preferably
-     *                 following a null-object pattern.  For example,
-     *                 Photograph.EMPTY.  This is used in the Db code
-     *                 to deserialize the data when reading.
+     * @param instance an instance of the {@link DbData} data. This is used in the
+     *                 Db code to deserialize the data when reading.
      */
     public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
         return new Db<>(Path.of(constants.dbDirectory, name), this, instance);

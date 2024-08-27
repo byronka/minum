@@ -82,6 +82,20 @@ public class RangeTests {
         assertEquals(ex.getMessage(), "Error: The value of the first part of the range was larger than the second.");
     }
 
+    /**
+     * The provided range won't parse negative numbers.
+     */
+    @Test
+    public void test_DetermineLengthFromRangeHeader_EdgeCase_NegativeNumbers() {
+        List<String> listOfHeaders = List.of("Range: bytes=-2-");
+        Headers headers = new Headers(listOfHeaders);
+        Range range = new Range(headers, 1000);
+        assertEquals(range.getLength(), 1000L);
+        assertEquals(range.getOffset(), 0L);
+        assertTrue(range.getRangeFirstPart() == null);
+        assertTrue(range.getRangeSecondPart() == null);
+    }
+
     @Test
     public void test_InvalidValueForLeft() {
         List<String> listOfHeaders = List.of("Range: bytes=a-1");

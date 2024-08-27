@@ -3,10 +3,16 @@ package com.renomad.minum.web;
 /**
  * An interface for {@link Request}. Built
  * to enable easier testing on web handlers.
+ *
  */
 public interface IRequest {
+
     Headers getHeaders();
 
+    /**
+     * Obtain information about the first line.  An example
+     * of a RequestLine is: <pre>{@code GET /foo?bar=baz HTTP/1.1}</pre>
+     */
     RequestLine getRequestLine();
 
     /**

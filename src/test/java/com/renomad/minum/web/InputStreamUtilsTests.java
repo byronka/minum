@@ -3,6 +3,7 @@ package com.renomad.minum.web;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.UtilsException;
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class InputStreamUtilsTests {
     @Before
     public void init() {
         context = buildTestingContext("input stream utils tests");
-        inputStreamUtils = new InputStreamUtils();
+        inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
     }
 
     @After
@@ -37,7 +38,7 @@ public class InputStreamUtilsTests {
      */
     @Test
     public void testReadingLarge() {
-        inputStreamUtils = new InputStreamUtils();
+        inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
 
@@ -94,5 +95,10 @@ public class InputStreamUtilsTests {
 
             assertEquals(exception.getMessage(), "length of bytes read (1) must be what we expected (2)");
         }
+    }
+
+    @Test
+    public void testEquals() {
+        EqualsVerifier.forClass(InputStreamUtils.class).verify();
     }
 }

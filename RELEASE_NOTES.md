@@ -46,6 +46,17 @@ Recap, all changes to date since beta release
 * No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
 
+v8.0.1 - August 27, 2024
+------------------------
+
+Extra documentation, put back constant for configuring max readline size
+
+* Documentation was added in key areas to improve user experience of framework API
+* It was found that when the server was sent requests with large headers, such as
+  JWTs, the length exceeded the default of 1024.  Putting this back as a configurable
+  property in minum.config.
+* Making InputStreamUtils package-private - it is not intended to be user-facing
+
 v8.0.0 - Aug 17, 2024
 ---------------------
 

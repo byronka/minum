@@ -33,14 +33,36 @@ public final class PathDetails {
         this.queryString = new HashMap<>(queryString == null ? Map.of() : queryString);
     }
 
+    /**
+     * Provides the path by itself, without the query string.  For examples,
+     * here are some request lines with their isolated paths:
+     * <pre>
+     * {@code
+     * request line                                isolated path
+     * -------------------                         -------------
+     * POST / HTTP/1.1                             ""
+     * GET /background.png HTTP/1.0                "background.png"
+     * HEAD /test.html?query=alibaba HTTP/1.1      "test.html"
+     * OPTIONS /anypage.html HTTP/1.0              "anypage.html"
+     * }
+     * </pre>
+     */
     public String getIsolatedPath() {
         return isolatedPath;
     }
 
+    /**
+     * Returns the raw query string.  For example, in "HEAD /test.html?query=alibaba HTTP/1.1",
+     * the raw query string is "query=alibaba"
+     */
     public String getRawQueryString() {
         return rawQueryString;
     }
 
+    /**
+     * This returns the query string portion of the request line as a map, with
+     * case-sensitive keys.
+     */
     public Map<String, String> getQueryString() {
         return new HashMap<>(queryString);
     }

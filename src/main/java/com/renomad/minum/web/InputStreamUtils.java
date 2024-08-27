@@ -7,24 +7,29 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * Handy helpful utilities for working with input streams.
  */
-public final class InputStreamUtils implements IInputStreamUtils {
+final class InputStreamUtils implements IInputStreamUtils {
 
-    public static final int MAX_READ_LINE_SIZE_BYTES = 1024;
+    private final int maxReadLineSizeBytes;
+
+    public InputStreamUtils(int maxReadLineSizeBytes) {
+        this.maxReadLineSizeBytes = maxReadLineSizeBytes;
+    }
 
     @Override
     public String readLine(InputStream inputStream) throws IOException  {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
-        final var result = new ByteArrayOutputStream(MAX_READ_LINE_SIZE_BYTES / 3);
+        final var result = new ByteArrayOutputStream(maxReadLineSizeBytes / 3);
         for (int i = 0;; i++) {
-            if (i >= MAX_READ_LINE_SIZE_BYTES) {
+            if (i >= maxReadLineSizeBytes) {
                 inputStream.close();
-                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + MAX_READ_LINE_SIZE_BYTES);
+                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
             }
             int a = inputStream.read();
             if (a == -1) return result.toString(StandardCharsets.UTF_8);
@@ -64,5 +69,18 @@ public final class InputStreamUtils implements IInputStreamUtils {
             throw new ForbiddenUseException(message);
         }
         return data;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        InputStreamUtils that = (InputStreamUtils) o;
+        return maxReadLineSizeBytes == that.maxReadLineSizeBytes;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(maxReadLineSizeBytes);
     }
 }

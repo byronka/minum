@@ -25,7 +25,12 @@ import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
 /**
- * Responsible for the HTTP handling after socket connection
+ * This class is responsible for the HTTP handling after socket connection.
+ * <p>
+ *     The public methods are for registering endpoints - code that will be
+ *     run for a given combination of HTTP method and path.  See documentation
+ *     for the methods in this class.
+ * </p>
  */
 public final class WebFramework {
 
@@ -650,7 +655,7 @@ public final class WebFramework {
         this.registeredDynamicPaths = new HashMap<>();
         this.registeredPartialPaths = new HashMap<>();
         this.underInvestigation = new UnderInvestigation(constants);
-        this.inputStreamUtils = new InputStreamUtils();
+        this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
 
         // This random value is purely to help provide correlation between
@@ -690,8 +695,7 @@ public final class WebFramework {
      * the code to handle a request.
      * <br>
      * Note that the path text expected is *after* the first forward slash,
-     * so for example with {@code http://foo.com/mypath}, you provide us "mypath"
-     * here.
+     * so for example with {@code http://foo.com/mypath}, provide "mypath" as the path.
      */
     public void registerPath(RequestLine.Method method, String pathName, ThrowingFunction<IRequest, IResponse> webHandler) {
         registeredDynamicPaths.put(new MethodPath(method, pathName), webHandler);
@@ -724,27 +728,31 @@ public final class WebFramework {
      * <p>Here is an example</p>
      * <pre>{@code
      *
-     *      webFramework.registerPreHandler(preHandlerInputs -> preHandlerCode(preHandlerInputs, auth));
+     *      webFramework.registerPreHandler(preHandlerInputs -> preHandlerCode(preHandlerInputs, auth, context));
      *
      *      ...
      *
-     *      private IResponse preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
-     *          // log all requests
+     *      private IResponse preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth, Context context) throws Exception {
+     *          int secureServerPort = context.getConstants().secureServerPort;
      *          Request request = preHandlerInputs.clientRequest();
      *          ThrowingFunction<IRequest, IResponse> endpoint = preHandlerInputs.endpoint();
      *          ISocketWrapper sw = preHandlerInputs.sw();
      *
+     *          // log all requests
      *          logger.logTrace(() -> String.format("Request: %s by %s",
      *              request.requestLine().getRawValue(),
      *              request.remoteRequester())
      *          );
      *
-     *          String path = request.requestLine().getPathDetails().isolatedPath();
+     *          // redirect to https if they are on the plain-text connection and the path is "login"
      *
-     *          // redirect to https if they are on the plain-text connection and the path is "whoops"
-     *          if (path.contains("whoops") &&
+     *          // get the path from the request line
+     *          String path = request.getRequestLine().getPathDetails().getIsolatedPath();
+     *
+     *          // redirect to https on the configured secure port if they are on the plain-text connection and the path contains "login"
+     *          if (path.contains("login") &&
      *              sw.getServerType().equals(HttpServerType.PLAIN_TEXT_HTTP)) {
-     *              return Response.redirectTo("https://" + sw.getHostName() + "/" + path);
+     *              return Response.redirectTo("https://%s:%d/%s".formatted(sw.getHostName(), secureServerPort, path));
      *          }
      *
      *          // adjust behavior if non-authenticated and path includes "secure/"

@@ -37,7 +37,7 @@ public final class FunctionalTesting {
         this.host = host;
         this.port = port;
 
-        this.inputStreamUtils = new InputStreamUtils();
+        this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.logger = context.getLogger();
         bodyProcessor = new BodyProcessor(context);
     }
