@@ -82,7 +82,7 @@ public final class TemplateProcessor {
         if (!unusedKeys.isEmpty()) {
             throw new TemplateRenderException("No corresponding key in template found for these keys: " + String.join(", ", unusedKeys));
         }
-        
+
         return builder.toString();
     }
 
@@ -165,7 +165,7 @@ public final class TemplateProcessor {
 
     static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(null, builder.toString(), 0));
+            tSections.add(new TemplateSection(null, builder.toString(), 0, false));
             builder = new StringBuilder();
         }
         return builder;
