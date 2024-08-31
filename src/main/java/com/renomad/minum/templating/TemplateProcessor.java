@@ -65,11 +65,6 @@ public final class TemplateProcessor {
         StringBuilder builder = new StringBuilder();
         for (TemplateSection templateSection : templateSections) {
             RenderingResult result = templateSection.render(myMap);
-            if (result.renderedSection().isEmpty() &&
-                    templateSection.isOptional &&
-                    !builder.isEmpty())
-                // Remove last character if possible, prevents spaces where there shouldn't be
-                builder.replace(builder.length() - 1, builder.length(), "");
             builder.append(result.renderedSection());
             String appliedKey = result.appliedKey();
             if (appliedKey != null) {

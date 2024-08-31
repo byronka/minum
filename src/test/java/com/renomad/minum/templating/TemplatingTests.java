@@ -218,7 +218,7 @@ public class TemplatingTests {
     @Test
     public void test_Template_Optional_Keys_Some_Present() {
         TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo {{ bar? }} {{ baz? }}");
-        String expected = "foo baz";
+        String expected = "foo  baz";
         String result = templateProcessor.renderTemplate(Map.of("baz", "baz"));
 
         assertEquals(result, expected);
@@ -227,7 +227,7 @@ public class TemplatingTests {
     @Test
     public void test_Template_Optional_Keys_None_present() {
         TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo {{ bar? }} {{ baz? }}");
-        String expected = "foo";
+        String expected = "foo  ";
         String result = templateProcessor.renderTemplate(Map.of());
 
         assertEquals(result, expected);
@@ -236,8 +236,17 @@ public class TemplatingTests {
     @Test
     public void test_Template_Only_Optional_Keys() {
         TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("{{ bar? }} {{ baz? }}");
-        String expected = "bar";
+        String expected = "bar ";
         String result = templateProcessor.renderTemplate(Map.of("bar", "bar"));
+
+        assertEquals(result, expected);
+    }
+
+    @Test
+    public void test_Template_Only_Optional_Keys_Missing_NoSpace() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo{{ bar? }}");
+        String expected = "foo";
+        String result = templateProcessor.renderTemplate(Map.of());
 
         assertEquals(result, expected);
     }
