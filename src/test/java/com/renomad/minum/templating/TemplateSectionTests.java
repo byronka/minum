@@ -35,7 +35,7 @@ public class TemplateSectionTests {
         var sb = new StringBuilder();
         ArrayList<TemplateSection> templateSections = new ArrayList<>();
 
-        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
+        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0, false);
 
         assertTrue(sb == result);
     }
@@ -49,7 +49,7 @@ public class TemplateSectionTests {
         var sb = new StringBuilder().append("hello world");
         ArrayList<TemplateSection> templateSections = new ArrayList<>();
 
-        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
+        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0, false);
 
         assertEquals(result.toString(), "");
         assertEquals(templateSections.getFirst().key, "hello world");

@@ -118,6 +118,17 @@ public class TemplatingTests {
         assertEquals(result, "test1 foo }}");
     }
 
+    @Test
+    public void test_Template_Complex1_Optional() {
+        String template = "{{ name? }} foo }}";
+        var tp = buildProcessor(template);
+        Map<String, String> name = Map.of();
+
+        String result = tp.renderTemplate(name);
+
+        assertEquals(result, " foo }}");
+    }
+
     /**
      * What should happen if the brackets aren't closed?
      */
@@ -195,4 +206,39 @@ public class TemplatingTests {
         assertEquals(result, expected);
     }
 
+    @Test
+    public void test_Template_Optional_Keys_All_Present() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo {{ bar? }} {{ baz? }}");
+        String expected = "foo bar baz";
+        String result = templateProcessor.renderTemplate(Map.of("bar", "bar", "baz", "baz"));
+
+        assertEquals(result, expected);
+    }
+
+    @Test
+    public void test_Template_Optional_Keys_Some_Present() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo {{ bar? }} {{ baz? }}");
+        String expected = "foo baz";
+        String result = templateProcessor.renderTemplate(Map.of("baz", "baz"));
+
+        assertEquals(result, expected);
+    }
+
+    @Test
+    public void test_Template_Optional_Keys_None_present() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo {{ bar? }} {{ baz? }}");
+        String expected = "foo";
+        String result = templateProcessor.renderTemplate(Map.of());
+
+        assertEquals(result, expected);
+    }
+
+    @Test
+    public void test_Template_Only_Optional_Keys() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("{{ bar? }} {{ baz? }}");
+        String expected = "bar";
+        String result = templateProcessor.renderTemplate(Map.of("bar", "bar"));
+
+        assertEquals(result, expected);
+    }
 }
