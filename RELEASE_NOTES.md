@@ -46,6 +46,19 @@ Recap, all changes to date since beta release
 * No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
 
+v8.0.2
+------
+
+* Handling edge conditions in Body better
+* Updating Pitest dependency
+* Documentation - improving JavaDocs
+
+Body methods like .asString(key) or .getPartitionHeaders() require particular body formats. If the
+body is not in those formats, throw an exception, which will help developers recognize they are
+using the wrong methods.
+
+For examples, see BodyTests.java
+
 v8.0.1 - August 27, 2024
 ------------------------
 

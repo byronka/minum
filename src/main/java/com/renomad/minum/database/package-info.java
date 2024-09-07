@@ -1,50 +1,59 @@
 /**
- * These are the utilities needed to enable a database for the application.
- * <p>
- *     The performance is excellent.  The following simplified example is extracted from SampleDomain.java
- *     and TheRegister.java, both in the tests directory.
- * </p>
- * <p>
- *     This is also a good example of a few tangential capabilities of the Minum framework,
- *     including how a developer is expected to "clean" html before sending it, handling
- *     authentication, and getting data from the database.
- * </p>
+ * This package contains classes for data persistence capabilities.
+ *
  * <pre>
  * {@code
- * //-------------------
- * // TheRegister.java
- * //-------------------
- * private SampleDomain setupSampleDomain(AuthUtils auth) {
- *     Db<PersonName> sampleDomainDb = context.getDb("names", PersonName.EMPTY);
- *     return new SampleDomain(sampleDomainDb, auth, context);
- * }
+ * //------------------------
+ * // Define the data type
+ * //------------------------
  *
- * var sd = setupSampleDomain(auth);
- * webFramework.registerPath(GET, "formentry", sd::formEntry);
+ * public class PersonName extends DbData<PersonName> {
  *
- * //-------------------
- * //  SampleDomain.java
- * //-------------------
- * public SampleDomain(Db<PersonName> db, AuthUtils auth, Context context) {
- *     this.db = db;
- *     this.auth = auth;
- *     this.fileUtils = context.getFileUtils();
- *     String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
- *     nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
- * }
+ *     private long index;
+ *     private final String fullname;
  *
- * public Response formEntry(Request r) {
- *     final var authResult = auth.processAuth(r);
- *     if (! authResult.isAuthenticated()) {
- *         return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);
+ *     public PersonName(Long index, String fullname) {
+ *         this.index = index;
+ *         this.fullname = fullname;
  *     }
- *     final String names = db
- *             .values().stream().sorted(Comparator.comparingLong(PersonName::getIndex))
- *             .map(x -> "<li>" + StringUtils.safeHtml(x.getFullname()) + "</li>\n")
- *             .collect(Collectors.joining());
  *
- *     return Response.htmlOk(nameEntryTemplate.renderTemplate(Map.of("names", names)));
+ *     public static final PersonName EMPTY = new PersonName(0L, "");
+ *
+ *     // ... (several more lines. See PersonName.java in the tests directory)
+ *
  * }
+ *
+ * //------------------------
+ * // Initialize the database
+ * //------------------------
+ *
+ * Db<PersonName> db = context.getDb("names", PersonName.EMPTY);
+ *
+ * //---------------------
+ * //  Add to the database
+ * //---------------------
+ *
+ * db.write(new PersonName(0L, "My Name"));
+ *
+ * //-------------------------------------------
+ * //  Get (read-only) by name from the database
+ * //-------------------------------------------
+ *
+ * PersonName foundPerson = SearchUtils.findExactlyOne(db.values().stream(), x -> x.getFullname().equals("My Name"));
+ *
+ * //------------------------------------------
+ * //  Get all the values (read-only) as a list
+ * //------------------------------------------
+ *
+ * PersonName allPersons = db.values().stream().toList()
+ *
+ * //--------------------------------
+ * //  Update a value in the database
+ * //--------------------------------
+ *
+ * foundPerson.setName("a new name");
+ * db.write(foundPerson);
+ *
  * }
  * </pre>
  */

@@ -4,46 +4,39 @@ package com.renomad.minum.templating;
 import java.util.*;
 
 /**
- * Allows rendering of templates
- *
+ * This class provides methods for working with templates.
  * <p>
- * In order to perform speedy template rendering, it is necessary
- * to get the template converted into this class.  The way to do
- * that is as follows.
- * </p>
- * <p>
- * First, you will be started with some suitable template. The values
- * to be substituted are surrounded by double brackets.  Here's an example:
+ * The first step is to write a template.  Here is an example:
  * </p>
  * <pre>
  * Hello, my name is {{name}}
  * </pre>
  * <p>
- * Then, feed that string into {@link #buildProcessor}, like
+ * Then, feed that string into the {@link #buildProcessor} method, like
  * this:
  * </p>
  * <pre>
- * <code>
- * {@code String input = "Hello, my name is {{name}}"
- * var helloProcessor = TemplateProcessor.buildProcessor(input);}
- * </code>
+ * {@code
+ *   String input = "Hello, my name is {{name}}"
+ *   TemplateProcessor helloProcessor = TemplateProcessor.buildProcessor(input);
+ * }
  * </pre>
  * <p>
- * Now that you have built a template processor, hold onto it! The generation of
- * the template processor is the costly activity.  After that, you can use it
- * efficiently, by feeding it a {@link Map} of key names to desired values. For
- * our example, maybe we want <em>name</em> to be replaced with <em>Susanne</em>.
- * In that case, we would do this:
+ * The returned value ("helloProcessor") can be rendered with different values. For
+ * example:
  * </p>
  * <pre>
- * <code>
- * {@code var myMap = Map.of("name", "Susanne");
- * String fullyRenderedString = helloProcessor.renderTemplate(myMap);}
- * </code>
+ * {@code
+ *   Map<String,String> myMap = Map.of("name", "Susanne");
+ *   String fullyRenderedString = helloProcessor.renderTemplate(myMap);
+ * }
  * </pre>
  * <p>
- *     The result is: Hello, my name is Susanne
+ *     The result is:
  * </p>
+ * <pre>
+ *     {@code Hello, my name is Susanne}
+ * </pre>
  */
 public final class TemplateProcessor {
 

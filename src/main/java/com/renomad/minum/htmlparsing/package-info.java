@@ -1,7 +1,6 @@
 /**
- * provides the ability to convert HTML text
- * into an object tree.  It is performant and can provide
- * ability to search for HTML elements by attributes.
+ * Converts HTML text into a Java data structure.  It processes quickly, and can provide
+ * an ability to search for HTML elements by attributes.
  * <p>
  *     Here is an example of a test exercising the parser:
  * </p>

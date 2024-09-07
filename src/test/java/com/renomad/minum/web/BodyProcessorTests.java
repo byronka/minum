@@ -206,8 +206,8 @@ public class BodyProcessorTests {
                 body.length(),
                 "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
                 new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-        assertTrue(bodyResult.asBytes("myfile") == null);
-        assertTrue(bodyResult.asBytes("myfile2") == null);
+        var ex = assertThrows(WebServerException.class, () -> bodyResult.asBytes("myfile"));
+        assertEquals(ex.getMessage(), "Request body is in multipart format.  Use .getPartitionByName instead");
         assertEqualByteArray(bodyResult.getPartitionByName("myfile").getFirst().getContent(), new byte[]{1,2,3});
         assertEqualByteArray(bodyResult.getPartitionByName("myfile2").getFirst().getContent(), new byte[]{4,5,6});
     }
@@ -240,8 +240,8 @@ public class BodyProcessorTests {
                 body.length(),
                 "Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryEdMgstSu0ppszI8o",
                 new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-        assertTrue(bodyResult.asBytes("myfile") == null);
-        assertTrue(bodyResult.asBytes("myfile2") == null);
+        var ex = assertThrows(WebServerException.class, () -> bodyResult.asBytes("myfile"));
+        assertEquals(ex.getMessage(), "Request body is in multipart format.  Use .getPartitionByName instead");
         List<Partition> filePartitions = bodyResult.getPartitionByName("myfile");
         assertEqualByteArray(filePartitions.getFirst().getContent(), new byte[]{1,2,3});
         assertEqualByteArray(filePartitions.getLast().getContent(), new byte[]{4,5,6});

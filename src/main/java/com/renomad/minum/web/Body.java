@@ -67,9 +67,22 @@ public final class Body {
      *     Otherwise, the value found will be converted
      *     to a string, and trimmed.
      * </p>
+     * <p>
+     *     Note: if the request is a multipart/form-data, this
+     *     method will throw a helpful exception to indicate that.
+     * </p>
      *
      */
     public String asString(String key) {
+        if (this.equals(EMPTY)) {
+            return "";
+        }
+        if (this.bodyType.equals(BodyType.MULTIPART)) {
+            throw new WebServerException("Request body is in multipart format.  Use .getPartitionByName instead");
+        }
+        if (this.bodyType.equals(BodyType.UNRECOGNIZED)) {
+            throw new WebServerException("Request body is not in a recognized key-value encoding.  Use .asString() to obtain the body data");
+        }
         byte[] byteArray = bodyMap.get(key);
         if (byteArray == null) {
             return "";
@@ -85,6 +98,9 @@ public final class Body {
      * than converting the bytes to a string.
      */
     public String asString() {
+        if (this.equals(EMPTY)) {
+            return "";
+        }
         return StringUtils.byteArrayToString(raw).trim();
     }
 
@@ -93,6 +109,15 @@ public final class Body {
      * presumes the data was sent URL-encoded.
      */
     public byte[] asBytes(String key) {
+        if (this.equals(EMPTY)) {
+            return new byte[0];
+        }
+        if (this.bodyType.equals(BodyType.MULTIPART)) {
+            throw new WebServerException("Request body is in multipart format.  Use .getPartitionByName instead");
+        }
+        if (this.bodyType.equals(BodyType.UNRECOGNIZED)) {
+            throw new WebServerException("Request body is not in a recognized key-value encoding.  Use .asBytes() to obtain the body data");
+        }
         return bodyMap.get(key);
     }
 
@@ -101,6 +126,9 @@ public final class Body {
      * presumes the data was sent URL-encoded.
      */
     public byte[] asBytes() {
+        if (this.equals(EMPTY)) {
+            return new byte[0];
+        }
         return this.raw.clone();
     }
 
@@ -121,6 +149,15 @@ public final class Body {
      * </pre>
      */
     public List<Partition> getPartitionHeaders() {
+        if (this.equals(EMPTY)) {
+            return List.of();
+        }
+        if (this.bodyType.equals(BodyType.FORM_URL_ENCODED)) {
+            throw new WebServerException("Request body encoded in form-urlencoded format. getPartitionHeaders is only used with multipart encoded data.");
+        }
+        if (this.bodyType.equals(BodyType.UNRECOGNIZED)) {
+            throw new WebServerException("Request body encoded is not encoded in a recognized format. getPartitionHeaders is only used with multipart encoded data.");
+        }
         return new ArrayList<>(partitions);
     }
 
@@ -132,6 +169,15 @@ public final class Body {
      * ability to select multiple files on the input with type=file)
      */
     public List<Partition> getPartitionByName(String name) {
+        if (this.equals(EMPTY)) {
+            return List.of();
+        }
+        if (this.bodyType.equals(BodyType.FORM_URL_ENCODED)) {
+            throw new WebServerException("Request body encoded in form-urlencoded format. use .asString(key) or asBytes(key)");
+        }
+        if (this.bodyType.equals(BodyType.UNRECOGNIZED)) {
+            throw new WebServerException("Request body encoded is not encoded in a recognized format. use .asString() or asBytes()");
+        }
         return getPartitionHeaders().stream().filter(x -> x.getContentDisposition().getName().equalsIgnoreCase(name)).toList();
     }
 
@@ -157,6 +203,9 @@ public final class Body {
      * Get all the keys for the key-value pairs in the body
      */
     public Set<String> getKeys() {
+        if (this.equals(EMPTY)) {
+            return Set.of();
+        }
         return bodyMap.keySet();
     }
 

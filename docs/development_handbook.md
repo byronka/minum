@@ -32,6 +32,7 @@ Table of contents
 - [Documentation](#documentation)
 - [Feature tracking](#feature-tracking)
 - [History](#history)
+- [On minimalism](#on-minimalism)
 - [Theme](#theme)
 - [ActionQueue](#actionqueue)
 - [Dependency Injections](#dependency-injection)
@@ -547,6 +548,37 @@ high-quality web app code as an example to analyze.  That code lived, but the an
 we'll try that another day.
 
 
+On minimalism:
+--------------
+
+* It is less desirable to support multitudes of textual data formats: e.g. XML, JSON, YAML.  Fewer is better.
+* The HTML specification is gigantic.  Fully proper parsing is often unnecessary - many (most?) times, we are parsing our own HTML. This is
+  how it is possible to utilize a simplified parsing engine, which is marginally easier to debug and maintain.
+* There is no need for large varieties of test assertion types.  "assertTrue" and "assertEquals" account for most situations.
+* logic-free templates are easier to debug.
+* Annotations and magic method names ("getFooById") save little time at the onset, and add time later in the form of confusion and searching documentation.
+* Monoliths are easier to maintain than microservices, and thus better for most projects.
+* Server-side rendering is simpler and easier to maintain than having a separate front-end and back-end project.
+* Starting out simply is better than planning for massive scale.
+* Especially at the onset, a single database without replicas is sufficient.
+* A database built into the application is better than needing a separate machine and network connection.
+* Running a single binary is better than a distributed application for most scenarios.
+* Minimal JavaScript, as an optional usability improvement, is good.  More is unsustainable.
+* Substantially less code enables better confidence and enables you to understand what is really happening without resorting to experts.
+* Good automated testing and documentation is a necessity for professional work.
+* System-thinking is a key ingredient.  Assembling a hodgepodge of "best-of-class" components that have different
+  mental models and qualities does not necessarily result in the best system.  Relatedly, building just enough for what you need enables flexibility.
+* It is not possible to build a simple program, but you can and should aim for simplicity.
+* Thrift is a underestimated merit in our field, contributing to long-term success.
+* Your work does not need to focus on making money.
+* Demand that your system be understandable.  Too often, complex systems are treated like biology or voodoo.  Countering
+  this requires better testing and documentation.
+* Good work requires time to consider alternatives and to avoid stress.
+* Get over your fascination with the new and shiny.  That is not how professional work is done. On the other hand, keep
+  tabs on what is new.
+* Many of our choices are based on fear.  Understanding this can aid our critical thinking.
+* Patience and persistence are the foundations of excellence.  Minimalism is nothing more than these in action.
+
 
 Theme
 -----
@@ -563,35 +595,6 @@ fashion, and included good tests, we could refactor fearlessly.
 * What if testing drove the design?
 * If we understand that our software is a reflection of our culture, should we not focus on improving that first?
 
-_On minimalism:_
-
-* It is less desirable to support multitudes of textual data formats: e.g. XML, JSON, YAML.  Fewer is better.
-* The HTML specification is gigantic.  Fully proper parsing is often unnecessary - many (most?) times, we are parsing our own HTML. This is
-  how it is possible to utilize a simplified parsing engine, which is marginally easier to debug and maintain.
-* There is no need for large varieties of test assertion types.  "assertTrue" and "assertEquals" account for most situations.
-* logic-free templates are easier to debug.
-* Annotations and magic method names ("getFooById") save little time at the onset, and add time later in the form of confusion and searching documentation.
-* Monoliths are easier to maintain than microservices, and thus better for most projects.
-* Server-side rendering is simpler and easier to maintain than having a separate front-end and back-end project.
-* Starting out simply is better than planning for massive scale.
-* Especially at the onset, a single database without replicas is sufficient.
-* A database built into the application is better than needing a separate machine and network connection.
-* Running a single binary is better than a distributed application for most scenarios.
-* Minimal javascript, as an optional usability improvement, is good.  More is unsustainable.
-* Substantially less code enables better confidence and enables you to understand what is really happening without resorting to experts.
-* Good automated testing and documentation is a necessity for professional work.
-* System-thinking is a key ingredient.  Assembling a hodgepodge of "best-of-class" components that have different 
-  mental models and qualities does not necessarily result in the best system.  Relatedly, building just enough for what you need enables flexibility.
-* It is not possible to build a simple program, but you can and should aim for simplicity.
-* Thrift is a underestimated merit in our field, contributing to long-term success.
-* Your work does not need to focus on making money.
-* Demand that your system be understandable.  Too often, complex systems are treated like biology or voodoo.  Countering 
-  this requires better testing and documentation.
-* Good work requires time to consider alternatives and to avoid stress.
-* Get over your fascination with the new and shiny.  That is not how professional work is done. On the other hand, keep 
-  tabs on what is new.
-* Many of our choices are based on fear.  Understanding this can aid our critical thinking.
-* Patience and persistence are the foundations of excellence.  Minimalism is nothing more than these in action.
 
 See the [parable of two programmers](parable_two_programmers.md)
 

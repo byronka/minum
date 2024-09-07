@@ -7,6 +7,9 @@
 # 3) Using Make allows easy aliases.  Easier to type "make mutation_test" rather than remembering
 #    to type "mvn test-compile org.pitest:pitest-maven:mutationCoverage"
 # 4) Using Make lets us handle complex scenarios easily with complete control - for example, see the "jar" recipe.
+# 5) Lets us add little bits of better experience.  Like, how starting the mutation tests it provides a
+#    hint about expecting timeouts.  Adding that as a Maven customization would be such overkill it would
+#    never happen, but adding it in the Makefile is a piece of cake.
 #
 # As a quick note: the word "PHONY" means that the recipe (e.g. clean, lint, etc) is not the name of a file. Without it,
 #                  there could be a conflict if there was a file at the top level with that name.  Using PHONY
@@ -17,7 +20,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=8.0.1
+VERSION=8.0.2
 
 MAVEN := ./mvnw
 
