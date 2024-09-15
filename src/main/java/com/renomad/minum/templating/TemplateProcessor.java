@@ -55,10 +55,10 @@ public final class TemplateProcessor {
     public String renderTemplate(Map<String, String> myMap) {
         // This indicates the count of usages of each key
         Map <String, Integer> usageMap = new HashMap<>();
-        List<String> parts = new ArrayList<>();
+        StringBuilder builder = new StringBuilder();
         for (TemplateSection templateSection : templateSections) {
             RenderingResult result = templateSection.render(myMap);
-            parts.add(result.renderedSection());
+            builder.append(result.renderedSection());
             String appliedKey = result.appliedKey();
             if (appliedKey != null) {
                 usageMap.merge(appliedKey, 1, Integer::sum);
@@ -70,7 +70,8 @@ public final class TemplateProcessor {
         if (!unusedKeys.isEmpty()) {
             throw new TemplateRenderException("No corresponding key in template found for these keys: " + String.join(", ", unusedKeys));
         }
-        return String.join("",parts);
+
+        return builder.toString();
     }
 
     /**
@@ -89,12 +90,12 @@ public final class TemplateProcessor {
         // this value records the indent of the beginning of template keys,
         // so we can properly indent the values later.
         int startOfKey = 0;
-
         StringBuilder builder = new StringBuilder();
         // this flag is to help us understand whether we are currently reading the
         // name of a template literal.
         // e.g. in the case of hello {{ name }}, "name" is the literal.
         boolean isInsideTemplateKeyLiteral = false;
+        boolean isMarkedOptional = false;
         for (int i = 0; i < template.length(); i++) {
             char charAtCursor = template.charAt(i);
 
@@ -106,9 +107,17 @@ public final class TemplateProcessor {
             } else if (justArrivedOutside(template, charAtCursor, i, isInsideTemplateKeyLiteral)) {
                 isInsideTemplateKeyLiteral = false;
                 i += 1;
-                builder = processSectionOutside(builder, tSections, startOfKey);
+                builder = processSectionOutside(builder, tSections, startOfKey, isMarkedOptional);
+                isMarkedOptional = false;
                 startOfKey = 0;
             } else {
+                if (isInsideTemplateKeyLiteral &&
+                        charAtCursor == '?' &&
+                        (template.charAt(i + 1) == '}' || template.charAt(i + 2) == '}')) {
+                    isMarkedOptional = true;
+                    continue; // Don't add this to the key literal
+                }
+
                 builder.append(charAtCursor);
 
                 /*
@@ -126,7 +135,7 @@ public final class TemplateProcessor {
                         throw new TemplateParseException(
                                 "parsing failed for string starting with \"" + templateSample + "\" at line " + rowNumber + " and column " + columnNumber);
                     }
-                    tSections.add(new TemplateSection(null, builder.toString(), 0));
+                    tSections.add(new TemplateSection(null, builder.toString(), 0, isMarkedOptional));
                 }
             }
 
@@ -144,15 +153,19 @@ public final class TemplateProcessor {
 
     static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(null, builder.toString(), 0));
+            tSections.add(new TemplateSection(null, builder.toString(), 0, false));
             builder = new StringBuilder();
         }
         return builder;
     }
 
     static StringBuilder processSectionOutside(StringBuilder builder, List<TemplateSection> tSections, int indent) {
+        return processSectionOutside(builder, tSections, indent, false);
+    }
+
+    static StringBuilder processSectionOutside(StringBuilder builder, List<TemplateSection> tSections, int indent, boolean isMarkedOptional) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(builder.toString().trim(), null, indent));
+            tSections.add(new TemplateSection(builder.toString().trim(), null, indent, isMarkedOptional));
             builder = new StringBuilder();
         }
         return builder;
