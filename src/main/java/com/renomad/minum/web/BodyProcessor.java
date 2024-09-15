@@ -22,14 +22,12 @@ final class BodyProcessor implements IBodyProcessor {
 
     private final ILogger logger;
     private final IInputStreamUtils inputStreamUtils;
-    private int countOfPartitions;
     private final Constants constants;
 
     BodyProcessor(Context context) {
         this.constants = context.getConstants();
         this.logger = context.getLogger();
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
-        this.countOfPartitions = 0;
     }
 
     @Override
@@ -98,6 +96,7 @@ final class BodyProcessor implements IBodyProcessor {
         List<Partition> partitions = new ArrayList<>();
 
         try {
+            int countOfPartitions = 0;
             for (StreamingMultipartPartition p : getMultiPartIterable(inputStream, boundaryValue, contentLength)) {
                 countOfPartitions += 1;
                 if (countOfPartitions >= MAX_BODY_KEYS_URL_ENCODED) {
@@ -151,7 +150,7 @@ final class BodyProcessor implements IBodyProcessor {
         final var postedPairs = new HashMap<String, byte[]>();
 
         try {
-
+            int countOfPartitions = 0;
             for (final var keyValue : getUrlEncodedDataIterable(is, contentLength)) {
                 countOfPartitions += 1;
                 if (countOfPartitions >= MAX_BODY_KEYS_URL_ENCODED) {

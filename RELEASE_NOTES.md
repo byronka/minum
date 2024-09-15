@@ -46,8 +46,22 @@ Recap, all changes to date since beta release
 * No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
 
-v8.0.2
-------
+v8.0.3 - Sep 15, 2024
+---------------------
+
+* Bug fix for reading request bodies
+
+A bug was introduced in version 7.0.0 that is resolved in version 8.0.3
+
+_Description_: It was noticed that request bodies sent to the Minum server were being 
+rejected.  Investigating deeper, it was discovered that the variable used to count the 
+number of partitions in a request body was a class variable, and was never getting reset 
+to 0.  This bug had no workaround.
+
+_Fix_: The variable is initialized to zero at the proper time.  A test was created to confirm correct behavior.
+
+v8.0.2 - Sep 7, 2024
+--------------------
 
 * Handling edge conditions in Body better
 * Updating Pitest dependency

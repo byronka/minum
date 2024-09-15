@@ -369,7 +369,34 @@ public class BodyProcessorTests {
         assertEquals(bodyResult.asString("a"), "hello");
         assertEquals(bodyResult.asString("b"), "123");
         assertEquals(bodyResult.getBodyType(), BodyType.FORM_URL_ENCODED);
+    }
 
+    /**
+     * If we request a body to be processed many times, it should still work fine.
+     * This is written to assert correct behavior, related to a bug that was
+     * added to the codebase in version 7.0.0
+     * <br>
+     * In that case, the count of partitions was a class property and was not getting
+     * reset between calls, eventually leading to the system failing to read request
+     * bodies.  This test passing proves that the issue no longer exists.
+     */
+    @Test
+    public void test_EdgeCase() {
+        var bodyProcessor = new BodyProcessor(context);
+
+        for (int i = 0; i < IBodyProcessor.MAX_BODY_KEYS_URL_ENCODED + 2; i++) {
+            String body = "a=hello&b=123";
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII));
+            Body bodyResult = bodyProcessor.extractBodyFromInputStream(
+                    body.length(),
+                    "content-type: application/x-www-form-urlencoded",
+                    inputStream);
+
+            assertEquals(bodyResult.getKeys(), Set.of("a","b"));
+            assertEquals(bodyResult.asString("a"), "hello");
+            assertEquals(bodyResult.asString("b"), "123");
+            assertEquals(bodyResult.getBodyType(), BodyType.FORM_URL_ENCODED);
+        }
     }
 
 
