@@ -26,6 +26,8 @@ SYSTEM_RUNNING
 # One of the functional tests puts a file in the static directory that is very large.
 # we don't want to add this to our repo.
 src/test/webapp/static/largefile.txt
+
+# Eclipse config files
 *.prefs
 .classpath
 .project
