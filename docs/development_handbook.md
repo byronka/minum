@@ -147,6 +147,13 @@ it through the Cygwin installer.  See [here](https://www.cygwin.com/packages/sum
 New Developer Setup
 -------------------
 
+Development for this project was done on a Windows machine using Cygwin and on a Mac OS machine. It is
+recommended your development environment is Cygwin, Mac, or Linux.  
+
+Some of the tests are particular about text file contents, and developers have encountered issues
+when cloning the project with Windows Git, which may load text files with CRLF (carriage-return-line-feed)
+line endings.  The tests have succeeded on Mac, Windows, and Linux machines.
+
 Here's the general series of steps for a new developer:
 
 1. Install the required JDK onto your machine if you don't already have it. Make sure to add the path to your 
@@ -551,6 +558,7 @@ we'll try that another day.
 On minimalism:
 --------------
 
+* Aim for success in providing value, not in seeming complex.
 * It is less desirable to support multitudes of textual data formats: e.g. XML, JSON, YAML.  Fewer is better.
 * The HTML specification is gigantic.  Fully proper parsing is often unnecessary - many (most?) times, we are parsing our own HTML. This is
   how it is possible to utilize a simplified parsing engine, which is marginally easier to debug and maintain.
