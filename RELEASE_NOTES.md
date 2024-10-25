@@ -46,6 +46,15 @@ Recap, all changes to date since beta release
 * No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
 
+v8.1.0
+------
+
+Several improvements:
+
+- Code is modularized.  Thanks SentryMan!
+- New simple Scheduler capability.  Allows setting an action to be run daily at a particular time.
+- Logger now allows easier programmatic adjustment of logging levels at runtime
+
 v8.0.3 - Sep 15, 2024
 ---------------------
 
