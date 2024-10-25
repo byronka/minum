@@ -1,5 +1,7 @@
 package com.renomad.minum.logging;
 
+import java.util.Map;
+
 /**
  * Logging code interface
  */
@@ -53,4 +55,11 @@ public interface ILogger {
      * </p>
      */
     void stop();
+
+    /**
+     * This method can be used to adjust the active log levels, which
+     * is a mapping of keys of {@link LoggingLevel} to boolean values.
+     * If the boolean value is true, that level of logging is enabled.
+     */
+    Map<LoggingLevel, Boolean> getActiveLogLevels();
 }

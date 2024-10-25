@@ -74,6 +74,11 @@ public class Logger implements ILogger {
         logHelper(msg, LoggingLevel.ASYNC_ERROR, activeLogLevels, loggingActionQueue);
     }
 
+    @Override
+    public Map<LoggingLevel, Boolean> getActiveLogLevels() {
+        return activeLogLevels;
+    }
+
     /**
      * A helper method to reduce duplication
      */

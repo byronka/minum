@@ -2,6 +2,7 @@ package com.renomad.minum.logging;
 
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.MyThread;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,5 +80,18 @@ public class LoggerTests {
         assertEquals(Logger.showWhiteSpace(""), "(EMPTY)");
         assertEquals(Logger.showWhiteSpace(null), "(NULL)");
         assertEquals(Logger.showWhiteSpace("\t\r\n"), "\\t\\r\\n");
+    }
+
+    /**
+     * This is a sample of code for enabling and disabling the TRACE
+     * level of logging.
+     */
+    @Test
+    public void testEnableAndDisableTrace() {
+        logger.logTrace(() -> "You can't see me!");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
+        logger.logTrace(() -> "But you can see this.");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
+        logger.logTrace(() -> "You can't see me!");
     }
 }
