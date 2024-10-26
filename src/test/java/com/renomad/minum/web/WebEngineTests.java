@@ -64,15 +64,15 @@ public class WebEngineTests {
     public void test_getKeyStoreResult() throws MalformedURLException {
         assertEquals(WebEngine.getKeyStoreResult(true, "abc", "def", logger), new WebEngine.KeyStoreResult(Path.of("abc").toUri().toURL(), "def"));
 
-        assertEquals(WebEngine.getKeyStoreResult(false, "abc", "def", logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, "abc", "",    logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, "", "def",    logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, "", "",       logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, "", null,     logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, null, "",     logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, null, null,   logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, "abc", null,  logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
-        assertEquals(WebEngine.getKeyStoreResult(false, null, "def",  logger), new WebEngine.KeyStoreResult(WebEngine.class.getClassLoader().getResource("certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, "abc", "def", logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, "abc", "",    logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, "", "def",    logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, "", "",       logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, "", null,     logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, null, "",     logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, null, null,   logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, "abc", null,  logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
+        assertEquals(WebEngine.getKeyStoreResult(false, null, "def",  logger), new WebEngine.KeyStoreResult(WebEngine.class.getResource("/certs/keystore"), "passphrase"));
     }
 
     @Test
