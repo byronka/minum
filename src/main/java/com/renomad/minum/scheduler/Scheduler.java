@@ -234,9 +234,4 @@ public class Scheduler {
         throw new RuntimeException("Scheduler: Leaving without successfully stopping thread");
     }
 
-    public boolean hasRun() {
-        // if the schedule database isn't empty, then there was an action taken at some
-        // time during the day.
-        return !schedule.values().isEmpty();
-    }
 }

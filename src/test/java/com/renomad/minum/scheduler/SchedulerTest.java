@@ -21,12 +21,10 @@ public class SchedulerTest
 {
 
     private Context context;
-    private TestLogger logger;
 
     @Before
     public void init() {
         context = buildTestingContext("SchedulerTests");
-        logger = (TestLogger)context.getLogger();
     }
 
     @After
