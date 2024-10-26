@@ -77,12 +77,15 @@ public class UploadPhoto {
         }
         // we expect to get a photo by url-encoding because one of our tests sends to the
         // endpoint that way.
-        byte[] photoBytes = request.getBody().asBytes("image_uploads");
-        String shortDescription = request.getBody().asString("short_description");
-        String description = request.getBody().asString("long_description");
-
-        // if we are running our sample domain, the browser will typically send the data in multipart form.
-        if (photoBytes == null) {
+        byte[] photoBytes;
+        String shortDescription;
+        String description;
+        try {
+            photoBytes = request.getBody().asBytes("image_uploads");
+            shortDescription = request.getBody().asString("short_description");
+            description = request.getBody().asString("long_description");
+        } catch (Exception ex) {
+            // if we are running our sample domain, the browser will typically send the data in multipart form.
             photoBytes = request.getBody().getPartitionByName("image_uploads").getFirst().getContent();
             shortDescription = request.getBody().getPartitionByName("short_description").getFirst().getContentAsString();
             description = request.getBody().getPartitionByName("long_description").getFirst().getContentAsString();
