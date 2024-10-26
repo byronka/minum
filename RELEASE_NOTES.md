@@ -43,7 +43,7 @@ Recap, all changes to date since beta release
       methods provided to enable easier streaming of files, and methods exist to write custom streaming code.
     * Request object provides access to ISocketWrapper, enabling user-built web handlers to control
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
-* No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
+* Task scheduler added - provides ability to schedule a daily task 
 * Subtle improvements to security programs
 
 v8.1.0
@@ -52,8 +52,9 @@ v8.1.0
 Several improvements:
 
 - Code is modularized.  Thanks SentryMan!
-- New simple Scheduler capability.  Allows setting an action to be run daily at a particular time.
-- Logger now allows easier programmatic adjustment of logging levels at runtime
+- New simple task scheduler capability ("Scheduler.java").  Allows setting an action to be run daily at a particular time.
+- Logger now allows easier programmatic adjustment of logging levels at runtime.  See 
+  documentation in the development handbook.
 
 v8.0.3 - Sep 15, 2024
 ---------------------

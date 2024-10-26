@@ -27,7 +27,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,262 | 141,048 | 1,085,405   |
+| 5,481 | 141,048 | 1,085,405   |
 
 
 #### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -124,6 +124,16 @@ This is provided by ActionQueue, in the queue package.  See the development_hand
 |-------|---------|
 | 151   | 22,581  |
 
+
+Task Scheduler
+--------------
+
+This is provided by Scheduler, in the scheduler package.  It provides a simplistic way to schedule a
+daily action at a particular time of day.
+
+| Minum | Quartz |
+|-------|--------|
+| 201   | 30,774 |
 
 Various helpful utilities
 -------------------------

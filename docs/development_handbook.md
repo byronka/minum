@@ -37,6 +37,7 @@ Table of contents
 - [ActionQueue](#actionqueue)
 - [Dependency Injections](#dependency-injection)
 - [Sending larger and streaming data](#sending-larger-and-streaming-data)
+- [Task Scheduler](#task-scheduler)
 
 
 Features:
@@ -763,3 +764,31 @@ There are a few ways to do this:
    expecting a file path.  Using this will send the file's data as a stream, and
    is thread safe.  See `Response.buildLargeFileResponse`
 3) There is also a factory method for sending a custom stream.  See `Response.buildStreamingResponse`
+
+
+Task Scheduler
+--------------
+
+Minum provides a simplistic task scheduler.  Its purpose is to enable setting an
+action to be run on a daily basis at a particular time.
+
+There is no upper limit on the number of scheduled actions per day.  Here is an
+example of usage:
+
+```java
+// provide an action, a time, and a description of the action (for maintainability / debugging)
+var completionStatus = scheduler.addScheduledItem(() -> System.out.println("hello world 1"), LocalTime.of(12, 45, 14), "print hello world part 1");
+
+// immediately after, and until its time, the status will be pending:
+assertEquals(completionStatus.status, Scheduler.StatusEnum.PENDING);
+
+// after the action is scheduled (on the ActionQueue), it is set to complete
+assertEquals(completionStatus.status, Scheduler.StatusEnum.COMPLETE);
+```
+
+The Scheduler records which tasks have finished in the database.  Each day at midnight, the system 
+will remove all those records from the database.  This way, if an application is restarted, it will
+not run actions again that day.  The database directory is named "schedule", and each item on disk is
+a separate completed action for that day.
+
+See SchedulerTest.java for further examples and tests.
