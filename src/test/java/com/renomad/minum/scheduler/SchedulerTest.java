@@ -1,6 +1,5 @@
 package com.renomad.minum.scheduler;
 
-import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
