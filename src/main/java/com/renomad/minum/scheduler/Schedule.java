@@ -29,7 +29,7 @@ public class Schedule extends DbData<Schedule> {
 
     @Override
     protected String serialize() {
-        return serializeHelper(index, time);
+        return serializeHelper(index, scheduledItemIndex, time);
     }
 
     @Override
