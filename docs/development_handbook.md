@@ -776,8 +776,14 @@ There is no upper limit on the number of scheduled actions per day.  Here is an
 example of usage:
 
 ```java
+// import the Scheduler
+import com.renomad.minum.scheduler.Scheduler;
+
+// construct a Scheduler instance
+var scheduler = new Scheduler(context);
+
 // provide an action, a time, and a description of the action (for maintainability / debugging)
-var completionStatus = scheduler.addScheduledItem(() -> System.out.println("hello world 1"), LocalTime.of(12, 45, 14), "print hello world part 1");
+var completionStatus = scheduler.addScheduledItem(() -> System.out.println("hello world"), LocalTime.of(12, 45, 14), "an action to print hello world");
 
 // immediately after, and until its time, the status will be pending:
 assertEquals(completionStatus.status, Scheduler.StatusEnum.PENDING);

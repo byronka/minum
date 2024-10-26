@@ -42,6 +42,15 @@ import java.util.concurrent.locks.ReentrantLock;
  *     there are any actions to take, and puts them on the {@link ActionQueue}
  *     if so, avoiding taking any time up in the Scheduler's own thread.
  * </p>
+ * <pre>
+ *     {@code
+ *         Scheduler scheduler = new Scheduler(context);
+ *         var result = scheduler.addScheduledItem(() -> System.out.println("hello world"), LocalTime.of(12, 45), "print hello world");
+ *
+ *         // At 12:45 pm, the action will run, printing "hello world".
+ *         assertEquals(result.status, Scheduler.StatusEnum.COMPLETE);
+ *     }
+ * </pre>
  */
 public class Scheduler {
 
