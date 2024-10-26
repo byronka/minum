@@ -64,7 +64,7 @@ public class SchedulerTest
     @Test
     public void testThatActionShouldRunIfAfterTime() {
         Callable<LocalTime> currentTime = () -> LocalTime.of(12, 45, 15);
-        Scheduler scheduler = new Scheduler(context, currentTime, 50);
+        Scheduler scheduler = new Scheduler(context, currentTime, 20);
         var status1 = scheduler.addScheduledItem(() -> System.out.println("hello world 1"), LocalTime.of(12, 45, 14), "print hello world part 1");
         var status2 = scheduler.addScheduledItem(() -> System.out.println("hello world 2"), LocalTime.of(12, 45, 15), "print hello world part 2");
         // wait for the action to take place.
@@ -85,7 +85,7 @@ public class SchedulerTest
     @Test
     public void testThatActionShouldRunIfLongAfterTime() {
         Callable<LocalTime> currentTime = () -> LocalTime.of(23, 45, 15);
-        Scheduler scheduler = new Scheduler(context, currentTime, 50);
+        Scheduler scheduler = new Scheduler(context, currentTime, 30);
         var status1 = scheduler.addScheduledItem(() -> System.out.println("hello world abc"), LocalTime.of(12, 45, 14), "print hello world part abc");
         // wait for the action to take place.
         MyThread.sleep(100);
