@@ -94,7 +94,7 @@ public class Scheduler {
         this.es = context.getExecutorService();
         this.logger = context.getLogger();
         this.constants = context.getConstants();
-        schedule = context.getDb("schedule", Schedule.EMPTY);
+        schedule = context.getDb("minum_scheduler", Schedule.EMPTY);
         this.getNow = getNow;
         this.sleepTime = sleepTime;
         initialize();

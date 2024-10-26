@@ -788,7 +788,7 @@ assertEquals(completionStatus.status, Scheduler.StatusEnum.COMPLETE);
 
 The Scheduler records which tasks have finished in the database.  Each day at midnight, the system 
 will remove all those records from the database.  This way, if an application is restarted, it will
-not run actions again that day.  The database directory is named "schedule", and each item on disk is
+not run actions again that day.  The database directory is named "minum_scheduler", and each item on disk is
 a separate completed action for that day.
 
 See SchedulerTest.java for further examples and tests.
