@@ -72,7 +72,7 @@ This configures your build to place the application jar and all runtime dependen
 We use the `--add-modules <your.module>` flag to tell jlink to discover all the modules required by our application to build the java runtime. `--module-path target/modules` tells jlink where it should look for non-JDK modules
 
 ```shell
-jlink --add-modules example.module --module-path target/modules --output /target/jrt
+jlink --add-modules example.module --module-path target/modules --output ./target/jrt
 ```
 
 ## 3. Run the application
