@@ -80,4 +80,28 @@ public class LoggerTests {
         assertEquals(Logger.showWhiteSpace(null), "(NULL)");
         assertEquals(Logger.showWhiteSpace("\t\r\n"), "\\t\\r\\n");
     }
+
+    /**
+     * This is a sample of code for enabling and disabling the TRACE
+     * level of logging.
+     */
+    @Test
+    public void testEnableAndDisableTrace() {
+        logger.logTrace(() -> "You can't see me!");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
+        logger.logTrace(() -> "But you can see this.");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
+        logger.logTrace(() -> "You can't see me!");
+    }
+
+    /**
+     * Users may want to extend logger to add new logging levels
+     * they can control.  Here is an example.
+     */
+    @Test
+    public void testUsingDescendantLogger() {
+        DescendantLogger descendantLogger = new DescendantLogger((Logger)context.getLogger());
+        descendantLogger.logRequests(() -> "Incoming request from 123.123.123.123: foo foo");
+        assertTrue((descendantLogger).doesMessageExist("Incoming request from 123.123.123.123: foo foo"));
+    }
 }

@@ -35,6 +35,10 @@ public final class TagInfo {
         return attributes.get(key);
     }
 
+    public Map<String, String> getAttributes() {
+        return new HashMap<>(attributes);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -1,5 +1,6 @@
 package com.renomad.minum.htmlparsing;
 
+import com.renomad.minum.SearchHelpers;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.FileUtils;
@@ -175,6 +176,26 @@ public class HtmlParserTests {
     @Test
     public void test_HtmlParser_Edge_LargerFile() {
         String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
+
+        List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
+        List<List<String>> myList = htmlRoots.stream().map(SearchHelpers::print).filter(x -> ! x.isEmpty()).toList();
+
+        var expected = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output_parsed.txt");
+        assertEquals(myList.toString(), expected);
+    }
+
+    @Test
+    public void test_fuzzer() {
+        String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
+        List<HtmlParseNode> parsedNodes = new HtmlParser().parse(htmlText);
+        HtmlParseNode firstPara = SearchHelpers.search(parsedNodes, TagName.P, Map.of("id", "testing-target")).getFirst();
+        assertEquals(SearchHelpers.innerText(firstPara), "Stack Overflow for Teams has its own domain!");
+    }
+
+
+    @Test
+    public void test_HtmlParser_Edge_LargerFile_DEPRECATED() {
+        String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
         List<List<String>> myList = htmlRoots.stream().map(HtmlParseNode::print).filter(x -> ! x.isEmpty()).toList();
         var expected = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output_parsed.txt");
@@ -182,7 +203,7 @@ public class HtmlParserTests {
     }
 
     @Test
-    public void test_fuzzer() {
+    public void test_fuzzer_DEPRECATED() {
         String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
         String firstParagraph = htmlRoots.get(1).search(TagName.P, Map.of()).getFirst().innerText();
@@ -246,20 +267,44 @@ public class HtmlParserTests {
      */
     @Test
     public void test_HtmlParser_Script() {
+        List<HtmlParseNode> parsedNodes = new HtmlParser().parse("<p><script>hello world</script></p>");
+        HtmlParseNode script = SearchHelpers.search(parsedNodes, TagName.SCRIPT, Map.of()).getFirst();
+        assertEquals(SearchHelpers.innerText(script), "hello world");
+    }
+
+    @Test
+    public void test_HtmlParser_ScriptWithAttributes() {
+        List<HtmlParseNode> parsedNodes = new HtmlParser().parse("<p><script type=text/javascript>hello world</script></p>");
+        HtmlParseNode script = SearchHelpers.search(parsedNodes, TagName.SCRIPT, Map.of()).getFirst();
+        assertEquals(SearchHelpers.innerText(script), "hello world");
+    }
+
+    @Test
+    public void test_HtmlParser_ScriptWithAttributes_NoInnerText() {
+        List<HtmlParseNode> parsedNodes = new HtmlParser().parse("<p><script type=text/javascript></script></p>");
+        HtmlParseNode script = SearchHelpers.search(parsedNodes, TagName.SCRIPT, Map.of("type", "text/javascript")).getFirst();
+        assertEquals(SearchHelpers.innerText(script), "");
+    }
+
+    /**
+     * If we see a script tag, we collect all its inner data
+     */
+    @Test
+    public void test_HtmlParser_Script_DEPRECATED() {
         List<HtmlParseNode> parse = new HtmlParser().parse("<p><script>hello world</script></p>");
         HtmlParseNode script = parse.getFirst().search(TagName.SCRIPT, Map.of()).getFirst();
         assertEquals(script.innerText(), "hello world");
     }
 
     @Test
-    public void test_HtmlParser_ScriptWithAttributes() {
+    public void test_HtmlParser_ScriptWithAttributes_DEPRECATED() {
         List<HtmlParseNode> parse = new HtmlParser().parse("<p><script type=text/javascript>hello world</script></p>");
         HtmlParseNode script = parse.getFirst().search(TagName.SCRIPT, Map.of()).getFirst();
         assertEquals(script.innerText(), "hello world");
     }
 
     @Test
-    public void test_HtmlParser_ScriptWithAttributes_NoInnerText() {
+    public void test_HtmlParser_ScriptWithAttributes_NoInnerText_DEPRECATED() {
         List<HtmlParseNode> parse = new HtmlParser().parse("<p><script type=text/javascript></script></p>");
         HtmlParseNode script = parse.getFirst().search(TagName.SCRIPT, Map.of("type", "text/javascript")).getFirst();
         assertEquals(script.innerText(), "");

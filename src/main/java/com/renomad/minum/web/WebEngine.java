@@ -98,7 +98,7 @@ final class WebEngine {
     try {
         keystoreUrl = useExternalKeystore ?
                 Path.of(keystorePath).toUri().toURL() :
-                WebEngine.class.getClassLoader().getResource("certs/keystore");
+                WebEngine.class.getResource("/certs/keystore");
     } catch (Exception e) {
         throw new WebServerException("Error while building keystoreUrl: " + e);
     }

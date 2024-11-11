@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static com.renomad.minum.SearchHelpers.*;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 
@@ -115,8 +116,10 @@ public class FunctionalTests {
         logger.test("grab the photos page unauthenticated. We should be able to view the photos.");
         TestResponse photos = ft.get("photos");
         assertEquals(photos.statusLine().status(), CODE_200_OK);
-        var pNode = photos.searchOne(TagName.A, Map.of("href", "index.html"));
-        assertEquals(pNode.innerText(), "Index");
+        var pNode1 = photos.searchOne(TagName.A, Map.of("href", "index.html"));
+        assertEquals(pNode1.innerText(), "Index");
+        var pNode2 = searchOne(photos.body(), TagName.A, Map.of("href", "index.html"));
+        assertEquals(innerText(pNode2), "Index");
 
         logger.test("go to the page for registering a user, while unauthenticated.");
         assertEquals(ft.get("register").statusLine().status(), CODE_200_OK);
@@ -146,6 +149,8 @@ public class FunctionalTests {
         logger.test("visit the page for uploading photos, authenticated");
         HtmlParseNode uploadNodeFound1 = ft.get("upload", authHeader).searchOne(TagName.LABEL, Map.of("for", "image_uploads"));
         assertTrue(uploadNodeFound1.innerText().contains("Choose images to upload (PNG, JPG)"));
+        HtmlParseNode uploadNodeFound2 = searchOne(ft.get("upload", authHeader).body(), TagName.LABEL, Map.of("for", "image_uploads"));
+        assertTrue(innerText(uploadNodeFound2).contains("Choose images to upload (PNG, JPG)"));
 
         logger.test("upload some content, authenticated");
         ft.post("upload", "image_uploads=123&short_description=bar&long_description=foofoo", authHeader);
@@ -159,7 +164,7 @@ public class FunctionalTests {
 
         logger.test("check out what's on the photos page now, unauthenticated");
         TestResponse response1 = ft.get("photos");
-        var photoResponses = response1.search(TagName.IMG, Map.of("alt", "photo alt text"));
+        var photoResponses = search(response1.body(), TagName.IMG, Map.of("alt", "photo alt text"));
 
         var firstPhotoResponse = photoResponses.getFirst();
         String firstPhotoUrl = firstPhotoResponse.getTagInfo().getAttribute("src");

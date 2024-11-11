@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class TestLogger extends Logger {
 
-private final Queue<String> recentLogLines;
+    private final Queue<String> recentLogLines;
     public static final int MAX_CACHE_SIZE = 30;
     private final ReentrantLock loggingLock;
     private int testCount = 0;

@@ -348,10 +348,13 @@ write those actions to simple files, per person maybe, rather than store it all 
 Logging
 -------
 
-Logging capabilities are provided by the `Logger` class.  When the system starts, it 
-creates one instance of this class and then stores that in an instance of Context, which
-is passed around everywhere.
+Logging capabilities are provided by the `Logger` class, with an interface defined in `ILogger`.  When 
+the system starts, it creates one instance of this class and then stores that in an instance of Context, which
+is passed around everywhere, making access widely available.
 
+The Logger class has a constructor which is specialized to enable creation of descendant logging classes which
+share a `LoggingActionQueue`, enabling smooth output with customized logging.  See LoggerTests.testUsingDescendantLogger
+to see an example of this.
 
 Threads
 -------

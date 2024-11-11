@@ -10,5 +10,4 @@ module com.renomad.minum {
   exports com.renomad.minum.testing;
   exports com.renomad.minum.utils;
   exports com.renomad.minum.web;
-
 }

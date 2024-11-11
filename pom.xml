@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.0.3</version>
+    <version>8.0.4</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>nl.jqno.equalsverifier</groupId>
             <artifactId>equalsverifier-nodep</artifactId>
-            <version>3.16.1</version>
+            <version>3.17.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -39,7 +39,7 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>3.13.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
@@ -67,7 +67,7 @@
                         <plugin>
                             <groupId>com.h3xstream.findsecbugs</groupId>
                             <artifactId>findsecbugs-plugin</artifactId>
-                            <version>1.12.0</version>
+                            <version>1.13.0</version>
                         </plugin>
                     </plugins>
                 </configuration>
@@ -97,12 +97,12 @@
                         <path>
                             <groupId>com.google.errorprone</groupId>
                             <artifactId>error_prone_core</artifactId>
-                            <version>2.28.0</version>
+                            <version>2.35.1</version>
                         </path>
                         <path>
                             <groupId>com.uber.nullaway</groupId>
                             <artifactId>nullaway</artifactId>
-                            <version>0.11.0</version>
+                            <version>0.12.1</version>
                         </path>
                         &lt;!&ndash; Other annotation processors go here.
 
@@ -115,7 +115,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.10</version>
+                <version>0.8.12</version>
                 <executions>
                     <execution>
                         <id>default-prepare-agent</id>
@@ -154,14 +154,23 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.16.2</version>
+                <version>1.17.0</version>
                 <configuration>
                     <threads>4</threads>
                     <timeoutConstant>500</timeoutConstant>
                     <avoidCallsTo>
+                        <!-- if pitest mutates our logging calls, it won't affect tests in a consistent way -->
                         <avoidCallsTo>com.renomad.minum.logging</avoidCallsTo>
+                        <!-- if pitest mutates our invariants, which are effectively tests inside
+                         the production code, it will cause unreliable and not valuable results -->
                         <avoidCallsTo>com.renomad.minum.utils.Invariants</avoidCallsTo>
+
+                        <!-- there are commands which use print, since our logging system eventually
+                        finishes during system shut-down, and hasn't begun in the first moments of system
+                        startup.  No need to mutate the print statements, and nearly impossible to test for. -->
                         <avoidCallsTo>java.io.PrintStream</avoidCallsTo>
+
+                        <!-- adjusting the thread commands causes weird behavior that is impractical to track -->
                         <avoidCallsTo>java.lang.Thread</avoidCallsTo>
                     </avoidCallsTo>
                 </configuration>
@@ -182,7 +191,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
-                <version>3.12.1</version>
+                <version>3.20.0</version>
                 <configuration>
                     <outputDirectory>${basedir}/target/newsite</outputDirectory>
                 </configuration>

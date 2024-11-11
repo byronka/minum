@@ -20,7 +20,9 @@ public class Logger implements ILogger {
      * them off the top of a queue.
      */
     protected final AbstractActionQueue loggingActionQueue;
+    private final Constants constants;
     private final ExecutorService executorService;
+    private final String name;
     private final Map<LoggingLevel, Boolean> activeLogLevels;
 
     /**
@@ -32,9 +34,33 @@ public class Logger implements ILogger {
      *             help distinguish queues.
      */
     public Logger(Constants constants, ExecutorService executorService, String name) {
+        this(constants, executorService, name, null);
+    }
+
+    private Logger(Constants constants, ExecutorService executorService, String name, AbstractActionQueue loggingActionQueue) {
+        this.constants = constants;
         this.executorService = executorService;
-        loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, executorService, constants).initialize();
+        this.name = name;
+        // this tricky code exists so that a user has the option to create a class extended
+        // from this one, and can construct it with the logger instance, making it possible
+        // to inject the running action queue.  This enables us to continue using the same
+        // action queue amongst descendant classes.
+        if (loggingActionQueue == null) {
+            this.loggingActionQueue = new LoggingActionQueue("loggerPrinter" + name, executorService, constants).initialize();
+        } else {
+            this.loggingActionQueue = loggingActionQueue;
+        }
         activeLogLevels = convertToMap(constants.logLevels);
+    }
+
+    /**
+     * A constructor meant for use by descendant classes
+     * @param logger an existing instance of a running logger, needed in order to have the
+     *               descendant logger using the same {@link AbstractActionQueue}, which is
+     *               necessary so logs don't interleave with each other.
+     */
+    public Logger(Logger logger) {
+        this(logger.constants, logger.executorService, logger.name, logger.loggingActionQueue);
     }
 
     /**
@@ -72,6 +98,11 @@ public class Logger implements ILogger {
     @Override
     public void logAsyncError(ThrowingSupplier<String, Exception> msg) {
         logHelper(msg, LoggingLevel.ASYNC_ERROR, activeLogLevels, loggingActionQueue);
+    }
+
+    @Override
+    public Map<LoggingLevel, Boolean> getActiveLogLevels() {
+        return activeLogLevels;
     }
 
     /**

@@ -27,7 +27,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,262 | 141,048 | 1,085,405   |
+| 5,297 | 141,048 | 1,085,405   |
 
 
 #### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
@@ -89,7 +89,7 @@ surface area for bugs, and the performance is more than acceptable in most cases
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
-| 354   | 70,000 | 3,400 |
+| 374   | 70,000 | 3,400 |
 
 
 HTML Parser
@@ -100,7 +100,7 @@ own HTML code, for such reasons as extracting data or testing.
 
 | Minum | JSoup  |
 |-------|--------|
-| 555   | 14,337 |
+| 558   | 14,337 |
 
 
 Testing

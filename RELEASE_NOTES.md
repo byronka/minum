@@ -43,8 +43,21 @@ Recap, all changes to date since beta release
       methods provided to enable easier streaming of files, and methods exist to write custom streaming code.
     * Request object provides access to ISocketWrapper, enabling user-built web handlers to control
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
-* No new major capabilities added - nothing additional beyond web server, testing, templating, HTML parsing, etc.
 * Subtle improvements to security programs
+
+v8.0.4 - Nov 11, 2024
+---------------------
+
+Big improvements with small adjustments:
+
+- Code is modularized.  Thanks SentryMan!  Some code needed to adjust for this, specifically
+  that searching for the cert location in WebEngine.java
+- TagInfo.java was adjusted to enable better searching by users.  Some new HTML node search 
+  methods are in the test directory, in SearchHelpers.java, for your reference.
+- Documentation improved
+- Logger now allows construction of descendant classes which share a queue, enabling smooth
+  continuous logging without fragmented interleaving of text.
+- Updated versions of testing dependencies
 
 v8.0.3 - Sep 15, 2024
 ---------------------
