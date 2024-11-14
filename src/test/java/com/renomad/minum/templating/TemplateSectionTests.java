@@ -12,7 +12,7 @@ public class TemplateSectionTests {
 
     @Test
     public void test_MissingKeyAndSubstring() {
-        var templateSection = new TemplateSection(null, null, 0);
+        var templateSection = new TemplateSection(null, null, 0, false);
         assertThrows(InvariantException.class,
                 "Either the key or substring must exist",
                 () -> templateSection.render(null));
@@ -20,7 +20,7 @@ public class TemplateSectionTests {
 
     @Test
     public void test_HavingKeyAndSubstring() {
-        var templateSection = new TemplateSection("key", "substring", 0);
+        var templateSection = new TemplateSection("key", "substring", 0, false);
         assertThrows(InvariantException.class,
                 "If this object has a substring, then it must not have a key",
                 () -> templateSection.render(null));
@@ -35,7 +35,7 @@ public class TemplateSectionTests {
         var sb = new StringBuilder();
         ArrayList<TemplateSection> templateSections = new ArrayList<>();
 
-        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
+        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0, false);
 
         assertTrue(sb == result);
     }
@@ -49,7 +49,7 @@ public class TemplateSectionTests {
         var sb = new StringBuilder().append("hello world");
         ArrayList<TemplateSection> templateSections = new ArrayList<>();
 
-        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0);
+        StringBuilder result = TemplateProcessor.processSectionOutside(sb, templateSections, 0, false);
 
         assertEquals(result.toString(), "");
         assertEquals(templateSections.getFirst().key, "hello world");
@@ -67,7 +67,7 @@ public class TemplateSectionTests {
      */
     @Test
     public void test_indenting_edgeCase_NoIndent() {
-        TemplateSection templateSection = new TemplateSection("abc", null, 5);
+        TemplateSection templateSection = new TemplateSection("abc", null, 5, false);
         RenderingResult render = templateSection.render(Map.of("abc", "foo foo"));
         assertEquals(render.renderedSection(), "foo foo");
     }
@@ -77,7 +77,7 @@ public class TemplateSectionTests {
      */
     @Test
     public void test_indenting_edgeCase_WithIndent() {
-        TemplateSection templateSection = new TemplateSection("abc", null, 5);
+        TemplateSection templateSection = new TemplateSection("abc", null, 5, false);
         RenderingResult render = templateSection.render(Map.of("abc", "foo foo\nbar bar"));
         assertEquals(render.renderedSection(), "foo foo\n    bar bar");
     }
