@@ -5,10 +5,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.templating.TemplateProcessor;
-import com.renomad.minum.utils.FileReader;
-import com.renomad.minum.utils.FileUtils;
-import com.renomad.minum.utils.LRUCache;
-import com.renomad.minum.utils.StacktraceUtils;
+import com.renomad.minum.utils.*;
 import com.renomad.minum.web.Headers;
 import com.renomad.minum.web.IRequest;
 import com.renomad.minum.web.IResponse;
@@ -21,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
+import static com.renomad.minum.utils.FileUtils.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 
 public class ListPhotos {
@@ -187,16 +184,25 @@ public class ListPhotos {
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
     IResponse readStaticFile(String path, String mimeType, Headers requestHeaders) {
-        if (badFilePathPatterns.matcher(path).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
+        try {
+            checkForBadFilePatterns(path);
+        } catch (Exception ex) {
+            logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s. Exception: %s", path, ex.getMessage()));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
+        }
+
+        try {
+            checkFileIsWithinDirectory(path, ".");
+        } catch (InvariantException ex) {
+            logger.logDebug(() -> String.format("Unable to find %s in allowed directories", path));
+            return Response.buildLeanResponse(CODE_404_NOT_FOUND);
         }
 
         try {
             // convert from a string to a path object for some valuable methods
             Path staticFilePath = Path.of(path);
             if (!Files.isRegularFile(staticFilePath)) {
-                logger.logDebug(() -> String.format("No readable file found at %s", path));
+                logger.logDebug(() -> String.format("No readable regular file found at %s", path));
                 return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
 

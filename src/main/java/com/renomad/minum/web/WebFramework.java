@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
+import static com.renomad.minum.utils.FileUtils.*;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
@@ -527,16 +527,25 @@ public final class WebFramework {
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
     IResponse readStaticFile(String path, Headers requestHeaders) {
-        if (badFilePathPatterns.matcher(path).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s", path));
+        try {
+            checkForBadFilePatterns(path);
+        } catch (Exception ex) {
+            logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s.  Exception: %s", path, ex.getMessage()));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
         String mimeType = null;
 
         try {
+            checkFileIsWithinDirectory(path, constants.staticFilesDirectory);
+        } catch (Exception ex) {
+            logger.logDebug(() -> String.format("Unable to find %s in allowed directories", path));
+            return Response.buildLeanResponse(CODE_404_NOT_FOUND);
+        }
+
+        try {
             Path staticFilePath = Path.of(constants.staticFilesDirectory).resolve(path);
             if (!Files.isRegularFile(staticFilePath)) {
-                logger.logDebug(() -> String.format("No readable file found at %s", path));
+                logger.logDebug(() -> String.format("No readable regular file found at %s", path));
                 return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
 

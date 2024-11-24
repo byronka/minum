@@ -6,6 +6,7 @@ import com.renomad.minum.logging.ILogger;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -13,9 +14,6 @@ import java.util.stream.Stream;
 
 /**
  * Helper functions for working with files.
- * <br>
- * In all these functions, note that it is disallowed to request a path
- * having certain characters - see {@link #badFilePathPatterns}
  */
 public final class FileUtils {
 
@@ -24,11 +22,21 @@ public final class FileUtils {
      * the directory structure.  We disallow this, as a security precaution.
      * <ul>
      * <li>1st Alternative {@code //} - This prevents going to the root directory
+     * </li>
      * <li>2nd Alternative {@code ..} - prevents going up a directory
+     * </li>
      * <li>3rd Alternative {@code :} - prevents certain special paths, like "C:" or "file://"
+     * </li>
+     * <li>4th Alternative {@code ^/} - prevents starting with a slash, meaning the root, but
+     *     allows intermediate slashes.
+     * </li>
+     * <li>5th Alternative {@code :^\} - prevents starting with a backslash, meaning the root, but
+     *    allows intermediate backslashes.
+     * </li>
      * </ul>
      */
-    public static final Pattern badFilePathPatterns = Pattern.compile("//|\\.\\.|:");
+    public static final Pattern badFilePathPatterns = Pattern.compile("//|\\.\\.|:|^/|^\\\\");
+
     private final ILogger logger;
     private final IFileReader fileReader;
 
@@ -51,18 +59,15 @@ public final class FileUtils {
 
     /**
      * Write a string to a path on disk.
+     * <br>
      * <p>
-     *     Parent directories are made unavailable by searching the path for
-     *     bad characters.  See {@link #badFilePathPatterns}
+     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
+     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
      */
     public void writeString(Path path, String content) {
         if (path.toString().isEmpty()) {
             logger.logDebug(() -> "an empty path was provided to writeString");
-            return;
-        }
-        if (badFilePathPatterns.matcher(path.toString()).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at writeString: %s", path));
             return;
         }
         try {
@@ -76,16 +81,13 @@ public final class FileUtils {
      * Deletes a directory, deleting everything inside it
      * recursively afterwards.  A more dangerous method than
      * many others, take care.
+     * <br>
      * <p>
-     *     Parent directories are made unavailable by searching the path for
-     *     bad characters.  See {@link #badFilePathPatterns}
+     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
+     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
      */
     public void deleteDirectoryRecursivelyIfExists(Path myPath) {
-        if (badFilePathPatterns.matcher(myPath.toString()).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at deleteDirectoryRecursivelyIfExists: %s", myPath));
-            return;
-        }
         if (!Files.exists(myPath)) {
             logger.logDebug(() -> "system was requested to delete directory: "+myPath+", but it did not exist");
         } else {
@@ -110,9 +112,10 @@ public final class FileUtils {
 
     /**
      * Creates a directory if it doesn't already exist.
+     * <br>
      * <p>
-     *     Parent directories are made unavailable by searching the path for
-     *     bad characters.  See {@link #badFilePathPatterns}
+     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
+     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
      * <p>
      * If the directory does exist, the program will simply skip
@@ -120,10 +123,6 @@ public final class FileUtils {
      * </p>
      */
     public void makeDirectory(Path directory) {
-        if (badFilePathPatterns.matcher(directory.toString()).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at makeDirectory: %s", directory));
-            return;
-        }
         logger.logDebug(() -> "Creating a directory " + directory);
         boolean directoryExists = Files.exists(directory);
         logger.logDebug(() -> "Directory: " + directory + ". Already exists: " + directory);
@@ -144,6 +143,11 @@ public final class FileUtils {
 
     /**
      * Read a binary file, return as a byte array
+     * <br>
+     * <p>
+     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
+     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
+     * </p>
      * <p>
      *     If there is an error, this will return an empty byte array.
      * </p>
@@ -159,12 +163,10 @@ public final class FileUtils {
 
     /**
      * Read a text file from the given path, return as a string.
-     *
+     * <br>
      * <p>
-     *     Access is prevented to data in parent directories or using alternate
-     *     drives.  If the data is read, it will be added to a cache, if
-     *     the property {@link Constants#useCacheForStaticFiles} is set to true. The maximum
-     *     size of the cache is controlled by
+     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
+     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
      * <p>
      *     If there is an error, this will return an empty string.
@@ -177,6 +179,60 @@ public final class FileUtils {
             logger.logDebug(() -> String.format("Error while reading file %s, returning empty string. %s", path, e));
             return "";
         }
+    }
+
+    /**
+     * This method is to provide assurance that the file specified by the path
+     * parameter is within the directory specified by directoryPath.  Use this
+     * for any code that reads from files where the user provides untrusted input.
+     * @throws InvariantException if the file is not within the directory
+     */
+    public static void checkFileIsWithinDirectory(String path, String directoryPath) {
+        Path directoryRealPath;
+        Path fullRealPath;
+        try {
+            directoryRealPath = Path.of(directoryPath).toRealPath(LinkOption.NOFOLLOW_LINKS);
+            fullRealPath = directoryRealPath.resolve(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
+        } catch (IOException ex) {
+            throw new InvariantException(ex.toString());
+        }
+        if (! fullRealPath.startsWith(directoryRealPath)) {
+            throw new InvariantException(String.format("path (%s) was not within directory (%s)", path, directoryPath));
+        }
+    }
+
+    /**
+     * Checks that the path string avoids bad patterns and meets our
+     * whitelist for acceptable characters.
+     * @throws InvariantException if there are any issues with the path string, such
+     *                            as being an empty string, containing known bad patterns from {@link #badFilePathPatterns},
+     *                            or including characters other than the set of characters we will allow for filenames.
+     *                            It is a simple set of ascii characters - alphanumerics, underscore, dash, period,
+     *                            forward and backward slash.
+     */
+    public static void checkForBadFilePatterns(String path) {
+        if (path.isBlank()) {
+            throw new InvariantException("filename was empty");
+        }
+        if (badFilePathPatterns.matcher(path).find()) {
+            throw new InvariantException("filename ("+path+") contained invalid characters");
+        }
+        for (char c : path.toCharArray()) {
+            boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c<= 'z' || c >= '0' && c <= '9' || c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
+            if (! isWhitelistedChar) {
+                throw new InvariantException("filename ("+path+") contained invalid characters ("+c+").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
+            }
+        }
+    }
+
+    /**
+     * This helper method will ensure that the requested path is
+     * within the parent directory and using safe characters
+     */
+    public static Path safeResolve(String parentDirectory, String path) {
+        checkForBadFilePatterns(path);
+        checkFileIsWithinDirectory(path, parentDirectory);
+        return Path.of(parentDirectory).resolve(path);
     }
 
 }

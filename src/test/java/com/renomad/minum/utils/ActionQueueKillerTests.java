@@ -1,12 +1,16 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.database.DbTests;
 import com.renomad.minum.queue.ActionQueue;
 import com.renomad.minum.queue.ActionQueueKiller;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.concurrent.Executors;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -53,13 +57,25 @@ public class ActionQueueKillerTests {
 
     @Test
     public void test_KillAllQueues() {
-        TestLogger killAllQueuesLogger = new TestLogger(context.getConstants(), context.getExecutorService(), "testing kill all queues");
-        Context context1 = new Context(context.getExecutorService(), context.getConstants());
-        context1.setLogger(killAllQueuesLogger);
+        var constants = new Constants(null);
+        var executorService = Executors.newVirtualThreadPerTaskExecutor();
+        var logger = new TestLogger(constants, executorService, "testing kill all queues");
+
+        var context1 = new Context(executorService, constants);
+
+        context1.setLogger(logger);
+        // creating a database will cause an ActionQueue to be initialized.
+        context1.getDb("testing_aq_killer", new DbTests.Foo(0, 0, ""));
+        MyThread.sleep(10);
         var aqk = new ActionQueueKiller(context1);
+        String beforeKilling = context1.getActionQueueState().aqQueueAsString();
+        assertEquals(beforeKilling, "[DatabaseWriter out\\simple_db\\testing_aq_killer]");
+        assertFalse(context1.getActionQueueState().isAqQueueEmpty());
 
         aqk.killAllQueues();
 
+        String afterKilling = context1.getActionQueueState().aqQueueAsString();
+        assertEquals(afterKilling, "[]");
         assertTrue(context1.getActionQueueState().isAqQueueEmpty());
     }
 

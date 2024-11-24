@@ -696,7 +696,7 @@ public class DbTests {
         assertTrue(logger.doesMessageExist("Stopping queue DatabaseWriter", 8));
     }
 
-    static class Foo extends DbData<Foo> implements Comparable<Foo> {
+    public static class Foo extends DbData<Foo> implements Comparable<Foo> {
 
         private long index;
         private final int a;

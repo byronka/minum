@@ -1,8 +1,11 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.utils.FileUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.zip.GZIPOutputStream;
 
-import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_206_PARTIAL_CONTENT;
 
@@ -136,11 +138,17 @@ public final class Response implements IResponse {
         return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length);
     }
 
+    /**
+     * This will send a large file to the client as a stream.
+     * <em>Note that this does not check that the requested file is within a directory. If you expect the
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Map, String, String, Headers)}</em>
+     * @param extraHeaders extra headers you would like in the response, as key-value pairs in a map - for
+     *                     example "Content-Type: video/mp4" or "Content-Type: application/zip"
+     * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
+     * @param requestHeaders these are the headers from the request, which is needed here to set proper
+     *                       response headers in some cases.
+     */
     public static IResponse buildLargeFileResponse(Map<String, String> extraHeaders, String filePath, Headers requestHeaders) throws IOException {
-        if (badFilePathPatterns.matcher(filePath).find()) {
-            throw new WebServerException(String.format("Bad path requested at readFile: %s", filePath));
-        }
-
         Map<String, String> adjustedHeaders = new HashMap<>(extraHeaders);
         long fileSize = Files.size(Path.of(filePath));
         var range = new Range(requestHeaders, fileSize);
@@ -166,6 +174,24 @@ public final class Response implements IResponse {
     }
 
     /**
+     * This will send a large file to the client as a stream.
+     * This is a safe version of the method, for when the file path is set by a user, meaning it is untrusted.
+     * By setting a parentDirectory, the system will ensure that the requested path is within that directory, thus
+     * disallowing path strings that could escape it, like prefixing with a slash.
+     * @param extraHeaders extra headers you would like in the response, as key-value pairs in a map - for
+     *                     example "Content-Type: video/mp4" or "Content-Type: application/zip"
+     * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
+     * @param requestHeaders these are the headers from the request, which is needed here to set proper
+     *                       response headers in some cases.
+     * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
+     *                        allows the developer to use directories anywhere in the system.
+     */
+    public static IResponse buildLargeFileResponse(Map<String, String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
+        Path path = FileUtils.safeResolve(parentDirectory, filePath);
+        return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
+    }
+
+    /**
      * Build a {@link Response} with just a status code and headers, without a body
      * @param extraHeaders extra HTTP headers
      */
@@ -180,14 +206,19 @@ public final class Response implements IResponse {
         return new Response(statusCode, Map.of(), null, socketWrapper -> {}, 0);
     }
 
-
     /**
      * A helper method to create a response that returns a
      * 303 status code ("see other").  Provide a url that will
      * be handed to the browser.  This url may be relative or absolute.
      */
     public static IResponse redirectTo(String locationUrl) {
-        return buildLeanResponse(StatusLine.StatusCode.CODE_303_SEE_OTHER, Map.of("location", locationUrl));
+        try {
+            // check if we can create a URL from this - any failures indicate invalid syntax.
+            URI.create(locationUrl);
+        } catch (Exception ex) {
+            throw new WebServerException("Failure in redirect to (" + locationUrl + "). Exception: " + ex);
+        }
+        return buildResponse(StatusLine.StatusCode.CODE_303_SEE_OTHER, Map.of("location", locationUrl, "Content-Type", "text/html; charset=UTF-8"), "<p>See <a href=\""+locationUrl+"\">this link</a></p>");
     }
 
     /**

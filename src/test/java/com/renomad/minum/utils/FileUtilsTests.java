@@ -15,6 +15,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.utils.FileUtils.*;
 
 public class FileUtilsTests {
     private static FileUtils fileUtils;
@@ -43,7 +44,7 @@ public class FileUtilsTests {
     @Test
     public void test_WriteString_preventWritingToParentDirectory() {
         fileUtils.writeString(Path.of("../foo"), "bar");
-        assertTrue(logger.doesMessageExist("Bad path requested at writeString"));
+        assertTrue(logger.doesMessageExist("an empty path was provided to writeString"));
     }
 
     @Test
@@ -73,21 +74,54 @@ public class FileUtilsTests {
         Files.deleteIfExists(Path.of("target/foo"));
     }
 
+    /**
+     * These are tests for what kind of paths we won't allow.  Basically,
+     * the regex is looking for characters that request reading from parent
+     * directories or alternate drives.
+     */
     @Test
     public void test_BadFilePathPatterns() {
-        String regex = FileUtils.badFilePathPatterns.toString();
-        String firstResult = RegexUtils.find(regex, "../foo");
-        assertEquals(firstResult, "..");
-        String secondResult = RegexUtils.find(regex, ":foo");
-        assertEquals(secondResult, ":");
-        String thirdResult = RegexUtils.find(regex, "//foo");
-        assertEquals(thirdResult, "//");
+        assertThrows(InvariantException.class, "filename (../foo) contained invalid characters", () -> checkForBadFilePatterns("../foo"));
+        assertThrows(InvariantException.class, "filename (foo/..) contained invalid characters", () -> checkForBadFilePatterns("foo/.."));
+        assertThrows(InvariantException.class, "filename (:foo) contained invalid characters", () -> checkForBadFilePatterns(":foo"));
+        assertThrows(InvariantException.class, "filename (foo:) contained invalid characters", () -> checkForBadFilePatterns("foo:"));
+        assertThrows(InvariantException.class, "filename (//foo) contained invalid characters", () -> checkForBadFilePatterns("//foo"));
+        assertThrows(InvariantException.class, "filename (foo//) contained invalid characters", () -> checkForBadFilePatterns("foo//"));
+
+        // an empty filename is a problem
+        assertThrows(InvariantException.class, "filename was empty", () -> checkForBadFilePatterns(""));
+
+        // having a forward or backward slash at the beginning is not alright
+        assertThrows(InvariantException.class, "filename (/foo) contained invalid characters", () -> checkForBadFilePatterns("/foo"));
+        assertThrows(InvariantException.class, "filename (\\foo) contained invalid characters", () -> checkForBadFilePatterns("\\foo"));
+        // having invalid characters is disallowed.  For file names, the only characters
+        // allowed are upper and lower case a-z ascii, numbers 0-9, dash,
+        // period, forward and backward slash, and underscore
+        assertThrows(InvariantException.class, "filename (a!1) contained invalid characters (!).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("a!1"));
+        assertThrows(InvariantException.class, "filename (+) contained invalid characters (+).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("+"));
+        assertThrows(InvariantException.class, "filename (=) contained invalid characters (=).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("="));
+        assertThrows(InvariantException.class, "filename ($) contained invalid characters ($).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("$"));
+        assertThrows(InvariantException.class, "filename (?) contained invalid characters (?).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("?"));
+        assertThrows(InvariantException.class, "filename (naïve) contained invalid characters (ï).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("naïve"));
+
+        // having a forward or backward slash in the midst is ok
+        checkForBadFilePatterns("foo/bar");
+        checkForBadFilePatterns("foo\\bar");
+
+        // having valid chars is ok
+        checkForBadFilePatterns("abcABC__.foo.-whatever");
     }
 
     @Test
-    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_BadPattern() {
-        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("../foo"));
-        assertTrue(logger.doesMessageExist("Bad path requested at deleteDirectoryRecursivelyIfExists"));
+    public void test_WithinDirectory() {
+        checkFileIsWithinDirectory("resources/gettysburg_address.txt", "src/test");
+        assertTrue(true, "should get here without an exception thrown");
+
+        var result = assertThrows(InvariantException.class, () -> checkFileIsWithinDirectory("/", "src/test"));
+        assertEquals(result.getMessage(), "path (/) was not within directory (src/test)");
+
+        var result3 = assertThrows(InvariantException.class, () -> checkFileIsWithinDirectory("foobaz/foo", "src/test"));
+        assertTrue(result3.getMessage().contains("java.nio.file.NoSuchFileException"));
     }
 
     @Test
@@ -95,6 +129,7 @@ public class FileUtilsTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/foo"));
         assertTrue(logger.doesMessageExist("system was requested to delete directory"));
     }
+
     @Test
     public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_HappyPath() throws IOException {
         fileUtils.makeDirectory(Path.of("target/testing_delete_directory/foo"));
@@ -106,7 +141,7 @@ public class FileUtilsTests {
     @Test
     public void test_MakeDirectory_EdgeCase_BadPath() {
         fileUtils.makeDirectory(Path.of("../foo"));
-        assertTrue(logger.doesMessageExist("Bad path requested at makeDirectory"));
+        assertTrue(logger.doesMessageExist("Already exists:"));
     }
 
     @Test
@@ -177,5 +212,17 @@ public class FileUtilsTests {
         assertThrows(UtilsException.class,
                 "java.lang.NullPointerException: Cannot invoke \"java.nio.file.Path.getFileSystem()\" because \"path\" is null",
                 () -> FileUtils.innerCreateDirectory(null));
+    }
+
+    /**
+     * This method exists as a security guardrail, when the file
+     * being requested is influenced by a user, and therefore untrusted.
+     */
+    @Test
+    public void test_SafeResolve() {
+        safeResolve("src/test", "java");
+        safeResolve("src/test", "resources/kitty.jpg");
+        assertThrows(InvariantException.class, () -> safeResolve("src/test", "/"));
+        assertThrows(InvariantException.class, () -> safeResolve("src/test", "../../docs"));
     }
 }

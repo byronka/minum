@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.utils.InvariantException;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -78,10 +79,11 @@ public class ResponseTests {
      * that could be used to escape the directory, an exception will be thrown.
      */
     @Test
-    public void testResponse_EdgeCase_BadPathRequested() {
-        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(Map.of(), "../foo", new Headers(List.of())));
-        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", new Headers(List.of())));
-        assertThrows(WebServerException.class, () -> Response.buildLargeFileResponse(Map.of(), "//foo", new Headers(List.of())));
+    public void testResponse_EdgeCase_BadPathRequested() throws IOException {
+        assertThrows(InvariantException.class, "filename (../foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of())));
+        assertThrows(InvariantException.class, "filename (c:/foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of())));
+        assertThrows(InvariantException.class, "filename (//foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "//foo", ".", new Headers(List.of())));
+        Response.buildLargeFileResponse(Map.of(), "src/test/resources/kitty.jpg", ".", new Headers(List.of()));
     }
 
     @Test
@@ -91,6 +93,23 @@ public class ResponseTests {
         response.sendBody(fakeSocketWrapper);
         String s = ((ByteArrayOutputStream) fakeSocketWrapper.os).toString(StandardCharsets.UTF_8);
         assertEquals(s, "hello");
+    }
+
+    /**
+     * Something to watch out for is users providing data with carriage-return plus
+     * line-feed, meaning they can cause new headers to be added to the response.
+     * To avoid that, we'll set a whitelist of allowable characters for the location.
+     */
+    @Test
+    public void testRedirect() {
+        // should not throw anything
+        Response.redirectTo("foo");
+
+        // these should throw exceptions
+        var result = assertThrows(WebServerException.class, () -> Response.redirectTo("\r\n"));
+        assertEquals(result.getMessage(), "Failure in redirect to (\r\n). Exception: java.lang.IllegalArgumentException: Illegal character in path at index 0: \r\n");
+        var result2 = assertThrows(WebServerException.class, () -> Response.redirectTo(null));
+        assertEquals(result2.getMessage(), "Failure in redirect to (null). Exception: java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"this.input\" is null");
     }
 
 }

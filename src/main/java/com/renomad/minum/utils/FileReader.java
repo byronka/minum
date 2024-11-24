@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-import static com.renomad.minum.utils.FileUtils.badFilePathPatterns;
+import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
 
 /**
  * Reads files from disk, optionally storing into a LRU cache.
@@ -34,8 +34,10 @@ public final class FileReader implements IFileReader {
             return lruCache.get(path);
         }
 
-        if (badFilePathPatterns.matcher(path).find()) {
-            logger.logDebug(() -> String.format("Bad path requested at readFile: %s", path));
+        try {
+            checkForBadFilePatterns(path);
+        } catch (Exception ex) {
+            logger.logDebug(() -> String.format("Bad path requested at readFile: %s. Exception: %s", path, ex.getMessage()));
             return new byte[0];
         }
 

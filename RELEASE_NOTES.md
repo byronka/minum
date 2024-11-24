@@ -45,6 +45,20 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.0.5 - Nov 24, 2024
+---------------------
+
+Fixing security vulnerabilities
+
+* improved regex for finding bad file paths
+* Initial updates to be much stricter about file location and allowed chars
+* adjust for greater flexibility with sending large files, with safety
+* Better handling of redirect
+  * when redirecting, check that the target location is a valid URI, and include a body (suggested by the spec)
+* adjust test to work on Mac
+* create version of test to use HTTP/1.0, which doesn't cause keep-alive by default.
+
+
 v8.0.4 - Nov 11, 2024
 ---------------------
 

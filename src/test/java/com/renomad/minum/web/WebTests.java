@@ -162,6 +162,48 @@ public class WebTests {
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
+    /**
+     * A more realistic use case of the Minum server with a
+     * request using HTTP/1.0
+     */
+    @Test
+    public void test_StartingWithHandler_Realistic_HTTP_1_0() throws Exception {
+
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+
+        wf.registerPath(GET, "add_two_numbers", Summation::addTwoNumbers);
+        try (IServer primaryServer = webEngine.startServer()) {
+            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+                try (var client = webEngine.startClient(socket)) {
+                    InputStream is = client.getInputStream();
+
+                    // send a GET request
+                    client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.0");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("");
+
+                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+
+                    assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
+
+                    List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
+                    Headers hi = new Headers(allHeaders);
+
+                    assertEquals(hi.valueByKey("server"), List.of("minum"));
+                    assertTrue(hi.valueByKey("date") != null);
+                    assertEquals(hi.valueByKey("content-type"), List.of("text/html; charset=UTF-8"));
+                    assertEquals(hi.valueByKey("content-length"), List.of("2"));
+
+                    String body = readBody(is, hi.contentLength());
+
+                    assertEquals(body, "86");
+                }
+            }
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
     @Test
     public void test_TDD_ofHandler() throws Exception {
         FakeSocketWrapper sw = new FakeSocketWrapper();
