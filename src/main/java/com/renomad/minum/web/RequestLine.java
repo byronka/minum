@@ -156,8 +156,13 @@ public final class RequestLine {
             int equalSignLocation = currentKeyValue.indexOf("=");
             if (equalSignLocation <= 0) return Map.of();
             String key = currentKeyValue.substring(0, equalSignLocation);
-            String value = StringUtils.decode(currentKeyValue.substring(equalSignLocation + 1));
-            queryStrings.put(key, value);
+            String rawValue = currentKeyValue.substring(equalSignLocation + 1);
+            try {
+                String value = StringUtils.decode(rawValue);
+                queryStrings.put(key, value);
+            } catch (IllegalArgumentException ex) {
+                logger.logDebug(() -> "Query string parsing failed for key: (%s) value: (%s).  Skipping to next key-value pair. error message: %s".formatted(key, rawValue, ex.getMessage()));
+            }
         }
         return queryStrings;
     }

@@ -45,6 +45,19 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.0.6 - Jan 15, 2025
+---------------------
+
+handle bad URL-encodings better - simply skip
+
+It was discovered that if a user sent a request with improperly-formed URL-encoded data, it would
+sometimes cause a 500 error.  This was not a significant issue, but ergonomically the system should
+not react so strongly for a relatively minor issue.
+
+This adjustment takes a milder approach, simply moving on to the next key-value pair and logging
+about the action.
+
+
 v8.0.5 - Nov 24, 2024
 ---------------------
 

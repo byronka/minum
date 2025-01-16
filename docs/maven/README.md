@@ -23,6 +23,7 @@ Staging Upload in the Build Promotion menu on the left.
 Deployment checklist
 --------------------
 - [ ] local testing with new version number
+- [ ] ensure release notes are properly updated
 - [ ] spot-check test logs
 - [ ] confirm howtos
 - [ ] uncomment linting tools in maven-compiler-plugin and examine the output during build.  Note this will be

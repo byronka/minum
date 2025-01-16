@@ -1035,6 +1035,45 @@ public class WebTests {
         assertEquals(result, Map.of());
     }
 
+    /**
+     * if there are values that cannot be decoded by URL-decoding, skip them
+     */
+    @Test
+    public void test_ExtractMapFromQueryString_ParsingFailure_IncompleteTrailingEscapePattern() {
+        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
+        var result = requestLine.extractMapFromQueryString("name=baz%2&foo=bar");
+        assertEquals(result, Map.of("foo", "bar"));
+    }
+
+    /**
+     * if there are values that cannot be decoded by URL-decoding, skip them
+     */
+    @Test
+    public void test_ExtractMapFromQueryString_ParsingFailure_IllegalHexCharacters() {
+        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
+        var result = requestLine.extractMapFromQueryString("name=baz%2G&foo=bar");
+        assertEquals(result, Map.of("foo", "bar"));
+    }
+
+    /**
+     * if there are values that cannot be decoded by URL-decoding, skip them
+     */
+    @Test
+    public void test_ExtractMapFromQueryString_WeirdKeys() {
+        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
+
+        logger.test("Invalid hex for key");
+        {
+            var result = requestLine.extractMapFromQueryString("%2a=biz&foo=bar");
+            assertEquals(result, Map.of("%2a", "biz", "foo", "bar"));
+        }
+        logger.test("html for key");
+        {
+            var result = requestLine.extractMapFromQueryString("<script>=biz&foo=bar");
+            assertEquals(result, Map.of("<script>", "biz", "foo", "bar"));
+        }
+    }
+
     private static byte[] makeTestMultiPartData() {
         try {
         /*
