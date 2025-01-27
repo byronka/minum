@@ -3,7 +3,7 @@ Minum Web Framework
 
 _When you need the fewest moving parts_
 
-The simplest Minum program (see more [code samples](#code-samples) below):
+A simple Minum program (see more [code samples](#code-samples) below):
 
 ```Java
 public class Main {
@@ -54,6 +54,8 @@ a bit more time, consider trying the [tutorial](docs/getting_started/getting_sta
 Maven
 -----
 
+[Maven central repository](https://central.sonatype.com/artifact/com.renomad/minum)
+
 ```xml
 <dependency>
     <groupId>com.renomad</groupId>
@@ -66,13 +68,13 @@ Maven
 Features:
 --------
 
-- [Secure TLS 1.3 HTTP/1.1 web server](src/main/java/com/renomad/minum/web)
-- [In-memory database with disk persistence](src/main/java/com/renomad/minum/database)
-- [Server-side templating](src/main/java/com/renomad/minum/templating)
-- [Logging framework](src/main/java/com/renomad/minum/logging)
-- [Testing framework](src/main/java/com/renomad/minum/testing)
-- [HTML parsing](src/main/java/com/renomad/minum/htmlparsing) 
-- [Background queue processor](src/main/java/com/renomad/minum/queue) 
+- Secure TLS 1.3 HTTP/1.1 web server
+- In-memory database with disk persistence
+- Server-side templating
+- Logging 
+- Testing utilities
+- HTML parsing
+- Background queue processor
 
 
 Size Comparison:
@@ -86,19 +88,19 @@ _Lines of production code (including required dependencies)_
 |-------|---------|-------------|
 | 5,340  | 141,048 | 1,085,405   |
 
-See [details](docs/size_comparisons.md)
+See [a size comparison in finer detail](docs/size_comparisons.md)
 
 
 Performance:
 ------------
 
-* 19,000 http web server responses per second. [detail](docs/perf_data/response_speed_test.md)
-* 2,000,000 database updates per second. [detail](docs/perf_data/database_speed_test.md)
+* 19,000 http web server responses per second. [details here](docs/perf_data/response_speed_test.md)
+* 2,000,000 database updates per second. [details here](docs/perf_data/database_speed_test.md)
 * 31,717 templates rendered per second. See "test_Templating_Performance" [here](src/test/java/com/renomad/minum/templating/TemplatingTests.java).
   Also, see this [comparison benchmark](https://github.com/byronka/template-benchmark?tab=readme-ov-file#original-string-output-test), with Minum's
   code represented [here](https://github.com/byronka/template-benchmark/blob/utf8/src/main/java/com/mitchellbosecke/benchmark/Minum.java).
 
-See [framework performance comparison](docs/perf_data/framework_perf_comparison.md)
+See a [Minum versus Spring performance comparison](docs/perf_data/framework_perf_comparison.md)
 
 
 Documentation:
@@ -108,7 +110,7 @@ Documentation:
 * [Javadocs](https://renomad.com/javadoc/)
 * [Code coverage](https://renomad.com/site/jacoco/index.html) 
 * [Mutation test report](https://renomad.com/pit-reports)
-* [Various reports](https://renomad.com/site/project-reports.html) 
+* [Test run report](https://renomad.com/site/surefire-report.html) 
 
 
 Example projects demonstrating usage:
@@ -139,85 +141,143 @@ approach this framework is meant to foster.
 Code samples
 ------------
 
-Instantiating a new database:
+_Instantiating a new database_:
 
 ```java
 var db = new Db<>(foosDirectory, context, new Foo());
 ```
 
-Adding a new object to a database:
+The Minum database keeps its data and processing primarily in memory but persists to the disk.
+There are pros and cons to this design choice: on the upside, it's very fast and the data
+stays strongly typed.  On the downside, if you're not careful you could end up using
+a lot of memory.  For certain designs, this is a suitable design constraint.  On the [Memoria
+project](https://github.com/byronka/memoria_project/), the only data stored in the database is the "lean" information - user tables,
+sessions, primary data.  Anything beyond the basics is stored in files and read from the disk
+as needed, with some caching to improve performance.
+
+Obviously this won't work for all situations, and users are free to pick any other database 
+they desire. That said, the aforementioned will work for many common situations and for prototypes, particularly
+if expectations are adjusted for what to store in the database.
+
+<hr>
+
+_Adding a new object to a database_:
 
 ```java
 var foo = new Foo(0L, 42, "blue");
 db.write(foo);    
 ```
 
-Updating an object in a database:
+_Updating an object in a database_:
 
 ```java
 foo.setColor("orange");
 db.write(foo);    
 ```
 
-Deleting from a database:
+_Deleting from a database_:
 
 ```java
 db.delete(foo);    
 ```
 
-Writing a log statement:
+_Writing a log statement_:
 
 ```java
 logger.logDebug(() -> "hello");
 ```
 
-Parsing an HTML document:
+The logs are output to "standard out" during runtime.  This means, if you run a Minum application
+from the command line, it will output its logs to the console.  This is a typical pattern for servers.
+
+The logs are all expecting their inputs as closures - the pattern is `() -> "hello world"`.  This keeps
+the text from being processed until it needs to be.  A profusion of log statements
+could impact the performance of the system.  By using this design pattern, those statements will only be
+run if necessary, which is valuable for trace-level logging and those log statements which include
+further processing (e.g. `_____ has requested to _____ at _____`).
+
+<hr>
+
+_Parsing an HTML document_:
 
 ```java
 List<HtmlParseNode> results = new HtmlParser().parse("<p></p>");
 ```
 
-Searching for an element in the parsed graph:
+Minum includes a simple HTML parser.  While not as fully-featured as its big brothers, it is well suited
+for its minimal purposes, and provides capabilities like examining returned HTML data or for use in functional tests.
+It is used heavily in the [Memoria tests](https://github.com/byronka/memoria_project/blob/c474040aac46b52bc48341b5972c8d9d1c438da8/src/test/java/com/renomad/inmra/featurelogic/FunctionalTests.java#L165)
+and the [FamilyGraph class](https://github.com/byronka/memoria_project/blob/master/src/main/java/com/renomad/inmra/featurelogic/persons/FamilyGraph.java) which
+handles building a graph of the family members.
+<hr>
+
+_Searching for an element in the parsed graph_:
 
 ```java
 HtmlParseNode node;
 List<HtmlParseNode> results = node.search(TagName.P, Map.of());
 ```
 
-Creating a new web handler (a function that handles an HTTP request and
-returns a response):
+_Creating a new web handler (a function that handles an HTTP request and
+returns a response)_:
 ```java
 public Response myHandler(Request r) {
   return Response.htmlOk("<p>Hi world!</p>");
 }
 ```
 
-Registering that endpoint:
+The term "web handler" refers to the bread-and-butter of what Minum provides - programs that receive
+HTTP requests and return HTTP responses.  This example demonstrates returning an HTML message, ignoring
+the request data.  A less contrived example would examine the "query string" or the "body" of
+the request for its data, and then returning an appropriate response based on that.
+
+For example, there is [sample code in Minum](https://github.com/byronka/minum/blob/17bc2b5759727e97987092187844a0cbfc90a7bd/src/test/java/com/renomad/minum/sampledomain/SampleDomain.java#L50)
+which checks the authentication and returns values as HTML.  There are other example endpoints in that
+class, and you may see these endpoints in operation by running `make run_sampledomain` from the command line, presuming you
+have installed Java and GNU Make already, and then by visiting http://localhost:8080.
+
+<hr>
+
+_Registering an endpoint_:
 
 ```java
 webFramework.registerPath(GET, "formentry", sd::formEntry);
 ```
 
-Building and rendering a template:
+The expected pattern is to have a file where all the endpoints are registered.  See [Memoria's endpoint registration page](https://github.com/byronka/memoria_project/blob/c474040aac46b52bc48341b5972c8d9d1c438da8/src/main/java/com/renomad/inmra/TheRegister.java#L56)
+
+_Building and rendering a template_:
 
 ```java
 TemplateProcessor foo = TemplateProcessor.buildProcessor("hello {{ name }}");
 String rendered = foo.renderTemplate(Map.of("name", "world"));
 ```
 
-Getting a query parameter from a request:
+The Minum framework is driven by a paradigm of server-rendered HTML.  Is is performant and
+works on all devices.  In contrast, the industry's current predominant approach is single
+page apps, whose overall system complexity is greater.  Complexity is a dragon we must fight daily.
+
+The templates can be any string, but the design was driven concerned with rendering HTML templates.  Here is [an example of a simple template](https://github.com/byronka/minum/blob/master/src/test/webapp/templates/sampledomain/name_entry.html),
+which is rendered with dynamic data in [this class](https://github.com/byronka/minum/blob/master/src/test/java/com/renomad/minum/sampledomain/SampleDomain.java) 
+
+<hr>
+
+It is a common pattern to get user data from requests by query string or body.
+The following examples show this:
+
+_Getting a query parameter from a request_:
 
 ```java
 String id = r.requestLine().queryString().get("id");
 ```
 
-Getting a body parameter from a request, as a string:
+_Getting a body parameter from a request, as a string_:
 
 ```java
 String personId = request.body().asString("person_id");
 ```
 
-Get a path parameter from a request as a string:
+_Get a path parameter from a request as a string_:
 
 ```java
 Pattern requestRegex = Pattern.compile(".well-known/acme-challenge/(?<challengeValue>.*$)");
@@ -229,14 +289,42 @@ if (! challengeMatcher.find()) {
 String tokenFileName = challengeMatcher.group("challengeValue");
 ```
 
-Getting a body parameter from a request, as a byte array:
+This more complicated scenario shows handling a request from the LetsEncrypt ACME challenge 
+for renewing certificates.  Because the incoming request comes as a "path parameter", we
+have to extract the data using a regular expression.
+
+In this example, if we don't find a match, we return a 400 error HTTP status code, and 
+otherwise get the data by a named matching group in our regular expression.
+
+To register an endpoint that allows "path parameters", we register a partial path, like the 
+following, which will match if the provided string is contained anywhere in an incoming URL. There 
+are some complications to matching this way, so it is recommended to use this approach
+as little as possible.  In the Memoria project, this is only used for 
+LetsEncrypt, which requires it.  All other endpoints get their user data from query 
+strings, headers, and bodies.
+
+```java
+webFramework.registerPartialPath(GET, ".well-known/acme-challenge", letsEncrypt::challengeResponse);
+```
+
+<hr>
+
+_Getting a body parameter from a request, as a byte array_:
 
 ```java
 byte[] photoBytes = body.asBytes("image_uploads");
 ```
 
-Checking for a log message during tests:
+The photo bytes example is seen in the [UploadPhoto class](https://github.com/byronka/minum/blob/master/src/test/java/com/renomad/minum/sampledomain/UploadPhoto.java)
+
+_Checking for a log message during tests_:
 
 ```java
 assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
 ```
+
+The Minum application was built using test-driven development (TDD) from the ground up.  The testing
+mindset affected every aspect of its construction.  One element that can sometimes trip up 
+developers is when they are testing that something happened elsewhere in the system as a result of 
+an action.  If that separate action has logging, then a test can examine the logs for a correct
+output.

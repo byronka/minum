@@ -4,8 +4,8 @@ Quick Start
 This software will enable you to create web applications in Java.  It provides
 the bare minimum of what is necessary for that task, plainly and simply.
 
-Step 1 - Java
--------------
+Step 1 - Install Java
+---------------------
 
 Try this in your shell:
 
@@ -41,7 +41,7 @@ This is why your `PATH` environment variable should include something like this:
 $JAVA_HOME/bin
 ```
 
-Step 2 - download the "small" example
+Step 2 - Download the "small" example
 -------------------------------------
 
 Next, we will download a project that includes the simplest-possible
@@ -62,87 +62,19 @@ Run this command in its directory:
 It will compile and you will be able to view it at http://localhost:8080
 
 
-Step 4 - modify the example
+Step 4 - Think about the example
+--------------------------------
+
+Let's look at the code:
+
+<img src="simple_minum_program.jpg" alt="An annotated view of the main method">
+
+
+Step 5 - modify the example
 ---------------------------
 
-Hit `Main.java` and take a moment to review. Try some of the following
-recommended changes.  To see your changes, cancel the running
-program by pressing ctrl+c and run `./mvnw compile exec:java` to start it again.  
-
-For ease of reference, here is the code you will see:
-
-```java
-public class Main {
-
-    public static void main(String[] args) {
-        // Start the system
-        FullSystem fs = FullSystem.initialize();
-
-        // Register some endpoints
-        fs.getWebFramework().registerPath(
-                StartLine.Method.GET,
-                "",
-                request -> Response.htmlOk("<p>Hi there world!</p>"));
-
-        fs.block();
-    }
-}
-```
-
-* Add a new path - have it serve content from /hello
-* (After making this change, stop the running server with ctrl+c and rerun `./mvnw compile exec:java`)
-
-```java
-public class Main {
-
-    public static void main(String[] args) {
-        // Start the system
-        FullSystem fs = FullSystem.initialize();
-
-        // Register some endpoints
-        fs.getWebFramework().registerPath(
-                StartLine.Method.GET,
-                "",
-                request -> Response.htmlOk("<p>Hi there world!</p>"));
-        fs.getWebFramework().registerPath(
-                StartLine.Method.GET,
-                "hello",
-                request -> Response.htmlOk("<p>Hi there world!</p>"));
-
-        fs.block();
-    }
-}
-```
-
-* Adjust to say hello to a query string parameter. (After making this change, stop 
-  the running server with ctrl+c and rerun `./mvnw compile exec:java`)
-
-```java
-public class Main {
-
-    public static void main(String[] args) {
-        // Start the system
-        FullSystem fs = FullSystem.initialize();
-
-        // Register some endpoints
-        fs.getWebFramework().registerPath(
-                StartLine.Method.GET,
-                "",
-                request -> Response.htmlOk("<p>Hi there world!</p>"));
-        fs.getWebFramework().registerPath(
-                StartLine.Method.GET,
-                "hello",
-                request -> {
-                    String name = request.requestLine().queryString().get("name");
-                    return Response.htmlOk(String.format("<p>Hi there %s!</p>", name));
-                });
-
-        fs.block();
-    }
-}
-```
-
-Press ctrl+c to stop the running server.
+* Stop the server and restart by running `./mvnw compile exec:java`
+* Change the path - have it serve content from /hi instead of /hello
 
 Next steps
 ----------
