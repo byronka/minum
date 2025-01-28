@@ -137,6 +137,19 @@ shows many of the typical use cases of the Minum framework.
 This is a family-tree project.  It demonstrates the kind of
 approach this framework is meant to foster.
 
+<hr>
+
+[Restaurants](https://github.com/byronka/restaurants)
+
+Restaurants is a prototype project to provide a customizable ranked list of restaurants.
+
+<hr>
+
+[Alternate database](https://github.com/byronka/minum_using_alternate_database)
+
+This is a project which uses a SQL database called [H2](https://www.h2database.com/html/main.html),
+and which shows how a user might go about including a different database than the one built-in.
+
 
 Code samples
 ------------
