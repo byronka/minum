@@ -22,14 +22,14 @@ What is this?
 
 This web framework, "Minum", provides a full-powered minimalist foundation for a web application. For TDD, by TDD.
 
-* Embraces the concept of "kaizen": small beneficial changes over time leading to impressive capabilities.
-* Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database.
-* 100% test coverage (branch and statement) that runs in 30 seconds without any special setup (`make test_coverage`).
-* Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`).
+* Embraces the concept of "kaizen": small beneficial changes over time leading to impressive capabilities
+* Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
+* 100% test coverage (branch and statement) that runs in 30 seconds without any special setup (`make test_coverage`)
+* Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`)
 * Relies on no dependencies other than the Java 21 SDK - i.e. no Netty, Jetty, Tomcat, Log4j, Hibernate, MySql, etc.
 * Well-documented
-* no reflection
-* no annotations
+* No reflection
+* No annotations
 * No magic
 * Has [examples of framework use](#example-projects-demonstrating-usage)
 
