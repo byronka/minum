@@ -1,9 +1,9 @@
 Minum Web Framework
 ===================
 
-_When you need the fewest moving parts_
+_The result of taking minimalism, [kaizen](https://en.wikipedia.org/wiki/Kaizen) and [TDD](https://en.wikipedia.org/wiki/Test-driven_development) to an extreme_
 
-A simple Minum program (see more [code samples](#code-samples) below):
+Here is a simple Minum program (see more [code samples](#code-samples) below):
 
 ```Java
 public class Main {
@@ -22,18 +22,17 @@ What is this?
 
 This web framework, "Minum", provides a full-powered minimalist foundation for a web application. For TDD, by TDD.
 
-* Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
-* Around 100% test coverage that runs in 30 seconds without any special setup (`make test_coverage`)
-* Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`)
+* Embraces the concept of "kaizen": small beneficial changes over time leading to impressive capabilities.
+* Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database.
+* 100% test coverage (branch and statement) that runs in 30 seconds without any special setup (`make test_coverage`).
+* Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`).
 * Relies on no dependencies other than the Java 21 SDK - i.e. no Netty, Jetty, Tomcat, Log4j, Hibernate, MySql, etc.
 * Well-documented
-* Uses no reflection
-* Requires no annotations
+* no reflection
+* no annotations
 * No magic
-* Has [examples of framework use](#example-projects-demonstrating-usage):
-  * a tiny project, as the basis to get started
-  * a small project, showing some minimal use cases
-  * a full application demonstrating realistic usage
+* Has [examples of framework use](#example-projects-demonstrating-usage)
+
 
 Minum is five thousand lines of code - the "minimalist" competitors range from 400,000 to 700,000 lines when 
 accounting for their dependencies. I have not found a similar project.
