@@ -20,7 +20,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=8.0.6
+VERSION=8.0.7
 
 MAVEN := ./mvnw
 

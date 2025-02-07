@@ -135,6 +135,12 @@ public final class WebFramework {
                     IRequest request = result.clientRequest();
                     Response response = (Response)result.resultingResponse();
 
+                    // check that the response is non-null.  If it is null, that suggests
+                    // the developer made a mistake.
+                    if (response == null) {
+                        throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
+                    }
+
                     // calculate proper headers for the response
                     StringBuilder headerStringBuilder = addDefaultHeaders(response);
                     addOptionalExtraHeaders(response, headerStringBuilder);

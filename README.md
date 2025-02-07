@@ -59,7 +59,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.0.6</version>
+    <version>8.0.7</version>
 </dependency>
 ```
 
@@ -85,7 +85,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,340  | 141,048 | 1,085,405   |
+| 5,343 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 

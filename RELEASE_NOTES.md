@@ -45,6 +45,18 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.0.7 - Feb 7, 2025
+--------------------
+
+Minor adjustments:
+
+1. No need to include sitemap.xml as a suspicious path in the minum.config, it is a path
+   most search engines will try on a site, it is not an attack.
+2. If the developer makes a mistake and returns a null instead of a valid IResponse interface
+   from a web handler endpoint, we fail faster, and with a clearer message, whereas before
+   the null response would rattle around through some methods before causing an exception with
+   an unclear error message and in an unexpected part of the code.
+
 v8.0.6 - Jan 15, 2025
 ---------------------
 

@@ -163,6 +163,40 @@ public class WebTests {
     }
 
     /**
+     * If the developer forgets and returns a null as the response, we
+     * want to return a clear message in the logs.
+     */
+    @Test
+    public void test_EdgeCase_ResponseOfNull() throws Exception {
+
+        var wf = new WebFramework(context, default_zdt);
+        var webEngine = new WebEngine(context, wf);
+        TestLogger myTestLogger = (TestLogger)context.getLogger();
+
+        // right here, we are creating an invalid web handler - it just returns null.
+        // although this is invalid, we want our error messages to alert the developer
+        // to what is missing, so they can be more productive.
+        wf.registerPath(GET, "add_two_numbers", request -> null);
+        try (IServer primaryServer = webEngine.startServer()) {
+            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
+                try (var client = webEngine.startClient(socket)) {
+                    InputStream is = client.getInputStream();
+                    // send a GET request
+                    client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
+                    client.sendHttpLine("Host: localhost:8080");
+                    client.sendHttpLine("");
+                    StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                }
+                // at this point, the server has closed the connection and added a
+                // log line explaining that the result of the endpoint handler for "add_two_numbers"
+                // returned a null, which should never happen.
+                myTestLogger.doesMessageExist("The returned value for the endpoint \"add_two_numbers\" was null.");
+            }
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
+    /**
      * A more realistic use case of the Minum server with a
      * request using HTTP/1.0
      */

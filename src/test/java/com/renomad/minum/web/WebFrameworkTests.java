@@ -36,7 +36,7 @@ public class WebFrameworkTests {
      * Just a boring empty Headers instance for some of the methods that
      * need it but where we aren't doing anything with it.
      */
-    private Headers defaultHeaders = new Headers(List.of());
+    private final Headers defaultHeaders = new Headers(List.of());
 
     @Before
     public void initialize() {
