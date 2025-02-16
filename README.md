@@ -261,8 +261,8 @@ The expected pattern is to have a file where all the endpoints are registered.  
 _Building and rendering a template_:
 
 ```java
-TemplateProcessor foo = TemplateProcessor.buildProcessor("hello {{ name }}");
-String rendered = foo.renderTemplate(Map.of("name", "world"));
+TemplateProcessor myTemplate = TemplateProcessor.buildProcessor("hello {{ name }}");
+String renderedTemplate = myTemplate.renderTemplate(Map.of("name", "world"));
 ```
 
 The Minum framework is driven by a paradigm of server-rendered HTML.  Is is performant and
@@ -271,6 +271,29 @@ page apps, whose overall system complexity is greater.  Complexity is a dragon w
 
 The templates can be any string, but the design was driven concerned with rendering HTML templates.  Here is [an example of a simple template](https://github.com/byronka/minum/blob/master/src/test/webapp/templates/sampledomain/name_entry.html),
 which is rendered with dynamic data in [this class](https://github.com/byronka/minum/blob/master/src/test/java/com/renomad/minum/sampledomain/SampleDomain.java) 
+
+HTML templates must consider the concept of _HTML sanitization_, to prevent XSS, when the data is coming
+from a user.  To sanitize content of an HTML tag (e.g. `<p>{{user_data}}</p>`), sanitize the data 
+with `StringUtils.safeHtml(userData)`, and for attributes (e.g. `class="{{user_data}}"`), 
+use `StringUtils.safeAttr(userData)`.  Putting this all together:
+
+_template_
+
+```html
+<div>{{user_name}}</div>
+
+<div data-name="{{user_name_attr}}">hello</div>
+```
+
+_code_
+
+```java
+String renderedTemplate = myTemplate.renderTemplate(
+  Map.of(
+    "user_name", StringUtils.safeHtml(username),
+    "user_name_attr", StringUtils.safeAttr(username)
+  ));
+```
 
 <hr>
 
