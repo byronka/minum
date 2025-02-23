@@ -34,8 +34,8 @@ This web framework, "Minum", provides a full-powered minimalist foundation for a
 * Has [examples of framework use](#example-projects-demonstrating-usage)
 
 
-Minum is five thousand lines of code - the "minimalist" competitors range from 400,000 to 700,000 lines when 
-accounting for their dependencies. I have not found a similar project.
+Minum is five thousand lines of ordinary and well-tested code: hashmaps, sockets, etc. The "minimalist" competitors 
+range from 400,000 to 700,000 lines when accounting for their dependencies.
 
 Applying a minimalist approach enables easier debugging, maintainability, and lower overall cost. Most 
 frameworks trade faster start-up for a higher overall cost. If you need sustainable quality, the software 
