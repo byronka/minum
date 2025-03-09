@@ -168,8 +168,9 @@ sessions, primary data.  Anything beyond the basics is stored in files and read 
 as needed, with some caching to improve performance.
 
 Obviously this won't work for all situations, and users are free to pick any other database 
-they desire. That said, the aforementioned will work for many common situations and for prototypes, particularly
-if expectations are adjusted for what to store in the database.
+they desire (See "Alternate database" project above for an example project using a third-party 
+database). That said, the aforementioned will work for many common situations and for prototypes, 
+particularly if expectations are adjusted for what to store in the database.
 
 <hr>
 
