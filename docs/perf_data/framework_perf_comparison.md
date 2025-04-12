@@ -1,6 +1,7 @@
 Framework performance comparison
 =================================
 
+In summary: Minum is as fast, sometimes faster than Spring in these statistics.
 
 |                                                                                                                                            | Minum  | Spring |
 |--------------------------------------------------------------------------------------------------------------------------------------------|--------|--------|

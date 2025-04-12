@@ -17,6 +17,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.renomad.minum.utils.FileUtils.*;
@@ -429,13 +431,13 @@ public final class WebFramework {
 
     /**
      * This method will examine the request headers and response content-type, and
-     * compress the outgoing data if necessary.
+     * compress the outgoing data if necessary.  Uses {@link #compressibleMimesPattern}
      */
-    static Response potentiallyCompress(Headers headers, Response response, StringBuilder headerStringBuilder) throws IOException {
+    static Response potentiallyCompress(Headers requestHeaders, Response response, StringBuilder headerStringBuilder) throws IOException {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
-        List<String> acceptEncoding = headers.valueByKey("accept-encoding");
+        List<String> acceptEncoding = requestHeaders.valueByKey("accept-encoding");
 
         // regardless of whether the client requests compression in their Accept-Encoding header,
         // if the data we're sending back is not of an appropriate type, we won't bother
@@ -444,11 +446,27 @@ public final class WebFramework {
 
         if (contentTypeHeader != null) {
             String contentType = contentTypeHeader.getValue().toLowerCase(Locale.ROOT);
-            if (contentType.contains("text/")) {
+            boolean hasCompressibleMimeType = determineCompressible(contentType);
+            if (hasCompressibleMimeType) {
                 return compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS);
             }
         }
         return response;
+    }
+
+
+    /**
+     * A regular expression for finding mimes that we can compress
+     */
+    final static Pattern compressibleMimesPattern = Pattern.compile("^text/|(?:json|\\+?xml)$");
+
+    /**
+     * Run a regular expression against the Content-Type header, and return
+     * true if the mime is text-based and thus would benefit from compression.
+     * Uses {@link #compressibleMimesPattern}
+     */
+    static boolean determineCompressible(String contentType) {
+        return compressibleMimesPattern.matcher(contentType).find();
     }
 
     /**

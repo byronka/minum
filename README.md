@@ -1,9 +1,14 @@
 Minum Web Framework
 ===================
 
-_The result of taking minimalism, [kaizen](https://en.wikipedia.org/wiki/Kaizen) and [TDD](https://en.wikipedia.org/wiki/Test-driven_development) to an extreme_
+This project was built by hand, and demonstrates what is 
+possible by craft and minimalism.
 
-Here is a simple Minum program (see more [code samples](#code-samples) below):
+It prioritizes the concept of high-quality
+monolithic server-side-rendered web applications.  There are several examples
+of this in the [example projects](#example-projects-demonstrating-usage).
+
+Here is a small Minum program (see more [code samples](#code-samples) below):
 
 ```Java
 public class Main {
@@ -20,9 +25,10 @@ public class Main {
 What is this?
 --------------
 
-This web framework, "Minum", provides a full-powered minimalist foundation for a web application. For TDD, by TDD.
+This web framework, "Minum", provides a full-powered minimalist foundation for a web 
+application. Built from scratch by TDD (Test-Driven Development).
 
-* Embraces the concept of "kaizen": small beneficial changes over time leading to impressive capabilities
+* Embraces the concept of _kaizen_: small beneficial changes over time leading to impressive capabilities
 * Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
 * 100% test coverage (branch and statement) that runs in 30 seconds without any special setup (`make test_coverage`)
 * Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`)
@@ -42,6 +48,8 @@ frameworks trade faster start-up for a higher overall cost. If you need sustaina
 must be well-tested and documented from the onset.  As an example, this project's ability to attain such
 high test coverage was greatly enabled by the minimalism paradigm.
 
+Minum follows [semantic versioning](https://semver.org/)
+
 
 Getting Started
 ---------------
@@ -59,7 +67,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.0.7</version>
+    <version>8.1.0</version>
 </dependency>
 ```
 
@@ -85,13 +93,17 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,343 | 141,048 | 1,085,405   |
+| 5,373 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 
 
 Performance:
 ------------
+
+Performance is a feature. On your own applications, collect 
+performance metrics at milestones, so that trends and missteps are made apparent.
+
 
 * 19,000 http web server responses per second. [details here](docs/perf_data/response_speed_test.md)
 * 2,000,000 database updates per second. [details here](docs/perf_data/database_speed_test.md)

@@ -3,6 +3,8 @@ Response time test
 
 #### In short: 19,500 responses per second
 
+This performance test was run on a Mac M2
+
 ```shell
 $ ab -k -c20 -n 1000000 "http://localhost:8080/hello?name=byron"
 This is ApacheBench, Version 2.3 <$Revision: 1843412 $>

@@ -29,6 +29,10 @@ public class HtmlParserTests {
         shutdownTestingContext(context);
     }
 
+    /**
+     * An experimental TDD-style test to better understand behavior of
+     * the method being developed.
+     */
     @Test
     public void test_HtmlParser_Details1() {
         String input = "<br foo=bar />";
@@ -59,6 +63,10 @@ public class HtmlParserTests {
         assertEquals(expected, result);
     }
 
+    /**
+     * An experimental TDD-style test to better understand behavior of
+     * the method being developed.
+     */
     @Test
     public void test_HtmlParser_Details2() {
         String input = "<title>Stock Prices</title>";
@@ -77,6 +85,10 @@ public class HtmlParserTests {
         assertEquals(expected, result);
     }
 
+    /**
+     * A larger-than-tiny example to help clarify the thinking for this
+     * program.  Pragmatic TDD.
+     */
     @Test
     public void test_HtmlParser_HappyPath() {
         String input = "<!DOCTYPE html><p class=\"baz < > biz\" id=\"wut\" fee=fi>foo ><h1 ></h1></p><p id=></p><br foo=bar />";
@@ -117,14 +129,15 @@ public class HtmlParserTests {
                         List.of(),
                         ""));
 
-        var nodes = new HtmlParser().parse(input);
-        var nodesWithSingleTicks = new HtmlParser().parse(inputWithSingleTicks);
+        List<HtmlParseNode> nodes = new HtmlParser().parse(input);
+        List<HtmlParseNode> nodesWithSingleTicks = new HtmlParser().parse(inputWithSingleTicks);
         assertEquals(expected, nodes);
         assertEquals(expected, nodesWithSingleTicks);
+        assertEquals("[<doctype html=\"\"></doctype>, <p class=\"baz < > biz\" fee=\"fi\" id=\"wut\">foo ><h1></h1></p>, <p id=\"\"></p>, <br foo=\"bar\"></br>]", nodes.toString());
     }
 
     /**
-     * It's possible to add a comment.
+     * It should be possible to add a comment.
      */
     @Test
     public void testCommentedText() {
@@ -182,6 +195,7 @@ public class HtmlParserTests {
 
         var expected = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output_parsed.txt");
         assertEquals(myList.toString(), expected);
+        assertTrue(htmlRoots.getLast().toString().contains("<html><head><title>Stock Prices</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"></meta><meta http-equiv=\"Content-Style-Type\" content=\"text/css\">"));
     }
 
     @Test
@@ -192,16 +206,32 @@ public class HtmlParserTests {
         assertEquals(SearchHelpers.innerText(firstPara), "Stack Overflow for Teams has its own domain!");
     }
 
-
+    /**
+     *  This test is similar to {@link #test_HtmlParser_Edge_LargerFile} except that it
+     * relies on the methods in {@link HtmlParseNode}, which are sometimes scoped private.
+     * <br>
+     * The methods in {@link SearchHelpers} are built to demonstrate behaviors with public-scoped methods,
+     * so look to the other test for recommended approaches.
+     * @see #test_HtmlParser_Edge_LargerFile
+     */
     @Test
     public void test_HtmlParser_Edge_LargerFile_DEPRECATED() {
         String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
+
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
         List<List<String>> myList = htmlRoots.stream().map(HtmlParseNode::print).filter(x -> ! x.isEmpty()).toList();
+
         var expected = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output_parsed.txt");
         assertEquals(myList.toString(), expected);
     }
 
+    /**
+     *  This test is similar to {@link #test_fuzzer} except that
+     * it is using less-friendly approaches.
+     * <br>
+     * Instead, users are recommended to use a program similar to {@link com.renomad.minum.SearchHelpers#search(List, TagName, Map)}
+     * @see #test_fuzzer()
+     */
     @Test
     public void test_fuzzer_DEPRECATED() {
         String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
@@ -287,7 +317,9 @@ public class HtmlParserTests {
     }
 
     /**
-     * If we see a script tag, we collect all its inner data
+     *  uses less-powerful approaches for searching.  Requires the user
+     * to handle searching each {@link HtmlParseNode} in the list of results.
+     * @see #test_HtmlParser_Script
      */
     @Test
     public void test_HtmlParser_Script_DEPRECATED() {
@@ -296,6 +328,11 @@ public class HtmlParserTests {
         assertEquals(script.innerText(), "hello world");
     }
 
+    /**
+     *  uses less-powerful approaches for searching.  Requires the user
+     * to handle searching each {@link HtmlParseNode} in the list of results.
+     * @see #test_HtmlParser_ScriptWithAttributes
+     */
     @Test
     public void test_HtmlParser_ScriptWithAttributes_DEPRECATED() {
         List<HtmlParseNode> parse = new HtmlParser().parse("<p><script type=text/javascript>hello world</script></p>");
@@ -303,6 +340,11 @@ public class HtmlParserTests {
         assertEquals(script.innerText(), "hello world");
     }
 
+    /**
+     *  uses less-powerful approaches for searching.  Requires the user
+     * to handle searching each {@link HtmlParseNode} in the list of results.
+     * @see #test_HtmlParser_ScriptWithAttributes_NoInnerText
+     */
     @Test
     public void test_HtmlParser_ScriptWithAttributes_NoInnerText_DEPRECATED() {
         List<HtmlParseNode> parse = new HtmlParser().parse("<p><script type=text/javascript></script></p>");

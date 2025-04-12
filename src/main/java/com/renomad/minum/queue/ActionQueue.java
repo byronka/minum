@@ -15,6 +15,22 @@ import java.util.concurrent.*;
  * since the I/O actions are happening on a separate
  * thread and the only time required is passing the
  * function of what we want to run later.
+ * </p>
+ * <h3>Example:</h3>
+ * <p>
+ *     This example shows where an {@link java.io.InputStream} representing the bytes
+ *     of an image file are sent to the {@link ActionQueue} for processing.  The call
+ *     to {@link ActionQueue#enqueue(String, ThrowingRunnable)} returns immediately,
+ *     and processing continues on another thread.
+ * </p>
+ * <pre>
+ * {@code
+ *  ActionQueue photoResizingQueue;
+ *  InputStream photoInputStream;
+ *  photoResizingQueue = new ActionQueue("photo_resizing", context).initialize();
+ *  photoResizingQueue.enqueue("resize an image", () -> resizeImage(photoInputStream));
+ * }
+ * </pre>
  */
 public final class ActionQueue implements AbstractActionQueue {
     private final String name;

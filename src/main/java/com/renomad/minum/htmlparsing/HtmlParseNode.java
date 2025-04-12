@@ -117,6 +117,10 @@ public final class HtmlParseNode {
         return textContent;
     }
 
+    public String innerText() {
+        return innerText(innerContent);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -129,8 +133,34 @@ public final class HtmlParseNode {
         return Objects.hash(type, tagInfo, innerContent, textContent);
     }
 
-    public String innerText() {
-        return innerText(innerContent);
+    @Override
+    public String toString() {
+        if (this.getType().equals(ParseNodeType.ELEMENT)) {
+            var sb = new StringBuilder();
+            sb.append("<");
+            String lowercaseElement = this.tagInfo.getTagName().toString().toLowerCase();
+            sb.append(lowercaseElement);
+
+            for (Map.Entry<String, String> entry : this.tagInfo.getAttributes().entrySet()) {
+                sb.append(" ");
+                sb.append(entry.getKey());
+                sb.append("=");
+                sb.append("\"").append(entry.getValue()).append("\"");
+            }
+
+            sb.append(">");
+
+            for (HtmlParseNode hpn : this.innerContent) {
+                sb.append(hpn);
+            }
+
+            sb.append("</").append(lowercaseElement).append(">");
+            return sb.toString();
+        } else {
+            return textContent;
+        }
+
+
     }
 
 }

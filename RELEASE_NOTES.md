@@ -45,6 +45,17 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.1.0 - Apr 12, 2025
+---------------------
+
+* Add toString to HtmlParseNode
+  This enables a capability to process HTML code, adjust it, and render it out as HTML
+* Account for more compressible types in responses
+  Responses of a textual type are easily compressed.  Before, we would only look for a mime
+  type in the Content-Type head which started with "text".  Now we use a regular expression
+  to look for more types.
+* Improved documentation
+
 v8.0.7 - Feb 7, 2025
 --------------------
 

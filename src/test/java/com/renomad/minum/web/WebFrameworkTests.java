@@ -330,7 +330,23 @@ public class WebFrameworkTests {
         Response incomingResponse = (Response)Response.buildResponse(CODE_200_OK, Map.of("content-type", "text/plain"), "a".repeat(1000));
         IResponse compressedResponse = WebFramework.compressBodyIfRequested(incomingResponse, List.of("accept-encoding: gzip"), stringBuilder, 999);
         assertTrue(incomingResponse.getBody().length > compressedResponse.getBody().length);
+    }
 
+    /**
+     * Check that content-types we expect to be compressible are indeed found.
+     */
+    @Test
+    public void test_CompressMoreMimeTypes() {
+        assertTrue(WebFramework.determineCompressible("text/plain"), "text/plain should be compressible");
+        assertTrue(WebFramework.determineCompressible("text/xml"), "text/xml should be compressible");
+        assertTrue(WebFramework.determineCompressible("text/html"), "text/html should be compressible");
+        assertFalse(WebFramework.determineCompressible("image/gif"), "image/gif should not be compressible");
+        assertTrue(WebFramework.determineCompressible("text/javascript"), "text/javascript should be compressible");
+        assertTrue(WebFramework.determineCompressible("image/svg+xml"), "image/svg+xml should be compressible");
+        assertTrue(WebFramework.determineCompressible("image/application/xhtml+xml"), "image/application/xhtml+xml should be compressible");
+        assertTrue(WebFramework.determineCompressible("application/xml"), "application/xml should be compressible");
+        assertFalse(WebFramework.determineCompressible("audio/wav"), "audio/wav should not be compressible");
+        assertFalse(WebFramework.determineCompressible("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet should not be compressible");
     }
 
 
