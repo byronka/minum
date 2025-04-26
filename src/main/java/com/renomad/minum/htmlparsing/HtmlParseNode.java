@@ -97,14 +97,29 @@ public final class HtmlParseNode {
         }
     }
 
+    /**
+     * Gets the type of this node - either it's an element, with opening and
+     * closing tags and attributes and an inner content, or it's just plain text.
+     */
     public ParseNodeType getType() {
         return type;
     }
 
+    /**
+     * Returns the {@link TagInfo}, which contains valuable information
+     * like the type of element (p, a, div, and so on) and attributes
+     * like class, id, etc.
+     */
     public TagInfo getTagInfo() {
         return tagInfo;
     }
 
+    /**
+     * The inner content is the data between the opening and closing
+     * tags of this element, comprised of potentially other complex
+     * elements and/or characters or a mix (or nothing at all, which
+     * will return an empty list).
+     */
     public List<HtmlParseNode> getInnerContent() {
         return new ArrayList<>(innerContent);
     }
@@ -113,10 +128,25 @@ public final class HtmlParseNode {
         innerContent.add(htmlParseNode);
     }
 
+    /**
+     * If the {@link ParseNodeType} is {@link ParseNodeType#CHARACTERS}, then this
+     * will have text content.  Otherwise, it returns an empty string.
+     */
     public String getTextContent() {
         return textContent;
     }
 
+    /**
+     * Return the inner text of a node
+     * <p>
+     *      If this element has only one inner
+     *      content item, and it's a {@link ParseNodeType#CHARACTERS} element, return its text content.
+     * </p>
+     * <p>
+     *     If there is more than one node, concatenates them to a single string, with each section wrapped
+     *     in square brackets.
+     * </p>
+     */
     public String innerText() {
         return innerText(innerContent);
     }

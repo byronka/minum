@@ -32,6 +32,6 @@
  *             assertEquals(response.searchOne(TagName.SPAN, Map.of("class","lifespan-era")).innerText().trim(), "November 14, 1917 to March 19, 2003");
  *         }
  * }</pre>
- *
+ * @see <a href="https://github.com/byronka/minum/blob/master/src/test/java/com/renomad/minum/SearchHelpers.java">examples of search utilities applying this code</a>
  */
 package com.renomad.minum.htmlparsing;

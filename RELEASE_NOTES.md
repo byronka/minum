@@ -45,6 +45,11 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.1.1 - Apr 26, 2025
+---------------------
+
+* Better documentation for HtmlParseNode
+
 v8.1.0 - Apr 12, 2025
 ---------------------
 

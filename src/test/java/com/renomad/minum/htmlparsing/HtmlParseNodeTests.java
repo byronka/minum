@@ -104,6 +104,7 @@ public class HtmlParseNodeTests {
         List<HtmlParseNode> parsed = htmlParser.parse("<a href=\"foo\">Tester</a>");
         HtmlParseNode htmlParseNode = parsed.getFirst();
         assertEquals(htmlParseNode.toString(), "<a href=\"foo\">Tester</a>");
+        assertEquals(htmlParseNode.innerText(), "Tester");
     }
 
     @Test
@@ -112,6 +113,7 @@ public class HtmlParseNodeTests {
         List<HtmlParseNode> parsed = htmlParser.parse("<a href=\"foo\"><p>Tester</p></a>");
         HtmlParseNode htmlParseNode = parsed.getFirst();
         assertEquals(htmlParseNode.toString(), "<a href=\"foo\"><p>Tester</p></a>");
+        assertEquals(htmlParseNode.innerText(), "[Tester]");
     }
 
     @Test
@@ -120,6 +122,7 @@ public class HtmlParseNodeTests {
         List<HtmlParseNode> parsed = htmlParser.parse("<a href=\"foo\"><p><div>Tester</div></p></a>");
         HtmlParseNode htmlParseNode = parsed.getFirst();
         assertEquals(htmlParseNode.toString(), "<a href=\"foo\"><p><div>Tester</div></p></a>");
+        assertEquals(htmlParseNode.innerText(), "[Tester]");
     }
 
     @Test
@@ -128,6 +131,7 @@ public class HtmlParseNodeTests {
         List<HtmlParseNode> parsed = htmlParser.parse("<a href=\"foo\">Tester and <p>another tester</p></a>");
         HtmlParseNode htmlParseNode = parsed.getFirst();
         assertEquals(htmlParseNode.toString(), "<a href=\"foo\">Tester and <p>another tester</p></a>");
+        assertEquals(htmlParseNode.innerText(), "[Tester and ][another tester]");
     }
 
     @Test
@@ -136,5 +140,6 @@ public class HtmlParseNodeTests {
         List<HtmlParseNode> parsed = htmlParser.parse("<a href=\"foo\"><p class=\"abc1\">Test1</p><p class=\"abc2\">Test2</p><p class=\"abc3\">Test3</p></a>");
         HtmlParseNode htmlParseNode = parsed.getFirst();
         assertEquals(htmlParseNode.toString(), "<a href=\"foo\"><p class=\"abc1\">Test1</p><p class=\"abc2\">Test2</p><p class=\"abc3\">Test3</p></a>");
+        assertEquals(htmlParseNode.innerText(), "[Test1][Test2][Test3]");
     }
 }
