@@ -11,9 +11,18 @@ interface IInputStreamUtils {
 
     /**
      * Reads a line of text, stopping when reading a newline.
+     * <br>
      * Skips over carriage returns, so we read a HTTP_CRLF properly.
      * <br>
-     * If the stream ends, return what we have so far.
+     * <em>Note</em>: This is not a general-purpose line reader.  It is custom-designed
+     * for the inner workings of the Minum web server.  If you have need of
+     * a typical {@link InputStream} line reader, it is probably better to
+     * use {@link java.io.BufferedReader}
+     * @return     A String containing the contents of the line, not including
+     *             any line-termination characters, or null if the end of the
+     *             stream has been reached without reading any characters
+     *
+     * @throws     IOException  If an I/O error occurs
      */
     String readLine(InputStream inputStream) throws IOException;
 

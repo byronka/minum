@@ -32,12 +32,33 @@ public class ActionQueueTests {
      a problem with multi-threaded code - too easy to miss exceptions.
      */
     @Test
+    public void test_ActionQueue_ExceptionHandling() {
+        String message = "This is a test of ActionQueue handling an exception";
+        var aq = new ActionQueue("Test ActionQueue", context).initialize();
+
+        aq.enqueue("This should immediately fail", () -> {
+            throw new OutOfMemoryError(message);
+        });
+
+        // unavoidable race condition - if I check logger's list of messages without
+        // waiting, I will definitely get there before actionqueue.
+        MyThread.sleep(50);
+        String loggedMessage = logger.findFirstMessageThatContains(message);
+        assertTrue(!loggedMessage.isBlank(),
+                "logged message must include expected message.  What was logged: " + loggedMessage);
+    }
+
+    /**
+     * Similar to {link #test_ActionQueue_ExceptionHandling}, this tests
+     * a OutOfMemoryError, which is a major Error.
+     */
+    @Test
     public void test_ActionQueue_ErrorHandling() {
         String message = "This is a test of ActionQueue handling an error";
         var aq = new ActionQueue("Test ActionQueue", context).initialize();
 
         aq.enqueue("This should immediately fail", () -> {
-            throw new RuntimeException(message);
+            throw new OutOfMemoryError(message);
         });
 
         // unavoidable race condition - if I check logger's list of messages without
@@ -67,4 +88,22 @@ public class ActionQueueTests {
                 () ->  aq.enqueue("check if stopped", () -> System.out.println("testing if stopped")));
         assertEquals(aq.getQueue().size(), 0);
     }
+
+    @Test
+    public void test_ActionQueue_ErrorHandling_DifferentError() {
+        String message = "This is a test of ActionQueue handling an error";
+        var aq = new ActionQueue("Test ActionQueue", context).initialize();
+
+        aq.enqueue("This should immediately fail", () -> {
+            throw new InterruptedException(message);
+        });
+
+        // unavoidable race condition - if I check logger's list of messages without
+        // waiting, I will definitely get there before actionqueue.
+        MyThread.sleep(50);
+        String loggedMessage = logger.findFirstMessageThatContains(message);
+        assertTrue(!loggedMessage.isBlank(),
+                "logged message must include expected message.  What was logged: " + loggedMessage);
+    }
+
 }

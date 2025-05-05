@@ -729,9 +729,13 @@ public final class WebFramework {
      * <br>
      * Note that the path text expected is *after* the first forward slash,
      * so for example with {@code http://foo.com/mypath}, provide "mypath" as the path.
+     * @throws WebServerException if duplicate paths are registered
      */
     public void registerPath(RequestLine.Method method, String pathName, ThrowingFunction<IRequest, IResponse> webHandler) {
-        registeredDynamicPaths.put(new MethodPath(method, pathName), webHandler);
+        var result = registeredDynamicPaths.put(new MethodPath(method, pathName), webHandler);
+        if (result != null) {
+            throw new WebServerException("Duplicate endpoint registered: " + new MethodPath(method, pathName));
+        }
     }
 
     /**
@@ -745,9 +749,13 @@ public final class WebFramework {
      *     Be careful here, be thoughtful - partial paths will match a lot, and may
      *     overlap with other URL's for your app, such as endpoints and static files.
      * </p>
+     * @throws WebServerException if duplicate paths are registered
      */
     public void registerPartialPath(RequestLine.Method method, String pathName, ThrowingFunction<IRequest, IResponse> webHandler) {
-        registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
+        var result = registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
+        if (result != null) {
+            throw new WebServerException("Duplicate partial-path endpoint registered: " + new MethodPath(method, pathName));
+        }
     }
 
     /**

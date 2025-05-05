@@ -8,6 +8,9 @@ import com.renomad.minum.utils.*;
 import java.util.Map;
 import java.util.concurrent.*;
 
+import static com.renomad.minum.logging.Logger.showWhiteSpace;
+import static com.renomad.minum.utils.TimeUtils.getTimestampIsoInstant;
+
 /**
  * This class is very similar to {@link ActionQueue} but is
  * focused on Logging.
@@ -41,7 +44,7 @@ final class LoggingActionQueue implements AbstractActionQueue {
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    runAction(queue.take());
+                    runAction(queue);
                 }
             } catch (InterruptedException ex) {
                 /*
@@ -58,8 +61,19 @@ final class LoggingActionQueue implements AbstractActionQueue {
         return this;
     }
 
-    static void runAction(RunnableWithDescription action) {
-        action.run();
+    /**
+     * Runs the action that renders to a string for logging.
+     * @return true if we successfully ran the action or false if there was an error
+     */
+    static boolean runAction(LinkedBlockingQueue<RunnableWithDescription> queue) throws InterruptedException {
+        RunnableWithDescription action = queue.take();
+        try {
+            action.run();
+            return true;
+        } catch (Throwable e) {
+            System.out.println(getTimestampIsoInstant() + " LOGGER_ERROR: " + showWhiteSpace(StacktraceUtils.stackTraceToString(e)));
+            return false;
+        }
     }
 
     /**

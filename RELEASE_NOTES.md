@@ -45,6 +45,19 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.1.2
+---------------------
+
+* Fix a bug in the ActionQueue - handle throwables
+   It was found that when an Error (versus an Exception) was encountered, it would kill
+   the thread of the ActionQueue.  Errors are things like out-of-memory errors.  This might
+   happen if the function to run in a loop iteration required too much memory.  It's fine to
+   crash out of that particular run, but not fine to crash the thread entirely.
+* The system will complain if duplicate endpoints are registered 
+   If there is a developer error of registering the same endpoint more than once, (that is,
+   a verb plus endpoint, such as GET /foo), the system will thrown an exception right away, so 
+   there is less chance of incorporating subtle bugs.
+
 v8.1.1 - Apr 26, 2025
 ---------------------
 

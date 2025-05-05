@@ -1,6 +1,7 @@
 package com.renomad.minum.utils;
 
 import com.renomad.minum.database.DbTests;
+import com.renomad.minum.queue.AbstractActionQueue;
 import com.renomad.minum.queue.ActionQueue;
 import com.renomad.minum.queue.ActionQueueKiller;
 import com.renomad.minum.state.Constants;
@@ -91,7 +92,7 @@ public class ActionQueueKillerTests {
      */
     @Test
     public void test_KillAllQueues_NeedingInterruption() {
-        ActionQueue aq = new ActionQueue("testing interruption", context).initialize();
+        AbstractActionQueue aq = new ActionQueue("testing interruption", context).initialize();
         context.getActionQueueState().offerToQueue(aq);
         var aqk = new ActionQueueKiller(context);
         Thread.ofVirtual().start(() -> {

@@ -8,6 +8,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import static com.renomad.minum.testing.TestFramework.*;
 
 /**
@@ -48,11 +51,19 @@ public class LoggingActionQueueTests {
     }
 
     @Test
-    public void testErrorWhileRunningAction() {
-        assertThrows(UtilsException.class, "java.lang.RuntimeException: This is a test exception", () -> LoggingActionQueue.runAction(
-                new RunnableWithDescription(() -> {
-                    throw new RuntimeException("This is a test exception");
-                }, "Testing runAction")));
+    public void testErrorWhileRunningAction() throws InterruptedException {
+        LinkedBlockingQueue<RunnableWithDescription> foo = new LinkedBlockingQueue<>();
+        foo.add(new RunnableWithDescription(() -> {
+            throw new RuntimeException("This is a test exception");
+        }, "Testing runAction"));
+        assertFalse(LoggingActionQueue.runAction(foo));
+    }
+    
+    @Test
+    public void testHappyPathWhileRunningAction() throws InterruptedException {
+        LinkedBlockingQueue<RunnableWithDescription> foo = new LinkedBlockingQueue<>();
+        foo.add(new RunnableWithDescription(() -> System.out.println("hello world"), "Testing runAction"));
+        assertTrue(LoggingActionQueue.runAction(foo));
     }
 
 }

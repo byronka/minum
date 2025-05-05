@@ -3,6 +3,7 @@ package com.renomad.minum.web;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.UtilsException;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,16 +27,24 @@ final class InputStreamUtils implements IInputStreamUtils {
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
         final var result = new ByteArrayOutputStream(maxReadLineSizeBytes / 3);
+        int bytesRead = 0;
         for (int i = 0;; i++) {
             if (i >= maxReadLineSizeBytes) {
                 inputStream.close();
                 throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
             }
             int a = inputStream.read();
-            if (a == -1) return result.toString(StandardCharsets.UTF_8);
+            if (a == -1) {
+                if (bytesRead > 0) {
+                    return result.toString(StandardCharsets.UTF_8);
+                } else {
+                    return null;
+                }
+            }
             if (a == CARRIAGE_RETURN_DECIMAL) continue;
             if (a == NEWLINE_DECIMAL) break;
             result.write(a);
+            bytesRead += 1;
         }
         return result.toString(StandardCharsets.UTF_8);
     }

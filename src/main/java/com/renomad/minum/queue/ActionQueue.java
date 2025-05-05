@@ -65,7 +65,7 @@ public final class ActionQueue implements AbstractActionQueue {
             this.queueThread = Thread.currentThread();
             try {
                 while (true) {
-                    runAction();
+                    runAction(logger, queue);
                 }
             } catch (InterruptedException ex) {
                 /*
@@ -82,11 +82,18 @@ public final class ActionQueue implements AbstractActionQueue {
         return this;
     }
 
-    private void runAction() throws InterruptedException {
+    static void runAction(ILogger logger, LinkedBlockingQueue<RunnableWithDescription> queue) throws InterruptedException {
         RunnableWithDescription action = queue.take();
         try {
             action.run();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            /*
+             This needs to be a Throwable and not an Exception, for important reasons.
+
+             Sometimes, the command being run will encounter Errors, rather than
+             Exceptions. For example, OutOfMemoryError.  We must catch it, log the
+             issue, and move on to avoid killing the thread needlessly
+             */
             logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
         }
     }

@@ -196,6 +196,32 @@ public class WebTests {
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
+
+    /**
+     * If the developer registers the same endpoint twice,
+     * throw an exception
+     */
+    @Test
+    public void test_EdgeCase_DuplicateRegistrations() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+    /**
+     * Same as {@link #test_EdgeCase_DuplicateRegistrations()} but for
+     * partial paths
+     */
+    @Test
+    public void test_EdgeCase_DuplicatePartialPathRegistrations() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPartialPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+
     /**
      * A more realistic use case of the Minum server with a
      * request using HTTP/1.0
