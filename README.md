@@ -376,3 +376,9 @@ mindset affected every aspect of its construction.  One element that can sometim
 developers is when they are testing that something happened elsewhere in the system as a result of 
 an action.  If that separate action has logging, then a test can examine the logs for a correct
 output.
+
+Helpful utilities
+-----------------
+
+- [Intellij Idea](https://www.jetbrains.com/idea/), an integrated development environment (IDE)
+- [JProfiler](https://www.ej-technologies.com/jprofiler), a Java profiler
