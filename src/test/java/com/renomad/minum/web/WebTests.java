@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 
 import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.web.FunctionalTesting.extractStatusLine;
 import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
 import static com.renomad.minum.web.RequestLine.Method.*;
 import static com.renomad.minum.web.RequestLine.startLineRegex;
@@ -68,7 +69,7 @@ public class WebTests {
     @BeforeClass
     public static void setUpClass() throws IOException {
         var properties = new Properties();
-        properties.setProperty("SERVER_PORT", "7777");
+        properties.setProperty("SERVER_PORT", "8080");
         properties.setProperty("SUSPICIOUS_PATHS", ".env");
         properties.setProperty("IS_THE_BRIG_ENABLED", "true");
         properties.setProperty("SOCKET_TIMEOUT_MILLIS", "300");
@@ -141,7 +142,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
@@ -185,7 +186,7 @@ public class WebTests {
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
-                    StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    extractStatusLine(inputStreamUtils.readLine(is));
                 }
                 // at this point, the server has closed the connection and added a
                 // log line explaining that the result of the endpoint handler for "add_two_numbers"
@@ -195,6 +196,54 @@ public class WebTests {
         }
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
+
+
+    /**
+     * If the developer registers the same endpoint twice,
+     * throw an exception
+     */
+    @Test
+    public void test_EdgeCase_DuplicateRegistrations() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+    /**
+     * Same as {@link #test_EdgeCase_DuplicateRegistrations()} but for
+     * partial paths
+     */
+    @Test
+    public void test_EdgeCase_DuplicatePartialPathRegistrations() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPartialPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+    /**
+     * If the developer tries registering a path prefixed with a slash,
+     * explain that's not necessary or correct
+     */
+    @Test
+    public void test_EdgeCase_slashPrefix() {
+        var wf = new WebFramework(context, default_zdt);
+
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPath(GET, "/foo", request -> null));
+        assertEquals(ex.getMessage(), "Path should not be prefixed with a slash.  Corrected version: registerPath(GET, \"foo\", ... )");
+
+        var ex2 = assertThrows(WebServerException.class, () -> wf.registerPath(POST, "\\bar", request -> null));
+        assertEquals(ex2.getMessage(), "Path should not be prefixed with a slash.  Corrected version: registerPath(POST, \"bar\", ... )");
+
+        var ex3 = assertThrows(WebServerException.class, () -> wf.registerPartialPath(PUT, "/biz", request -> null));
+        assertEquals(ex3.getMessage(), "Path should not be prefixed with a slash.  Corrected version: registerPartialPath(PUT, \"biz\", ... )");
+
+        var ex4 = assertThrows(WebServerException.class, () -> wf.registerPartialPath(DELETE, "\\baz", request -> null));
+        assertEquals(ex4.getMessage(), "Path should not be prefixed with a slash.  Corrected version: registerPartialPath(DELETE, \"baz\", ... )");
+    }
+
+
 
     /**
      * A more realistic use case of the Minum server with a
@@ -217,7 +266,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
 
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 200 OK");
 
@@ -309,13 +358,13 @@ public class WebTests {
 
     @Test
     public void test_StatusLine_HappyPath() {
-        StatusLine sl = StatusLine.extractStatusLine("HTTP/1.1 200 OK");
+        StatusLine sl = extractStatusLine("HTTP/1.1 200 OK");
         assertEquals(sl.status(), CODE_200_OK);
     }
 
     @Test
     public void test_StatusLine_HappyPath_1_0() {
-        StatusLine sl = StatusLine.extractStatusLine("HTTP/1.0 200 OK");
+        StatusLine sl = extractStatusLine("HTTP/1.0 200 OK");
         assertEquals(sl.status(), CODE_200_OK);
     }
 
@@ -323,40 +372,45 @@ public class WebTests {
     public void test_StatusLine_MissingStatusDescription() {
         assertThrows(InvariantException.class,
                 "HTTP/1.1 200 must match the statusLinePattern: ^HTTP/(...) (\\d{3}) (.*)$",
-                () -> StatusLine.extractStatusLine("HTTP/1.1 200"));
+                () -> extractStatusLine("HTTP/1.1 200"));
     }
 
     @Test
     public void test_StatusLine_MissingStatusCode() {
         assertThrows(InvariantException.class,
                 "HTTP/1.1  OK must match the statusLinePattern: ^HTTP/(...) (\\d{3}) (.*)$",
-                () -> StatusLine.extractStatusLine("HTTP/1.1  OK"));
+                () -> extractStatusLine("HTTP/1.1  OK"));
     }
 
     @Test
     public void test_StatusLine_MissingHttpVersion() {
         assertThrows(InvariantException.class,
                 "HTTP 200 OK must match the statusLinePattern: ^HTTP/(...) (\\d{3}) (.*)$",
-                () -> StatusLine.extractStatusLine("HTTP 200 OK"));
+                () -> extractStatusLine("HTTP 200 OK"));
     }
 
     @Test
     public void test_StatusLine_InvalidHttpVersion() {
         assertThrows(WebServerException.class,
                 "HTTP version was not an acceptable value. Given: 1.3",
-                () -> StatusLine.extractStatusLine("HTTP/1.3 200 OK"));
+                () -> extractStatusLine("HTTP/1.3 200 OK"));
     }
 
     @Test
     public void test_StatusLine_InvalidStatusCode() {
         assertThrows(NoSuchElementException.class,
                 "No value present",
-                () -> StatusLine.extractStatusLine("HTTP/1.1 199 OK"));
+                () -> extractStatusLine("HTTP/1.1 199 OK"));
     }
 
     @Test
     public void test_StatusLine_nullStatusLine() {
-        assertEquals(StatusLine.extractStatusLine(null), StatusLine.EMPTY);
+        assertEquals(extractStatusLine(null), StatusLine.EMPTY);
+    }
+
+    @Test
+    public void test_StatusLine_emptyStatusLine() {
+        assertEquals(extractStatusLine(""), StatusLine.EMPTY);
     }
 
     /*
@@ -439,7 +493,7 @@ public class WebTests {
                     client.send(postedData);
 
                     // the server will respond to us.  Check everything is legit.
-                    StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    extractStatusLine(inputStreamUtils.readLine(is));
                     List<String> allHeaders = Headers.getAllHeaders(client.getInputStream(), inputStreamUtils);
                     Headers hi = new Headers(allHeaders);
                     String body = readBody(is, hi.contentLength());
@@ -465,7 +519,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
                 }
             }
@@ -571,7 +625,7 @@ public class WebTests {
                     client.sendHttpLine("");
                     client.send(multiPartData);
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
                 }
             }
@@ -639,7 +693,7 @@ public class WebTests {
                     client.sendHttpLine("");
                     client.send(multiPartData);
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
                 }
             }
@@ -718,7 +772,7 @@ public class WebTests {
                     client.sendHttpLine("");
                     client.send(multiPartData);
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
                 }
             }
@@ -758,7 +812,7 @@ public class WebTests {
                     client.sendHttpLine("Connection: keep-alive");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
                     List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers1 = new Headers(allHeaders);
@@ -843,7 +897,7 @@ public class WebTests {
                     client.sendHttpLine("Connection: keep-alive");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine1 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine1 = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine1.status(), CODE_200_OK);
                     List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers1 = new Headers(allHeaders);
@@ -856,7 +910,7 @@ public class WebTests {
                     client.sendHttpLine("Connection: close");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine2 = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine2 = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine2.status(), CODE_200_OK);
                     List<String> allHeaders2 = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers2 = new Headers(allHeaders2);
@@ -878,7 +932,7 @@ public class WebTests {
                     client.sendHttpLine("Connection: keep-alive");
                     client.sendHttpLine("");
 
-                    StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+                    StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
                     List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
                     Headers headers1 = new Headers(allHeaders);

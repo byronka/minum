@@ -20,7 +20,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=8.1.1
+VERSION=8.1.2
 
 MAVEN := ./mvnw
 
@@ -118,8 +118,11 @@ mvnlocalrepo: clean set_primary_pom_version set_version_of_published_pom jar jar
 .PHONY: mvnprep
 #: prepares the jars for sending to Maven central
 mvnprep: clean set_primary_pom_version set_version_of_published_pom jar jar_sources jar_javadoc
-	 for i in $$(ls out/minum-*); do gpg -ab $$i; done
-	 cd out && jar -cvf bundle.jar minum-*
+	 mkdir -p out/com/renomad/minum/$(VERSION)
+	 mv out/minum-* out/com/renomad/minum/$(VERSION)
+	 for i in $$(ls out/com/renomad/minum/$(VERSION)/minum-*); do gpg --armor --detach-sign $$i; done
+	 for i in $$(ls out/com/renomad/minum/$(VERSION)/minum-*); do sha1sum $$i | cut -d ' ' -f 1 > $$i.sha1 && md5sum $$i | cut -d ' ' -f 1 > $$i.md5; done
+	 cd out && zip -r bundle.zip com
 
 .PHONY: set_version_of_published_pom
 # copies the pom.xml to the output directory, adjusting its version in the process.  VERSION is set in the Makefile

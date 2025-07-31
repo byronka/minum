@@ -26,16 +26,31 @@ final class InputStreamUtils implements IInputStreamUtils {
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
         final var result = new ByteArrayOutputStream(maxReadLineSizeBytes / 3);
+        int bytesRead = 0;
         for (int i = 0;; i++) {
             if (i >= maxReadLineSizeBytes) {
                 inputStream.close();
                 throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
             }
             int a = inputStream.read();
-            if (a == -1) return result.toString(StandardCharsets.UTF_8);
+            if (a == -1) {
+                if (bytesRead > 0) {
+                    return result.toString(StandardCharsets.UTF_8);
+                } else {
+                    /*
+                    it could be unclear whether we read a line that's an empty string, or we
+                    reached the end of stream.  With this code, if we get an empty string,
+                    that means the line we read is just an empty string, and if we get a null,
+                    that means we didn't have any characters read into our ByteArrayOutputStream,
+                    and tried reading at the end of stream.
+                    */
+                    return null;
+                }
+            }
             if (a == CARRIAGE_RETURN_DECIMAL) continue;
             if (a == NEWLINE_DECIMAL) break;
             result.write(a);
+            bytesRead += 1;
         }
         return result.toString(StandardCharsets.UTF_8);
     }

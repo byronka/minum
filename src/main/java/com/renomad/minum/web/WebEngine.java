@@ -53,7 +53,7 @@ final class WebEngine {
       try {
           ss = new ServerSocket(port);
       } catch (Exception e) {
-          throw new WebServerException(e);
+          throw new WebServerException("Error starting server on port " + port, e);
       }
       logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
     IServer server = new Server(ss, context, "http server", theBrig, webFramework, executorService, PLAIN_TEXT_HTTP);
@@ -166,7 +166,7 @@ final class WebEngine {
       return socketFactory.createServerSocket(sslPort);
     } catch (Exception ex) {
       logger.logDebug(ex::getMessage);
-      throw new WebServerException(ex);
+      throw new WebServerException("Error starting SSL socket server on port " + sslPort, ex);
     }
   }
 

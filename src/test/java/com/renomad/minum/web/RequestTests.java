@@ -476,6 +476,63 @@ public class RequestTests {
         assertEquals(part2.getContentDisposition().toString(), "ContentDisposition{name='text2', filename=''}");
     }
 
+    /**
+     * We will lie to the server, telling it we have 100 bytes to read.  It will
+     * start reading but immediately encounter an end-of-stream.  Confirm we
+     * see the expected exception.
+     */
+    @Test
+    public void testEndOfStreamWhileReadingStreamingMultipartPartition() {
+        FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
+        byte[] bytes = new byte[0];
+        int contentLength = 100;
+        socketWrapper.is = new ByteArrayInputStream(bytes);
+        IRequest request = makeRequest(List.of("content-length: " + contentLength, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
+        Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
+        Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
+        var ex = assertThrows(WebServerException.class, () -> iterator.next());
+        assertEquals(ex.getMessage(), "java.io.IOException: Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+    }
+
+    /**
+     * Similar to {@link #testEndOfStreamWhileReadingStreamingMultipartPartition} but we
+     * do provide a couple bytes, instead of none.
+     */
+    @Test
+    public void testEndOfStreamWhileReadingStreamingMultipartPartition2() {
+        FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
+        byte[] bytes = new byte[2];
+        int contentLength = 100;
+        socketWrapper.is = new ByteArrayInputStream(bytes);
+        IRequest request = makeRequest(List.of("content-length: " + contentLength, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
+        Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
+        Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
+        var ex = assertThrows(WebServerException.class, () -> iterator.next());
+        assertTrue(ex.getMessage().contains("Error: First line must contain the expected boundary value. Expected to find: i_am_a_boundary in:"));
+    }
+
+    /**
+     * Similar to {@link #testEndOfStreamWhileReadingStreamingMultipartPartition} but we
+     * only have the boundary value.
+     */
+    @Test
+    public void testOnlyHavingBoundaryValue() {
+        FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
+        byte[] bytes = "--i_am_a_boundary\r\n".getBytes(StandardCharsets.UTF_8);
+        int contentLength = 100;
+        socketWrapper.is = new ByteArrayInputStream(bytes);
+        IRequest request = makeRequest(List.of("content-length: " + contentLength, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
+        Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
+        Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
+        var ex = assertThrows(WebServerException.class, () -> iterator.next());
+
+        // because immediately after the boundary value we hit end-of-stream, our
+        // code to get headers will return with an empty list for headers, and thus
+        // we'll be missing mandatory headers like Content-Disposition, the error we
+        // see here.
+        assertEquals(ex.getMessage(), "Error: no Content-Disposition header on partition in Multipart/form data");
+    }
+
     @Test
     public void test_Request_getMultipartForm_EdgeCase_ComplaintAfterGetBody() {
         FakeSocketWrapper socketWrapper = new FakeSocketWrapper();

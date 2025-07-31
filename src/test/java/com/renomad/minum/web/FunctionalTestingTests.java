@@ -34,6 +34,7 @@ public class FunctionalTestingTests {
     @Test
     public void test_sendDealsWithException() {
         var functionalTesting = new FunctionalTesting(context, "localhost", 6000);
+        context.getLogger().logDebug(() -> "DO NOT WORRY ABOUT THE EXCEPTION WITH Error during client send, IT IS EXPECTED FOR THE TEST");
         var result = functionalTesting.send(RequestLine.Method.HEAD, "foo", new byte[0], List.of());
         assertEquals(result, FunctionalTesting.TestResponse.EMPTY);
     }

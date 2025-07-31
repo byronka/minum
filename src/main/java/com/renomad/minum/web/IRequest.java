@@ -1,17 +1,67 @@
 package com.renomad.minum.web;
 
+
 /**
- * An interface for {@link Request}. Built
- * to enable easier testing on web handlers.
+ * An HTTP request.
+ * <p>
+ * From <a href="https://en.wikipedia.org/wiki/HTTP#Request_syntax">Wikipedia</a>
+ * </p>
+ *<p>
+ *     A client sends request messages to the server, which consist of:
+ *</p>
+ * <ul>
+ *     <li>
+ *      a request line, consisting of the case-sensitive request
+ *      method, a space, the requested URL, another space, the
+ *      protocol version, a carriage return, and a line feed, e.g.:
+ *      <pre>
+ *          GET /images/logo.png HTTP/1.1
+ *      </pre>
+ *      </li>
+ *
+ *      <li>
+ *      zero or more request header fields (at least 1 or more
+ *      headers in case of HTTP/1.1), each consisting of the case-insensitive
+ *      field name, a colon, optional leading whitespace, the field
+ *      value, an optional trailing whitespace and ending with a
+ *      carriage return and a line feed, e.g.:
+ *
+ *      <pre>
+ *      Host: www.example.com
+ *      Accept-Language: en
+ *      </pre>
+ *      </li>
+ *
+ *      <li>
+ *      an empty line, consisting of a carriage return and a line feed;
+ *      </li>
+ *
+ *      <li>
+ *      an optional message body.
+ *      </li>
+ *      In the HTTP/1.1 protocol, all header fields except Host: hostname are optional.
+ * </ul>
+ *
+ * <p>
+ * A request line containing only the path name is accepted by servers to
+ * maintain compatibility with HTTP clients before the HTTP/1.0 specification in RFC 1945.
+ *</p>
  *
  */
 public interface IRequest {
 
+    /**
+     * Get a {@link Headers} object, which contains all the headers in the request
+     */
     Headers getHeaders();
 
     /**
      * Obtain information about the first line.  An example
      * of a RequestLine is: <pre>{@code GET /foo?bar=baz HTTP/1.1}</pre>
+     * <p>
+     *     This is where you look for anything in the request line, like
+     *     paths or query strings.
+     * </p>
      */
     RequestLine getRequestLine();
 
@@ -27,6 +77,27 @@ public interface IRequest {
      * For instance, if expecting a video (a large file), it may be prudent to store
      * the data into a file while it downloads, so that the server
      * does not need to hold the entire file in memory.
+     * <h3>Further explanation:</h3>
+     * <p>
+     *     The body contains the data beyond the initial status line and headers.
+     *     For example, you will find HTML, images, and other bulk data stored
+     *     in the body.  If you are expecting data sent in a POST, it is usually
+     *     found in the body.
+     * </p>
+     * <p>
+     *     By calling this method, the entire body contents will be read.  In the case
+     *     of ordinary-sized data, this is not a problem.  But, for the sake of explanation,
+     *     if the data were a gigabyte in size, then your server would need to set aside
+     *     that much in memory for it.
+     * </p>
+     * <p>
+     *     It is therefore a security concern, and the defaults of the Minum system are
+     *     set to prevent security failures.  It is recommended that the developer
+     *     handle such large data by another means, such as by using the aforementioned {@link #getSocketWrapper()}.
+     *     By default, the system will not read the body if the content-length is greater
+     *     than the size specified by MAX_READ_SIZE_BYTES, described in the Constants class and
+     *     in the "minum.config" file.
+     * </p>
      */
     Body getBody();
 

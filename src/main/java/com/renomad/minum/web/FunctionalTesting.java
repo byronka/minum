@@ -15,6 +15,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
 /**
  * Tools to enable system-wide integration testing
@@ -197,7 +201,7 @@ public final class FunctionalTesting {
         client.sendHttpLine("");
         client.send(payload);
 
-        StatusLine statusLine = StatusLine.extractStatusLine(inputStreamUtils.readLine(is));
+        StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
         List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
         Headers headers = new Headers(allHeaders);
 
@@ -209,5 +213,33 @@ public final class FunctionalTesting {
         return new TestResponse(statusLine, headers, body);
     }
 
+    /**
+     * This is the regex used to analyze a status line sent by the server and
+     * read by the client.  Servers will send messages like: "HTTP/1.1 200 OK" or "HTTP/1.1 500 Internal Server Error"
+     */
+    static final String statusLinePattern = "^HTTP/(...) (\\d{3}) (.*)$";
+    static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
+
+    /**
+     * Parses a string value of a status line from an HTTP
+     * server.  If the input value is null or empty, we'll
+     * return a {@link StatusLine} with null-object values
+     */
+    public static StatusLine extractStatusLine(String value) {
+        if (value == null || value.isBlank()) {
+            return StatusLine.EMPTY;
+        }
+        Matcher mr = statusLineRegex.matcher(value);
+        mustBeTrue(mr.matches(), String.format("%s must match the statusLinePattern: %s", value, statusLinePattern));
+        String version = mr.group(1);
+        HttpVersion httpVersion = switch (version) {
+            case "1.1" -> HttpVersion.ONE_DOT_ONE;
+            case "1.0" -> HttpVersion.ONE_DOT_ZERO;
+            default -> throw new WebServerException(String.format("HTTP version was not an acceptable value. Given: %s", version));
+        };
+        StatusLine.StatusCode status = StatusLine.StatusCode.findByCode(Integer.parseInt(mr.group(2)));
+
+        return new StatusLine(status, httpVersion, value);
+    }
 
 }

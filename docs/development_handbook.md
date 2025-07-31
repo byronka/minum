@@ -143,6 +143,12 @@ Developed in two environments:
 Note that the build tool, _Gnu Make_, is already installed on Mac.  On Windows you can install
 it through the Cygwin installer.  See [here](https://www.cygwin.com/packages/summary/make.html)
 
+Development on Minum generally requires Posix tools like sed, and particularly GNU Make.
+
+Publishing the system requires some extra tools: md5sum, sha1sum, cut, zip, gpg
+
+The resulting jar file only needs a minimum of JDK 21
+
 
 New Developer Setup
 -------------------

@@ -1,8 +1,5 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.state.Context;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
@@ -14,14 +11,6 @@ import static com.renomad.minum.testing.TestFramework.*;
  * See https://en.wikipedia.org/wiki/Circular_buffer for more explanation.
  */
 public class RingBufferTests {
-
-    private TestLogger logger;
-
-    @Before
-    public void init() {
-        Context ctx = buildTestingContext("testing_ring_buffer");
-        this.logger = (TestLogger)ctx.getLogger();
-    }
 
     /**
      * Stepping through the basic behaviors of our {@link RingBuffer}

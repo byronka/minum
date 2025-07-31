@@ -8,17 +8,16 @@ How to deploy to Maven Central
 
 Run `make mvnprep`
 
-There will now be a file `out/bundle.jar`, which you will use in
-the process explained [here](https://central.sonatype.org/publish/publish-manual/#bundle-creation)
+There will now be a file `out/bundle.zip`, which you will use in
+the process explained [here](https://central.sonatype.org/publish/publish-portal-upload/)
 
 In case the web page is down, here's the gist of it:
 
-1. Once bundle.jar has been produced, log into [OSSRH](https://s01.oss.sonatype.org/), and select 
-Staging Upload in the Build Promotion menu on the left.
-2. From the Staging Upload tab, select Artifact Bundle from the Upload Mode dropdown.
-3. Then click the Select Bundle to Upload button, and select the bundle you just created.
-4. Click the Upload Bundle button. If the upload is successful, a staging repository will be
- created, and you can proceed with [releasing](https://central.sonatype.org/publish/release/).
+1. Once bundle.zip has been produced, log into [OSSRH](https://central.sonatype.com/publishing/namespaces), and select Publish Component.
+2. For "Deployment Name", enter: com.renomad:minum:VERSION_GOES_HERE
+3. For "Description", enter: A minimalist web framework
+4. Select the button "Choose File"
+5. Click "Publish Component"
 
 Deployment checklist
 --------------------
@@ -41,6 +40,9 @@ Gnupg - GNU privacy guard
 
 Gnupg [gpg](https://gnupg.org/) is used to sign the bundle for shipping to Maven central. Its entire
 configuration directory is encrypted and stored here, as `gnupg.tar.gz.encrypted`.
+
+Occasionally it will be necessary to extend the expiration date for the private key,
+presuming it is still 
 
 The passphrase to decrypt this file is the same as the one used when creating a signed bundle.
 

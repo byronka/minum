@@ -21,4 +21,8 @@ public final class WebServerException extends RuntimeException{
     public WebServerException(String msg) {
         super(msg);
     }
+
+    public WebServerException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }

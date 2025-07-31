@@ -1,10 +1,6 @@
 package com.renomad.minum.web;
 
 import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
 /**
  * This class represents the text that is sent back in a {@link Response}
@@ -12,13 +8,6 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
 public record StatusLine(StatusCode status, HttpVersion version, String rawValue) {
 
     static final StatusLine EMPTY = new StatusLine(StatusCode.NULL, HttpVersion.NONE, "");
-
-    /**
-     * This is the regex used to analyze a status line sent by the server and
-     * read by the client.  Servers will send messages like: "HTTP/1.1 200 OK" or "HTTP/1.1 500 Internal Server Error"
-     */
-    static final String statusLinePattern = "^HTTP/(...) (\\d{3}) (.*)$";
-    static final Pattern statusLineRegex = Pattern.compile(statusLinePattern);
 
     /**
      * See <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">Status Codes</a>
@@ -130,25 +119,4 @@ public record StatusLine(StatusCode status, HttpVersion version, String rawValue
         }
     }
 
-    /**
-     * Parses a string value of a status line from an HTTP
-     * server.  If the input value is null or empty, we'll
-     * return a {@link StatusLine} with null-object values
-     */
-    public static StatusLine extractStatusLine(String value) {
-        if (value == null || value.isBlank()) {
-            return StatusLine.EMPTY;
-        }
-        Matcher mr = StatusLine.statusLineRegex.matcher(value);
-        mustBeTrue(mr.matches(), String.format("%s must match the statusLinePattern: %s", value, statusLinePattern));
-        String version = mr.group(1);
-        HttpVersion httpVersion = switch (version) {
-            case "1.1" -> HttpVersion.ONE_DOT_ONE;
-            case "1.0" -> HttpVersion.ONE_DOT_ZERO;
-            default -> throw new WebServerException(String.format("HTTP version was not an acceptable value. Given: %s", version));
-        };
-        StatusCode status = StatusCode.findByCode(Integer.parseInt(mr.group(2)));
-
-        return new StatusLine(status, httpVersion, value);
-    }
 }

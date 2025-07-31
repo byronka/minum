@@ -2,6 +2,7 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.utils.UtilsException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.After;
@@ -12,6 +13,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.IntStream;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -97,8 +99,93 @@ public class InputStreamUtilsTests {
         }
     }
 
+    /**
+     * When we try reading a line and it's an empty string, we want to get an empty string. When we're
+     * at the end of the stream, we want to see something different - a null value - instead, to
+     * help distinguish the situation.
+     */
+    @Test
+    public void testEdgeCase_DifferentReturnValues() throws IOException {
+        String threeNewlines = "\n\n";
+        InputStream inputStream = new ByteArrayInputStream(threeNewlines.getBytes(StandardCharsets.UTF_8));
+        assertEquals(inputStreamUtils.readLine(inputStream), "");
+        assertEquals(inputStreamUtils.readLine(inputStream), "");
+        assertTrue(inputStreamUtils.readLine(inputStream) == null, "The third time we read, we're " +
+                "at the end of stream so we get a clear alert that we are done, by receiving a null");
+    }
+
     @Test
     public void testEquals() {
         EqualsVerifier.forClass(InputStreamUtils.class).verify();
+    }
+
+    /**
+     * Currently taking more than 3 seconds for 200k loops
+     */
+    @Test
+    public void testPerformance() throws IOException {
+        String headers = createSampleDataForPerfTest();
+        InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
+        StopwatchUtils stopwatchUtils = new StopwatchUtils().startTimer();
+        int iterationCount = 10;
+        for (int i = 0; i < iterationCount; i++) {
+            String foo = "";
+            do {
+                foo = inputStreamUtils.readLine(inputStream);
+            } while (foo != null);
+            inputStream.reset();
+        }
+        long l = stopwatchUtils.stopTimer();
+        context.getLogger().logDebug(() -> "Took " + l + " milliseconds to process " + iterationCount + " times in InputStreamUtilsTests.testPerformance");
+        assertTrue(l < 100, "Took: " + l + " milliseconds");
+    }
+
+
+    /**
+     * Similar to {@link #testPerformance()} except that it works
+     * through in parallel.  Takes about 400 milliseconds for 200k loops.
+     */
+    @Test
+    public void testParallelPerformance() {
+        String headers = createSampleDataForPerfTest();
+        StopwatchUtils stopwatchUtils = new StopwatchUtils().startTimer();
+
+        int iterationCount = 10;
+        IntStream.range(0, iterationCount).boxed().parallel().forEach(x -> {
+            InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
+            String foo = "";
+            do {
+                try {
+                    foo = inputStreamUtils.readLine(inputStream);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } while (foo != null);
+        });
+        long l = stopwatchUtils.stopTimer();
+        context.getLogger().logDebug(() -> "Took " + l + " milliseconds to process " + iterationCount + " times in InputStreamUtilsTests.testPerformance");
+        assertTrue(l < 100, "Took: " + l + " milliseconds");
+    }
+
+
+    private String createSampleDataForPerfTest() {
+        return """
+                GET / HTTP/1.1
+                Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+                Accept-Encoding: gzip, deflate, br, zstd
+                Accept-Language: en-US,en;q=0.9
+                Connection: keep-alive
+                Host: minum.com
+                Referer: https://minum.com/login
+                Sec-Fetch-Dest: document
+                Sec-Fetch-Mode: navigate
+                Sec-Fetch-Site: same-origin
+                Sec-Fetch-User: ?1
+                Upgrade-Insecure-Requests: 1
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36
+                sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"
+                sec-ch-ua-mobile: ?0
+                sec-ch-ua-platform: "Windows"
+                """;
     }
 }

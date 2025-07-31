@@ -41,10 +41,10 @@ public class WebEngineTests {
         var ex = assertThrows(WebServerException.class, () -> {
                 webEngine.createSslSocketWithSpecificKeystore(
                         1234,
-                        new URI("http://example.com/").toURL(),
+                        new URI("file:///does/not/exist").toURL(),
                         "badpass");
         });
-        assertEquals(ex.getMessage(), "java.io.IOException: toDerInputStream rejects tag type 60");
+        assertTrue(ex.getCause().getMessage().contains("(The system cannot find the path specified)"));
     }
 
     @Test

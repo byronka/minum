@@ -15,8 +15,11 @@ import java.util.concurrent.Executors;
 /**
  * These are utility functions for basic automated
  * testing.  It turns out you don't really need fancy tools
- * to do excellent testing.  Just a committment to
+ * to do excellent testing.  Just a commitment to
  * quality.  Don't let anyone tell you differently.
+ * <br>
+ * Hint: A common pattern you will use before testing is to initialize the {@link Context} object
+ * using {@link #buildTestingContext}.
  */
 public final class TestFramework {
 
@@ -236,19 +239,29 @@ public final class TestFramework {
         return text;
     }
 
-    public static Context buildTestingContext(String loggerName) {
-        return buildTestingContext(loggerName, null);
-    }
-
     /**
      * This builds a context very similarly to {@link FullSystem#buildContext()},
      * except that it uses {@link TestLogger} instead of {@link com.renomad.minum.logging.Logger}
      * @param loggerName this will assign a human-readable name to the logger's
      *                   LoggingActionQueue so we can distinguish it
      *                   when reviewing the threads
+     * @see #buildTestingContext(String, Properties)
+     * @see #shutdownTestingContext(Context)
+     */
+    public static Context buildTestingContext(String loggerName) {
+        return buildTestingContext(loggerName, null);
+    }
+
+    /**
+     * This builds a context very similarly to {@link FullSystem#buildContext()},
+     * except that it uses {@link TestLogger} instead of {@link com.renomad.minum.logging.Logger}.
+     * @param loggerName this will assign a human-readable name to the logger's
+     *                   LoggingActionQueue so we can distinguish it
+     *                   when reviewing the threads
      * @param properties If you want, you can inject a properties object here, to have
      *                   greater control over your test.  Using a parameter of null here
      *                   will cause the system to obtain properties from the minum.config file
+     * @see #shutdownTestingContext(Context)
      */
     public static Context buildTestingContext(String loggerName, Properties properties) {
         var constants = new Constants(properties);
@@ -262,6 +275,10 @@ public final class TestFramework {
         return context;
     }
 
+    /**
+     * A helper to close down resources that are opened up by running
+     * the {@link #buildTestingContext} methods.
+     */
     public static void shutdownTestingContext(Context context) {
             new ActionQueueKiller(context).killAllQueues();
             context.getLogger().stop();

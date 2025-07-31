@@ -45,6 +45,29 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.1.2 Jul 31, 2025
+-------------------
+
+* Fix a bug in the ActionQueue - handle throwables
+   It was found that when an Error (versus an Exception) was encountered, it would kill
+   the thread of the ActionQueue.  Errors are things like out-of-memory errors.  This might
+   happen if the function to run in a loop iteration required too much memory.  It's fine to
+   crash out of that particular run, but not fine to crash the thread entirely.
+* The system will complain if duplicate endpoints are registered 
+   If there is a developer error of registering the same endpoint more than once, (that is,
+   a verb plus endpoint, such as GET /foo), the system will thrown an exception right away, so 
+   there is less chance of incorporating subtle bugs.
+* General documentation improvements all around: In the JavaDocs and on the root README page.
+  * Documentation improvements to IRequest
+  * Clearer documentation about change to InputStreamUtils.read(), with test
+  * noticed a component of StatusLine that isn't used except for testing -
+      moved it to a testing section
+* Prevent registering paths with a prefixed slash. This is a typical pattern from other
+  frameworks.  Minum differs from that common pattern, on the basis that it provides
+  no clear benefit.  A typical (pseudocode) path registration will look like the
+  following, note the path has no special symbol prefix: `register(GET, "foo", doFoo)`. Naturally,
+  deeper paths may be defined, like `register(GET, "foo/bar", doFoo)`
+
 v8.1.1 - Apr 26, 2025
 ---------------------
 

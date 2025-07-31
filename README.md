@@ -67,7 +67,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.1.1</version>
+    <version>8.1.2</version>
 </dependency>
 ```
 
@@ -93,7 +93,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,373 | 141,048 | 1,085,405   |
+| 5,406 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 
@@ -163,7 +163,12 @@ and which shows how a user might go about including a different database than th
 
 
 Code samples
-------------
+============
+
+The following code samples help provide an introduction to the features.
+
+Database
+--------
 
 _Instantiating a new database_:
 
@@ -221,9 +226,8 @@ could impact the performance of the system.  By using this design pattern, those
 run if necessary, which is valuable for trace-level logging and those log statements which include
 further processing (e.g. `_____ has requested to _____ at _____`).
 
-<hr>
-
-_Parsing an HTML document_:
+HTML Parser
+-----------
 
 ```java
 List<HtmlParseNode> results = new HtmlParser().parse("<p></p>");
@@ -261,36 +265,64 @@ which checks the authentication and returns values as HTML.  There are other exa
 class, and you may see these endpoints in operation by running `make run_sampledomain` from the command line, presuming you
 have installed Java and GNU Make already, and then by visiting http://localhost:8080.
 
-<hr>
+Endpoints
+---------
 
-_Registering an endpoint_:
+When a user visits a page, such as "hello" in `http://mydomain.com/hello`, the web server provides data in response.
+
+Originally, that data was a file in a directory. If we were providing HTML, `hello` would have really been `hello.html` 
+like `http://mydomain.com/hello.html`.  
+
+Dynamically-generated pages became more prevalent, and patterns changed.  In Minum, it is possible to host files
+in that original way, by placing them in the directory configured for "static" files - the `minum.config` file
+includes a configuration for where this static directory is located, `STATIC_FILES_DIRECTORY`.  In web applications, 
+it is still useful to follow this pattern for files that don't change, such as JavaScript or images.  Contrastingly, 
+dynamic files, which are generated on the fly, have their paths "registered" in the system as follows:
 
 ```java
-webFramework.registerPath(GET, "formentry", sd::formEntry);
+webFramework.registerPath(GET, "hello", sd::helloName);
 ```
 
-The expected pattern is to have a file where all the endpoints are registered.  See [Memoria's endpoint registration page](https://github.com/byronka/memoria_project/blob/c474040aac46b52bc48341b5972c8d9d1c438da8/src/main/java/com/renomad/inmra/TheRegister.java#L56)
+The preceding path registration added a path "hello", so that users visiting `http://mydomain.com/hello` would get
+something.  The program registered to provide data for it is `helloName`.  Here is an example:
 
-_Building and rendering a template_:
+```java
+    /**
+     * a GET request, at /hello?name=foo
+     * <p>
+     *     Replies "hello foo"
+     * </p>
+     */
+    public IResponse helloName(IRequest request) {
+        String name = request.getRequestLine().queryString().get("name");
+        return Response.htmlOk("hello " + name);
+    }
+```
+
+In order to attain a better sense of this core capability, I suggest you try following the [Quick start guide](docs/quick_start.md)
+which will take you through running a small example project and then make some changes to see how that affects things.
+
+Templates
+---------
 
 ```java
 TemplateProcessor myTemplate = TemplateProcessor.buildProcessor("hello {{ name }}");
 String renderedTemplate = myTemplate.renderTemplate(Map.of("name", "world"));
 ```
 
-The Minum framework is driven by a paradigm of server-rendered HTML.  Is is performant and
-works on all devices.  In contrast, the industry's current predominant approach is single
-page apps, whose overall system complexity is greater.  Complexity is a dragon we must fight daily.
+The Minum framework is driven by a paradigm of server-rendered HTML, which is performant and
+works on all browsers.
 
-The templates can be any string, but the design was driven concerned with rendering HTML templates.  Here is [an example of a simple template](https://github.com/byronka/minum/blob/master/src/test/webapp/templates/sampledomain/name_entry.html),
+The templates can be any string, but the design was driven concerned with rendering HTML 
+templates.  Here is [an example of a simple template](https://github.com/byronka/minum/blob/master/src/test/webapp/templates/sampledomain/name_entry.html),
 which is rendered with dynamic data in [this class](https://github.com/byronka/minum/blob/master/src/test/java/com/renomad/minum/sampledomain/SampleDomain.java) 
 
-HTML templates must consider the concept of _HTML sanitization_, to prevent XSS, when the data is coming
-from a user.  To sanitize content of an HTML tag (e.g. `<p>{{user_data}}</p>`), sanitize the data 
-with `StringUtils.safeHtml(userData)`, and for attributes (e.g. `class="{{user_data}}"`), 
-use `StringUtils.safeAttr(userData)`.  Putting this all together:
+HTML templates must consider the concept of _HTML sanitization_, to prevent cross-site 
+scripting (XSS), when the data is coming from a user.  To sanitize content of an HTML 
+tag (e.g. `<p>{{user_data}}</p>`), sanitize the data with `StringUtils.safeHtml(userData)`, and 
+for attributes (e.g. `class="{{user_data}}"`), use `StringUtils.safeAttr(userData)`.  Putting this all together:
 
-_template_
+_template:_
 
 ```html
 <div>{{user_name}}</div>
@@ -298,7 +330,7 @@ _template_
 <div data-name="{{user_name_attr}}">hello</div>
 ```
 
-_code_
+_code:_
 
 ```java
 String renderedTemplate = myTemplate.renderTemplate(
@@ -308,7 +340,8 @@ String renderedTemplate = myTemplate.renderTemplate(
   ));
 ```
 
-<hr>
+User Input
+----------
 
 It is a common pattern to get user data from requests by query string or body.
 The following examples show this:
@@ -370,6 +403,40 @@ _Checking for a log message during tests_:
 ```java
 assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
 ```
+
+Output
+------
+
+How data is sent to the user is also an important detail.  In many cases, the system will
+send an HTML response.  Other times, a JPEG image or an .mp3 audio or .mp4 video.  These are
+all supported by the system.
+
+When sending data, it is important to configure the type of data, so that the browser
+knows how to handle it.  This kind of information is provided in the
+headers part of the response message, specifically the "Content-Type" header.  The standard for
+file types is called "MIME", and some examples are `text/html` for HTML documents
+and `image/png` for .png image files.
+
+The `Response.java` class includes helper methods for sending typical data, like the `htmlOk()` method
+which sends HTML data with a proper content type.  A customized response is seen
+in the `grabPhoto()` method of the `ListPhotos.java` class of the "SampleDomain" test 
+project, for sending photos.  Here is a simplified version of that method:
+
+```java
+ public IResponse grabPhoto(IRequest r) {
+        String filename = r.getRequestLine().queryString().get("name");
+        logger.logAudit(() -> r.getRemoteRequester() + " is looking for a photo named " + filename);
+        
+        // more code here ...  see the ListPhotos.java file for complete detail
+
+        return readStaticFile(photoPath.toString(), "image/jpeg", r.getHeaders());
+    }
+```
+
+A more advanced capability is sending large files, like streaming videos. Minum supports streaming
+data output.  See [createOkResponseForLargeStaticFiles](https://github.com/byronka/minum/blob/7e1d83fb4927e5ca2f1d3231a21284c8de58f0f4/src/test/java/com/renomad/minum/sampledomain/ListPhotos.java#L237)
+in the `ListPhotos.java` file of the tests.
+
 
 The Minum application was built using test-driven development (TDD) from the ground up.  The testing
 mindset affected every aspect of its construction.  One element that can sometimes trip up 
