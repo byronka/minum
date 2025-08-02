@@ -2,6 +2,7 @@ Size statistics, in the form of production lines of code:
 =========================================================
 
 <!-- TOC -->
+* [Size statistics, in the form of production lines of code:](#size-statistics-in-the-form-of-production-lines-of-code-)
   * [Web frameworks](#web-frameworks)
   * [Web server](#web-server)
   * [Templating](#templating)
@@ -27,18 +28,11 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,406 | 141,048 | 1,085,405   |
+| 5,675 | 141,048 | 1,085,405   |
 
 
-#### Our project is 30 times smaller than [Javalin](https://javalin.io/), which bills itself as
-
->"A simple web framework for Java and Kotlin"
-> 
->"Lightweight - Javalin is just a few thousand lines of code on top of Jetty, and its 
-> performance is equivalent to raw Jetty code. Due to its size, it's very easy to 
-> reason about the source code.
-
-We'll see that, and raise you ***a web framework with zero dependencies***
+Our project is 25 times smaller than [Javalin](https://javalin.io/), which bills itself 
+as "A simple web framework for Java and Kotlin".
 
 Minum does not require a separate web server, database, or HTML parsing - it is
 all built-in.  It even includes a testing framework!
@@ -53,7 +47,7 @@ well-tested and there are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2640  | 163,000 | 242,000 |
+| 2673  | 163,000 | 242,000 |
 
 
 Templating
@@ -66,7 +60,7 @@ See an example of sophisticated use [here](https://github.com/byronka/template-b
 
 | Minum | Mustache | Pebble | Rocker | Thymeleaf |
 |-------|----------|--------|--------|-----------|
-| 146   | 11,346   | 16,876 | 11,996 | 43,056    |
+| 298   | 11,346   | 16,876 | 11,996 | 43,056    |
 
 
 Database
@@ -77,7 +71,7 @@ be used in its place - the framework does nothing to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 243   | 1,300,000  | 1,500,000 | 116,000 |
+| 309   | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -134,7 +128,7 @@ there is a basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 655   | 18,045            |
+| 673   | 18,045            |
 
 
 Javascript utilities

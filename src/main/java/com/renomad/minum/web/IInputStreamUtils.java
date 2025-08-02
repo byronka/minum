@@ -30,4 +30,5 @@ interface IInputStreamUtils {
      * Reads "lengthToRead" bytes from the input stream
      */
     byte[] read(int lengthToRead, InputStream inputStream);
+
 }

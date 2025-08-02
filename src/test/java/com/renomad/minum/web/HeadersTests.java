@@ -93,7 +93,7 @@ public class HeadersTests {
     public void test_ContentType_HappyPath() {
         Headers headers = new Headers(List.of("content-type: foo"));
         String contentType = headers.contentType();
-        assertEquals(contentType, "content-type: foo");
+        assertEquals(contentType, "foo");
     }
 
     /**
@@ -103,7 +103,7 @@ public class HeadersTests {
     public void test_ContentType_TooMany() {
         Headers headers = new Headers(List.of("content-type: foo", "content-type: bar"));
         var ex = assertThrows(WebServerException.class, headers::contentType);
-        assertEquals(ex.getMessage(), "The number of content-type headers must be exactly zero or one.  Received: [content-type: foo, content-type: bar]");
+        assertEquals(ex.getMessage(), "The number of content-type headers must be exactly zero or one.  Received: [bar, foo]");
     }
 
     /**
@@ -113,7 +113,7 @@ public class HeadersTests {
     public void test_ContentLength_TooMany() {
         Headers headers = new Headers(List.of("content-length: 12", "content-length: 44"));
         var ex = assertThrows(WebServerException.class, headers::contentLength);
-        assertEquals(ex.getMessage(), "The number of content-length headers must be exactly zero or one.  Received: [content-length: 12, content-length: 44]");
+        assertEquals(ex.getMessage(), "The number of content-length headers must be exactly zero or one.  Received: [12, 44]");
     }
 
     @Test

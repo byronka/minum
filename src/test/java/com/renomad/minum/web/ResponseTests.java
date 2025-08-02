@@ -40,11 +40,11 @@ public class ResponseTests {
     @Test
     public void testToString() {
         IResponse response1 = Response.htmlOk("fooabcdefg");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=10}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=10, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefgh");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=11}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=11, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefghi");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=12}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=12, isBodyText=true}");
     }
 
     /**
@@ -59,8 +59,8 @@ public class ResponseTests {
         ISocketWrapper mockSocketWrapper = new ISocketWrapper() {
             @Override public void send(String msg) {}
             @Override public void send(byte[] bodyContents) throws IOException {throw new IOException("This is just a test");}
-            @Override public void send(byte[] bodyContents, int off, int len) throws IOException {}
-            @Override public void send(int b) throws IOException {}
+            @Override public void send(byte[] bodyContents, int off, int len) {}
+            @Override public void send(int b) {}
             @Override public void sendHttpLine(String msg) {}
             @Override public int getLocalPort() {return 0;}
             @Override public SocketAddress getRemoteAddrWithPort() {return null;}
@@ -69,6 +69,7 @@ public class ResponseTests {
             @Override public void close() {}
             @Override public InputStream getInputStream() {return null;}
             @Override public String getHostName() {return null;}
+            @Override public void flush() {}
         };
         var ex = assertThrows(IOException.class, () ->  response.sendBody(mockSocketWrapper));
         assertEquals(ex.getMessage(), "This is just a test");
@@ -81,7 +82,7 @@ public class ResponseTests {
     @Test
     public void testResponse_EdgeCase_BadPathRequested() throws IOException {
         assertThrows(InvariantException.class, "filename (../foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of())));
-        assertThrows(InvariantException.class, "filename (c:/foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of())));
+        assertThrows(InvariantException.class, "filename (c:/foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of())));
         assertThrows(InvariantException.class, "filename (//foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "//foo", ".", new Headers(List.of())));
         Response.buildLargeFileResponse(Map.of(), "src/test/resources/kitty.jpg", ".", new Headers(List.of()));
     }

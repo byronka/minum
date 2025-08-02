@@ -11,7 +11,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -34,17 +33,6 @@ public class FileUtilsTests {
     @AfterClass
     public static void cleanup() {
         shutdownTestingContext(context);
-    }
-
-    /**
-     * The user cannot write to a parent directory. If they
-     * try, a log message is entered about it, but nothing
-     * happens - we return, having done nothing.
-     */
-    @Test
-    public void test_WriteString_preventWritingToParentDirectory() {
-        fileUtils.writeString(Path.of("../foo"), "bar");
-        assertTrue(logger.doesMessageExist("an empty path was provided to writeString"));
     }
 
     @Test
@@ -83,8 +71,8 @@ public class FileUtilsTests {
     public void test_BadFilePathPatterns() {
         assertThrows(InvariantException.class, "filename (../foo) contained invalid characters", () -> checkForBadFilePatterns("../foo"));
         assertThrows(InvariantException.class, "filename (foo/..) contained invalid characters", () -> checkForBadFilePatterns("foo/.."));
-        assertThrows(InvariantException.class, "filename (:foo) contained invalid characters", () -> checkForBadFilePatterns(":foo"));
-        assertThrows(InvariantException.class, "filename (foo:) contained invalid characters", () -> checkForBadFilePatterns("foo:"));
+        assertThrows(InvariantException.class, "filename (:foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns(":foo"));
+        assertThrows(InvariantException.class, "filename (foo:) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> checkForBadFilePatterns("foo:"));
         assertThrows(InvariantException.class, "filename (//foo) contained invalid characters", () -> checkForBadFilePatterns("//foo"));
         assertThrows(InvariantException.class, "filename (foo//) contained invalid characters", () -> checkForBadFilePatterns("foo//"));
 

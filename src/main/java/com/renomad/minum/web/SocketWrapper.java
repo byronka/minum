@@ -2,9 +2,7 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.logging.ILogger;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.charset.Charset;
@@ -16,10 +14,10 @@ final class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final String hostName;
-    private final InputStream inputStream;
-    private final OutputStream writer;
+    private final BufferedOutputStream writer;
     private final ILogger logger;
     private final IServer server;
+    private final BufferedInputStream bufferedInputStream;
 
     /**
      * Constructor
@@ -32,8 +30,8 @@ final class SocketWrapper implements ISocketWrapper {
         this.hostName = hostName;
         logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));
         this.socket.setSoTimeout(timeoutMillis);
-        this.inputStream = socket.getInputStream();
-        writer = socket.getOutputStream();
+        this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
+        writer = new BufferedOutputStream(socket.getOutputStream());
         this.logger = logger;
         this.server = server;
     }
@@ -93,7 +91,7 @@ final class SocketWrapper implements ISocketWrapper {
 
     @Override
     public InputStream getInputStream() {
-        return this.inputStream;
+        return bufferedInputStream;
     }
 
     /**
@@ -109,5 +107,10 @@ final class SocketWrapper implements ISocketWrapper {
     @Override
     public String getHostName() {
         return hostName;
+    }
+
+    @Override
+    public void flush() throws IOException {
+        this.writer.flush();
     }
 }

@@ -45,6 +45,23 @@ Recap, all changes to date since beta release
       data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
 * Subtle improvements to security programs
 
+v8.2.0 Aug 6, 2025
+------------------
+
+Make it faster
+
+* New database feature: _indexed data_
+
+  "Indexed data" means 1000x faster data access in some cases. By indexing the data,
+  it is associated with keys - in other words, it is a map of strings to lists of data.
+  In cases where the keys are unique identifiers for each element of data, the list will
+  contain just one single item, thus enabling O(1) requests for data.
+
+* Templating performance improvements
+* New templating feature: nested templates
+* HTTP processing performance improvements
+* Better documentation
+
 v8.1.2 Jul 31, 2025
 -------------------
 

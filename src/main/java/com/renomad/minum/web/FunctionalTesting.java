@@ -200,13 +200,14 @@ public final class FunctionalTesting {
         }
         client.sendHttpLine("");
         client.send(payload);
+        client.flush();
 
         StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
         List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
         Headers headers = new Headers(allHeaders);
+        boolean hasBody = !headers.contentType().isBlank();
 
-
-        if (WebFramework.isThereIsABody(headers) && method != RequestLine.Method.HEAD) {
+        if (hasBody && method != RequestLine.Method.HEAD) {
             logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
             body = bodyProcessor.extractData(is, headers);
         }

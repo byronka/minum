@@ -5,8 +5,6 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.StringUtils;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.renomad.minum.utils.Invariants.mustNotBeNull;
 
@@ -44,20 +42,7 @@ public final class RequestLine {
         this.logger = logger;
     }
 
-    /**
-     * This is our regex for looking at a client's request
-     * and determining what to send them.  For example,
-     * if they send GET /sample.html HTTP/1.1, we send them sample.html
-     * <p>
-     * On the other hand if it's not a well-formed request, or
-     * if we don't have that file, we reply with an error page
-     * </p>
-     */
-    static final String REQUEST_LINE_PATTERN = "^([A-Z]{3,8})" + // an HTTP method, like GET, HEAD, POST, or OPTIONS
-            " /?(.*)" + // the request target - may or may not start with a slash.
-            " HTTP/(1.1|1.0)$"; // the HTTP version, defining structure of the remaining message
 
-    static final Pattern startLineRegex = Pattern.compile(REQUEST_LINE_PATTERN);
 
     public static final RequestLine EMPTY = new RequestLine(Method.NONE, PathDetails.empty, HttpVersion.NONE, "", null);
 
@@ -68,7 +53,7 @@ public final class RequestLine {
      */
     public Map<String, String> queryString() {
         if (pathDetails == null || pathDetails.getQueryString().isEmpty()) {
-            return new HashMap<>();
+            return Map.of();
         } else {
             return new HashMap<>(pathDetails.getQueryString());
         }
@@ -77,7 +62,6 @@ public final class RequestLine {
 
     /**
      * These are the HTTP methods we handle.
-     * @see #REQUEST_LINE_PATTERN
      */
     public enum Method {
         GET,
@@ -101,17 +85,54 @@ public final class RequestLine {
      */
     public RequestLine extractRequestLine(String value) {
         mustNotBeNull(value);
-        Matcher m = RequestLine.startLineRegex.matcher(value);
-        // run the regex
-        var doesMatch = m.matches();
-        if (!doesMatch) {
+        if (value.isEmpty()) {
             return RequestLine.EMPTY;
         }
-        Method myMethod = extractMethod(m.group(1));
-        PathDetails pd = extractPathDetails(m.group(2));
-        HttpVersion httpVersion = getHttpVersion(m.group(3));
+        RequestLineRawValues rawValues = requestLineTokenizer(value);
+        if (rawValues == null) {
+            return RequestLine.EMPTY;
+        }
+        Method myMethod = extractMethod(rawValues.method());
+        if (myMethod.equals(Method.NONE)) {
+            return RequestLine.EMPTY;
+        }
+        PathDetails pd = extractPathDetails(rawValues.path());
+        HttpVersion httpVersion = getHttpVersion(rawValues.protocol());
+        if (httpVersion.equals(HttpVersion.NONE)) {
+            return RequestLine.EMPTY;
+        }
 
         return new RequestLine(myMethod, pd, httpVersion, value, logger);
+    }
+
+    /**
+     * Split the request line into three parts - a method (e.g. GET), a
+     * path (e.g. "/" or "/helloworld/hi/foo?name=hello") and a protocol,
+     * which is typically "HTTP/1.1" but might be "HTTP/1.0" in some cases
+     * <br>
+     * If we don't find exactly three parts, we will return null, which
+     * is interpreted by the calling method to mean we didn't receive a
+     * valid request line.
+     * @param rawRequestLine the full string of the first line received
+     *                       after the socket is connected to the client.
+     */
+    private RequestLineRawValues requestLineTokenizer(String rawRequestLine) {
+        int firstSpace = rawRequestLine.indexOf(' ');
+        if (firstSpace == -1) {
+            return null;
+        }
+        int secondSpace = rawRequestLine.indexOf(' ', firstSpace + 1);
+        if (secondSpace == -1) {
+            return null;
+        }
+        int thirdSpace = rawRequestLine.indexOf(' ', secondSpace + 1);
+        if (thirdSpace != -1) {
+            return null;
+        }
+        String method = rawRequestLine.substring(0, firstSpace);
+        String path = rawRequestLine.substring(firstSpace + 1, secondSpace);
+        String protocol = rawRequestLine.substring(secondSpace + 1);
+        return new RequestLineRawValues(method, path, protocol);
     }
 
     private Method extractMethod(String methodString) {
@@ -125,16 +146,19 @@ public final class RequestLine {
 
     private PathDetails extractPathDetails(String path) {
         PathDetails pd;
-        int locationOfQueryBegin = path.indexOf("?");
+        // the request line will have a forward slash at the beginning of
+        // the path.  Remove that here.
+        String adjustedPath = path.substring(1);
+        int locationOfQueryBegin = adjustedPath.indexOf("?");
         if (locationOfQueryBegin > 0) {
             // in this case, we found a question mark, suggesting that a query string exists
-            String rawQueryString = path.substring(locationOfQueryBegin + 1);
-            String isolatedPath = path.substring(0, locationOfQueryBegin);
+            String rawQueryString = adjustedPath.substring(locationOfQueryBegin + 1);
+            String isolatedPath = adjustedPath.substring(0, locationOfQueryBegin);
             Map<String, String> queryString = extractMapFromQueryString(rawQueryString);
             pd = new PathDetails(isolatedPath, rawQueryString, queryString);
         } else {
             // in this case, no question mark was found, thus no query string
-            pd = new PathDetails(path, null, null);
+            pd = new PathDetails(adjustedPath, null, null);
         }
         return pd;
     }
@@ -171,10 +195,12 @@ public final class RequestLine {
      * Extract the HTTP version from the start line
      */
     private HttpVersion getHttpVersion(String version) {
-        if (version.equals("1.1")) {
+        if (version.equals("HTTP/1.1")) {
             return HttpVersion.ONE_DOT_ONE;
-        } else {
+        } else if (version.equals("HTTP/1.0")) {
             return HttpVersion.ONE_DOT_ZERO;
+        } else {
+            return HttpVersion.NONE;
         }
     }
 

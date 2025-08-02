@@ -17,6 +17,7 @@ public class FakeSocketWrapper implements ISocketWrapper {
     public Supplier<SocketAddress> getRemoteAddrWithPortAction;
     public OutputStream os;
     public InputStream is;
+    public BufferedInputStream bufferedInputStream;
 
     public FakeSocketWrapper() {
         is = new ByteArrayInputStream(new byte[0]);
@@ -75,7 +76,10 @@ public class FakeSocketWrapper implements ISocketWrapper {
 
     @Override
     public InputStream getInputStream() {
-        return is;
+        if (bufferedInputStream == null) {
+            bufferedInputStream = new BufferedInputStream(this.is);
+        }
+        return bufferedInputStream;
     }
 
     @Override
@@ -87,4 +91,7 @@ public class FakeSocketWrapper implements ISocketWrapper {
     public String toString() {
         return "fake socket wrapper";
     }
+
+    @Override
+    public void flush() {}
 }

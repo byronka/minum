@@ -3,8 +3,10 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,6 +37,11 @@ public class RequestTests {
                 "",
                 this.context.getLogger());
         this.logger = (TestLogger)this.context.getLogger();
+    }
+
+    @After
+    public void cleanup() {
+        TestFramework.shutdownTestingContext(context);
     }
 
     @Test
@@ -233,7 +240,7 @@ public class RequestTests {
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; "), socketWrapper);
         var ex = assertThrows(WebServerException.class, () -> request.getMultipartIterable());
-        assertEquals(ex.getMessage(), "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: content-type: multipart/form-data; ");
+        assertEquals(ex.getMessage(), "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: multipart/form-data;");
     }
 
 
@@ -259,7 +266,7 @@ public class RequestTests {
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; boundary="), socketWrapper);
         var ex = assertThrows(WebServerException.class, () -> request.getMultipartIterable());
-        assertEquals(ex.getMessage(), "Boundary value was blank. Returning an empty map and the raw bytes for the body. Header was: content-type: multipart/form-data; boundary=");
+        assertEquals(ex.getMessage(), "Boundary value was blank. Returning an empty map and the raw bytes for the body. Header was: multipart/form-data; boundary=");
     }
 
     /**
@@ -578,7 +585,7 @@ public class RequestTests {
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
         var ex = assertThrows(WebServerException.class, () -> request.getUrlEncodedIterable());
-        assertEquals(ex.getMessage(), "This request was not sent with a content type of application/x-www-form-urlencoded.  The content type was: content-type: multipart/form-data; boundary=i_am_a_boundary");
+        assertEquals(ex.getMessage(), "This request was not sent with a content type of application/x-www-form-urlencoded.  The content type was: multipart/form-data; boundary=i_am_a_boundary");
     }
 
     /**
@@ -591,7 +598,7 @@ public class RequestTests {
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: application/x-www-form-urlencoded"), socketWrapper);
         var ex = assertThrows(WebServerException.class, () -> request.getMultipartIterable());
-        assertEquals(ex.getMessage(), "This request was not sent with a content type of multipart/form-data.  The content type was: content-type: application/x-www-form-urlencoded");
+        assertEquals(ex.getMessage(), "This request was not sent with a content type of multipart/form-data.  The content type was: application/x-www-form-urlencoded");
     }
 
 

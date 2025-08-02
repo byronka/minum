@@ -39,5 +39,6 @@ public class SocketWrapperTests {
         var socket = new Socket("localhost", 6000);
         SocketWrapper testSocketWrapper = new SocketWrapper(socket, null, logger, 0, "test host");
         testSocketWrapper.send(123);
+        testSocketWrapper.flush();
     }
 }

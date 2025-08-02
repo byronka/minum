@@ -6,8 +6,6 @@ import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
-
 /**
  * Utilities for searching collections of data
  */
@@ -43,7 +41,9 @@ public final class SearchUtils {
      */
     public static <T> T findExactlyOne(Stream<T> streamOfSomething, Predicate<? super T> searchPredicate, Callable<T> alternate) {
         List<T> listOfThings = streamOfSomething.filter(Objects::nonNull).filter(searchPredicate).toList();
-        mustBeTrue(listOfThings.isEmpty() || listOfThings.size() == 1, "Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
+        if (! (listOfThings.isEmpty() || listOfThings.size() == 1)) {
+            throw new UtilsException("Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
+        }
         if (listOfThings.isEmpty()) {
             T returnValue;
             try {

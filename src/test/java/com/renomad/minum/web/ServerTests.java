@@ -8,6 +8,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -44,6 +46,14 @@ public class ServerTests {
         Server.handleServerException(new IOException("Socket is closed Socket closed"), logger);
         var ex3 = assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("java.io.IOException: Socket is closed Socket closed"));
         assertTrue(ex3.getMessage().contains("java.io.IOException: Socket is closed Socket closed was not found"));
+    }
+
+    @Test
+    public void test_EdgeCase_ExceptionIn_doHttpWork() throws IOException {
+        try (Server server = new Server(new ServerSocket(8080), context, "fake_server_for_testing", null, null, HttpServerType.UNKNOWN)) {
+            server.doHttpWork(new Socket("localhost", 8080));
+            assertTrue(logger.doesMessageExist("NullPointerException"));
+        }
     }
 
 }

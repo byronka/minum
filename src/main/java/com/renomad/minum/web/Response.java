@@ -71,6 +71,12 @@ public final class Response implements IResponse {
     private final ThrowingConsumer<ISocketWrapper> outputGenerator;
     private final long bodyLength;
 
+    /**
+     * If true, the body is text, and therefore would probably benefit
+     * from being compressed before sending (presuming sufficiently large
+     * to make it worth the time for compression)
+     */
+    private final boolean isBodyText;
 
     /**
      * This is the constructor that provides access to all fields.  It is not intended
@@ -83,12 +89,13 @@ public final class Response implements IResponse {
      *                   not provided, we set the header to "transfer-encoding: chunked", or in other words, streaming.
      */
     Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body,
-             ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
+             ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength, boolean isBodyText) {
         this.statusCode = statusCode;
         this.extraHeaders = new HashMap<>(extraHeaders);
         this.body = body;
         this.outputGenerator = outputGenerator;
         this.bodyLength = bodyLength;
+        this.isBodyText = isBodyText;
     }
 
     /**
@@ -100,7 +107,7 @@ public final class Response implements IResponse {
      *                        ability to send bytes on the socket.
      */
     public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
-        return new Response(statusCode, extraHeaders, null, outputGenerator, 0);
+        return new Response(statusCode, extraHeaders, null, outputGenerator, 0, false);
     }
 
     /**
@@ -112,7 +119,7 @@ public final class Response implements IResponse {
      * @param bodyLength the length, in bytes, of the data to be sent to the client
      */
     public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
-        return new Response(statusCode, extraHeaders, null, outputGenerator, bodyLength);
+        return new Response(statusCode, extraHeaders, null, outputGenerator, bodyLength, false);
     }
 
     /**
@@ -126,7 +133,7 @@ public final class Response implements IResponse {
      * @param extraHeaders any extra headers for the response, such as the content-type.
      */
     public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body) {
-        return new Response(statusCode, extraHeaders, body, socketWrapper -> sendByteArrayResponse(socketWrapper, body), body.length);
+        return new Response(statusCode, extraHeaders, body, socketWrapper -> sendByteArrayResponse(socketWrapper, body), body.length, false);
     }
 
     /**
@@ -135,7 +142,7 @@ public final class Response implements IResponse {
      */
     public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String body) {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length);
+        return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length, true);
     }
 
     /**
@@ -170,7 +177,7 @@ public final class Response implements IResponse {
             }
         };
 
-        return new Response(responseCode, adjustedHeaders, null, outputGenerator, length);
+        return new Response(responseCode, adjustedHeaders, null, outputGenerator, length, false);
     }
 
     /**
@@ -196,14 +203,14 @@ public final class Response implements IResponse {
      * @param extraHeaders extra HTTP headers
      */
     public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders) {
-        return new Response(statusCode, extraHeaders, null, socketWrapper -> {}, 0);
+        return new Response(statusCode, extraHeaders, null, socketWrapper -> {}, 0, false);
     }
 
     /**
      * Build a {@link Response} with only a status code, with no body and no extra headers.
      */
     public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode) {
-        return new Response(statusCode, Map.of(), null, socketWrapper -> {}, 0);
+        return new Response(statusCode, Map.of(), null, socketWrapper -> {}, 0, false);
     }
 
     /**
@@ -252,13 +259,13 @@ public final class Response implements IResponse {
         return statusCode;
     }
 
-    /**
-     * Gets the length of the body for this response.  If the body
-     * is an array of bytes set by the user, we grab this value by the
-     * length() method.  If the outgoing data is set by a lambda, the user
-     * will set the bodyLength value.
-     */
-    long getBodyLength() {
+    @Override
+    public boolean isBodyText() {
+        return isBodyText;
+    }
+
+    @Override
+    public long getBodyLength() {
         if (body != null) {
             return body.length;
         } else {
@@ -266,11 +273,8 @@ public final class Response implements IResponse {
         }
     }
 
-    /**
-     * By calling this method with a {@link ISocketWrapper} parameter, the method
-     * will send bytes on the associated socket.
-     */
-    void sendBody(ISocketWrapper sw) throws IOException {
+    @Override
+    public void sendBody(ISocketWrapper sw) throws IOException {
         try {
             outputGenerator.accept(sw);
         } catch (Exception ex) {
@@ -341,12 +345,12 @@ public final class Response implements IResponse {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Response response = (Response) o;
-        return bodyLength == response.bodyLength && statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Arrays.equals(body, response.body);
+        return bodyLength == response.bodyLength && isBodyText == response.isBodyText && statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Arrays.equals(body, response.body);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(statusCode, extraHeaders, bodyLength);
+        int result = Objects.hash(statusCode, extraHeaders, bodyLength, isBodyText);
         result = 31 * result + Arrays.hashCode(body);
         return result;
     }
@@ -357,6 +361,7 @@ public final class Response implements IResponse {
                 "statusCode=" + statusCode +
                 ", extraHeaders=" + extraHeaders +
                 ", bodyLength=" + bodyLength +
+                ", isBodyText=" + isBodyText +
                 '}';
     }
 }

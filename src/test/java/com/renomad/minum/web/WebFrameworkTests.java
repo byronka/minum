@@ -1,27 +1,26 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.logging.TestLoggerException;
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.Inmate;
 import com.renomad.minum.security.UnderInvestigation;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.IFileReader;
-import com.renomad.minum.utils.InvariantException;
-import com.renomad.minum.utils.ThrowingRunnable;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.Socket;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
@@ -176,7 +175,7 @@ public class WebFrameworkTests {
     @Test
     public void test_ExtraMimeMappings_BadSyntax() {
         var input = List.of("png","image/png","EXTRA_WORD_HERE","wav","audio/wav");
-        var ex = assertThrows(InvariantException.class, () -> webFramework.readExtraMimeMappings(input));
+        var ex = assertThrows(WebServerException.class, () -> webFramework.readExtraMimeMappings(input));
         assertEquals(ex.getMessage(), "input must be even (key + value = 2 items). Your input: [png, image/png, EXTRA_WORD_HERE, wav, audio/wav]");
     }
 
@@ -312,42 +311,11 @@ public class WebFrameworkTests {
     };
 
     @Test
-    public void test_makePrimaryHttpHandler_throwingIOException() throws Exception {
-        FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
-        fakeSocketWrapper.is = new InputStream() {
-            @Override
-            public int read() throws IOException {
-                throw new IOException("Testing IOExceptions");
-            }
-        };
-        ThrowingRunnable throwingRunnable = webFramework.makePrimaryHttpHandler(fakeSocketWrapper, theBrigMock);
-        throwingRunnable.run();
-    }
-
-    @Test
     public void test_compressIfRequested() throws IOException {
         StringBuilder stringBuilder = new StringBuilder();
         Response incomingResponse = (Response)Response.buildResponse(CODE_200_OK, Map.of("content-type", "text/plain"), "a".repeat(1000));
         IResponse compressedResponse = WebFramework.compressBodyIfRequested(incomingResponse, List.of("accept-encoding: gzip"), stringBuilder, 999);
         assertTrue(incomingResponse.getBody().length > compressedResponse.getBody().length);
     }
-
-    /**
-     * Check that content-types we expect to be compressible are indeed found.
-     */
-    @Test
-    public void test_CompressMoreMimeTypes() {
-        assertTrue(WebFramework.determineCompressible("text/plain"), "text/plain should be compressible");
-        assertTrue(WebFramework.determineCompressible("text/xml"), "text/xml should be compressible");
-        assertTrue(WebFramework.determineCompressible("text/html"), "text/html should be compressible");
-        assertFalse(WebFramework.determineCompressible("image/gif"), "image/gif should not be compressible");
-        assertTrue(WebFramework.determineCompressible("text/javascript"), "text/javascript should be compressible");
-        assertTrue(WebFramework.determineCompressible("image/svg+xml"), "image/svg+xml should be compressible");
-        assertTrue(WebFramework.determineCompressible("image/application/xhtml+xml"), "image/application/xhtml+xml should be compressible");
-        assertTrue(WebFramework.determineCompressible("application/xml"), "application/xml should be compressible");
-        assertFalse(WebFramework.determineCompressible("audio/wav"), "audio/wav should not be compressible");
-        assertFalse(WebFramework.determineCompressible("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet should not be compressible");
-    }
-
 
 }

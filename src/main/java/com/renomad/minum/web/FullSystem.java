@@ -263,12 +263,4 @@ public final class FullSystem {
         }
     }
 
-    /**
-     * Intentionally return just the default object toString, this is only used
-     * to differentiate between multiple instances in memory.
-     */
-    @Override
-    public String toString() {
-        return super.toString();
-    }
 }

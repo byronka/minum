@@ -2,7 +2,8 @@ Minum Web Framework
 ===================
 
 This project was built by hand, and demonstrates what is 
-possible by craft and minimalism.
+possible by craft and minimalism.  Its source code is brightly illuminated
+with tests and documentation, making its intent and implementation clearer.
 
 It prioritizes the concept of high-quality
 monolithic server-side-rendered web applications.  There are several examples
@@ -22,11 +23,42 @@ public class Main {
 }
 ```
 
-What is this?
---------------
+The high level characteristics
+-------------------------------
 
-This web framework, "Minum", provides a full-powered minimalist foundation for a web 
-application. Built from scratch by TDD (Test-Driven Development).
+```
+[***************************--] Small
+[****************************-] Tested
+[*************************----] Documented
+[**************************---] Performant
+[****************************-] Maintainable
+[*************************----] Understandable
+[***************************--] Simple
+[**************************---] Capable
+```
+
+The design process
+------------------
+
+1) Make it work.  
+2) Make it right.  
+3) Make it fast.
+
+This project represents thousands of hours of an experienced practitioner experimenting with 
+maintainability, performance, and pragmatic simplicity.
+
+Just what exactly is this?
+--------------------------
+
+Minum is a web framework.  A web framework provides the programs necessary to build a "web application", 
+which is at the foundation just a website, except that instead of solely hosting static files (e.g. 
+static HTML, images, text, PDF, etc.), pages can also be rendered dynamically.  This could be anything 
+programmable - your imagination is the only limit.
+
+Minum provides a solid minimalist foundation. Basic capabilities that any web application would need, like
+persistent storage or templating, are provided.  Everything else is up to you.  See the [features](#features) below.
+
+It was designed from the very beginning with TDD (Test-Driven Development).
 
 * Embraces the concept of _kaizen_: small beneficial changes over time leading to impressive capabilities
 * Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
@@ -40,8 +72,8 @@ application. Built from scratch by TDD (Test-Driven Development).
 * Has [examples of framework use](#example-projects-demonstrating-usage)
 
 
-Minum is five thousand lines of ordinary and well-tested code: hashmaps, sockets, etc. The "minimalist" competitors 
-range from 400,000 to 700,000 lines when accounting for their dependencies.
+Minum has zero dependencies, and is built of ordinary and well-tested code: hashmaps, sockets, and
+so on. The "minimalist" competitors range from 400,000 to 700,000 lines when accounting for their dependencies.
 
 Applying a minimalist approach enables easier debugging, maintainability, and lower overall cost. Most 
 frameworks trade faster start-up for a higher overall cost. If you need sustainable quality, the software 
@@ -67,7 +99,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.1.2</version>
+    <version>8.2.0</version>
 </dependency>
 ```
 
@@ -75,25 +107,60 @@ Maven
 Features:
 --------
 
-- Secure TLS 1.3 HTTP/1.1 web server
-- In-memory database with disk persistence
-- Server-side templating
-- Logging 
-- Testing utilities
-- HTML parsing
-- Background queue processor
+<details><summary>Secure TLS 1.3 HTTP/1.1 web server</summary>
+A web server is the program that enables sending your data over the internet..
+</details>
+<details><summary>In-memory database with disk persistence</summary>
+<p>
+A database is necessary to store data for later use, such as user accounts.  Our database stores
+all its data in memory, but writes it to the disk as well.  The only time data is read from disk
+is at database startup.  There are benefits and risks to this approach.
+</p>
+</details>
+<details><summary>Server-side templating</summary>
+<p>
+A template is just a string with areas you can replace, and the template processor 
+renders these quickly.  For example, here is a template: "Hello {{ name }}".  If we
+provide the template processor with that template and say that "name" should be replaced
+with "world", it will do so.
+</p>
+</details>
+<details><summary>Logging</summary>
+<p>
+Logs are text that the program outputs while running.  There can be thousands of lines
+output while the program runs.
+</p>
+</details>
+<details><summary>Testing utilities</summary>
+<p>
+The test utilities are mostly ways to confirm expectations, and throw an error if unmet.
+</p>
+</details>
+<details><summary>HTML parsing</summary>
+<p>
+Parsing means to interpret the syntax and convert it to meaningful data for later analysis.
+Because web applications often have to deal with HTML, it is a valuable feature
+in a minimalist framework like this one.
+</p>
+</details>
+<details><summary>Background queue processor</summary>
+<p>
+Across the majority of the codebase, the only time code runs is when a request comes in.  The
+background queue processor, however, can continue running programs in parallel.
+</p>
+</details>
 
 
 Size Comparison:
 ----------------
 
-Compiled size: 200 kilobytes.
+Compiled size: 209 kilobytes.
 
 _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,406 | 141,048 | 1,085,405   |
+| 5,675 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 
@@ -104,12 +171,16 @@ Performance:
 Performance is a feature. On your own applications, collect 
 performance metrics at milestones, so that trends and missteps are made apparent.
 
+One of the benefits of minimalism combined with test-driven development is that
+finding the bottlenecks and making changes is easier, faster, and safer.
 
-* 19,000 http web server responses per second. [details here](docs/perf_data/response_speed_test.md)
-* 2,000,000 database updates per second. [details here](docs/perf_data/database_speed_test.md)
-* 31,717 templates rendered per second. See "test_Templating_Performance" [here](src/test/java/com/renomad/minum/templating/TemplatingTests.java).
-  Also, see this [comparison benchmark](https://github.com/byronka/template-benchmark?tab=readme-ov-file#original-string-output-test), with Minum's
-  code represented [here](https://github.com/byronka/template-benchmark/blob/utf8/src/main/java/com/mitchellbosecke/benchmark/Minum.java).
+* Web request handling: Plenty fast, depending on network and server configuration.  [details here](docs/perf_data/response_speed_test.md)
+* Database updates/reads: 2,000,000 per second. See "test_Performance" in DbTests.java. O(1) reads (does not increase in time as database size increases) by use of indexing feature.
+* Template processing:
+  * 12,000,000 per second for tiny templates
+  * 335,000 per second for large complex templates. 
+  * See a [comparison benchmark](https://github.com/byronka/template-benchmark?tab=readme-ov-file#original-string-output-test), with
+    Minum's code represented [here](https://github.com/byronka/template-benchmark/blob/utf8/src/main/java/com/mitchellbosecke/benchmark/Minum.java).
 
 See a [Minum versus Spring performance comparison](docs/perf_data/framework_perf_comparison.md)
 
@@ -211,6 +282,43 @@ _Deleting from a database_:
 db.delete(foo);    
 ```
 
+_Getting a bit more advanced - indexing_:
+
+If there is a chance there might be a large amount of data and search speed is important, it may
+make sense to register indexes.  This can be best explained with a couple examples.
+
+1) If every item has a unique identifier, like a UUID, then this is how you would register the index
+   for much-increased performance in getting a particular item (compared to a worst-case full table scan)
+
+In the following example, we will have a database of "Foo" items, each of which has a UUID identifier.
+```java
+// The first parameter is the name of the index, which we will refer to elsewhere when 
+// asking for our data, and the second parameter is the function used to generate the key
+// for the internal map.
+db.registerIndex("id", x -> x.getId().toString())
+
+// later to get the data, it will look like this, and will return
+// a collection of data.  If the identifier is truly unique, then we can 
+// prefer to use the findExactlyOne method
+db.findExactlyOne("id", "87cfcbc1-5dad-4dcd-b4dc-7d8da9552ffc");
+```
+
+2) alternately, instead of having one-to-one unique values, we might be partitioning the data
+    in some way. For example, the data may be categorized by color.
+
+```java
+// note that the key generator (the second parameter here) must always return a string
+db.registerIndex("colors", x -> x.getColor().toString())
+
+// later to get the data, it will look like this, and will return
+// a collection of data.  If the identifier is truly unique, then we can 
+// prefer to use the findExactlyOne method
+Collection<Foo> blueFoos = db.getIndexedData("colors", "blue");
+```
+
+Logging
+-------
+
 _Writing a log statement_:
 
 ```java
@@ -246,24 +354,6 @@ _Searching for an element in the parsed graph_:
 HtmlParseNode node;
 List<HtmlParseNode> results = node.search(TagName.P, Map.of());
 ```
-
-_Creating a new web handler (a function that handles an HTTP request and
-returns a response)_:
-```java
-public Response myHandler(Request r) {
-  return Response.htmlOk("<p>Hi world!</p>");
-}
-```
-
-The term "web handler" refers to the bread-and-butter of what Minum provides - programs that receive
-HTTP requests and return HTTP responses.  This example demonstrates returning an HTML message, ignoring
-the request data.  A less contrived example would examine the "query string" or the "body" of
-the request for its data, and then returning an appropriate response based on that.
-
-For example, there is [sample code in Minum](https://github.com/byronka/minum/blob/17bc2b5759727e97987092187844a0cbfc90a7bd/src/test/java/com/renomad/minum/sampledomain/SampleDomain.java#L50)
-which checks the authentication and returns values as HTML.  There are other example endpoints in that
-class, and you may see these endpoints in operation by running `make run_sampledomain` from the command line, presuming you
-have installed Java and GNU Make already, and then by visiting http://localhost:8080.
 
 Endpoints
 ---------
@@ -338,6 +428,43 @@ String renderedTemplate = myTemplate.renderTemplate(
     "user_name", StringUtils.safeHtml(username),
     "user_name_attr", StringUtils.safeAttr(username)
   ));
+```
+
+A bit more advanced usage: instead of providing a `Map` as the parameter, you can provide
+a `List` of `Map`, like follows.  This will render the template multiple times, once for
+each map, and then render them all to one string:
+
+```java
+List<Map<String,String>> data = figureOutSomeData();
+
+String renderedTemplate = myTemplate.renderTemplate(data);
+```
+
+Even more advanced, it is possible to register internal templates!  This might be useful to
+push the boundaries of performance in some cases, and a more realistioc case is demonstrated in
+the `test_Templating_LargeComplex_Performance` test [here](src/test/java/com/renomad/minum/templating/TemplatingTests.java).
+
+An example follows:
+
+```java
+    public void test_EdgeCase_DeeplyNested_withData() {
+    TemplateProcessor aTemplate = buildProcessor("A template. {{ key1 }} {{ key2 }} {{ b_template }}");
+    TemplateProcessor bTemplate = buildProcessor("B template.  {{ key1 }} {{ key2 }} {{ c_template }}");
+    TemplateProcessor cTemplate = buildProcessor("C template.  {{ key1 }} {{ key2 }}");
+
+    List<Map<String, String>> data = List.of(Map.of("key1", "foo",
+            "key2", "bar"));
+
+    var newBTemplate = aTemplate.registerInnerTemplate("b_template", bTemplate);
+    var newCTemplate = newBTemplate.registerInnerTemplate("c_template", cTemplate);
+    aTemplate.registerData(data);
+    newBTemplate.registerData(data);
+    newCTemplate.registerData(data);
+
+    assertEquals("A template. foo bar B template.  foo bar C template.  foo bar", aTemplate.renderTemplate());
+    assertEquals("B template.  foo bar C template.  foo bar", newBTemplate.renderTemplate());
+    assertEquals("C template.  foo bar", newCTemplate.renderTemplate());
+}
 ```
 
 User Input
@@ -436,13 +563,6 @@ project, for sending photos.  Here is a simplified version of that method:
 A more advanced capability is sending large files, like streaming videos. Minum supports streaming
 data output.  See [createOkResponseForLargeStaticFiles](https://github.com/byronka/minum/blob/7e1d83fb4927e5ca2f1d3231a21284c8de58f0f4/src/test/java/com/renomad/minum/sampledomain/ListPhotos.java#L237)
 in the `ListPhotos.java` file of the tests.
-
-
-The Minum application was built using test-driven development (TDD) from the ground up.  The testing
-mindset affected every aspect of its construction.  One element that can sometimes trip up 
-developers is when they are testing that something happened elsewhere in the system as a result of 
-an action.  If that separate action has logging, then a test can examine the logs for a correct
-output.
 
 Helpful utilities
 -----------------

@@ -36,7 +36,9 @@ public class EndpointTests {
         var request = new FakeRequest();
         PathDetails pathDetails = new PathDetails("", "", Map.of("name", "foo"));
         request.requestLine = new RequestLine(GET, pathDetails, ONE_DOT_ONE, "", logger);
+
         var response = helloName(request);
+
         String bodyOfResponse = new String(response.getBody(), StandardCharsets.UTF_8);
         assertEquals(bodyOfResponse, "hello foo");
     }
@@ -49,6 +51,7 @@ public class EndpointTests {
      */
     public IResponse helloName(IRequest request) {
         String name = request.getRequestLine().queryString().get("name");
+
         return Response.htmlOk("hello " + name);
     }
 }

@@ -2,7 +2,6 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.state.Context;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -28,7 +27,6 @@ import static com.renomad.minum.web.HttpServerType.PLAIN_TEXT_HTTP;
  */
 final class WebEngine {
 
-  private final ITheBrig theBrig;
   private final Constants constants;
   private final Context context;
   private final ExecutorService executorService;
@@ -37,7 +35,6 @@ final class WebEngine {
   WebEngine(Context context, WebFramework webFramework) {
     this.logger = context.getLogger();
     this.logger.logDebug(() -> "Using a supplied logger in WebEngine");
-    this.theBrig = context.getFullSystem() != null ? context.getFullSystem().getTheBrig() : null;
     this.constants = context.getConstants();
     this.context = context;
     this.executorService = context.getExecutorService();
@@ -47,16 +44,19 @@ final class WebEngine {
   private final ILogger logger;
   static final String HTTP_CRLF = "\r\n";
 
+  /**
+   * Start a plain-text unencrypted server, listening on the port specified by the user
+   */
   IServer startServer() {
     int port = constants.serverPort;
       ServerSocket ss;
       try {
           ss = new ServerSocket(port);
       } catch (Exception e) {
-          throw new WebServerException("Error starting server on port " + port, e);
+          throw new WebServerException("Failed to create serversocket on port " + port, e);
       }
       logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    IServer server = new Server(ss, context, "http server", theBrig, webFramework, executorService, PLAIN_TEXT_HTTP);
+    IServer server = new Server(ss, context, "http server", webFramework, executorService, PLAIN_TEXT_HTTP);
     logger.logDebug(() -> String.format("Just created a new Server: %s", server));
     server.start();
     String hostname = constants.hostName;
@@ -64,10 +64,13 @@ final class WebEngine {
     return server;
   }
 
+  /**
+   * Start an encrypted server, using TLS 1.3
+   */
   IServer startSslServer() {
 
     /*
-     * If we find the keystore and pass in the system properties
+     * If we are provided details for a keystore (its location and password), use it
      */
     final var useExternalKeystore = isProvidedKeystoreProperties(constants.keystorePath, constants.keystorePassword, logger);
     KeyStoreResult keystoreResult = getKeyStoreResult(useExternalKeystore, constants.keystorePath, constants.keystorePassword, logger);
@@ -75,7 +78,7 @@ final class WebEngine {
     int port = constants.secureServerPort;
     ServerSocket ss = createSslSocketWithSpecificKeystore(port, keystoreResult.keystoreUrl(), keystoreResult.keystorePassword());
     logger.logDebug(() -> String.format("Just created a new ServerSocket: %s", ss));
-    IServer server = new Server(ss, context, "https server", theBrig, webFramework, executorService, ENCRYPTED_HTTP);
+    IServer server = new Server(ss, context, "https server", webFramework, executorService, ENCRYPTED_HTTP);
     logger.logDebug(() -> String.format("Just created a new SSL Server: %s", server));
     server.start();
     String hostname = constants.hostName;
@@ -166,7 +169,7 @@ final class WebEngine {
       return socketFactory.createServerSocket(sslPort);
     } catch (Exception ex) {
       logger.logDebug(ex::getMessage);
-      throw new WebServerException("Error starting SSL socket server on port " + sslPort, ex);
+      throw new WebServerException(ex);
     }
   }
 
@@ -176,15 +179,6 @@ final class WebEngine {
   ISocketWrapper startClient(Socket socket) throws IOException {
     logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
     return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
-  }
-
-  /**
-   * Intentionally return just the default object toString, this is only used
-   * to differentiate between multiple instances in memory.
-   */
-  @Override
-  public String toString() {
-    return super.toString();
   }
 
 }

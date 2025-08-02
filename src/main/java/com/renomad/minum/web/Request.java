@@ -137,6 +137,6 @@ public final class Request implements IRequest {
             throw new WebServerException(parsingError);
         }
 
-        return bodyProcessor.getMultiPartIterable(getSocketWrapper().getInputStream(), boundaryValue ,getHeaders().contentLength());
+        return bodyProcessor.getMultiPartIterable(getSocketWrapper().getInputStream(), boundaryValue, getHeaders().contentLength());
     }
 }

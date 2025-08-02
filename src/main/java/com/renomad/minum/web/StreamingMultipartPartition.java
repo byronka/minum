@@ -50,6 +50,10 @@ public class StreamingMultipartPartition extends InputStream {
     private final List<Byte> boundaryValueList;
     private boolean hasFilledBuffer;
 
+    /**
+     * @param contentLength the length specified by the Content-Length header, it is
+     *                      the overall length of the body
+     */
     StreamingMultipartPartition(Headers headers,
                                        InputStream inputStream,
                                        ContentDisposition contentDisposition,

@@ -36,6 +36,8 @@ public interface IServer extends Closeable {
      */
     void removeMyRecord(ISocketWrapper socketWrapper);
 
+    void addToSetOfSws(ISocketWrapper sw);
+
     /**
      * Obtain the {@link Future} of the central loop of this
      * server object

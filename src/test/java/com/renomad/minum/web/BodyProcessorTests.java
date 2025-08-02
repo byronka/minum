@@ -3,7 +3,6 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
-import com.renomad.minum.utils.InvariantException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -346,8 +345,8 @@ public class BodyProcessorTests {
     @Test
     public void test_GettingCorrectContentType_MissingContentType() {
         var response = (Response)Response.buildResponse(CODE_200_OK, Map.of(), "foo foo");
-        var ex = assertThrows(InvariantException.class, () -> WebFramework.confirmBodyHasContentType(null, response));
-        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, bodyLength=7} Request: null");
+        var ex = assertThrows(WebServerException.class, () -> WebFramework.confirmBodyHasContentType(null, response));
+        assertEquals(ex.getMessage(), "a Content-Type header must be specified in the Response object if it returns data. Response details: Response{statusCode=CODE_200_OK, extraHeaders={}, bodyLength=7, isBodyText=true} Request: null");
     }
 
     /**

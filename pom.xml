@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.1.2</version>
+    <version>8.2.0</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>nl.jqno.equalsverifier</groupId>
             <artifactId>equalsverifier-nodep</artifactId>
-            <version>3.17.1</version>
+            <version>4.0.5</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

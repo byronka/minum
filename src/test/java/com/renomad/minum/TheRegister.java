@@ -119,7 +119,6 @@ public class TheRegister {
     }
 
     private IResponse preHandlerCode(PreHandlerInputs preHandlerInputs, AuthUtils auth) throws Exception {
-        // log all requests
         IRequest request = preHandlerInputs.clientRequest();
         ThrowingFunction<IRequest, IResponse> endpoint = preHandlerInputs.endpoint();
         ISocketWrapper sw = preHandlerInputs.sw();

@@ -2,18 +2,19 @@ package com.renomad.minum;
 
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.TagName;
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
+import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.web.*;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
-import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.utils.MyThread;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -215,7 +216,7 @@ public class FunctionalTests {
 
         logger.test("request a static asset");
         TestResponse staticResponse = ft.get("main.css");
-        assertEquals(staticResponse.headers().contentType(), "content-type: text/css");
+        assertEquals(staticResponse.headers().contentType(), "text/css");
         assertTrue(staticResponse.body().asString().contains("margin-left: 0;"));
 
         /*
@@ -272,6 +273,21 @@ public class FunctionalTests {
         // we have to wait for it to get through some processing before we check.
         MyThread.sleep(70);
         assertTrue(logger.doesMessageExist("127.0.0.1 is looking for vulnerabilities, for this: client sent more bytes than allowed for a single line.  max: 1024", 10));
+    }
+
+    /**
+     * In the {@link WebFramework}, sometimes an IOException will be thrown
+     * which indicates a potential attack (See handleIOException in WebFramework).
+     * <br>
+     * This test is meant to exercise that.
+     */
+    @Test
+    public void test_EdgeCase_IOExceptionThrown_WebFramework() throws IOException {
+        try (Socket socket = new Socket("localhost", 8443)) {
+            socket.getOutputStream().write("This is just a test\r\n".getBytes(StandardCharsets.UTF_8));
+            socket.getInputStream().readAllBytes();
+        }
+        assertTrue(logger.doesMessageExist("Unsupported or unrecognized SSL message"));
     }
 
     /**

@@ -66,4 +66,9 @@ public interface ISocketWrapper extends Closeable {
      * file of key HOST_NAME in {@link Constants#hostName}
      */
     String getHostName();
+
+    /**
+     * Send the data in the outgoing buffer into the socket.
+     */
+    void flush() throws IOException;
 }

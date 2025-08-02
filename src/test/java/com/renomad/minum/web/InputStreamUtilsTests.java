@@ -99,13 +99,8 @@ public class InputStreamUtilsTests {
         }
     }
 
-    /**
-     * When we try reading a line and it's an empty string, we want to get an empty string. When we're
-     * at the end of the stream, we want to see something different - a null value - instead, to
-     * help distinguish the situation.
-     */
     @Test
-    public void testEdgeCase_DifferentReturnValues() throws IOException {
+    public void testWeGetNullIndicatingFinish() throws IOException {
         String threeNewlines = "\n\n";
         InputStream inputStream = new ByteArrayInputStream(threeNewlines.getBytes(StandardCharsets.UTF_8));
         assertEquals(inputStreamUtils.readLine(inputStream), "");
@@ -127,7 +122,7 @@ public class InputStreamUtilsTests {
         String headers = createSampleDataForPerfTest();
         InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
         StopwatchUtils stopwatchUtils = new StopwatchUtils().startTimer();
-        int iterationCount = 10;
+        int iterationCount = 20;
         for (int i = 0; i < iterationCount; i++) {
             String foo = "";
             do {
@@ -137,7 +132,7 @@ public class InputStreamUtilsTests {
         }
         long l = stopwatchUtils.stopTimer();
         context.getLogger().logDebug(() -> "Took " + l + " milliseconds to process " + iterationCount + " times in InputStreamUtilsTests.testPerformance");
-        assertTrue(l < 100, "Took: " + l + " milliseconds");
+        assertTrue(l < 100, "Should have taken less than 100 milliseconds");
     }
 
 
@@ -164,28 +159,28 @@ public class InputStreamUtilsTests {
         });
         long l = stopwatchUtils.stopTimer();
         context.getLogger().logDebug(() -> "Took " + l + " milliseconds to process " + iterationCount + " times in InputStreamUtilsTests.testPerformance");
-        assertTrue(l < 100, "Took: " + l + " milliseconds");
+        assertTrue(l < 100, "Should have taken less than 100 milliseconds");
     }
-
 
     private String createSampleDataForPerfTest() {
         return """
-                GET / HTTP/1.1
-                Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-                Accept-Encoding: gzip, deflate, br, zstd
-                Accept-Language: en-US,en;q=0.9
-                Connection: keep-alive
-                Host: minum.com
-                Referer: https://minum.com/login
-                Sec-Fetch-Dest: document
-                Sec-Fetch-Mode: navigate
-                Sec-Fetch-Site: same-origin
-                Sec-Fetch-User: ?1
-                Upgrade-Insecure-Requests: 1
-                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36
-                sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"
-                sec-ch-ua-mobile: ?0
-                sec-ch-ua-platform: "Windows"
+                GET / HTTP/1.1\r
+                Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r
+                Accept-Encoding: gzip, deflate, br, zstd\r
+                Accept-Language: en-US,en;q=0.9\r
+                Connection: keep-alive\r
+                Host: minum.com\r
+                Referer: https://minum.com/login\r
+                Sec-Fetch-Dest: document\r
+                Sec-Fetch-Mode: navigate\r
+                Sec-Fetch-Site: same-origin\r
+                Sec-Fetch-User: ?1\r
+                Upgrade-Insecure-Requests: 1\r
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36\r
+                sec-ch-ua: "Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"\r
+                sec-ch-ua-mobile: ?0\r
+                sec-ch-ua-platform: "Windows"\r
+                \r
                 """;
     }
 }

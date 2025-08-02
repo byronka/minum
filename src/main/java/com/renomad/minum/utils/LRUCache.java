@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * A simple Least-Recently Used Cache
+ * A Least-Recently Used Cache
  * See <a href="https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)">LRU</a>
  */
 public final class LRUCache<K,V> extends LinkedHashMap<K, V> {

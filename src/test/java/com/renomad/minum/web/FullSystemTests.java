@@ -97,6 +97,10 @@ public class FullSystemTests {
 
         @Override
         public void removeMyRecord(ISocketWrapper socketWrapper) {
+        }
+
+        @Override
+        public void addToSetOfSws(ISocketWrapper sw) {
 
         }
 

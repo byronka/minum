@@ -9,33 +9,12 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
  * Helper functions for working with files.
  */
 public final class FileUtils {
-
-    /**
-     * These patterns can be used in path strings to access files higher in
-     * the directory structure.  We disallow this, as a security precaution.
-     * <ul>
-     * <li>1st Alternative {@code //} - This prevents going to the root directory
-     * </li>
-     * <li>2nd Alternative {@code ..} - prevents going up a directory
-     * </li>
-     * <li>3rd Alternative {@code :} - prevents certain special paths, like "C:" or "file://"
-     * </li>
-     * <li>4th Alternative {@code ^/} - prevents starting with a slash, meaning the root, but
-     *     allows intermediate slashes.
-     * </li>
-     * <li>5th Alternative {@code :^\} - prevents starting with a backslash, meaning the root, but
-     *    allows intermediate backslashes.
-     * </li>
-     * </ul>
-     */
-    public static final Pattern badFilePathPatterns = Pattern.compile("//|\\.\\.|:|^/|^\\\\");
 
     private final ILogger logger;
     private final IFileReader fileReader;
@@ -102,7 +81,7 @@ public final class FileUtils {
                     .map(Path::toFile).toList();
 
             for(var file: files) {
-                logger.logDebug(() -> "deleting " + file);
+                logger.logTrace(() -> "deleting " + file);
                 Files.delete(file.toPath());
             }
         } catch (IOException ex) {
@@ -205,22 +184,41 @@ public final class FileUtils {
      * Checks that the path string avoids bad patterns and meets our
      * whitelist for acceptable characters.
      * @throws InvariantException if there are any issues with the path string, such
-     *                            as being an empty string, containing known bad patterns from {@link #badFilePathPatterns},
+     *                            as being an empty string, containing known bad patterns
      *                            or including characters other than the set of characters we will allow for filenames.
-     *                            It is a simple set of ascii characters - alphanumerics, underscore, dash, period,
+     *                            It is a small set of ascii characters - alphanumerics, underscore, dash, period,
      *                            forward and backward slash.
      */
     public static void checkForBadFilePatterns(String path) {
         if (path.isBlank()) {
             throw new InvariantException("filename was empty");
         }
-        if (badFilePathPatterns.matcher(path).find()) {
+        char firstChar = path.charAt(0);
+        if (firstChar == '\\' || firstChar == '/') {
             throw new InvariantException("filename ("+path+") contained invalid characters");
         }
+        boolean isPreviousCharDot = false;
+        boolean isPreviousCharSlash = false;
         for (char c : path.toCharArray()) {
             boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c<= 'z' || c >= '0' && c <= '9' || c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
             if (! isWhitelistedChar) {
                 throw new InvariantException("filename ("+path+") contained invalid characters ("+c+").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
+            }
+            if (c == '.') {
+                if (isPreviousCharDot) {
+                    throw new InvariantException("filename ("+path+") contained invalid characters");
+                }
+                isPreviousCharDot = true;
+            } else {
+                isPreviousCharDot = false;
+            }
+            if (c == '/') {
+                if (isPreviousCharSlash) {
+                    throw new InvariantException("filename ("+path+") contained invalid characters");
+                }
+                isPreviousCharSlash = true;
+            } else {
+                isPreviousCharSlash = false;
             }
         }
     }

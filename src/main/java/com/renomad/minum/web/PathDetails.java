@@ -30,7 +30,7 @@ public final class PathDetails {
     ) {
         this.isolatedPath = isolatedPath;
         this.rawQueryString = rawQueryString;
-        this.queryString = new HashMap<>(queryString == null ? Map.of() : queryString);
+        this.queryString = Objects.requireNonNullElseGet(queryString, Map::of);
     }
 
     /**

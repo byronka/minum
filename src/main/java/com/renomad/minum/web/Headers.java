@@ -5,8 +5,6 @@ import com.renomad.minum.security.ForbiddenUseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
@@ -51,12 +49,6 @@ public final class Headers{
     }
 
     /**
-     * Used for extracting the length of the body, in POSTs and
-     * responses from servers
-     */
-    private static final Pattern contentLengthRegex = Pattern.compile("^[cC]ontent-[lL]ength: (.*)$");
-
-    /**
      * Obtain any desired header by looking it up in this map.  All keys
      * are made lowercase.
      */
@@ -90,8 +82,9 @@ public final class Headers{
      */
     public String contentType() {
         // find the header that starts with content-type
-        List<String> cts = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-type")).toList();
+        List<String> cts = Objects.requireNonNullElse(headersMap.get("content-type"), List.of());
         if (cts.size() > 1) {
+            cts.sort(Comparator.naturalOrder());
             throw new WebServerException("The number of content-type headers must be exactly zero or one.  Received: " + cts);
         }
         if (!cts.isEmpty()) {
@@ -108,15 +101,14 @@ public final class Headers{
      * we do not find a content length, return -1.
      */
     public int contentLength() {
-        List<String> cl = headerStrings.stream().filter(x -> x.toLowerCase(Locale.ROOT).startsWith("content-length")).toList();
+        List<String> cl = Objects.requireNonNullElse(headersMap.get("content-length"), List.of());
         if (cl.size() > 1) {
+            cl.sort(Comparator.naturalOrder());
             throw new WebServerException("The number of content-length headers must be exactly zero or one.  Received: " + cl);
         }
         int contentLength = -1;
         if (!cl.isEmpty()) {
-            Matcher clMatcher = contentLengthRegex.matcher(cl.getFirst());
-            mustBeTrue(clMatcher.matches(), "The content length header value must match the contentLengthRegex");
-            contentLength = Integer.parseInt(clMatcher.group(1));
+            contentLength = Integer.parseInt(cl.getFirst());
             mustBeTrue(contentLength >= 0, "Content-length cannot be negative");
         }
 
@@ -147,7 +139,9 @@ public final class Headers{
      * Loop through the lines of header in the HTTP message
      */
     static List<String> getAllHeaders(InputStream is, IInputStreamUtils inputStreamUtils) {
-        List<String> headers = new ArrayList<>();
+        // we'll give the list an initial size, since in most cases we're going to have headers.
+        // 10 is just an arbitrary number, seems about right.
+        List<String> headers = new ArrayList<>(10);
         for (int i = 0;; i++) {
             if (i >=MAX_HEADERS_COUNT) {
                 throw new ForbiddenUseException("User tried sending too many headers.  max: " + MAX_HEADERS_COUNT);

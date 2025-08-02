@@ -11,17 +11,16 @@ import com.renomad.minum.utils.*;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import static com.renomad.minum.utils.FileUtils.*;
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
+import static com.renomad.minum.utils.FileUtils.checkFileIsWithinDirectory;
+import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 
@@ -46,6 +45,8 @@ public final class WebFramework {
      */
     private final Random randomErrorCorrelationId;
     private final RequestLine emptyRequestLine;
+    private final RequestLine validRequestLine;
+    private final ITheBrig theBrig;
 
     public Map<String,String> getSuffixToMimeMappings() {
         return new HashMap<>(fileSuffixToMime);
@@ -92,93 +93,84 @@ public final class WebFramework {
      */
     private static final int MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS = 2048;
 
-    /**
-     * This is the brains of how the server responds to web clients.  Whatever
-     * code lives here will be inserted into a slot within the server code.
-     */
-    ThrowingRunnable makePrimaryHttpHandler(ISocketWrapper sw, ITheBrig theBrig) {
+    void httpProcessing(ISocketWrapper sw) throws Exception {
+        try (sw) {
+            dumpIfAttacker(sw, fs);
+            final var is = sw.getInputStream();
 
-        return () -> {
-            Thread.currentThread().setName("SocketWrapper thread for " + sw.getRemoteAddr());
-            try (sw) {
-                dumpIfAttacker(sw, fs);
-                final var is = sw.getInputStream();
-
-                // By default, browsers expect the server to run in keep-alive mode.
-                // We'll break out later if we find that the browser doesn't do keep-alive
-                while (true) {
-                    final String rawStartLine = inputStreamUtils.readLine(is);
-                    long startMillis = System.currentTimeMillis();
-                    if (rawStartLine == null || rawStartLine.isEmpty()) {
-                        // here, the client connected, sent nothing, and closed.
-                        // nothing to do but return.
-                        logger.logTrace(() -> "rawStartLine was empty.  Returning.");
-                        break;
-                    }
-                    final RequestLine sl = getProcessedRequestLine(sw, rawStartLine);
-
-                    if (sl.equals(emptyRequestLine)) {
-                        // here, the client sent something we cannot parse.
-                        // nothing to do but return.
-                        logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
-                        break;
-                    }
-                    // check if the user is seeming to attack us.
-                    checkIfSuspiciousPath(sw, sl);
-
-                    // React to what the user requested, generate a result
-                    Headers hi = getHeaders(sw);
-                    boolean isKeepAlive = determineIfKeepAlive(sl, hi, logger);
-                    if (isThereIsABody(hi)) {
-                        logger.logTrace(() -> "There is a body. Content-type is " + hi.contentType());
-                    }
-                    ProcessingResult result = processRequest(sw, sl, hi);
-                    IRequest request = result.clientRequest();
-                    Response response = (Response)result.resultingResponse();
-
-                    // check that the response is non-null.  If it is null, that suggests
-                    // the developer made a mistake.
-                    if (response == null) {
-                        throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
-                    }
-
-                    // calculate proper headers for the response
-                    StringBuilder headerStringBuilder = addDefaultHeaders(response);
-                    addOptionalExtraHeaders(response, headerStringBuilder);
-                    addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
-
-                    // inspect the response being sent, see whether we can compress the data.
-                    Response adjustedResponse = potentiallyCompress(request.getHeaders(), response, headerStringBuilder);
-                    applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
-                    confirmBodyHasContentType(request, response);
-
-                    // send the headers
-                    sw.send(headerStringBuilder.append(HTTP_CRLF).toString());
-
-                    // if the user sent a HEAD request, we send everything back except the body.
-                    // even though we skip the body, this requires full processing to get the
-                    // numbers right, like content-length.
-                    if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
-                        logger.logDebug(() -> "client " + request.getRemoteRequester() +
-                                " is requesting HEAD for "+ request.getRequestLine().getPathDetails().getIsolatedPath() +
-                                ".  Excluding body from response");
-                    } else {
-                        // send the body
-                        adjustedResponse.sendBody(sw);
-                    }
-                    // print how long this processing took
-                    long endMillis = System.currentTimeMillis();
-                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, sl, endMillis - startMillis));
-                    if (!isKeepAlive) break;
+            // By default, browsers expect the server to run in keep-alive mode.
+            // We'll break out later if we find that the browser doesn't do keep-alive
+            while (true) {
+                final String rawStartLine = inputStreamUtils.readLine(is);
+                long startMillis = System.currentTimeMillis();
+                if (rawStartLine == null || rawStartLine.isEmpty()) {
+                    // here, the client connected, sent nothing, and closed.
+                    // nothing to do but return.
+                    logger.logTrace(() -> "rawStartLine was empty.  Returning.");
+                    break;
                 }
-            } catch (SocketException | SocketTimeoutException ex) {
-                handleReadTimedOut(sw, ex, logger);
-            } catch (ForbiddenUseException ex) {
-                handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
-            } catch (IOException ex) {
-                handleIOException(sw, ex, logger, theBrig, underInvestigation, constants.vulnSeekingJailDuration);
+                final RequestLine requestLine = getProcessedRequestLine(sw, rawStartLine);
+
+                if (requestLine.equals(emptyRequestLine)) {
+                    // here, the client sent something we cannot parse.
+                    // nothing to do but return.
+                    logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
+                    break;
+                }
+                // check if the user is seeming to attack us.
+                checkIfSuspiciousPath(sw, requestLine);
+
+                // React to what the user requested, generate a result
+                Headers headers = getHeaders(sw);
+                boolean isKeepAlive = determineIfKeepAlive(requestLine, headers, logger);
+                IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+                IResponse response = processRequest(request, sw, requestLine, headers);
+
+                // check that the response is non-null.  If it is null, that suggests
+                // the developer made a mistake.
+                if (response == null) {
+                    throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
+                }
+
+                // calculate proper headers for the response
+                StringBuilder headerStringBuilder = addDefaultHeaders(response);
+                addOptionalExtraHeaders(response, headerStringBuilder);
+                addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
+
+                // inspect the response being sent, see whether we can compress the data.
+                IResponse adjustedResponse = potentiallyCompress(request.getHeaders(), response, headerStringBuilder);
+                applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
+                confirmBodyHasContentType(request, response);
+
+                // send the headers
+                sw.send(headerStringBuilder.append(HTTP_CRLF).toString().getBytes(StandardCharsets.US_ASCII));
+
+                // if the user sent a HEAD request, we send everything back except the body.
+                // even though we skip the body, this requires full processing to get the
+                // numbers right, like content-length.
+                if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
+                    logger.logDebug(() -> "client " + request.getRemoteRequester() +
+                            " is requesting HEAD for " + request.getRequestLine().getPathDetails().getIsolatedPath() +
+                            ".  Excluding body from response");
+                } else {
+                    // send the body
+                    adjustedResponse.sendBody(sw);
+                }
+
+                sw.flush();
+
+                // print how long this processing took
+                long endMillis = System.currentTimeMillis();
+                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, requestLine, endMillis - startMillis));
+                if (!isKeepAlive) break;
             }
-        };
+        } catch (SocketException | SocketTimeoutException ex) {
+            handleReadTimedOut(sw, ex, logger);
+        } catch (ForbiddenUseException ex) {
+            handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
+        } catch (IOException ex) {
+            handleIOException(sw, ex, logger, theBrig, underInvestigation, constants.vulnSeekingJailDuration);
+        }
     }
 
 
@@ -221,11 +213,11 @@ public final class WebFramework {
      * write a function to handle this? Is it a request for a static file, like an image
      * or script?  Did the user provide a "pre" or "post" handler?
      */
-    ProcessingResult processRequest(
+    IResponse processRequest(
+            IRequest clientRequest,
             ISocketWrapper sw,
             RequestLine requestLine,
             Headers requestHeaders) throws Exception {
-        IRequest clientRequest = new Request(requestHeaders, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
         IResponse response;
         ThrowingFunction<IRequest, IResponse> endpoint = findEndpointForThisStartline(requestLine, requestHeaders);
         if (endpoint == null) {
@@ -257,10 +249,8 @@ public final class WebFramework {
             response = lastMinuteHandler.apply(new LastMinuteHandlerInputs(clientRequest, response));
         }
 
-        return new ProcessingResult(clientRequest, response);
+        return response;
     }
-
-    record ProcessingResult(IRequest clientRequest, IResponse resultingResponse) { }
 
     private Headers getHeaders(ISocketWrapper sw) {
     /*
@@ -296,12 +286,8 @@ public final class WebFramework {
 
     RequestLine getProcessedRequestLine(ISocketWrapper sw, String rawStartLine) {
         logger.logTrace(() -> sw + ": raw request line received: " + rawStartLine);
-        RequestLine rl = new RequestLine(
-                RequestLine.Method.NONE,
-                PathDetails.empty,
-                HttpVersion.NONE,
-                "", logger);
-        RequestLine extractedRequestLine = rl.extractRequestLine(rawStartLine);
+
+        RequestLine extractedRequestLine = validRequestLine.extractRequestLine(rawStartLine);
         logger.logTrace(() -> sw + ": RequestLine has been derived: " + extractedRequestLine);
         return extractedRequestLine;
     }
@@ -316,9 +302,9 @@ public final class WebFramework {
     }
 
     /**
-     * This code confirms our objects are valid before calling
-     * to {@link #dumpIfAttacker(ISocketWrapper, ITheBrig)}.
-     * @return true if successfully called to subsequent method, false otherwise.
+     * Drops the connection immediately if the client is recognized
+     * as someone we consider an attacker, by dint of having been
+     * added to a blacklist in {@link com.renomad.minum.security.TheBrig}.
      */
     boolean dumpIfAttacker(ISocketWrapper sw, FullSystem fs) {
         if (fs == null) {
@@ -343,24 +329,6 @@ public final class WebFramework {
     }
 
     /**
-     * Determine whether the headers in this HTTP message indicate that
-     * a body is available to read
-     */
-    static boolean isThereIsABody(Headers hi) {
-        // if the client sent us a content-type header at all...
-        if (!hi.contentType().isBlank()) {
-            // if the content-length is greater than 0, we've got a body
-            if (hi.contentLength() > 0) return true;
-
-            // if the transfer-encoding header is set to chunked, we have a body
-            List<String> transferEncodingHeaders = hi.valueByKey("transfer-encoding");
-            return transferEncodingHeaders != null && transferEncodingHeaders.stream().anyMatch(x -> x.equalsIgnoreCase("chunked"));
-        }
-        // otherwise, no body we recognize
-        return false;
-    }
-
-    /**
      * Prepare some of the basic server response headers, like the status code, the
      * date-time stamp, the server name.
      */
@@ -369,8 +337,9 @@ public final class WebFramework {
         String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
         // we'll store the status line and headers in this
-        StringBuilder headerStringBuilder = new StringBuilder();
-
+        StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
+                                                                    // are not usually too large - even if the user added a bunch, there is a good
+                                                                    // chance it would be far under 600.  If that turns out to be wrong, adjust/redesign
 
         // add the status line
         headerStringBuilder.append("HTTP/1.1 ").append(response.getStatusCode().code).append(" ").append(response.getStatusCode().shortDescription).append(HTTP_CRLF);
@@ -388,22 +357,27 @@ public final class WebFramework {
      * Add extra headers specified by the business logic (set by the developer)
      */
     private static void addOptionalExtraHeaders(IResponse response, StringBuilder stringBuilder) {
-        stringBuilder.append(
-                response.getExtraHeaders().entrySet().stream()
-                .map(x -> x.getKey() + ": " + x.getValue() + HTTP_CRLF)
-                .collect(Collectors.joining()));
+        for (Map.Entry<String,String> header : response.getExtraHeaders().entrySet()) {
+            stringBuilder.append(header.getKey())
+                    .append(": ")
+                    .append(header.getValue())
+                    .append(HTTP_CRLF);
+        }
     }
 
     /**
-     * If a response body exists, it needs to have a content-type specified, or throw an exception.
+     * If a response body exists, it needs to have a content-type specified,
+     * or throw an exception. Otherwise, the user could totally miss they did
+     * not set a content-type, because the browser will inspect the data and
+     * do sort-of-the-right-thing a lot of the time, but we want to enforce correctness.
      */
-    static void confirmBodyHasContentType(IRequest request, Response response) {
+    static void confirmBodyHasContentType(IRequest request, IResponse response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = response.getExtraHeaders().entrySet().stream().anyMatch(x -> x.getKey().toLowerCase(Locale.ROOT).equals("content-type"));
+        boolean hasContentType = response.getExtraHeaders().keySet().stream().anyMatch(x -> x.toLowerCase(Locale.ROOT).equals("content-type"));
 
         // if there *is* data, we had better be returning a content type
-        if (response.getBodyLength() > 0) {
-            mustBeTrue(hasContentType, "a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
+        if (response.getBodyLength() > 0 && !hasContentType) {
+            throw new WebServerException("a Content-Type header must be specified in the Response object if it returns data. Response details: " + response + " Request: " + request);
         }
     }
 
@@ -430,42 +404,18 @@ public final class WebFramework {
 
     /**
      * This method will examine the request headers and response content-type, and
-     * compress the outgoing data if necessary.  Uses {@link #compressibleMimesPattern}
+     * compress the outgoing data if necessary.
      */
-    static Response potentiallyCompress(Headers requestHeaders, Response response, StringBuilder headerStringBuilder) throws IOException {
+    static IResponse potentiallyCompress(Headers requestHeaders, IResponse response, StringBuilder headerStringBuilder) throws IOException {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
         List<String> acceptEncoding = requestHeaders.valueByKey("accept-encoding");
 
-        // regardless of whether the client requests compression in their Accept-Encoding header,
-        // if the data we're sending back is not of an appropriate type, we won't bother
-        // compressing it.  Basically, we're going to compress plain text.
-        Map.Entry<String, String> contentTypeHeader = SearchUtils.findExactlyOne(response.getExtraHeaders().entrySet().stream(), x -> x.getKey().equalsIgnoreCase("content-type"));
-
-        if (contentTypeHeader != null) {
-            String contentType = contentTypeHeader.getValue().toLowerCase(Locale.ROOT);
-            boolean hasCompressibleMimeType = determineCompressible(contentType);
-            if (hasCompressibleMimeType) {
-                return compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS);
-            }
+        if (response.isBodyText()) {
+            return compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS);
         }
         return response;
-    }
-
-
-    /**
-     * A regular expression for finding mimes that we can compress
-     */
-    final static Pattern compressibleMimesPattern = Pattern.compile("^text/|(?:json|\\+?xml)$");
-
-    /**
-     * Run a regular expression against the Content-Type header, and return
-     * true if the mime is text-based and thus would benefit from compression.
-     * Uses {@link #compressibleMimesPattern}
-     */
-    static boolean determineCompressible(String contentType) {
-        return compressibleMimesPattern.matcher(contentType).find();
     }
 
     /**
@@ -482,12 +432,12 @@ public final class WebFramework {
      *                       if we successfully compress data as gzip.
      * @param minNumberBytes number of bytes must be larger than this to compress.
      */
-    static Response compressBodyIfRequested(Response response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) throws IOException {
+    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) throws IOException {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
-        if (response.getBodyLength() >= minNumberBytes && acceptEncoding != null && allContentEncodingHeaders.contains("gzip")) {
-            stringBuilder.append("Content-Encoding: gzip" + HTTP_CRLF);
-            stringBuilder.append("Vary: accept-encoding" + HTTP_CRLF);
-            return response.compressBody();
+        if (response.getBodyLength() >= minNumberBytes && allContentEncodingHeaders.contains("gzip")) {
+            stringBuilder.append("Content-Encoding: gzip").append(HTTP_CRLF);
+            stringBuilder.append("Vary: accept-encoding").append(HTTP_CRLF);
+            return ((Response)response).compressBody();
         }
         return response;
     }
@@ -543,7 +493,7 @@ public final class WebFramework {
      * Get a file from a path and create a response for it with a mime type.
      * <p>
      *     Parent directories are made unavailable by searching the path for
-     *     bad characters.  See {@link FileUtils#badFilePathPatterns}
+     *     bad characters. see {@link FileUtils#checkForBadFilePatterns}
      * </p>
      *
      * @return a response with the file contents and caching headers and mime if valid.
@@ -681,6 +631,7 @@ public final class WebFramework {
      */
     WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader) {
         this.fs = context.getFullSystem();
+        this.theBrig = this.fs != null ? this.fs.getTheBrig() : null;
         this.logger = context.getLogger();
         this.constants = context.getConstants();
         this.overrideForDateTime = overrideForDateTime;
@@ -693,6 +644,11 @@ public final class WebFramework {
         // This random value is purely to help provide correlation between
         // error messages in the UI and error logs.  There are no security concerns.
         this.randomErrorCorrelationId = new Random();
+        this.validRequestLine =  new RequestLine(
+                RequestLine.Method.NONE,
+                PathDetails.empty,
+                HttpVersion.NONE,
+                "", logger);
         this.emptyRequestLine = RequestLine.EMPTY;
 
         // this allows us to inject a IFileReader for deeper testing
@@ -711,7 +667,9 @@ public final class WebFramework {
 
     void readExtraMimeMappings(List<String> input) {
         if (input == null || input.isEmpty()) return;
-        mustBeTrue(input.size() % 2 == 0, "input must be even (key + value = 2 items). Your input: " + input);
+        if (!(input.size() % 2 == 0)) {
+            throw new WebServerException("input must be even (key + value = 2 items). Your input: " + input);
+        }
 
         for (int i = 0; i < input.size(); i += 2) {
             String fileSuffix = input.get(i);

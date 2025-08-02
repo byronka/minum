@@ -23,12 +23,12 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.FunctionalTesting.extractStatusLine;
 import static com.renomad.minum.web.HttpVersion.ONE_DOT_ONE;
 import static com.renomad.minum.web.RequestLine.Method.*;
-import static com.renomad.minum.web.RequestLine.startLineRegex;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 
 /**
@@ -54,7 +54,22 @@ public class WebTests {
     static private Context context;
     static private TestLogger logger;
     private static String gettysburgAddress;
-    private static Headers defaultHeader = new Headers(List.of());
+    private static final Headers defaultHeader = new Headers(List.of());
+
+    /**
+     * This is our regex for looking at a client's request
+     * and determining what to send them.  For example,
+     * if they send GET /sample.html HTTP/1.1, we send them sample.html
+     * <p>
+     * On the other hand if it's not a well-formed request, or
+     * if we don't have that file, we reply with an error page
+     * </p>
+     */
+    static final String REQUEST_LINE_PATTERN = "^([A-Z]{3,8})" + // an HTTP method, like GET, HEAD, POST, or OPTIONS
+            " /?(.*)" + // the request target - may or may not start with a slash.
+            " HTTP/(1.1|1.0)$"; // the HTTP version, defining structure of the remaining message
+
+    static final Pattern startLineRegex = Pattern.compile(REQUEST_LINE_PATTERN);
 
     /**
      * The length of time, in milliseconds, we will wait for the server to close
@@ -141,6 +156,7 @@ public class WebTests {
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
 
@@ -186,6 +202,7 @@ public class WebTests {
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
+                    client.flush();
                     extractStatusLine(inputStreamUtils.readLine(is));
                 }
                 // at this point, the server has closed the connection and added a
@@ -265,6 +282,7 @@ public class WebTests {
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.0");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
 
@@ -341,19 +359,12 @@ public class WebTests {
 
     @Test
     public void test_StartLine_MissingMethod() {
-            // missing method
-            List<String> badStartLines = List.of(
-                    "/something HTTP/1.1",
-                    "GET HTTP/1.1",
-                    "GET /something",
-                    "GET /something HTTP/1.2",
-                    "GET /something HTTP/",
-                    ""
-            );
-            for (String s : badStartLines) {
-                assertEquals(RequestLine.EMPTY.extractRequestLine(s), RequestLine.EMPTY);
-            }
-            assertThrows(InvariantException.class, () -> RequestLine.EMPTY.extractRequestLine(null));
+        assertEquals(RequestLine.EMPTY.extractRequestLine("/something HTTP/1.1"), RequestLine.EMPTY);
+        assertEquals(RequestLine.EMPTY.extractRequestLine("GET HTTP/1.1"), RequestLine.EMPTY);
+        assertEquals(RequestLine.EMPTY.extractRequestLine("GET /something HTTP/1.2"), RequestLine.EMPTY);
+        assertEquals(RequestLine.EMPTY.extractRequestLine("GET /something HTTP"), RequestLine.EMPTY);
+        assertEquals(RequestLine.EMPTY.extractRequestLine("GET /something"), RequestLine.EMPTY);
+        assertThrows(InvariantException.class, () -> RequestLine.EMPTY.extractRequestLine(null));
     }
 
     @Test
@@ -491,6 +502,7 @@ public class WebTests {
                     client.sendHttpLine("Content-Type: application/x-www-form-urlencoded");
                     client.sendHttpLine("");
                     client.send(postedData);
+                    client.flush();
 
                     // the server will respond to us.  Check everything is legit.
                     extractStatusLine(inputStreamUtils.readLine(is));
@@ -518,6 +530,7 @@ public class WebTests {
                     client.sendHttpLine("GET /some_endpoint HTTP/1.1");
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.rawValue(), "HTTP/1.1 404 NOT FOUND");
@@ -624,6 +637,7 @@ public class WebTests {
                     client.sendHttpLine("Content-length: " + multiPartData.length);
                     client.sendHttpLine("");
                     client.send(multiPartData);
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
@@ -692,6 +706,7 @@ public class WebTests {
                     client.sendHttpLine("Content-length: " + multiPartData.length);
                     client.sendHttpLine("");
                     client.send(multiPartData);
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
@@ -771,6 +786,7 @@ public class WebTests {
                     client.sendHttpLine("Content-length: " + multiPartData.length);
                     client.sendHttpLine("");
                     client.send(multiPartData);
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
@@ -811,6 +827,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("Connection: keep-alive");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
@@ -896,6 +913,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("Connection: keep-alive");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine1 = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine1.status(), CODE_200_OK);
@@ -909,6 +927,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("Connection: close");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine2 = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine2.status(), CODE_200_OK);
@@ -931,6 +950,7 @@ public class WebTests {
                     client.sendHttpLine("Host: localhost:8080");
                     client.sendHttpLine("Connection: keep-alive");
                     client.sendHttpLine("");
+                    client.flush();
 
                     StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
                     assertEquals(statusLine.status(), CODE_200_OK);
@@ -955,6 +975,7 @@ public class WebTests {
                     // send an invalid GET request
                     client.sendHttpLine("FOOP FOOP FOOP");
                     client.sendHttpLine("");
+                    client.flush();
                     MyThread.sleep(10);
                     assertTrue(logger.doesMessageExist("RequestLine was unparseable.  Returning.", 20));
                 }
@@ -983,27 +1004,6 @@ public class WebTests {
         } finally {
             shutdownTestingContext(context);
         }
-    }
-
-    @Test
-    public void test_IsThereABody_ContentType() {
-        // content-type: foo is illegitimate, but it will cause the system to look closer
-        var headers1 = new Headers(List.of("content-type: foo"));
-        assertFalse(WebFramework.isThereIsABody(headers1));
-    }
-
-    @Test
-    public void test_IsThereABody_TransferEncodingFoo() {
-        // transfer-encoding: foo is illegitimate, it will look for chunked but won't find it.
-        var headers2 = new Headers(List.of("content-type: foo", "transfer-encoding: foo"));
-        assertFalse(WebFramework.isThereIsABody(headers2));
-    }
-
-    @Test
-    public void test_IsThereABody_TransferEncodingChunked() {
-        // transfer-encoding: chunked is acceptable, it will return true here
-        var headers3 = new Headers(List.of("content-type: foo", "transfer-encoding: chunked"));
-        assertTrue(WebFramework.isThereIsABody(headers3));
     }
 
     /**
@@ -1388,7 +1388,7 @@ public class WebTests {
      */
     @Test
     public void testAuthorityComponent() {
-        String startLineString = "CONNECT  foo.bar:80 HTTP/1.1";
+        String startLineString = "CONNECT foo.bar:80 HTTP/1.1";
         var startLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger).extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
@@ -1419,10 +1419,21 @@ public class WebTests {
     @Test
     public void testNoEndpointFound() throws Exception {
         var webFramework = new WebFramework(context);
-        WebFramework.ProcessingResult result;
+        IResponse response;
+        IRequest iRequest = new IRequest() {
+            @Override public Headers getHeaders() {return null;}
+            @Override public RequestLine getRequestLine() {return null;}
+            @Override public Body getBody() {return null;}
+            @Override public String getRemoteRequester() {return null;}
+            @Override public ISocketWrapper getSocketWrapper() {return null;}
+            @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
+            @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+        };
+
         try (var sw = new FakeSocketWrapper()) {
 
-            result = webFramework.processRequest(
+            response = webFramework.processRequest(
+                    iRequest,
                     sw,
                     new RequestLine(POST,
                             new PathDetails(
@@ -1437,9 +1448,7 @@ public class WebTests {
                     null);
         }
 
-        assertEquals(result.resultingResponse(), Response.buildLeanResponse(CODE_404_NOT_FOUND));
-        assertEquals(result.clientRequest().getRequestLine().toString(), "RequestLine{method=POST, pathDetails=PathDetails{isolatedPath='FOO', rawQueryString='', queryString={}}, version=ONE_DOT_ONE, rawValue='POST /FOO HTTP/1.1', logger=TestLogger using queue: loggerPrinterunit_tests}");
-        assertEquals(result.clientRequest().getRemoteRequester(), "tester");
+        assertEquals(response, Response.buildLeanResponse(CODE_404_NOT_FOUND));
     }
 
     /**

@@ -44,7 +44,7 @@ public class WebEngineTests {
                         new URI("file:///does/not/exist").toURL(),
                         "badpass");
         });
-        assertTrue(ex.getCause().getMessage().contains("(The system cannot find the path specified)"));
+        assertTrue(ex.getMessage().contains("(The system cannot find the path specified)"));
     }
 
     @Test
