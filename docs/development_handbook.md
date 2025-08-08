@@ -107,11 +107,8 @@ The experiment is still ongoing, but I have seen some interim benefits.
 - Zero dependencies.  Projects often incorporate many dependencies, which must be kept updated, leading to churn. The 
   standard library is sufficient for most needs.  Benefit from the power of an [industrial strength general-purpose programming language](https://www.teamten.com/lawrence/writings/java-for-everything.html).
 
-- Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). See
-  the [response speed test](perf_data/response_speed_test.md), the [database speed test](perf_data/database_speed_test.md), and
-  test_Templating_Performance in the [templating tests](../src/test/java/com/renomad/minum/templating/TemplatingTests.java).
-  Please understand - this does not make it the fastest in the world, but
-  its ratio of speed to code size fares well.
+- Good performance, because [performance was always a goal](https://blog.nelhage.com/post/reflections-on-performance/). Its 
+  ratio of speed to code size fares well.
 
 - Embraces the bleeding edge of Java technology, like [virtual threads](https://openjdk.org/jeps/444).
   This allows it to manage [thousands of concurrent requests](perf_data/loom_perf.md) on resource-constrained
@@ -133,8 +130,7 @@ See the [theme](development_handbook.md#theme) for more philosophical underpinni
 System requirements:
 --------------------
 
-[JDK version 21](https://jdk.java.net/21/) is _required_, since it
-provides us the [virtual threads](https://openjdk.org/jeps/444) we need.
+[JDK version 21](https://www.oracle.com/java/technologies/downloads/#java21) is _required_, since it provides us the [virtual threads](https://openjdk.org/jeps/444) we need.
 
 Developed in two environments:
 * MacBook Pro with OS 12.0.1, with OpenJDK 21, GNU Make 3.81 and Rsync 2.6.9
@@ -183,7 +179,8 @@ Optional:
 Step-by-step guide for installing Java on Windows:
 --------------------------------------------------
 
-1. Download the binary by clicking [here](https://jdk.java.net/21/) and selecting the Windows/x64 zip.
+1. Download the binary by visiting the [Oracle JDK download page](https://www.oracle.com/java/technologies/downloads/#java21) and 
+   selecting the Windows/x64 zip.
 2. Uncompress the zip file
 3. Add the home directory to your path.  The home directory of Java is the one with "bin"
    and "conf" directories, among others. if you, for example, uncompressed the

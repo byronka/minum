@@ -26,16 +26,16 @@ public class Main {
 The high level characteristics
 -------------------------------
 
-```
-[***************************--] Small
-[****************************-] Tested
-[*************************----] Documented
-[**************************---] Performant
-[****************************-] Maintainable
-[*************************----] Understandable
-[***************************--] Simple
-[**************************---] Capable
-```
+| Capability     | Rating   |
+|----------------|----------|
+| Small          | ▓▓▓▓▓▓▓▒ |
+| Tested         | ▓▓▓▓▓▓▓▒ |
+| Documented     | ▓▓▓▓▓▓▒▒ |
+| Performant     | ▓▓▓▓▓▓▒▒ |
+| Maintainable   | ▓▓▓▓▓▓▓▒ |
+| Understandable | ▓▓▓▓▓▓▓▒ |
+| Simple         | ▓▓▓▓▓▓▒▒ |
+| Capable        | ▓▓▓▓▓▓▒▒ |
 
 The design process
 ------------------
@@ -441,7 +441,7 @@ String renderedTemplate = myTemplate.renderTemplate(data);
 ```
 
 Even more advanced, it is possible to register internal templates!  This might be useful to
-push the boundaries of performance in some cases, and a more realistioc case is demonstrated in
+push the boundaries of performance in some cases, and a more realistic case is demonstrated in
 the `test_Templating_LargeComplex_Performance` test [here](src/test/java/com/renomad/minum/templating/TemplatingTests.java).
 
 An example follows:
