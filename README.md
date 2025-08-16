@@ -366,15 +366,15 @@ like `http://mydomain.com/hello.html`.
 Dynamically-generated pages became more prevalent, and patterns changed.  In Minum, it is possible to host files
 in that original way, by placing them in the directory configured for "static" files - the `minum.config` file
 includes a configuration for where this static directory is located, `STATIC_FILES_DIRECTORY`.  In web applications, 
-it is still useful to follow this pattern for files that don't change, such as JavaScript or images.  Contrastingly, 
-dynamic files, which are generated on the fly, have their paths "registered" in the system as follows:
+it is still useful to follow this pattern for files that don't change, such as JavaScript or images, but also very
+powerful to provide paths which return the results of programs, as follows:
 
 ```java
 webFramework.registerPath(GET, "hello", sd::helloName);
 ```
 
-The preceding path registration added a path "hello", so that users visiting `http://mydomain.com/hello` would get
-something.  The program registered to provide data for it is `helloName`.  Here is an example:
+With that, there would be a path "hello" registered, so that users visiting `http://mydomain.com/hello` would receive
+the result of running a program at `helloName`.  Here is simplistic example of what code could exist there:
 
 ```java
     /**
@@ -389,8 +389,7 @@ something.  The program registered to provide data for it is `helloName`.  Here 
     }
 ```
 
-In order to attain a better sense of this core capability, I suggest you try following the [Quick start guide](docs/quick_start.md)
-which will take you through running a small example project and then make some changes to see how that affects things.
+The [Quick start guide](docs/quick_start.md) walks through this.
 
 Templates
 ---------
