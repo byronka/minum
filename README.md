@@ -26,16 +26,16 @@ public class Main {
 The high level characteristics
 -------------------------------
 
-| Capability     | Rating   |
-|----------------|----------|
-| Small          | ▓▓▓▓▓▓▓▒ |
-| Tested         | ▓▓▓▓▓▓▓▒ |
-| Documented     | ▓▓▓▓▓▓▒▒ |
-| Performant     | ▓▓▓▓▓▓▒▒ |
-| Maintainable   | ▓▓▓▓▓▓▓▒ |
-| Understandable | ▓▓▓▓▓▓▓▒ |
-| Simple         | ▓▓▓▓▓▓▒▒ |
-| Capable        | ▓▓▓▓▓▓▒▒ |
+| Capability     | Rating       |
+|----------------|--------------|
+| Small          | `[#######-]` |
+| Tested         | `[#######-]` |
+| Documented     | `[######--]` |
+| Performant     | `[######--]` |
+| Maintainable   | `[#######-]` |
+| Understandable | `[#######-]` |
+| Simple         | `[######--]` |
+| Capable        | `[######--]` |
 
 The design process
 ------------------
@@ -192,7 +192,8 @@ Documentation:
 * [Javadocs](https://renomad.com/javadoc/)
 * [Code coverage](https://renomad.com/site/jacoco/index.html) 
 * [Mutation test report](https://renomad.com/pit-reports)
-* [Test run report](https://renomad.com/site/surefire-report.html) 
+* [Test run report](https://renomad.com/site/surefire-report.html)
+* [Project site report](https://renomad.com/site/project-info.html)
 
 
 Example projects demonstrating usage:
@@ -237,6 +238,17 @@ Code samples
 ============
 
 The following code samples help provide an introduction to the features.
+
+* [Database](#database)
+* [Logging](#logging)
+* [HTML Parser](#html-parser)
+* [Endpoints](#endpoints)
+* [Templates](#templates)
+* [User Input](#user-input)
+* [Testing](#testing)
+* [Output](#output)
+* [Helpful utilities](#helpful-utilities)
+
 
 Database
 --------
@@ -322,17 +334,45 @@ Logging
 _Writing a log statement_:
 
 ```java
-logger.logDebug(() -> "hello");
+// useful info for comprehending what the system is doing, non-spammy
+logger.logDebug(() -> "Initializing main server loop"); 
 ```
 
 The logs are output to "standard out" during runtime.  This means, if you run a Minum application
 from the command line, it will output its logs to the console.  This is a typical pattern for servers.
 
 The logs are all expecting their inputs as closures - the pattern is `() -> "hello world"`.  This keeps
-the text from being processed until it needs to be.  A profusion of log statements
-could impact the performance of the system.  By using this design pattern, those statements will only be
-run if necessary, which is valuable for trace-level logging and those log statements which include
+the text from being processed until it needs to be.  An over-abundance of log statements
+could impact the performance of the system.  By using this design pattern, log statements will only be
+run if necessary, which is a great performance improvement for trace-level logging and log statements which include
 further processing (e.g. `_____ has requested to _____ at _____`).
+
+Other levels of logs use similar methods:
+
+```java
+// useful like "debug", but spammy (for example, code in an inner loop)
+logger.logTrace(() -> "Socket was closed");
+
+// logs related to business situations, like a user authenticating
+logger.logAudit(() -> "user \"foo\" has logged in");
+
+// when something has broken, unexpectedly
+logger.logAsyncError(() -> "IOException: error while reading file");
+```
+
+It is also possible to programmatically adjust what levels are being output by using
+the `getActiveLogLevels` method.  For example:
+
+```java
+// disable all logging
+for (var key : logger.getActiveLogLevels().keySet()) {
+    logger.getActiveLogLevels().put(key, false);
+}
+
+// enable one particular log level
+logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
+logger.logTrace(() -> "Now you can see trace-level logs");
+```
 
 HTML Parser
 -----------
@@ -389,7 +429,10 @@ the result of running a program at `helloName`.  Here is simplistic example of w
     }
 ```
 
-The [Quick start guide](docs/quick_start.md) walks through this.
+One user had a good question about the difference between the patterns in more
+conventional annotation-based frameworks and this one.  See that question [here](https://github.com/byronka/minum/discussions/19)
+
+The [Quick start guide](docs/quick_start.md) walks through all this in a bit more detail.
 
 Templates
 ---------
@@ -524,10 +567,87 @@ byte[] photoBytes = body.asBytes("image_uploads");
 
 The photo bytes example is seen in the [UploadPhoto class](https://github.com/byronka/minum/blob/master/src/test/java/com/renomad/minum/sampledomain/UploadPhoto.java)
 
-_Checking for a log message during tests_:
+Testing
+-------
+
+Automated testing is a big topic, but here I will just show some examples of Minum's code.
+
+_Asserting true_:
+
+Check that a value is true.  This is useful for testing predicates, and also for more
+complex tests.  It is useful and important to include messages that will explain the assertion
+and provide clarity when tests fail.  For example:
 
 ```java
-assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
+int a = 2;
+int b = 3;
+boolean bIsGreater = b > a;
+TestFramework.assertTrue(bIsGreater, "b should be greater than a");
+```
+
+Or, perhaps, an example might be confirming a substring is 
+contained in a larger string:
+
+```java
+String result = "a man, a plan, a canal, panama!";
+
+TestFramework.assertTrue(result.contains("a plan"));
+```
+
+_Asserting equal_:
+
+The other assertion that is widely used is `TestFramework.assertEquals`.  If code is built carefully
+(and especially if using test-driven development) the result of a method can often be verified by
+confirming it is identical to an expected value. 
+
+One interesting differentiator between this and other Java assertion frameworks is that when `assertEquals` fails, it just shows
+the value of left and right.  It does not distinguish between which was "expected" and "actual". This
+provides a clarity benefit in many cases - sometimes you just want to confirm two things are equal.
+
+```java
+import com.renomad.minum.testing.TestFramework;
+
+int a = 2;
+int b = 3;
+int c = a + b;
+TestFramework.assertEquals(c, 3);
+```
+
+_Checking for a log message during tests_:
+
+A handy feature of the tests is the `TestLogger` class which extends `Logger`.  If you review its
+code you will see that it stores the logs in a data structure, and makes access available to recent log
+messages.  Sometimes, you need to test something that causes an action far away, where it is hard
+to directly assert something about a result - in that situation, you can use the following `doesMessageExist`
+method on the `TestLogger` class to confirm a particular log message was output.
+
+```java
+TestFramework.assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
+```
+
+_Initializing context_:
+
+On that same note, nearly all tests with Minum will need an instance of the `Context` class.  The 
+expected standard way is to run `TestFramework.buildTestingContext` before the test, and then
+run `TestFramework.shutdownTestingContext` afterwards to close down resources cleanly.  Check
+those methods more closely to see for yourself.
+
+Here is a very typical example:
+
+```java
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("unit_tests");
+        logger = (TestLogger) context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
 ```
 
 Output
