@@ -260,17 +260,19 @@ var db = new Db<>(foosDirectory, context, new Foo());
 ```
 
 The Minum database keeps its data and processing primarily in memory but persists to the disk.
-There are pros and cons to this design choice: on the upside, it's very fast and the data
-stays strongly typed.  On the downside, if you're not careful you could end up using
-a lot of memory.  For certain designs, this is a suitable design constraint.  On the [Memoria
-project](https://github.com/byronka/memoria_project/), the only data stored in the database is the "lean" information - user tables,
-sessions, primary data.  Anything beyond the basics is stored in files and read from the disk
-as needed, with some caching to improve performance.
+Data is only _read_ from disk at startup.
 
-Obviously this won't work for all situations, and users are free to pick any other database 
-they desire (See "Alternate database" project above for an example project using a third-party 
-database). That said, the aforementioned will work for many common situations and for prototypes, 
-particularly if expectations are adjusted for what to store in the database.
+There are pros and cons to this design choice: on the upside, it's very fast and the data
+stays strongly typed.  On the downside, there could be concerns about durability, and an ill-considered
+application design could end up using too much memory.
+
+On the [Memoria project](https://github.com/byronka/memoria_project/), the risks and benefits were carefully considered, and so far it
+has worked well.  However, if the constraints were different, it might not make sense.  For example, 
+if the value of the data was higher, or the environment likely to periodically fail, it _might_ make sense to choose
+a different database.
+
+Users are free to pick any other database they desire (See "Alternate database" project above for an 
+example project using a third-party database). 
 
 <hr>
 
@@ -664,19 +666,25 @@ file types is called "MIME", and some examples are `text/html` for HTML document
 and `image/png` for .png image files.
 
 The `Response.java` class includes helper methods for sending typical data, like the `htmlOk()` method
-which sends HTML data with a proper content type.  A customized response is seen
-in the `grabPhoto()` method of the `ListPhotos.java` class of the "SampleDomain" test 
-project, for sending photos.  Here is a simplified version of that method:
+which sends HTML data with a proper content type.  Here is a method from the `AuthUtils.java` test class
+that uses a couple methods from `Response`:
 
 ```java
- public IResponse grabPhoto(IRequest r) {
-        String filename = r.getRequestLine().queryString().get("name");
-        logger.logAudit(() -> r.getRemoteRequester() + " is looking for a photo named " + filename);
-        
-        // more code here ...  see the ListPhotos.java file for complete detail
-
-        return readStaticFile(photoPath.toString(), "image/jpeg", r.getHeaders());
+public IResponse registerUser(IRequest request) {
+    final var authResult = processAuth(request);
+    if (authResult.isAuthenticated()) {
+        return Response.buildLeanResponse(CODE_303_SEE_OTHER, Map.of("Location","index"));
     }
+
+    final var username = request.getBody().asString("username");
+    final var password = request.getBody().asString("password");
+    final var registrationResult = registerUser(username, password);
+
+    if (registrationResult.status() == RegisterResultStatus.ALREADY_EXISTING_USER) {
+        return Response.buildResponse(CODE_401_UNAUTHORIZED, Map.of("content-type", "text/html"), "<p>This user is already registered</p><p><a href=\"index.html\">Index</a></p>");
+    }
+    return Response.buildLeanResponse(CODE_303_SEE_OTHER, Map.of("Location","login"));
+}
 ```
 
 A more advanced capability is sending large files, like streaming videos. Minum supports streaming
