@@ -20,7 +20,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=8.2.0
+VERSION=8.3.0
 
 MAVEN := ./mvnw
 
@@ -134,7 +134,9 @@ set_version_of_published_pom:
 # this will adjust the version in the primary pom.xml file to match what we have set here.
 # after running this, the changed pom.xml should be committed to source control.
 set_primary_pom_version:
-	sed -i '0,/<version>.*<\/version>/s/<version>.*<\/version>/<version>${VERSION}<\/version>/' pom.xml
+	 @echo "Set the version in the pom.xml file to be what's in the Makefile file"
+	 @sed -i '0,/<version>.*<\/version>/s/<version>.*<\/version>/<version>${VERSION}<\/version>/' pom.xml 2>/dev/null || (echo "\n**********\nERROR: SED FAILED!, make sure GNU sed is installed, especially on Mac\n***********\n" && exit 1)
+	 @echo "Successfully converted the version"
 
 JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
 DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y

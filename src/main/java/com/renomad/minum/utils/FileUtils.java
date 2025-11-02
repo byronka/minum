@@ -199,10 +199,12 @@ public final class FileUtils {
         }
         boolean isPreviousCharDot = false;
         boolean isPreviousCharSlash = false;
-        for (char c : path.toCharArray()) {
-            boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c<= 'z' || c >= '0' && c <= '9' || c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
-            if (! isWhitelistedChar) {
-                throw new InvariantException("filename ("+path+") contained invalid characters ("+c+").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
+        for (int i = 0; i < path.length(); i++) {
+            char c = path.charAt(i);
+            boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
+                    c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
+            if (!isWhitelistedChar) {
+                throw new InvariantException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
             }
             if (c == '.') {
                 if (isPreviousCharDot) {

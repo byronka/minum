@@ -70,7 +70,9 @@ public class ActionQueueKillerTests {
         MyThread.sleep(10);
         var aqk = new ActionQueueKiller(context1);
         String beforeKilling = context1.getActionQueueState().aqQueueAsString();
-        assertEquals(beforeKilling, "[DatabaseWriter out\\simple_db\\testing_aq_killer]");
+        String replacedString = beforeKilling.replace('/', '.').replace('\\', '.');
+
+        assertEquals(replacedString, "[DatabaseWriter out.simple_db.testing_aq_killer]");
         assertFalse(context1.getActionQueueState().isAqQueueEmpty());
 
         aqk.killAllQueues();

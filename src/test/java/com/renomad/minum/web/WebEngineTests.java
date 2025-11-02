@@ -44,7 +44,8 @@ public class WebEngineTests {
                         new URI("file:///does/not/exist").toURL(),
                         "badpass");
         });
-        assertTrue(ex.getMessage().contains("(The system cannot find the path specified)"));
+        String adjustedMessage = ex.getMessage().replace('/', '.').replace('\\', '.');
+        assertTrue(adjustedMessage.contains("Exception during creation of SSL socket with port 1234, keystore URL of file:.does.not.exist.  Exception message:"));
     }
 
     @Test

@@ -2,6 +2,29 @@ package com.renomad.minum.database;
 
 /**
  * An abstract data type meant to be used with {@link Db}
+ * <p>
+ *     The Minum database is very plain - data is stored in a strongly-typed
+ *     Java data collection in memory, and also written to disk.
+ * </p>
+ * <p>
+ *     Each database is responsible for one type of data. For example,
+ *     you might create a database for Person information, such as name,
+ *     age, and favorite ice cream flavor.  To do so, you would need a
+ *     class representing the Person, and that is where the DbData class comes into
+ *     play.
+ * </p>
+ * <p>
+ *     The properties of a person are defined as an implementation of
+ *     this abstract class.  It is necessary to supply an implementation
+ *     of the serialize and deserialize methods, which are used to write
+ *     this data to a string form, and back, respectively. There are examples
+ *     provided on those methods suggesting serialization approaches, and
+ *     it is highly recommended to stick close to that, since framework
+ *     testing relied on it.
+ * </p>
+ * <p>
+ *     See the code at {@link com.renomad.minum.security.Inmate} for a realistic example.
+ * </p>
  */
 public abstract class DbData<T>{
 
@@ -76,10 +99,9 @@ public abstract class DbData<T>{
      *     two threads accidentally adding the same index value to two different datas).
      * </p>
      * <p>
-     *     This value is also used as the name for the file of this data stored on disk.
+     *     This value is also used as the name for the file of this data stored on disk,
+     *     when using the {@link Db} database. (The {@link DbEngine2} uses a different approach)
      * </p>
      */
     protected abstract void setIndex(long index);
-
-    protected DbData() {}
 }

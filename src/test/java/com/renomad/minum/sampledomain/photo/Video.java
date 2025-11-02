@@ -28,7 +28,7 @@ public class Video extends DbData<Video> {
     }
 
     @Override
-    protected void setIndex(long index) {
+    public void setIndex(long index) {
         this.index = index;
     }
 

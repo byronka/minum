@@ -1,15 +1,20 @@
 Minum Web Framework
 ===================
 
-This project was built by hand, and demonstrates what is 
-possible by craft and minimalism.  Its source code is brightly illuminated
-with tests and documentation, making its intent and implementation clearer.
+This codebase provides the facilities necessary to build a web
+application, with a design that prioritizes server-side-rendering.
+Basic capabilities that any web application would need, like
+persistent storage or templating, are provided.  See _Features_
+further down in this document.
 
-It prioritizes the concept of high-quality
-monolithic server-side-rendered web applications.  There are several examples
-of this in the [example projects](#example-projects-demonstrating-usage).
+You might find this project well-suited to your needs if your priority
+is maintainability and quality, and if you are aiming to build
+programs that last years with minimal upkeep.
 
-Here is a small Minum program (see more [code samples](#code-samples) below):
+There are several examples of projects built with this framework in
+the _example projects_ below.
+
+Here is a small Minum program (see more _code samples_ below):
 
 ```Java
 public class Main {
@@ -37,50 +42,55 @@ The high level characteristics
 | Simple         | `[######--]` |
 | Capable        | `[######--]` |
 
+* Embraces the concept of _kaizen_: small beneficial changes over time
+  leading to impressive capabilities
+* Has its own web server, endpoint routing, logging, templating
+  engine, html parser, assertions framework, and database
+* Designed with TDD (Test-Driven Development)
+* It has 100% test coverage (branch and statement) that runs in 30
+  seconds without any special setup (`make test_coverage`)
+* Has close to 100% mutation test strength using the _PiTest_ mutation
+  testing tool (`make mutation_test`)
+* Relies on no dependencies other than the Java 21 (and up) SDK - i.e.
+  no Netty, Jetty, Tomcat, Log4j, Hibernate, MySql, etc.
+* Is thoroughly documented throughout, anticipating to benefit
+  developers' comprehension
+* No reflection - The framework's method calls are all
+  scope-respecting, and navigation of the code base is plain
+* No annotations - unlike certain other frameworks, the design
+  principle is to solely use ordinary Java method calls
+  for all behavior, and configuration is minimal and relegated to a
+  properties file
+* No magic - nothing unusual behind the scenes, no byte-code runtime
+  surprises.  Just ordinary Java
+* Has examples of framework use - see _Example Projects_ below
+
+Minum has zero dependencies, and is built of ordinary and well-tested
+code: hashmaps, sockets, and so on. The "minimalist" competitors range
+from 400,000 to 700,000 lines when accounting for their dependencies.
+
+Applying a minimalist approach enables easier debugging,
+maintainability, and lower overall cost. Most frameworks trade faster
+start-up for a higher overall cost. If you need sustainable quality,
+the software must be well-tested and documented from the onset.  As an
+example, this project's ability to attain such high test coverage was
+greatly enabled by the minimalism paradigm. The plentiful tests and
+comments help to make intent and implementation clearer.
+
+Minum follows _semantic versioning_, and has been version 8 since
+August 2024. It is intended not to make breaking changes for the
+forseeable future. There is no slated end-of-life for version 8.
+
 The design process
 ------------------
 
-1) Make it work.  
-2) Make it right.  
+1) Make it work.
+2) Make it right.
 3) Make it fast.
 
-This project represents thousands of hours of an experienced practitioner experimenting with 
-maintainability, performance, and pragmatic simplicity.
-
-Just what exactly is this?
---------------------------
-
-Minum is a web framework.  A web framework provides the programs necessary to build a "web application", 
-which is at the foundation just a website, except that instead of solely hosting static files (e.g. 
-static HTML, images, text, PDF, etc.), pages can also be rendered dynamically.  This could be anything 
-programmable - your imagination is the only limit.
-
-Minum provides a solid minimalist foundation. Basic capabilities that any web application would need, like
-persistent storage or templating, are provided.  Everything else is up to you.  See the [features](#features) below.
-
-It was designed from the very beginning with TDD (Test-Driven Development).
-
-* Embraces the concept of _kaizen_: small beneficial changes over time leading to impressive capabilities
-* Has its own web server, endpoint routing, logging, templating engine, html parser, assertions framework, and database
-* 100% test coverage (branch and statement) that runs in 30 seconds without any special setup (`make test_coverage`)
-* Nearly 100% mutation test strength using the [PiTest](https://pitest.org/) tool. (`make mutation_test`)
-* Relies on no dependencies other than the Java 21 SDK - i.e. no Netty, Jetty, Tomcat, Log4j, Hibernate, MySql, etc.
-* Well-documented
-* No reflection
-* No annotations
-* No magic
-* Has [examples of framework use](#example-projects-demonstrating-usage)
-
-
-Minum has zero dependencies, and is built of ordinary and well-tested code: hashmaps, sockets, and
-so on. The "minimalist" competitors range from 400,000 to 700,000 lines when accounting for their dependencies.
-
-Applying a minimalist approach enables easier debugging, maintainability, and lower overall cost. Most 
-frameworks trade faster start-up for a higher overall cost. If you need sustainable quality, the software 
-must be well-tested and documented from the onset.  As an example, this project's ability to attain such
-high test coverage was greatly enabled by the minimalism paradigm.
-
-Minum follows [semantic versioning](https://semver.org/)
+This project represents thousands of hours of an experienced
+practitioner experimenting with maintainability, performance, and
+pragmatic simplicity.
 
 
 Getting Started
@@ -99,7 +109,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.2.0</version>
+    <version>8.3.0</version>
 </dependency>
 ```
 
@@ -108,7 +118,9 @@ Features:
 --------
 
 <details><summary>Secure TLS 1.3 HTTP/1.1 web server</summary>
-A web server is the program that enables sending your data over the internet..
+<p>
+A web server is the program that enables sending your data over the internet.
+</p>
 </details>
 <details><summary>In-memory database with disk persistence</summary>
 <p>
@@ -160,7 +172,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,675 | 141,048 | 1,085,405   |
+| 6,376 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 
@@ -168,14 +180,19 @@ See [a size comparison in finer detail](docs/size_comparisons.md)
 Performance:
 ------------
 
-Performance is a feature. On your own applications, collect 
-performance metrics at milestones, so that trends and missteps are made apparent.
+Performance is a feature. On your own applications, collect
+performance metrics at milestones, so that trends and missteps are
+made apparent.
 
-One of the benefits of minimalism combined with test-driven development is that
-finding the bottlenecks and making changes is easier, faster, and safer.
+One of the benefits of minimalism combined with test-driven
+development is that finding the bottlenecks and making changes is
+easier, faster, and safer.
 
-* Web request handling: Plenty fast, depending on network and server configuration.  [details here](docs/perf_data/response_speed_test.md)
-* Database updates/reads: 2,000,000 per second. See "test_Performance" in DbTests.java. O(1) reads (does not increase in time as database size increases) by use of indexing feature.
+* Web request handling: Plenty fast, depending on network and server
+  configuration.  [details here](docs/perf_data/response_speed_test.md)
+* Database updates/reads: 2,000,000 per second. See "test_Performance"
+  in DbTests.java. O(1) reads (does not increase in time as database
+  size increases) by use of indexing feature.
 * Template processing:
   * 12,000,000 per second for tiny templates
   * 335,000 per second for large complex templates. 
@@ -203,35 +220,40 @@ See the following links for sample projects that use this framework.
 
 [Smallest-possible](https://github.com/byronka/minum_usage_example_smaller)
 
-This project is valuable to see the minimal-possible application that can
-be made.  This might be a good starting point for use of Minum on a new project.
+This project is valuable to see the minimal-possible application that
+can be made.  This might be a good starting point for use of Minum on
+a new project.
 
 <hr>
 
 [Example](https://github.com/byronka/minum_usage_example_mvn) 
 
-This is a good example to see a basic project with various functionality. It
-shows many of the typical use cases of the Minum framework.
+This is a good example to see a basic project with various
+functionality. It shows many of the typical use cases of the Minum
+framework.
 
 <hr>
 
 [Memoria project](https://github.com/byronka/memoria_project)
 
-This is a family-tree project.  It demonstrates the kind of
-approach this framework is meant to foster.
+This is a family-tree project.  It demonstrates the kind of approach
+this framework is meant to foster.
 
 <hr>
 
 [Restaurants](https://github.com/byronka/restaurants)
 
-Restaurants is a prototype project to provide a customizable ranked list of restaurants.
+Restaurants is a prototype project to provide a customizable ranked
+list of restaurants.
 
 <hr>
 
 [Alternate database](https://github.com/byronka/minum_using_alternate_database)
 
-This is a project which uses a SQL database called [H2](https://www.h2database.com/html/main.html),
-and which shows how a user might go about including a different database than the one built-in.
+This is a project which uses a SQL database called
+[H2](https://www.h2database.com/html/main.html), and which shows how a
+user might go about including a different database than the one
+built-in.
 
 
 Code samples
@@ -255,51 +277,72 @@ Database
 
 _Instantiating a new database_:
 
+There are two database options - the older simpler database, or the
+new DbEngine2 database.  They have nearly identical interfaces and
+external behaviors, but the DbEngine2 database reads and writes to
+disk _magnitudes_ faster than its sibling Db. It is the recommended
+database to use going forward.
+
+Here is how you instantiate the faster database:
+
 ```java
-var db = new Db<>(foosDirectory, context, new Foo());
+AbstractDb<Foo> db = new DbEngine2<>(foosDirectory, context, new Foo());
 ```
 
-The Minum database keeps its data and processing primarily in memory but persists to the disk.
-Data is only _read_ from disk at startup.
+Here is the simpler database:
 
-There are pros and cons to this design choice: on the upside, it's very fast and the data
-stays strongly typed.  On the downside, there could be concerns about durability, and an ill-considered
-application design could end up using too much memory.
+```java
+AbstractDb<Foo> db = new Db<>(foosDirectory, context, new Foo());
+```
 
-On the [Memoria project](https://github.com/byronka/memoria_project/), the risks and benefits were carefully considered, and so far it
-has worked well.  However, if the constraints were different, it might not make sense.  For example, 
-if the value of the data was higher, or the environment likely to periodically fail, it _might_ make sense to choose
-a different database.
+The Minum database keeps its data and processing primarily in memory
+but persists to the disk.  Data is only _read_ from disk at startup.
 
-Users are free to pick any other database they desire (See "Alternate database" project above for an 
-example project using a third-party database). 
+There are pros and cons to this design choice: on the upside, it's
+very fast and the data stays strongly typed.  On the downside, it does
+not make the same guarantees as ACID-compliant databases. Also, an
+ill-considered application design could end up using too much memory.
+
+On the [Memoria project](https://github.com/byronka/memoria_project/),
+the risks and benefits were carefully considered, and so far it has
+worked well.
+
+Users are free to pick any other database they desire (See "Alternate
+database" project above for an example project using a third-party
+database). 
 
 <hr>
 
 _Adding a new object to a database_:
 
 ```java
-var foo = new Foo(0L, 42, "blue");
-db.write(foo);    
+// instantiate an object that implements DbData. Note that because
+// this is a new object, we set the index to 0.
+Foo myFoo = new Foo(0L, 42, "blue");
+
+// write it to the database.  The returned value is the object we wrote
+// with its index set by the database.
+Foo myResultingFoo = db.write(myFoo);    
 ```
 
 _Updating an object in a database_:
 
 ```java
-foo.setColor("orange");
-db.write(foo);    
+myResultingFoo.setColor("orange");
+db.write(myResultingFoo);    
 ```
 
 _Deleting from a database_:
 
 ```java
-db.delete(foo);    
+db.delete(myResultingFoo);    
 ```
 
 _Getting a bit more advanced - indexing_:
 
-If there is a chance there might be a large amount of data and search speed is important, it may
-make sense to register indexes.  This can be best explained with a couple examples.
+If there is a chance there might be a large amount of data and search
+speed is important, it may make sense to register indexes.  This can
+be best explained with a couple examples.
 
 1) If every item has a unique identifier, like a UUID, then this is how you would register the index
    for much-increased performance in getting a particular item (compared to a worst-case full table scan)
@@ -340,13 +383,16 @@ _Writing a log statement_:
 logger.logDebug(() -> "Initializing main server loop"); 
 ```
 
-The logs are output to "standard out" during runtime.  This means, if you run a Minum application
-from the command line, it will output its logs to the console.  This is a typical pattern for servers.
+The logs are output to "standard out" during runtime.  This means, if
+you run a Minum application from the command line, it will output its
+logs to the console.  This is a typical pattern for servers.
 
-The logs are all expecting their inputs as closures - the pattern is `() -> "hello world"`.  This keeps
-the text from being processed until it needs to be.  An over-abundance of log statements
-could impact the performance of the system.  By using this design pattern, log statements will only be
-run if necessary, which is a great performance improvement for trace-level logging and log statements which include
+The logs are all expecting their inputs as closures - the pattern is
+`() -> "hello world"`.  This keeps the text from being processed until
+it needs to be.  An over-abundance of log statements could impact the
+performance of the system.  By using this design pattern, log
+statements will only be run if necessary, which is a great performance
+improvement for trace-level logging and log statements which include
 further processing (e.g. `_____ has requested to _____ at _____`).
 
 Other levels of logs use similar methods:
@@ -362,8 +408,8 @@ logger.logAudit(() -> "user \"foo\" has logged in");
 logger.logAsyncError(() -> "IOException: error while reading file");
 ```
 
-It is also possible to programmatically adjust what levels are being output by using
-the `getActiveLogLevels` method.  For example:
+It is also possible to programmatically adjust what levels are being
+output by using the `getActiveLogLevels` method.  For example:
 
 ```java
 // disable all logging
@@ -388,6 +434,7 @@ for its minimal purposes, and provides capabilities like examining returned HTML
 It is used heavily in the [Memoria tests](https://github.com/byronka/memoria_project/blob/c474040aac46b52bc48341b5972c8d9d1c438da8/src/test/java/com/renomad/inmra/featurelogic/FunctionalTests.java#L165)
 and the [FamilyGraph class](https://github.com/byronka/memoria_project/blob/master/src/main/java/com/renomad/inmra/featurelogic/persons/FamilyGraph.java) which
 handles building a graph of the family members.
+
 <hr>
 
 _Searching for an element in the parsed graph_:
@@ -400,23 +447,30 @@ List<HtmlParseNode> results = node.search(TagName.P, Map.of());
 Endpoints
 ---------
 
-When a user visits a page, such as "hello" in `http://mydomain.com/hello`, the web server provides data in response.
+When a user visits a page, such as "hello" in
+`http://mydomain.com/hello`, the web server provides data in response.
 
-Originally, that data was a file in a directory. If we were providing HTML, `hello` would have really been `hello.html` 
-like `http://mydomain.com/hello.html`.  
+Originally, that data was a file in a directory. If we were providing
+HTML, `hello` would have really been `hello.html` like
+`http://mydomain.com/hello.html`.  
 
-Dynamically-generated pages became more prevalent, and patterns changed.  In Minum, it is possible to host files
-in that original way, by placing them in the directory configured for "static" files - the `minum.config` file
-includes a configuration for where this static directory is located, `STATIC_FILES_DIRECTORY`.  In web applications, 
-it is still useful to follow this pattern for files that don't change, such as JavaScript or images, but also very
-powerful to provide paths which return the results of programs, as follows:
+Dynamically-generated pages became more prevalent, and patterns
+changed.  In Minum, it is possible to host files in that original way,
+by placing them in the directory configured for "static" files - the
+`minum.config` file includes a configuration for where this static
+directory is located, `STATIC_FILES_DIRECTORY`.  In web applications,
+it is still useful to follow this pattern for files that don't change,
+such as JavaScript or images, but also very powerful to provide paths
+which return the results of programs, as follows:
 
 ```java
 webFramework.registerPath(GET, "hello", sd::helloName);
 ```
 
-With that, there would be a path "hello" registered, so that users visiting `http://mydomain.com/hello` would receive
-the result of running a program at `helloName`.  Here is simplistic example of what code could exist there:
+With that, there would be a path "hello" registered, so that users
+visiting `http://mydomain.com/hello` would receive the result of
+running a program at `helloName`.  Here is simplistic example of what
+code could exist there:
 
 ```java
     /**
@@ -431,10 +485,12 @@ the result of running a program at `helloName`.  Here is simplistic example of w
     }
 ```
 
-One user had a good question about the difference between the patterns in more
-conventional annotation-based frameworks and this one.  See that question [here](https://github.com/byronka/minum/discussions/19)
+One user had a good question about the difference between the patterns
+in more conventional annotation-based frameworks and this one.  See
+that question [here](https://github.com/byronka/minum/discussions/19)
 
-The [Quick start guide](docs/quick_start.md) walks through all this in a bit more detail.
+The [Quick start guide](docs/quick_start.md) walks through all this in
+a bit more detail.
 
 Templates
 ---------
@@ -444,8 +500,8 @@ TemplateProcessor myTemplate = TemplateProcessor.buildProcessor("hello {{ name }
 String renderedTemplate = myTemplate.renderTemplate(Map.of("name", "world"));
 ```
 
-The Minum framework is driven by a paradigm of server-rendered HTML, which is performant and
-works on all browsers.
+The Minum framework is driven by a paradigm of server-rendered HTML,
+which is performant and works on all browsers.
 
 The templates can be any string, but the design was driven concerned with rendering HTML 
 templates.  Here is [an example of a simple template](https://github.com/byronka/minum/blob/master/src/test/webapp/templates/sampledomain/name_entry.html),

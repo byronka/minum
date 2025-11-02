@@ -146,7 +146,7 @@ public final class TemplateProcessor {
         return tp;
     }
 
-    private ArrayList<TemplateSection> renderToTemplateSections(String template) {
+    private List<TemplateSection> renderToTemplateSections(String template) {
         // this value holds the entire template after processing, comprised
         // of an ordered list of TemplateSections
         var tSections = new ArrayList<TemplateSection>();

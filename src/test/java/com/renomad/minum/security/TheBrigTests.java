@@ -48,29 +48,32 @@ public class TheBrigTests {
 
         // send some clients to jail
         ITheBrig finalB = b;
-        Thread.ofVirtual().start(() -> finalB.sendToJail("1.1.1.1_too_freq_downloads", 10000));
-        Thread.ofVirtual().start(() -> finalB.sendToJail("2.2.2.2_too_freq_downloads", 20));
-        Thread.ofVirtual().start(() -> finalB.sendToJail("3.3.3.3_too_freq_downloads", 20));
-        Thread.ofVirtual().start(() -> finalB.sendToJail("4.4.4.4_too_freq_downloads", 20));
+        finalB.sendToJail("1.1.1.1_too_freq_downloads", 10000);
+        finalB.sendToJail("2.2.2.2_too_freq_downloads", 20);
+        finalB.sendToJail("3.3.3.3_too_freq_downloads", 20);
+        finalB.sendToJail("4.4.4.4_too_freq_downloads", 20);
 
         // what's the situation?
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertFalse(finalB.isInJail("DOES_NOT_EXIST")));
+        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"));
+        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"));
+        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"));
+        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"));
+        assertFalse(finalB.isInJail("DOES_NOT_EXIST"));
 
         MyThread.sleep(10);
 
         // after a short time, they should all still be in jail
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads")));
-        Thread.ofVirtual().start(() -> assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads")));
+        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"));
+        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"));
+        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"));
+        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"));
 
         MyThread.sleep(80);
 
         b.stop();
+
+        MyThread.sleep(80);
+
         b = new TheBrig(10, context).initialize();
         MyThread.sleep(30);
 
@@ -84,7 +87,11 @@ public class TheBrigTests {
         b.sendToJail("1.1.1.1_too_freq_downloads", 40);
 
         b.stop();
+
+        MyThread.sleep(80);
+
         b = new TheBrig(10, context).initialize();
+
         MyThread.sleep(30);
 
         assertTrue(b.isInJail("1.1.1.1_too_freq_downloads"));
@@ -100,6 +107,8 @@ public class TheBrigTests {
         assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"));
 
         b.stop();
+
+        MyThread.sleep(80);
     }
 
     @Test

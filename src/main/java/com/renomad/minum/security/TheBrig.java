@@ -129,7 +129,6 @@ public final class TheBrig implements ITheBrig {
         }
     }
 
-
     @Override
     public boolean sendToJail(String clientIdentifier, long sentenceDuration) {
         if (!constants.isTheBrigEnabled) {

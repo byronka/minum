@@ -6,6 +6,7 @@ import com.renomad.minum.logging.Logger;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
+import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.SearchUtils;
@@ -36,8 +37,8 @@ public class DbTests {
     private Context context;
     private TestLogger logger;
     private FileUtils fileUtils;
-    static Path foosDirectory = Path.of("out/simple_db/foos");
-    static Path fubarDirectory = Path.of("out/simple_db/fubar");
+    static Path foosDirectory = Path.of("out/simple_db_for_db_tests/foos");
+    static Path fubarDirectory = Path.of("out/simple_db_for_db_tests/fubar");
 
     /**
      * The time we will wait for the asynchronous actions
@@ -128,7 +129,7 @@ public class DbTests {
             // change those files
             final var updatedFoos = new ArrayList<Foo>();
             for (var foo : db.values().stream().toList()) {
-                final var newFoo = new Foo(foo.index, foo.a + 1, foo.b + "_updated");
+                final var newFoo = new Foo(foo.getIndex(), foo.a + 1, foo.b + "_updated");
                 updatedFoos.add(newFoo);
                 db.write(newFoo);
             }
@@ -172,7 +173,7 @@ public class DbTests {
         for (int i = 0; i < iterationCount; i++) {
             Foo a = new Foo(0, 1, "a".repeat(1000));
             db.write(a);
-            db.write(new Foo(a.index, 2, "b".repeat(500)));
+            db.write(new Foo(a.getIndex(), 2, "b".repeat(500)));
             db.delete(a);
         }
         MyThread.sleep(iterationCount * 5);
@@ -199,7 +200,7 @@ public class DbTests {
             // create a unique entry
             Foo a = db.write(new Foo(0, x, "a"));
             // update that entry
-            db.write(new Foo(a.index, x, "b"));
+            db.write(new Foo(a.getIndex(), x, "b"));
         });
 
         IntStream.range(0, iterationCount).boxed().parallel().forEach(x -> {
@@ -207,7 +208,7 @@ public class DbTests {
             db.delete(foo);
         });
 
-        MyThread.sleep(iterationCount * 5);
+        MyThread.sleep(iterationCount * 10);
         Path foundFile = dbPathForTest.resolve(1 + Db.DATABASE_FILE_SUFFIX);
         assertFalse(Files.exists(foundFile), "should not find file at " + foundFile);
         assertEquals(Files.readString(dbPathForTest.resolve("index.ddps")), "1");
@@ -235,12 +236,13 @@ public class DbTests {
         MyThread.sleep(FINISH_TIME);
     }
 
+    /**
+     * In this edge/negative test, the database has started but hasn't yet
+     * loaded its data from disk.  Somehow, one of the files, in this case "1.ddps",
+     * is empty, which should never happen.
+     */
     @Test
     public void test_Deserialization_EdgeCases() throws IOException {
-        // what if the directory is missing when try to deserialize?
-        // note: this would only happen if, after instantiating our db,
-        // the directory gets deleted/corrupted.
-
         // clear out the directory to start
         Path dbPathForTest = foosDirectory.resolve("test_Deserialization_EdgeCases");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -250,24 +252,53 @@ public class DbTests {
         // create an empty file, to create that edge condition
         final var pathToSampleFile = dbPathForTest.resolve("1.ddps");
         Files.createFile(pathToSampleFile);
-        db.loadDataFromDisk();
+        db.loadData();
         MyThread.sleep(10);
-        String existsButEmptyMessage = logger.findFirstMessageThatContains("file exists but");
-        assertEquals(existsButEmptyMessage, "1.ddps file exists but empty, skipping");
+        assertTrue(logger.doesMessageExist("1.ddps file exists but empty, skipping"));
+    }
+
+
+    /**
+     * A test for the situation when a database file, like 1.ddps, contains
+     * invalid data, like "invalid data".
+     */
+    @Test
+    public void test_Deserialization_EdgeCases_2() throws IOException {
+        // clear out the directory to start
+        Path dbPathForTest = foosDirectory.resolve("test_Deserialization_EdgeCases_2");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        final var db = new Db<>(dbPathForTest, context, INSTANCE);
+        MyThread.sleep(10);
+
+        // create an empty file, to create that edge condition
+        final var pathToSampleFile = dbPathForTest.resolve("1.ddps");
 
         // create a corrupted file, to create that edge condition
         Files.writeString(pathToSampleFile, "invalid data", StandardCharsets.UTF_8);
-        final var ex = assertThrows(DbException.class, db::loadDataFromDisk);
-        assertTrue(ex.getMessage().replace('\\','/').startsWith("Failed to deserialize out/simple_db/foos/test_Deserialization_EdgeCases/1.ddps with data (\"invalid data\"). Caused by: java.lang.NumberFormatException: For input string: \"invalid data\""));
+        final var ex = assertThrows(DbException.class, () -> db.loadData());
+        assertEquals(ex.getMessage(), "Failed to load data from disk.");
+    }
 
+
+    /**
+     * In this edge case, somehow the directory for a database has become
+     * deleted *after* the database started.  This is a really corrupt scenario.
+     */
+    @Test
+    public void test_Deserialization_EdgeCase3() {
+        // clear out the directory to start
+        Path dbPathForTest = foosDirectory.resolve("test_Deserialization_EdgeCases_3");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
-        db.loadDataFromDisk();
+        final var db = new Db<>(dbPathForTest, context, INSTANCE);
         MyThread.sleep(10);
-        String directoryMissingMessage = logger.findFirstMessageThatContains("directory missing, adding nothing").replace('\\', '/');
-        assertTrue(directoryMissingMessage.contains("test_Deserialization_EdgeCases directory missing, adding nothing to the data list"));
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        db.loadData();
+        MyThread.sleep(10);
+        assertTrue(logger.doesMessageExist("test_Deserialization_EdgeCases_3 directory missing, adding nothing to the data list"));
         db.stop();
         MyThread.sleep(FINISH_TIME);
     }
+
 
     /**
      * When this is looped a hundred thousand times, it takes 500 milliseconds to finish
@@ -330,8 +361,10 @@ public class DbTests {
         Files.writeString(pathToIndex,"");
         var ex = assertThrows(DbException.class, () -> new Db<>(dbPathForTest, context, INSTANCE));
         // because the error message includes a path that varies depending on which OS, using regex to search.
-        assertTrue(RegexUtils.isFound("Exception while reading out.simple_db.foos.test_Performance.index.ddps in Db constructor",ex.getMessage()));
+        assertTrue(RegexUtils.isFound("Exception while reading out.simple_db_for_db_tests.foos.test_Performance.index.ddps in Db constructor",ex.getMessage()));
         MyThread.sleep(FINISH_TIME);
+
+        TestFramework.shutdownTestingContext(contextWithRegularLogger);
     }
 
     /**
@@ -423,7 +456,7 @@ public class DbTests {
             assertEquals(foos6.size(), 0);
 
             Foo newData = db6.write(new Foo(0, 1, "new data"));
-            assertEquals(newData.index, 1L);
+            assertEquals(newData.getIndex(), 1L);
 
             db6.delete(newData);
 
@@ -634,12 +667,8 @@ public class DbTests {
         assertTrue(logger.doesMessageExist("the serialized form of data must not be blank. Is the serialization code written properly?"));
     }
 
-    /**
-     * This method walks through the files of a directory, loading
-     * each one into memory.
-     */
     @Test
-    public void testWalkAndLoad() {
+    public void testWalkAndLoad_EdgeCase_FolderMissing() {
         var dbPathForTest = Path.of("out/simple_db/biz");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(foosDirectory.resolve("testWalkAndLoad"), context, INSTANCE);
@@ -684,49 +713,6 @@ public class DbTests {
         assertThrows(DbException.class, "Negative indexes are disallowed", () -> db.write(foo1));
         db.stop();
         MyThread.sleep(FINISH_TIME);
-    }
-
-    /**
-     * There s a little function that determines whether it is
-     * necessary to load the data - called the first time
-     * data is needed.
-     * <br>
-     * In this instance, we're saying the data has not been
-     * loaded yet, so our method will run loadData (we're
-     * giving it our own runner as a mock)
-     */
-    @Test
-    public void testLoadDataCore_False() {
-        final List<Boolean> wasCalled = new ArrayList<>();
-        wasCalled.add(false);
-        Runnable runner = () -> {
-            wasCalled.clear();
-            wasCalled.add(true); // this *should* run
-        };
-
-        Db.loadDataCore(false, runner);
-
-        assertTrue(wasCalled.getFirst());
-    }
-
-    /**
-     * Similar to {@link #testLoadDataCore_False()} but here
-     * we're telling the method our data has already been loaded,
-     * so no need to load it.
-     */
-    @Test
-    public void testLoadDataCore_True() {
-        final List<Boolean> wasCalled = new ArrayList<>();
-        wasCalled.add(false);
-
-        Runnable runner = () -> {
-            wasCalled.clear();
-            wasCalled.add(true); // hopefully this does not run
-        };
-
-        Db.loadDataCore(true, runner);
-
-        assertFalse(wasCalled.getFirst());
     }
 
     @Test
@@ -991,8 +977,8 @@ public class DbTests {
     }
 
     @Test
-    public void testSearchUtils_ShouldAccomodateUsingIndexes() {
-        Path dbPathForTest = foosDirectory.resolve("testSearchUtils_ShouldAccomodateUsingIndexes");
+    public void testSearchUtils_ShouldAccommodateUsingIndexes() {
+        Path dbPathForTest = foosDirectory.resolve("testSearchUtils_ShouldAccommodateUsingIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("indexes_by_a_value", x -> String.valueOf(x.getA()));
@@ -1026,7 +1012,7 @@ public class DbTests {
         Foo indexesByAValue = db.findExactlyOne("indexes_by_a_value", "1");
         assertEquals(foo, indexesByAValue);
 
-        Foo updatedFoo = new Foo(foo.index, 42, "an update");
+        Foo updatedFoo = new Foo(foo.getIndex(), 42, "an update");
         db.write(updatedFoo);
 
         // we updated the data, so won't find anything now with an "a" value of "1"
@@ -1035,7 +1021,7 @@ public class DbTests {
         Foo indexesByAValue42 = db.findExactlyOne("indexes_by_a_value", "42");
         assertEquals(indexesByAValue42, updatedFoo);
 
-        Foo updatedFoo2 = new Foo(foo.index, 42, "an update, again, but not changing the a value this time");
+        Foo updatedFoo2 = new Foo(foo.getIndex(), 42, "an update, again, but not changing the a value this time");
         db.write(updatedFoo2);
 
         Foo indexesByAValue42_again = db.findExactlyOne("indexes_by_a_value", "42");
@@ -1043,7 +1029,7 @@ public class DbTests {
     }
 
     @Test
-    public void testSearchUtility() {
+    public void testSearchUtility_EdgeCase_NoIndexRegistered() {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -1051,7 +1037,13 @@ public class DbTests {
         // negative case - no index yet
         var ex1 = assertThrows(DbException.class, () -> db.findExactlyOne("indexes_by_a_value", "1"));
         assertEquals(ex1.getMessage(), "There is no index registered on the database Db<Foo> with a name of \"indexes_by_a_value\"");
-
+    }
+    
+    @Test
+    public void testSearchUtility_EdgeCases_Various() {
+        Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("indexes_by_a_value", x -> String.valueOf(x.getA()));
 
         // negative case - no data found by index "1"
@@ -1119,6 +1111,169 @@ public class DbTests {
         System.out.println("find by index took " + indexedStopwatch.stopTimer());
     }
 
+
+    /**
+     * When the first thing we do is request data from an index
+     * on a database, if no other reads have happened it will be
+     * the first thing causing a load to happen.
+     */
+    @Test
+    public void test_firstActionIsRequestingDataByIndex() {
+        Path dbPathForTest = foosDirectory.resolve("db_test_firstActionIsRequestingDataByIndex");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        var db = new Db<>(dbPathForTest, context, Foo.INSTANCE);
+        Foo writtenFoo = db.write(new Foo(0, 1, "a"));
+        db.stop(10, 50);
+
+        MyThread.sleep(50);
+
+        var dbRestarted = new Db<>(dbPathForTest, context, Foo.INSTANCE);
+        dbRestarted.registerIndex("index", x -> x.b);
+        Collection<Foo> indexedData = dbRestarted.getIndexedData("index", "a");
+        assertEquals(new ArrayList<>(indexedData), List.of(writtenFoo));
+    }
+
+
+    /**
+     * When the first thing we do is request data from an index
+     * on a database, if no other reads have happened it will be
+     * the first thing causing a load to happen.
+     */
+    @Test
+    public void test_firstActionIsFindExactlyOne() {
+        Path dbPathForTest = foosDirectory.resolve("db_test_firstActionIsFindExactlyOne");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        var db = new Db<>(dbPathForTest, context, Foo.INSTANCE);
+        Foo writtenFoo = db.write(new Foo(0, 1, "a"));
+        db.stop(10, 50);
+
+        MyThread.sleep(50);
+
+        var dbRestarted = new Db<>(dbPathForTest, context, Foo.INSTANCE);
+        dbRestarted.registerIndex("index", x -> x.b);
+        Foo exactlyOne = dbRestarted.findExactlyOne("index", "a");
+        assertEquals(exactlyOne, writtenFoo);
+    }
+
+    @Test
+    public void test_EdgeCase_RegisteringIndexTooLate() {
+        Path dbPathForTest = foosDirectory.resolve("test_EdgeCase_RegisteringIndexTooLate");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        Db<Foo> db = new Db<>(dbPathForTest, context, INSTANCE);
+        db.write(new Foo(0, 1, "a"));
+        var ex = assertThrows(DbException.class, () -> db.registerIndex("index_too_late", x -> x.b));
+        assertEquals(ex.getMessage(), "This method must be run before the database loads data from disk.  Typically, it should be run immediately after the database is created.  See this method's documentation");
+    }
+
+    /**
+     * This test examines the behavior when the user instantiates
+     * a database using {@link Db} that was previously using {@link DbEngine2},
+     * and which causes a conversion in file schema.
+     */
+    @Test
+    public void test_ConvertingDatabase_DbEngine2_To_DbClassic() throws IOException {
+        // build a context with customized values to make testing easier.
+        // Explanation: The files that are created with the new appender/consolidator
+        // only split up files at large values, like 100k lines.  Here, we'll create
+        // a Constants class with values much smaller, so we can verify processing
+        // without having to create huge files.
+        var properties = new Properties();
+        properties.setProperty("MAX_DATABASE_APPEND_COUNT", "5");
+        properties.setProperty("MAX_DATABASE_CONSOLIDATED_FILE_LINES", "5");
+        properties.setProperty("DB_DIRECTORY","out/simple_db_for_db_tests");
+        properties.setProperty("LOG_LEVELS","DEBUG,ASYNC_ERROR,AUDIT,TRACE");
+        String directoryName = "test_ConvertingDatabase_DbEngine2_To_Db";
+        var customContext = TestFramework.buildTestingContext(directoryName, properties);
+
+        // arrange
+        Path newPersistenceDirectory = Path.of(customContext.getConstants().dbDirectory).resolve(directoryName);
+        fileUtils.deleteDirectoryRecursivelyIfExists(newPersistenceDirectory);
+        logger.logDebug(() -> "Deleted test directory, " + newPersistenceDirectory);
+
+        // create database of DbEngine2 type
+        DbEngine2<Foo> dbEngine2 = customContext.getDb2(directoryName, INSTANCE);
+
+        // add some data
+        List<Foo> foos = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            Foo data = dbEngine2.write(new Foo(0, i, "a" + i));
+            foos.add(data);
+            MyThread.sleep(1);
+        }
+
+        logger.logDebug(() -> "Finished adding data with DbEngine2");
+
+        // stop the database
+        dbEngine2.flush();
+        dbEngine2.stop(20, 50);
+
+        // give the file system time to do its async process
+        MyThread.sleep(30);
+
+        logger.logDebug(() -> "DbEngine2 database is stopped");
+
+        logger.logDebug(() -> "Starting Db Classic...");
+        // create database of classic type, pointing at old directory
+        Db<Foo> dbClassic = customContext.getDb(directoryName, INSTANCE);
+        List<Foo> foos2 = new ArrayList<>(dbClassic.values().stream().toList());
+
+        // assert
+        foos.sort(Comparator.comparingLong(Foo::getIndex));
+        foos2.sort(Comparator.comparingLong(Foo::getIndex));
+        assertEquals(foos2.toString(), foos.toString());
+        assertEquals("51", Files.readString(newPersistenceDirectory.resolve("index.ddps")));
+
+        dbClassic.stop(20, 50);
+
+        // give the file system time to do its async process
+        MyThread.sleep(30);
+
+        // restart classic database
+        Db<Foo> dbClassicRestarted = customContext.getDb(directoryName, INSTANCE);
+        List<Foo> listRestarted = new ArrayList<>(dbClassicRestarted.values().stream().toList());
+        assertEquals("51", Files.readString(newPersistenceDirectory.resolve("index.ddps")));
+
+        // assert
+        foos.sort(Comparator.comparingLong(Foo::getIndex));
+        listRestarted.sort(Comparator.comparingLong(Foo::getIndex));
+        assertEquals(listRestarted.toString(), foos.toString());
+
+        // convert it back and forth
+        for (int i = 0; i < 2; i++) {
+            // start database of DbEngine2
+            DbEngine2<Foo> d2 = customContext.getDb2(directoryName, INSTANCE);
+            // this line will cause the conversion to DbEngine2
+            var d2Values = new ArrayList<>(d2.values().stream().toList());
+            d2.flush();
+
+            // assert
+            foos.sort(Comparator.comparingLong(Foo::getIndex));
+            d2Values.sort(Comparator.comparingLong(Foo::getIndex));
+            assertEquals(d2Values.toString(), foos.toString());
+
+            d2.stop(10, 50);
+
+            // give the file system time to do its async process
+            MyThread.sleep(30);
+
+            // start classic database
+            Db<Foo> d1 = customContext.getDb(directoryName, INSTANCE);
+            // this line will cause the conversion to Db classic
+            var d1Values = new ArrayList<>(d1.values().stream().toList());
+            d1.stop(10, 50);
+            assertEquals("51", Files.readString(newPersistenceDirectory.resolve("index.ddps")));
+
+            // give the file system time to do its async process
+            MyThread.sleep(30);
+
+            // assert
+            foos.sort(Comparator.comparingLong(Foo::getIndex));
+            d1Values.sort(Comparator.comparingLong(Foo::getIndex));
+            assertEquals(d1Values.toString(), foos.toString());
+        }
+        TestFramework.shutdownTestingContext(customContext);
+    }
+
     public static class Bar extends DbData<Bar> {
 
         private long index;
@@ -1135,12 +1290,12 @@ public class DbTests {
         }
 
         @Override
-        protected String serialize() {
+        public String serialize() {
             return serializeHelper(index, identifier);
         }
 
         @Override
-        protected Bar deserialize(String serializedText) {
+        public Bar deserialize(String serializedText) {
             final var tokens =  deserializeHelper(serializedText);
             return new Bar(
                     Integer.parseInt(tokens.get(0)),
@@ -1148,12 +1303,12 @@ public class DbTests {
         }
 
         @Override
-        protected long getIndex() {
+        public long getIndex() {
             return this.index;
         }
 
         @Override
-        protected void setIndex(long index) {
+        public void setIndex(long index) {
             this.index = index;
         }
 
@@ -1181,14 +1336,14 @@ public class DbTests {
 
     public static class Foo extends DbData<Foo> implements Comparable<Foo> {
 
-        private long index;
         private final int a;
         private final String b;
+        private long index;
 
         public Foo(long index, int a, String b) {
-            this.index = index;
             this.a = a;
             this.b = b;
+            this.index = index;
         }
 
         static final Foo INSTANCE = new Foo(0,0,"");
@@ -1213,6 +1368,16 @@ public class DbTests {
         }
 
         @Override
+        public long getIndex() {
+            return this.index;
+        }
+
+        @Override
+        public void setIndex(long index) {
+            this.index = index;
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1223,16 +1388,6 @@ public class DbTests {
         @Override
         public int hashCode() {
             return Objects.hash(index, a, b);
-        }
-
-        @Override
-        public long getIndex() {
-            return index;
-        }
-
-        @Override
-        public void setIndex(long index) {
-            this.index = index;
         }
 
         // implementing comparator just so we can assertEqualsDisregardOrder on a collection of these

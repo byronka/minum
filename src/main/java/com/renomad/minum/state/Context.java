@@ -2,6 +2,7 @@ package com.renomad.minum.state;
 
 import com.renomad.minum.database.Db;
 import com.renomad.minum.database.DbData;
+import com.renomad.minum.database.DbEngine2;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.queue.ActionQueueState;
 import com.renomad.minum.web.FullSystem;
@@ -89,4 +90,22 @@ public final class Context {
     public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
         return new Db<>(Path.of(constants.dbDirectory, name), this, instance);
     }
+
+    /**
+     * This is a helper method to instantiate a {@link DbEngine2} class,
+     * using the engine2 database implementation. It is similar to
+     * {@link #getDb(String, DbData)} in all other respects.
+     * <p>
+     *     By switching your old database calls to use this, when it runs
+     *     it will convert the file schema.
+     * </p>
+     * <p>
+     *     <b>Please backup your database before conversion</b>
+     * </p>
+     */
+    public <T extends DbData<?>> DbEngine2<T> getDb2(String name, T instance) {
+        return new DbEngine2<>(Path.of(constants.dbDirectory, name), this, instance);
+    }
+
+
 }

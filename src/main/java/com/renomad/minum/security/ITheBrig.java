@@ -9,9 +9,6 @@ import java.util.List;
  * long as required.  After they have served their time, they
  * are released.
  * </p>
- * <p>
- *     See also {@link UnderInvestigation}
- * </p>
  */
 public interface ITheBrig {
     // Regarding the BusyWait - indeed, we expect that the while loop

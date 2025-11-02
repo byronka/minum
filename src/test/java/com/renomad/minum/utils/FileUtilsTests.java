@@ -127,12 +127,6 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_MakeDirectory_EdgeCase_BadPath() {
-        fileUtils.makeDirectory(Path.of("../foo"));
-        assertTrue(logger.doesMessageExist("Already exists:"));
-    }
-
-    @Test
     public void test_ReadBinaryFile() throws IOException {
         Path path = Path.of("target/test_ReadBinaryFile.txt");
         Files.deleteIfExists(path);

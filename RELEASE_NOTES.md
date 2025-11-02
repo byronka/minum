@@ -1,49 +1,43 @@
-Recap, all changes to date since beta release
----------------------------------------------
+Release notes
+=============
 
-* Major versions:
-  * 8: Handle requests for partial ranges, enabling scrubbing through videos
-  * 7: Ability to read bodies more efficiently from Request streams
-  * 6: Able to stream responses to clients
-  * 5: Applying recommendations from linters, aggressive refactoring
-  * 4: Aggressive refactoring, system exclusively on virtual threads, stricter key usage in templates
-  * 3: Code coverage at 100%, new pre and post handler, leaner database API, template respects indentation
-  * 2: Renamings to align with HTTP spec, new tutorial added, added Gzip compression
-  * 1: Various adjustments per recommendations, heavy refactoring, switch to use Maven as build tool
-  * 0: Beta release
-* Converted project to use Maven for building instead of Make, adjusting to follow Maven directory conventions.
-* Increased test code coverage to 100% (statement and branch)
-* Refactorings:
-  * Many small adjustments to expose critical parts for easier testing
-  * Made all classes "final" to disallow extending
-  * Simplified HTTP parsing design to improve debugging
-* System exclusively runs on virtual threads
-* Improved documentation - JavaDocs on variables and methods, developer handbook
-* Tutorial added
-* Large example project added (Memoria_project)
-* Removed StaticFileCache - static files are kept outside the binary, with a configurable option (STATIC_FILE_CACHE_TIME) for how long they are cached.
-* Many small renamings and tunings
-* Applying suggestions from several linting tools, including SonarQube, EqualsVerifier, SpotBugs, and ErrorProne
-* Fixing bugs
-* Usability improvements
-  * If lacking a minum.config file, system will still function
-  * More robust processing of list-style configuration values, such as EXTRA_MIME_MAPPINGS
-  * All test assertions allow adding a message to be shown at failure
-  * Fewer CRUD methods on database.  Instead of write and update, it is now only write.  An index of 0 means to create,
-    and a positive index means to update.
-  * Different handling of data for form-urlencoded request bodies versus multipart.
-* New features added
-  * New ability to add code before and after endpoint processing (registerPreHandler and registerLastMinuteHandler)
-  * GZIP compression for text HTTP responses
-  * In templating:
-    * values with newlines will all get indented
-    * less lenient about unused keys - an exception will be thrown
-  * Streaming:
-    * Allow the server to send very large data without incurring heavy memory usage.  Helper
-      methods provided to enable easier streaming of files, and methods exist to write custom streaming code.
-    * Request object provides access to ISocketWrapper, enabling user-built web handlers to control
-      data more precisely.  This is valuable in situations like receiving large files, or handling streaming data.
-* Subtle improvements to security programs
+* This is a list of the major versions, which are those requiring the developer to adjust
+  their code.  From August 2023 to August 2024, there were 8 major versions. Version 8 has
+  remained stable.
+  * 8: Streaming videos, _August 2024_
+  * 7: Read bodies more efficiently, _August 2024_
+  * 6: Streaming responses, _July 2024_
+  * 5: Refactoring, _July 2024_
+  * 4: Refactoring, _June 2024_
+  * 3: Code coverage at 100%, _March 2024_
+  * 2: Refactoring, _September 2023_
+  * 1: Refactoring, Maven as buildtool, _September 2023_
+  * 0: Beta release, _August 2023_
+
+v8.3.0 Nov 1, 2025
+------------------
+
+* Improve database performance
+  * Minum's original database stores each item in its own file. This was sufficient for smaller 
+  data sets, but not for large. This new design improves on that.
+  * Each database change will now append to a file, being one of the fastest ways to write 
+  to disk. In this way, a million rows can be added in seconds.  Following that, in the 
+  consolidation phase, changes are squashed down to unique values, enabling fast system 
+  startup.  A database file with a million unique entries can be loaded in about a second.
+* New constants added to `minum.config` to control maximum append-file size and consolidation-file size.
+  They are MAX_DATABASE_APPEND_COUNT and MAX_DATABASE_CONSOLIDATED_FILE_LINES
+* Refactoring tests
+* Better documentation
+* New safety feature - if the user tries to register an index too late - that is, after the data
+  has been loaded to memory - an exception will now be thrown.
+* Fixing bugs: 
+  * If the user tried finding an item by index as the first action after
+    initializing a database, previously it would fail to load the data.  It now properly loads
+    the data if needed.
+  * In the database, if a user registered an index after data already loaded, the system would 
+    not complain.  Now, it will throw an exception if that happens.
+  * In the tutorial, the line of code for running functional testing was wrong
+
 
 v8.2.0 Aug 6, 2025
 ------------------

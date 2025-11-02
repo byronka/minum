@@ -168,8 +168,9 @@ final class WebEngine {
       final var socketFactory = sslContext.getServerSocketFactory();
       return socketFactory.createServerSocket(sslPort);
     } catch (Exception ex) {
-      logger.logDebug(ex::getMessage);
-      throw new WebServerException(ex);
+      String extraMessage = "Exception during creation of SSL socket with port %d, keystore URL of %s.  Exception message: %s".formatted(sslPort, keystoreUrl, ex.getMessage());
+      logger.logDebug(() -> extraMessage);
+      throw new WebServerException(extraMessage, ex);
     }
   }
 

@@ -129,10 +129,10 @@ public final class RequestLine {
         if (thirdSpace != -1) {
             return null;
         }
-        String method = rawRequestLine.substring(0, firstSpace);
+        String myMethod = rawRequestLine.substring(0, firstSpace);
         String path = rawRequestLine.substring(firstSpace + 1, secondSpace);
         String protocol = rawRequestLine.substring(secondSpace + 1);
-        return new RequestLineRawValues(method, path, protocol);
+        return new RequestLineRawValues(myMethod, path, protocol);
     }
 
     private Method extractMethod(String methodString) {
@@ -180,12 +180,12 @@ public final class RequestLine {
             int equalSignLocation = currentKeyValue.indexOf("=");
             if (equalSignLocation <= 0) return Map.of();
             String key = currentKeyValue.substring(0, equalSignLocation);
-            String rawValue = currentKeyValue.substring(equalSignLocation + 1);
+            String myRawValue = currentKeyValue.substring(equalSignLocation + 1);
             try {
-                String value = StringUtils.decode(rawValue);
+                String value = StringUtils.decode(myRawValue);
                 queryStrings.put(key, value);
             } catch (IllegalArgumentException ex) {
-                logger.logDebug(() -> "Query string parsing failed for key: (%s) value: (%s).  Skipping to next key-value pair. error message: %s".formatted(key, rawValue, ex.getMessage()));
+                logger.logDebug(() -> "Query string parsing failed for key: (%s) value: (%s).  Skipping to next key-value pair. error message: %s".formatted(key, myRawValue, ex.getMessage()));
             }
         }
         return queryStrings;

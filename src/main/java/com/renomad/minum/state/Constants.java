@@ -36,13 +36,15 @@ public final class Constants {
         keepAliveTimeoutSeconds = getProp("KEEP_ALIVE_TIMEOUT_SECONDS", 3);
         vulnSeekingJailDuration = getProp("VULN_SEEKING_JAIL_DURATION", 10 * 1000);
         isTheBrigEnabled = getProp("IS_THE_BRIG_ENABLED", true);
-        suspiciousErrors = getProp("SUSPICIOUS_ERRORS", "");
-        suspiciousPaths = getProp("SUSPICIOUS_PATHS", "");
+        suspiciousErrors = new HashSet<>(getProp("SUSPICIOUS_ERRORS", ""));
+        suspiciousPaths = new HashSet<>(getProp("SUSPICIOUS_PATHS", ""));
         startTime = System.currentTimeMillis();
         extraMimeMappings = getProp("EXTRA_MIME_MAPPINGS", "");
         staticFileCacheTime = getProp("STATIC_FILE_CACHE_TIME", 60 * 5);
         useCacheForStaticFiles = getProp("USE_CACHE_FOR_STATIC_FILES", true);
         maxElementsLruCacheStaticFiles = getProp("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", 1000);
+        maxAppendCount = getProp("MAX_DATABASE_APPEND_COUNT", 100_000);
+        maxLinesPerConsolidatedDatabaseFile = getProp("MAX_DATABASE_CONSOLIDATED_FILE_LINES", 100_000);
     }
 
     /**
@@ -125,12 +127,12 @@ public final class Constants {
     /**
      * These are a list of error messages that often indicate unusual behavior, maybe an attacker
      */
-    public final List<String> suspiciousErrors;
+    public final Set<String> suspiciousErrors;
 
     /**
      * These are a list of paths that often indicate unusual behavior, maybe an attacker
      */
-    public final List<String> suspiciousPaths;
+    public final Set<String> suspiciousPaths;
 
     /**
      * This value is the result of running System.currentTimeMillis() when this
@@ -173,6 +175,19 @@ public final class Constants {
      * </p>
      */
     public final boolean useCacheForStaticFiles;
+
+    /**
+     * This is the maximum count of database entries that will
+     * be appended to a file before switching to a new file.
+     * Only applies when using DbEngine2.
+     */
+    public final int maxAppendCount;
+
+    /**
+     * This number is the maximum count of lines we will allow in a consolidated
+     * database file, to support the needs of the database.
+     */
+    public final int maxLinesPerConsolidatedDatabaseFile;
 
     /**
      * This constant controls the maximum number of elements for the {@link com.renomad.minum.utils.LRUCache}
@@ -285,18 +300,17 @@ public final class Constants {
                 ----------------------------------------------------------------
                 """;
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Constants constants = (Constants) o;
-        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
+        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxAppendCount == constants.maxAppendCount && maxLinesPerConsolidatedDatabaseFile == constants.maxLinesPerConsolidatedDatabaseFile && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, maxReadLineSizeBytes, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxElementsLruCacheStaticFiles);
+        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, maxReadLineSizeBytes, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxAppendCount, maxLinesPerConsolidatedDatabaseFile, maxElementsLruCacheStaticFiles);
     }
 }
 

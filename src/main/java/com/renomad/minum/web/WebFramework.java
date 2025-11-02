@@ -3,7 +3,6 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.ITheBrig;
-import com.renomad.minum.security.UnderInvestigation;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
@@ -35,7 +34,6 @@ import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
 public final class WebFramework {
 
     private final Constants constants;
-    private final UnderInvestigation underInvestigation;
     private final IInputStreamUtils inputStreamUtils;
     private final IBodyProcessor bodyProcessor;
     /**
@@ -169,17 +167,16 @@ public final class WebFramework {
         } catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
         } catch (IOException ex) {
-            handleIOException(sw, ex, logger, theBrig, underInvestigation, constants.vulnSeekingJailDuration);
+            handleIOException(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         }
     }
 
 
-    static void handleIOException(ISocketWrapper sw, IOException ex, ILogger logger, ITheBrig theBrig, UnderInvestigation underInvestigation, int vulnSeekingJailDuration ) {
+    static void handleIOException(ISocketWrapper sw, IOException ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
         logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
-        String suspiciousClues = underInvestigation.isClientLookingForVulnerabilities(ex.getMessage());
 
-        if (!suspiciousClues.isEmpty() && theBrig != null) {
-            logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + suspiciousClues);
+        if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
+            logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
         }
     }
@@ -293,10 +290,8 @@ public final class WebFramework {
     }
 
     void checkIfSuspiciousPath(ISocketWrapper sw, RequestLine requestLine) {
-        String suspiciousClues = underInvestigation.isLookingForSuspiciousPaths(
-                requestLine.getPathDetails().getIsolatedPath());
-        if (!suspiciousClues.isEmpty()) {
-            String msg = sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + suspiciousClues;
+        if (constants.suspiciousPaths.contains(requestLine.getPathDetails().getIsolatedPath())) {
+            String msg = sw.getRemoteAddr() + " is looking for a vulnerability, for this: " + requestLine.getPathDetails().getIsolatedPath();
             throw new ForbiddenUseException(msg);
         }
     }
@@ -637,7 +632,6 @@ public final class WebFramework {
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
         this.registeredPartialPaths = new HashMap<>();
-        this.underInvestigation = new UnderInvestigation(constants);
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
 
@@ -667,7 +661,7 @@ public final class WebFramework {
 
     void readExtraMimeMappings(List<String> input) {
         if (input == null || input.isEmpty()) return;
-        if (!(input.size() % 2 == 0)) {
+        if (input.size() % 2 != 0) {
             throw new WebServerException("input must be even (key + value = 2 items). Your input: " + input);
         }
 

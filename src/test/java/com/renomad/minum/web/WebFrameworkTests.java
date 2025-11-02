@@ -5,7 +5,6 @@ import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.Inmate;
-import com.renomad.minum.security.UnderInvestigation;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.IFileReader;
@@ -13,14 +12,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
@@ -230,7 +227,7 @@ public class WebFrameworkTests {
      *
      * or...
      *
-     * suspicousClues   brig
+     * suspiciousClues   brig
      * --------------   ----
      * empty             null
      * notEmpty          null
@@ -251,19 +248,17 @@ public class WebFrameworkTests {
         var fakeSocketWrapper4 = new FakeSocketWrapper();
         fakeSocketWrapper4.getRemoteAddrAction = () -> "44.44.44.44";
 
-        var underInvestigation = new UnderInvestigation(context.getConstants());
-
         // empty, null - nothing added to brig
-        WebFramework.handleIOException(fakeSocketWrapper1, new IOException(""), logger, null, underInvestigation, 10);
+        WebFramework.handleIOException(fakeSocketWrapper1, new IOException(""), logger, null, 10, context.getConstants().suspiciousErrors);
         assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("is looking for vulnerabilities, for this", 1));
         // notEmpty, null - nothing added to brig
-        WebFramework.handleIOException(fakeSocketWrapper2, new IOException("The client supported protocol versions"), logger, null, underInvestigation, 10);
+        WebFramework.handleIOException(fakeSocketWrapper2, new IOException("The client supported protocol versions"), logger, null, 10, context.getConstants().suspiciousErrors);
         assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("is looking for vulnerabilities, for this", 1));
         // empty, nonNull - nothing added to brig
-        WebFramework.handleIOException(fakeSocketWrapper3, new IOException(""), logger, theBrigMock, underInvestigation, 10);
+        WebFramework.handleIOException(fakeSocketWrapper3, new IOException(""), logger, theBrigMock, 10, context.getConstants().suspiciousErrors);
         assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("is looking for vulnerabilities, for this", 1));
         // notEmpty, nonNull - added, and logged
-        WebFramework.handleIOException(fakeSocketWrapper4, new IOException("The client supported protocol versions"), logger, theBrigMock, underInvestigation, 10);
+        WebFramework.handleIOException(fakeSocketWrapper4, new IOException("The client supported protocol versions"), logger, theBrigMock, 10, context.getConstants().suspiciousErrors);
         assertTrue(logger.doesMessageExist("is looking for vulnerabilities, for this"));
         assertTrue(theBrigMock.isInJail("44.44.44.44_vuln_seeking"));
     }

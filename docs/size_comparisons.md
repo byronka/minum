@@ -28,26 +28,27 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 5,675 | 141,048 | 1,085,405   |
+| 6,376 | 141,048 | 1,085,405   |
 
 
-Our project is 25 times smaller than [Javalin](https://javalin.io/), which bills itself 
-as "A simple web framework for Java and Kotlin".
+Our project is 22 times smaller than [Javalin](https://javalin.io/),
+which bills itself as "A simple web framework for Java and Kotlin".
 
-Minum does not require a separate web server, database, or HTML parsing - it is
-all built-in.  It even includes a testing framework!
+Minum does not require a separate web server, database, or HTML
+parsing - it is all built-in.  It even includes a testing framework!
 
 
 Web server
 ----------
 
-The web server is sufficiently performant and capable for most cases.  It also makes use of
-some security algorithms to protect itself in the harsh modern internet environment.  It is also
-well-tested and there are examples of its use linked on the top-level README.
+The web server is sufficiently performant and capable for most cases.
+It also makes use of some security algorithms to protect itself in the
+harsh modern internet environment.  It is also well-tested and there
+are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2673  | 163,000 | 242,000 |
+| 2668  | 163,000 | 242,000 |
 
 
 Templating
@@ -55,7 +56,9 @@ Templating
 
 The templating is logic-free - the only syntax is to use a key inside
 double brackets.  Any extras, such as sanitizing text for HTML, or
-looping, is implemented through ordinary code, which is far easier to debug.
+looping, is implemented through ordinary code, which is far easier to
+debug.
+
 See an example of sophisticated use [here](https://github.com/byronka/template-benchmark/blob/utf8/src/main/java/com/mitchellbosecke/benchmark/Minum.java).
 
 | Minum | Mustache | Pebble | Rocker | Thymeleaf |
@@ -66,20 +69,22 @@ See an example of sophisticated use [here](https://github.com/byronka/template-b
 Database
 --------
 
-The database is exceptionally simplistic but stable and minimal.  Any other database may
-be used in its place - the framework does nothing to hinder that choice.
+The database is exceptionally simplistic but stable and minimal.  Any
+other database may be used in its place - the framework does nothing
+to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 309   | 1,300,000  | 1,500,000 | 116,000 |
+| 1022  | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
 -------
 
-The logging is as simple as possible, without causing undue negative performance impacts.
-Each method takes a lambda to be run later in a queue.  The lack of complexity means less
-surface area for bugs, and the performance is more than acceptable in most cases. 
+The logging is as simple as possible, without causing undue negative
+performance impacts.  Each method takes a lambda to be run later in a
+queue.  The lack of complexity means less surface area for bugs, and
+the performance is more than acceptable in most cases. 
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
@@ -89,8 +94,9 @@ surface area for bugs, and the performance is more than acceptable in most cases
 HTML Parser
 -----------
 
-This is a parser for the common case in web application development - parsing one's
-own HTML code, for such reasons as extracting data or testing.
+This is a parser for the common case in web application development -
+parsing one's own HTML code, for such reasons as extracting data or
+testing.
 
 | Minum | JSoup  |
 |-------|--------|
@@ -100,9 +106,9 @@ own HTML code, for such reasons as extracting data or testing.
 Testing
 -------
 
-These are mostly basic assertion functions, adhering to tenets of minimalism.  There is
-no need for an overabundance of assertion types - assertTrue and assertEquals works for 
-most cases.
+These are mostly basic assertion functions, adhering to tenets of
+minimalism.  There is no need for an overabundance of assertion 
+types - assertTrue and assertEquals works for most cases.
 
 | Minum | JUnit4 |
 |-------|--------|
@@ -112,7 +118,8 @@ most cases.
 Background task processing
 --------------------------
 
-This is provided by ActionQueue, in the queue package.  See the development_handbook in the docs.
+This is provided by ActionQueue, in the queue package.  See the
+development_handbook in the docs.
 
 | Minum | Jobrunr |
 |-------|---------|
@@ -122,9 +129,10 @@ This is provided by ActionQueue, in the queue package.  See the development_hand
 Various helpful utilities
 -------------------------
 
-These utilities were sufficient for the development of a fully-featured web application.  
-Perhaps there are other utilities that would assist, but in nearly every case I encounter,
-there is a basic-Java-only approach that obviates an extra dependency.
+These utilities were sufficient for the development of a
+fully-featured web application.  Perhaps there are other utilities
+that would assist, but in nearly every case I encounter, there is a
+basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
@@ -134,8 +142,8 @@ there is a basic-Java-only approach that obviates an extra dependency.
 Javascript utilities
 --------------------
 
-There are no JavaScript utilities provided.  You may add these if you wish, but 
-do not underestimate the power of vanilla JavaScript.
+There are no JavaScript utilities provided.  You may add these if you
+wish, but do not underestimate the power of vanilla JavaScript.
 
 | Minum | Various |
 |-------|---------|
@@ -158,8 +166,8 @@ on why [server-side rendering is better in most cases](https://www.timr.co/serve
 Javascript form handling
 ------------------------
 
-If you don't require a reactive JavaScript library, then vanilla form handling is already provided,
-meaning less code.
+If you don't require a reactive JavaScript library, then vanilla form
+handling is already provided, meaning less code.
 
 | Minum | react-hook-forms |
 |-------|------------------|
@@ -169,11 +177,12 @@ meaning less code.
 Database object-relational-mapper
 ---------------------------------
 
-If you use simpler communication with the database, respecting the difference between a
-tabular structure and your objects, there won't be as many leaky abstractions and giant
-dependencies.  Further, if you make use of the database bundled with Minum, there is no 
-need for mapping at all - the data remains a collection of objects in memory, with no
-friction at all.
+If you use simpler communication with the database, respecting the
+difference between a tabular structure and your objects, there won't
+be as many leaky abstractions and giant dependencies.  Further, if you
+make use of the database bundled with Minum, there is no need for
+mapping at all - the data remains a collection of objects in memory,
+with no friction at all.
 
 | Minum | Hibernate |
 |-------|-----------|
@@ -183,8 +192,9 @@ friction at all.
 Database connection pooling
 ---------------------------
 
-If you don't run your database as a separate server, then you don't need to worry about
-pooling your socket connections for it.  Nor do you worry about authentication.
+If you don't run your database as a separate server, then you don't
+need to worry about pooling your socket connections for it.  Nor do
+you worry about authentication.
 
 | Minum | HikariCP |
 |-------|----------|
@@ -193,15 +203,18 @@ pooling your socket connections for it.  Nor do you worry about authentication.
 Transactions
 ------------
 
-It is occasionally necessary to ensure that certain actions take place completely, or
-not at all.  This is not a difficult programming assignment - that is, it certainly
-has edge cases and involves tedious work, but it is not beyond an experienced developer
-to write proper code, guided by testing, that meets the business needs correctly.  
+It is occasionally necessary to ensure that certain actions take place
+completely, or not at all.  This is not a difficult programming
+assignment - that is, it certainly has edge cases and involves tedious
+work, but it is not beyond an experienced developer to write proper
+code, guided by testing, that meets the business needs correctly.  
 
-This is a perfect example of the kind of universal dependency inclusion that ends up making our
-systems indecipherable and unmaintainable, despite assertions to the contrary, and fills up 
-sites like StackOverflow with questions about its byzantine complexity, where a search 
-for "@Transactional" yields twenty-five thousand results.
+This is a perfect example of the kind of universal dependency
+inclusion that ends up making our systems indecipherable and
+unmaintainable, despite assertions to the contrary, and fills up sites
+like StackOverflow with questions about its byzantine complexity,
+where a search for "@Transactional" yields twenty-five thousand
+results.
 
 | Minum | Spring @Transactional implementation |
 |-------|--------------------------------------|
@@ -238,10 +251,12 @@ Basis for Spring Boot's size:
 Basis for Javalin's size:
 -------------------------
 
-_Note that this is a conservative measure - I'm not even counting the subdependencies, but
-instead only one layer deep.  Also note that Minum contains code for automated testing and 
-makes concientious decisions to provide the user-oriented functionality without requiring this
-much technology - therefore, it is a valid apples-to-apples comparison_
+_Note that this is a conservative measure - I'm not even counting the
+subdependencies, but instead only one layer deep.  Also note that
+Minum contains code for automated testing and makes concientious
+decisions to provide the user-oriented functionality without requiring
+this much technology - therefore, it is a valid apples-to-apples
+comparison_
 
 | Component               | LOC     |
 |-------------------------|---------|

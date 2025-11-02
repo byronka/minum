@@ -71,7 +71,7 @@ public class MainTests {
         context = buildTestingContext("_integration_test");
         FullSystem fullSystem = new FullSystem(context).start();
         new Endpoints(fullSystem).registerEndpoints();
-        ft = new FunctionalTesting(context);
+        ft = new FunctionalTesting(context, "localhost", 8080);
     }
 
     @AfterClass
@@ -402,7 +402,7 @@ This is at `src/main/java/org/example/myproject/Book.java`:
 ```java
 package org.example.myproject;
 
-import com.renomad.minum.database.Db;
+import com.renomad.minum.database.AbstractDb;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.web.IRequest;
 import com.renomad.minum.web.IResponse;
@@ -420,9 +420,9 @@ import static com.renomad.minum.utils.StringUtils.safeHtml;
 public class Book {
 
     private final TemplateProcessor bookTemplate;
-    private final Db<BookDbData> bookDb;
+    private final AbstractDb<BookDbData> bookDb;
 
-    public Book(Db<BookDbData> bookDb) throws IOException {
+    public Book(AbstractDb<BookDbData> bookDb) throws IOException {
         String myTemplate = Files.readString(Path.of("src/main/webapp/templates/bookentry.html"));
         this.bookTemplate = TemplateProcessor.buildProcessor(myTemplate);
         this.bookDb = bookDb;
