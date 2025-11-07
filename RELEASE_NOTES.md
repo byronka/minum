@@ -210,7 +210,6 @@ Other adjustments:
 
 Bugs fixed:
 * large files had extra bytes appended in version 7.0.0 when using `Response.buildLargeFileResponse`.  This is now corrected.
-* 
 
 v7.0.0 - Aug 3, 2024
 --------------------
