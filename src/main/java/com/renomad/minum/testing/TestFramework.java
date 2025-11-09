@@ -268,9 +268,7 @@ public final class TestFramework {
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new TestLogger(constants, executorService, loggerName);
 
-        var context = new Context(executorService, constants);
-
-        context.setLogger(logger);
+        var context = new Context(executorService, constants, logger);
 
         return context;
     }

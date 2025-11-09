@@ -28,7 +28,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,376 | 141,048 | 1,085,405   |
+| 6,361 | 141,048 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -48,7 +48,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2668  | 163,000 | 242,000 |
+| 2,672 | 163,000 | 242,000 |
 
 
 Templating
@@ -137,6 +137,24 @@ basic-Java-only approach that obviates an extra dependency.
 | Minum | Apache Commons IO |
 |-------|-------------------|
 | 673   | 18,045            |
+
+
+Security
+--------
+
+There is a program called TheBrig provided which can assist with
+checking incoming requests for potential malicious behavior. For example,
+if a request causes an exception in the TLS encryption code, it might
+mean the client is using a application scanning tool. Alternately, another
+example is if the client tries requesting a path like .env, which may suggest
+they are looking for vulnerabilities, rather than being a good-faith user. In those
+cases, that client's ip address can be banned from making requests of the server
+for a period of time.  see SUSPICIOUS_ERRORS, SUSPICIOUS_PATHS and VULN_SEEKING_JAIL_DURATION
+in the minum.config.
+
+| Minum | OWASP AppSensor | Spring Security |
+|-------|-----------------|-----------------|
+| 208   | 24,668          | 100,544         |
 
 
 Javascript utilities

@@ -4,6 +4,7 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.TheBrig;
+import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFailureException;
 import com.renomad.minum.utils.*;
@@ -52,6 +53,7 @@ public class WebTests {
     static private ExecutorService es;
     static private IInputStreamUtils inputStreamUtils;
     static private Context context;
+    static private Constants constants;
     static private TestLogger logger;
     private static String gettysburgAddress;
     private static final Headers defaultHeader = new Headers(List.of());
@@ -92,6 +94,7 @@ public class WebTests {
         es = context.getExecutorService();
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
         logger = (TestLogger)context.getLogger();
+        constants = context.getConstants();
         fileUtils = new FileUtils(logger, context.getConstants());
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
     }
@@ -149,7 +152,7 @@ public class WebTests {
         wf.registerPath(GET, "add_two_numbers", Summation::addTwoNumbers);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (var client = getClient(socket)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -196,7 +199,7 @@ public class WebTests {
         wf.registerPath(GET, "add_two_numbers", request -> null);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (var client = getClient(socket)) {
                     InputStream is = client.getInputStream();
                     // send a GET request
                     client.sendHttpLine("GET /add_two_numbers?a=42&b=44 HTTP/1.1");
@@ -275,7 +278,7 @@ public class WebTests {
         wf.registerPath(GET, "add_two_numbers", Summation::addTwoNumbers);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (var client = getClient(socket)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -483,7 +486,7 @@ public class WebTests {
 
         try (var primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (var client = getClient(socket)) {
                     wf.registerPath(
                             POST,
                             "some_post_endpoint",
@@ -523,7 +526,7 @@ public class WebTests {
         var webEngine = new WebEngine(context, wf);
         try (var primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (var client = getClient(socket)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -627,7 +630,7 @@ public class WebTests {
         wf.registerPath(POST, "some_endpoint", testHandler);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -696,7 +699,7 @@ public class WebTests {
         wf.registerPath(POST, "some_endpoint", testHandler);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -776,7 +779,7 @@ public class WebTests {
         wf.registerPath(POST, "some_endpoint", testHandler);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -819,7 +822,7 @@ public class WebTests {
         wf.registerPath(GET, "some_endpoint", testHandler);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -905,7 +908,7 @@ public class WebTests {
         wf.registerPath(GET, "some_endpoint", testHandler);
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -942,7 +945,7 @@ public class WebTests {
 
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (ISocketWrapper client = webEngine.startClient(socket)) {
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                     InputStream is = client.getInputStream();
 
                     // send a GET request
@@ -971,7 +974,7 @@ public class WebTests {
 
         try (IServer primaryServer = webEngine.startServer()) {
             try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = webEngine.startClient(socket)) {
+                try (var client = getClient(socket)) {
                     // send an invalid GET request
                     client.sendHttpLine("FOOP FOOP FOOP");
                     client.sendHttpLine("");
@@ -1610,6 +1613,11 @@ public class WebTests {
     public void test_dumpAttackerNullChecks_NullFullSystem() {
         var webFramework = new WebFramework(context);
         assertFalse(webFramework.dumpIfAttacker(null, (FullSystem) null));
+    }
+
+
+    private static ISocketWrapper getClient(Socket socket) throws IOException {
+        return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 
 }

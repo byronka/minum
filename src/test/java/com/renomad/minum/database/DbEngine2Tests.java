@@ -1602,10 +1602,7 @@ public class DbEngine2Tests {
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, "db_perf_testing");
 
-        var context = new Context(executorService, constants);
-        context.setLogger(logger);
-
-        return context;
+        return new Context(executorService, constants, logger);
     }
 
     /**

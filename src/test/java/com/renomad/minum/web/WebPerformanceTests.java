@@ -54,8 +54,7 @@ public class WebPerformanceTests {
         var constants = new Constants();
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         logger = new Logger(constants, executorService, "WebPerformanceTestLogger");
-        context = new Context(executorService, constants);
-        context.setLogger(logger);
+        context = new Context(executorService, constants, logger);
         var fileUtils = new FileUtils(logger, context.getConstants());
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         fullSystem = new FullSystem(context);

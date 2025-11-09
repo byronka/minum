@@ -4,6 +4,7 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.web.FullSystem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -164,17 +165,17 @@ public class TheBrigTests {
         assertEquals(inmate.getReleaseTime(), 1691728931684L);
     }
 
-
     @Test
     public void test_BrigDisabled() {
         Properties properties = new Properties();
         properties.setProperty("IS_THE_BRIG_ENABLED", "false");
         var disabledBrigContext = buildTestingContext("testing brig disabled", properties);
 
-        var theBrig = new TheBrig(10, disabledBrigContext);
+        FullSystem fullSystem = new FullSystem(disabledBrigContext);
+        fullSystem.start();
 
-        assertFalse(theBrig.sendToJail("", 0));
-        assertFalse(theBrig.isInJail(""));
+        assertTrue(fullSystem.getTheBrig() == null, "When the brig is disabled, it isn't initialized in FullSystem");
+
         shutdownTestingContext(disabledBrigContext);
     }
 }

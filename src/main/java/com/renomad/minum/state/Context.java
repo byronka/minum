@@ -30,20 +30,16 @@ import java.util.concurrent.ExecutorService;
  */
 public final class Context {
 
-    public static final Context EMPTY = new Context(null, null);
-    private ILogger logger;
+    private final ILogger logger;
     private final ExecutorService executorService;
     private final Constants constants;
     private FullSystem fullSystem;
     private final ActionQueueState actionQueueState;
 
-    public Context(ExecutorService executorService, Constants constants) {
+    public Context(ExecutorService executorService, Constants constants, ILogger logger) {
         this.executorService = executorService;
         this.constants = constants;
         actionQueueState = new ActionQueueState();
-    }
-
-    public void setLogger(ILogger logger) {
         this.logger = logger;
     }
 
