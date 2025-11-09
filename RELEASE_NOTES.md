@@ -14,6 +14,26 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+v8.3.1 Nov 24, 2025
+-------------------
+
+* It is now possible to set a port of "-1" for the regular and encrypted server,
+  to disable it. Note that if both ports are set to -1, the system will shut down
+  immediately after starting, since it will have no servers to wait on.
+* General refactors, removing dead code, adjust constructors for internal components
+* It is now possible to disable the system-running marker.  Further explanation: the
+  system-running marker is a file written to disk when Minum starts, to help clarify
+  the program's current state - running or stopped.  For some users, it is preferred
+  not to write anything to disk.  By setting ENABLE_SYSTEM_RUNNING_MARKER to false in
+  minum.config, this file will not be written.
+* Adjusting behavior of disabling theBrig.  Before, even if the brig was disabled, the
+  system would create a folder for its persistent state.  Now, if the brig is disabled,
+  no folder will be created.
+* Slight performance improvement on TheBrig - changed to use the new DbEngine2 
+  and using indexed data for searches.
+* Bugs fixed:
+  * It was noticed that query strings on empty-string paths (for example, `http://localhost/?key=value`) were mishandled.
+
 v8.3.0 Nov 1, 2025
 ------------------
 

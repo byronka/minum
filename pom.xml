@@ -6,7 +6,7 @@
 
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>8.3.0</version>
+    <version>8.3.1</version>
     <description>Minum is a complete minimalist web framework, focusing on quality through simplicity</description>
     <url>https://github.com/byronka/minum</url>
 
@@ -44,6 +44,9 @@
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.1.2</version>
+                    <configuration>
+                        <skipAfterFailureCount>1</skipAfterFailureCount>
+                    </configuration>
                 </plugin>
                 <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
                 <plugin>

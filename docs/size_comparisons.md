@@ -28,7 +28,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,376 | 141,048 | 1,085,405   |
+| 6,392 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -48,7 +48,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2668  | 163,000 | 242,000 |
+| 2,701 | 163,000 | 242,000 |
 
 
 Templating
@@ -75,7 +75,7 @@ to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 1022  | 1,300,000  | 1,500,000 | 116,000 |
+| 1024  | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -112,7 +112,7 @@ types - assertTrue and assertEquals works for most cases.
 
 | Minum | JUnit4 |
 |-------|--------|
-| 184   | 10,834 |
+| 183   | 10,834 |
 
 
 Background task processing
@@ -136,7 +136,25 @@ basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 673   | 18,045            |
+| 675   | 18,045            |
+
+
+Security
+--------
+
+There is a program called TheBrig provided which can assist with
+checking incoming requests for potential malicious behavior. For example,
+if a request causes an exception in the TLS encryption code, it might
+mean the client is using a application scanning tool. Alternately, another
+example is if the client tries requesting a path like .env, which may suggest
+they are looking for vulnerabilities, rather than being a good-faith user. In those
+cases, that client's ip address can be banned from making requests of the server
+for a period of time.  see SUSPICIOUS_ERRORS, SUSPICIOUS_PATHS and VULN_SEEKING_JAIL_DURATION
+in the minum.config.
+
+| Minum | OWASP AppSensor | Spring Security |
+|-------|-----------------|-----------------|
+| 208   | 24,668          | 100,544         |
 
 
 Javascript utilities
@@ -258,26 +276,27 @@ decisions to provide the user-oriented functionality without requiring
 this much technology - therefore, it is a valid apples-to-apples
 comparison_
 
-| Component               | LOC     |
-|-------------------------|---------|
-|                         |         |
-| Javalin                 | 5,485   |
-|                         |         |
-| essential dependencies  |         |
-| slf4j-api               | 3,070   |
-| slf4j-simple            | 423     |
-| jetty-server            | 37,176  |
-| jetty-webapp            | 7,126   |
-| websocket-jetty-server  | 890     |
-| websocket-jetty-api     | 800     |
-| ***subtotal***          | 49,485  |
-|                         |         |
-| optional dependencies:  |         |
-| jvmbrotli               | 895     |
-| brotli4j                | 1,492   |
-| jackson-databind        | 73,242  |
-| jackson-module-kotlin   | 1,407   |
-| gson                    | 9,042   |
-| ***subtotal***          | 86,078  |
-|                         |         |
-| ***total***             | 141,048 |
+| Component                         | LOC     |
+|-----------------------------------|---------|
+|                                   |         |
+| Javalin                           | 6,420   |
+|                                   |         |
+| essential dependencies            |         |
+| slf4j-api                         | 3,070   |
+| slf4j-simple                      | 423     |
+| jetty-server                      | 26,632  |
+| jetty-ee10-servlet                | 20,293  |
+| jetty-ee10-websocket-jetty-server | 1,068   |
+| websocket-jetty-server            | 890     |
+| websocket-jetty-api               | 800     |
+| ***subtotal***                    | 62,666  |
+|                                   |         |
+| optional dependencies:            |         |
+| jvmbrotli                         | 895     |
+| brotli4j                          | 1,492   |
+| jackson-databind                  | 73,242  |
+| jackson-module-kotlin             | 1,407   |
+| gson                              | 9,042   |
+| ***subtotal***                    | 86,078  |
+|                                   |         |
+| ***total***                       | 148,744 |

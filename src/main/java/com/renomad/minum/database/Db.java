@@ -47,7 +47,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      */
     private long maxIndexOnDisk;
 
-    private boolean hasLoadedData;
+    boolean hasLoadedData;
 
     /**
      * Constructs an in-memory disk-persisted database.
@@ -193,6 +193,8 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * method is run by various programs when the system first loads.
      */
     private void loadDataFromDisk() throws IOException {
+        logger.logDebug(() -> "Loading data from disk. Db classic. Directory: " + dbDirectory);
+
         // check if the folder has content for a DbEngine2 database, meaning we
         // need to convert it back to the classic DB file structure.
         if (Files.exists(dbDirectory.resolve("currentAppendLog"))) {

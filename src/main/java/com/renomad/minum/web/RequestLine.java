@@ -76,7 +76,42 @@ public final class RequestLine {
         /**
          * Represents the null value of Method
          */
-        NONE
+        NONE;
+
+        /**
+         * Get the correct HTTP method for a string provided by the user
+         */
+        public static Method getMethod(String userSuppliedMethod) {
+            // if the method they gave us is longer than the maximum method
+            // we know about, it's invalid, and return NONE.
+            if (userSuppliedMethod.length() > 7) {
+                return NONE;
+            }
+            // necessary because we need to potentially convert to lowercase
+            var sb = new StringBuilder(userSuppliedMethod.length());
+
+            for (int i = 0; i < userSuppliedMethod.length(); i++) {
+                char c = userSuppliedMethod.charAt(i);
+                if ((c >= 65 && c <= 90)) { // characters in methods are pure ascii, no UTF-8 to worry about
+                    sb.append(c);
+                } else if (c >= 97 && c <= 122) { // if characters are lower-case, make them upper-case
+                    sb.append((char)(c - 32));
+                } else {
+                    return NONE; // if any of the characters are non-ascii-alphabet, it's invalid, bail.
+                }
+            }
+            return switch (sb.toString()) {
+                case "GET" -> GET;
+                case "POST" -> POST;
+                case "PUT" -> PUT;
+                case "DELETE" -> DELETE;
+                case "TRACE" -> TRACE;
+                case "PATCH" -> PATCH;
+                case "OPTIONS" -> OPTIONS;
+                case "HEAD" -> HEAD;
+                default -> NONE;
+            };
+        }
     }
 
     /**
@@ -92,8 +127,10 @@ public final class RequestLine {
         if (rawValues == null) {
             return RequestLine.EMPTY;
         }
-        Method myMethod = extractMethod(rawValues.method());
+        Method myMethod;
+        myMethod = Method.getMethod(rawValues.method());
         if (myMethod.equals(Method.NONE)) {
+            logger.logDebug(() -> "Unable to convert method to enum.  Returning empty request line.  Method value provided: " + rawValues.method());
             return RequestLine.EMPTY;
         }
         PathDetails pd = extractPathDetails(rawValues.path());
@@ -135,22 +172,13 @@ public final class RequestLine {
         return new RequestLineRawValues(myMethod, path, protocol);
     }
 
-    private Method extractMethod(String methodString) {
-        try {
-            return Method.valueOf(methodString.toUpperCase(Locale.ROOT));
-        } catch (Exception ex) {
-            logger.logDebug(() -> "Unable to convert method to enum: " + methodString);
-            return Method.NONE;
-        }
-    }
-
     private PathDetails extractPathDetails(String path) {
         PathDetails pd;
         // the request line will have a forward slash at the beginning of
         // the path.  Remove that here.
         String adjustedPath = path.substring(1);
         int locationOfQueryBegin = adjustedPath.indexOf("?");
-        if (locationOfQueryBegin > 0) {
+        if (locationOfQueryBegin >= 0) {
             // in this case, we found a question mark, suggesting that a query string exists
             String rawQueryString = adjustedPath.substring(locationOfQueryBegin + 1);
             String isolatedPath = adjustedPath.substring(0, locationOfQueryBegin);

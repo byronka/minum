@@ -3,12 +3,10 @@ package com.renomad.minum.logging;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.RunnableWithDescription;
-import com.renomad.minum.utils.UtilsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.renomad.minum.testing.TestFramework.*;

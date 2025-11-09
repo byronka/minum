@@ -49,8 +49,8 @@ public class EqualsTests {
 
         EqualsVerifier.forClass(RequestLine.class)
                 .withPrefabValues(Context.class,
-                        new Context(null, new Constants()),
-                        new Context(null, new Constants())
+                        new Context(null, new Constants(), null),
+                        new Context(null, new Constants(), null)
                         )
                 .verify();
 

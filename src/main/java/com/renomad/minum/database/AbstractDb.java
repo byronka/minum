@@ -427,5 +427,4 @@ public abstract class AbstractDb<T extends DbData<?>> {
                     .formatted(emptyInstance.getClass().getSimpleName(), indexName, indexKey));
         }
     }
-
 }

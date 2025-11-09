@@ -9,7 +9,7 @@ import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
-import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -71,10 +71,7 @@ public final class FullSystem {
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, "primary logger");
 
-        var context = new Context(executorService, constants);
-        context.setLogger(logger);
-
-        return context;
+        return new Context(executorService, constants, logger);
     }
 
     /**
@@ -115,17 +112,17 @@ public final class FullSystem {
      */
     public FullSystem start() {
         // create a file in our current working directory to indicate we are running
-        createSystemRunningMarker();
+        if (constants.enableSystemRunningMarker) createSystemRunningMarker();
 
         // set up an action to take place if the user shuts us down
         addShutdownHook();
-        
-        // Add useful startup info to the logs
-        String serverComment = "at http://" + constants.hostName + ":" + constants.serverPort + " and https://" + constants.hostName + ":" + constants.secureServerPort;
-        logger.logDebug(() -> " *** Minum is starting "+serverComment+" ***");
-        
+
         // instantiate our security code
-        theBrig = new TheBrig(context).initialize();
+        if (constants.isTheBrigEnabled) {
+            theBrig = new TheBrig(context).initialize();
+        } else {
+            theBrig = null;
+        }
         
         // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
@@ -157,29 +154,45 @@ public final class FullSystem {
 
     /**
      * this saves a file to the home directory, SYSTEM_RUNNING,
-     * that will indicate the system is active
+     * that will indicate the system is active.  It can be disabled
+     * by configuring ENABLE_SYSTEM_RUNNING_MARKER to false.
      */
     private void createSystemRunningMarker() {
         fileUtils.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
-        new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
+    /**
+     * Returns current information on the non-encrypted server
+     */
     public IServer getServer() {
         return server;
     }
 
+    /**
+     * Returns current information on the encrypted server
+     */
     public IServer getSslServer() {
         return sslServer;
     }
 
+    /**
+     * A convenience method to get the instance registered for this property
+     */
     public WebFramework getWebFramework() {
         return webFramework;
     }
 
+    /**
+     * A convenience method to get the instance registered for this property
+     */
     public ITheBrig getTheBrig() {
         return theBrig;
     }
 
+    /**
+     * A convenience function to get the {@link Context} used in
+     * this class's construction
+     */
     public Context getContext() {
         return context;
     }
@@ -188,6 +201,9 @@ public final class FullSystem {
         return webEngine;
     }
 
+    /**
+     * Shut down the system, set up to be run by a hook during initialization
+     */
     public void shutdown() {
 
         if (!hasShutdown) {
@@ -204,14 +220,24 @@ public final class FullSystem {
     static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName) {
         try {
             logger.logDebug(() -> "Received shutdown command");
-            logger.logDebug(() -> " Stopping the server: " + server);
-            server.close();
-            logger.logDebug(() -> " Stopping the SSL server: " + server);
-            sslServer.close();
+
+            if (server != null) {
+                logger.logDebug(() -> " Stopping the server: " + server);
+                server.close();
+            }
+
+            if (sslServer != null) {
+                logger.logDebug(() -> " Stopping the SSL server: " + server);
+                sslServer.close();
+            }
+
             logger.logDebug(() -> "Killing all the action queues: " + context.getActionQueueState().aqQueueAsString());
             new ActionQueueKiller(context).killAllQueues();
+
             logger.logDebug(() -> String.format(
                     "%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), fullSystemName));
+
+            Files.deleteIfExists(Path.of("SYSTEM_RUNNING"));
         } catch (Exception e) {
             throw new WebServerException(e);
         }
@@ -250,13 +276,19 @@ public final class FullSystem {
      * </p>
      */
     public void block() {
-        blockCore(this.server, this.sslServer);
+        blockCore(this.server, this.sslServer, this.logger);
     }
 
-    static void blockCore(IServer server, IServer sslServer) {
+    static void blockCore(IServer server, IServer sslServer, ILogger logger) {
         try {
-            server.getCentralLoopFuture().get();
-            sslServer.getCentralLoopFuture().get();
+            if (server != null) {
+                logger.logTrace(() -> "%s thread has properly finished startup, now waiting on the result of %s".formatted(Thread.currentThread(), server));
+                server.getCentralLoopFuture().get();
+            }
+            if (sslServer != null) {
+                logger.logTrace(() -> "%s thread has properly finished startup, now waiting on the result of %s".formatted(Thread.currentThread(), sslServer));
+                sslServer.getCentralLoopFuture().get();
+            }
         } catch (InterruptedException | ExecutionException | CancellationException ex) {
             Thread.currentThread().interrupt();
             throw new WebServerException(ex);

@@ -2,6 +2,10 @@ package com.renomad.minum.web;
 
 import java.util.Objects;
 
+/**
+ * An implementation of {@link IRequest}.
+ * Contains implementations for behaviors dealing with the request data.
+ */
 public final class Request implements IRequest {
 
     private final Headers headers;

@@ -1,10 +1,8 @@
 package com.renomad.minum.security;
 
-import com.renomad.minum.state.Constants;
+import com.renomad.minum.database.AbstractDb;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.SearchUtils;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.utils.TimeUtils;
 
@@ -17,11 +15,11 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class TheBrig implements ITheBrig {
     private final ExecutorService es;
-    private final Db<Inmate> inmatesDb;
+    private final AbstractDb<Inmate> inmatesDb;
     private final ILogger logger;
-    private final Constants constants;
     private final ReentrantLock lock = new ReentrantLock();
     private Thread myThread;
+    private static final String CLIENT_IDENTIFIER_INDEX = "client_identifier_index";
 
     /**
      * How long our inner thread will sleep before waking up to scan
@@ -31,9 +29,9 @@ public final class TheBrig implements ITheBrig {
 
     public TheBrig(int sleepTime, Context context) {
         this.es = context.getExecutorService();
-        this.constants = context.getConstants();
         this.logger = context.getLogger();
-        this.inmatesDb = context.getDb("the_brig", Inmate.EMPTY);
+        this.inmatesDb = context.getDb2("the_brig", Inmate.EMPTY);
+        this.inmatesDb.registerIndex(CLIENT_IDENTIFIER_INDEX, Inmate::getClientId);
         this.sleepTime = sleepTime;
     }
 
@@ -82,8 +80,12 @@ public final class TheBrig implements ITheBrig {
             logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + values.size());
         }
         var now = System.currentTimeMillis();
-
-        processInmateList(now, values, logger, inmatesDb);
+        lock.lock();
+        try {
+            processInmateList(now, values, logger, inmatesDb);
+        } finally {
+            lock.unlock();
+        }
         Thread.sleep(sleepTime);
     }
 
@@ -92,28 +94,14 @@ public final class TheBrig implements ITheBrig {
      * @param now the current time, in milliseconds past the epoch
      * @param inmatesDb the database of all inmates
      */
-    static void processInmateList(long now, Collection<Inmate> inmates, ILogger logger, Db<Inmate> inmatesDb) {
-        List<String> keysToRemove = new ArrayList<>();
+    static void processInmateList(long now, Collection<Inmate> inmates, ILogger logger, AbstractDb<Inmate> inmatesDb) {
         for (Inmate clientKeyAndDuration : inmates) {
-            reviewForParole(now, keysToRemove, clientKeyAndDuration, logger);
-        }
-        for (var k : keysToRemove) {
-            logger.logTrace(() -> "TheBrig: removing " + k + " from jail");
-            Inmate inmateToRemove = SearchUtils.findExactlyOne(inmates.stream(), x -> x.getClientId().equals(k));
-            inmatesDb.delete(inmateToRemove);
-        }
-    }
-
-    private static void reviewForParole(
-            long now,
-            List<String> keysToRemove,
-            Inmate inmate,
-            ILogger logger) {
-        // if the release time is in the past (that is, the release time is
-        // before / less-than now), add them to the list to be released.
-        if (inmate.getReleaseTime() < now) {
-            logger.logTrace(() -> "UnderInvestigation: " + inmate.getClientId() + " has paid its dues as of " + inmate.getReleaseTime() + " and is getting released. Current time: " + now);
-            keysToRemove.add(inmate.getClientId());
+            // if the release time is in the past (that is, the release time is
+            // before / less-than now), add them to the list to be released.
+            if (clientKeyAndDuration.getReleaseTime() < now) {
+                logger.logTrace(() -> "UnderInvestigation: " + clientKeyAndDuration.getClientId() + " has paid its dues as of " + clientKeyAndDuration.getReleaseTime() + " and is getting released. Current time: " + now);
+                inmatesDb.delete(clientKeyAndDuration);
+            }
         }
     }
 
@@ -131,14 +119,11 @@ public final class TheBrig implements ITheBrig {
 
     @Override
     public boolean sendToJail(String clientIdentifier, long sentenceDuration) {
-        if (!constants.isTheBrigEnabled) {
-            return false;
-        }
         lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             long now = System.currentTimeMillis();
 
-            Inmate existingInmate = SearchUtils.findExactlyOne(inmatesDb.values().stream(), x -> x.getClientId().equals(clientIdentifier));
+            Inmate existingInmate = inmatesDb.findExactlyOne(CLIENT_IDENTIFIER_INDEX, clientIdentifier);
             if (existingInmate == null) {
                 // if this is a new inmate, add them
                 long releaseTime = now + sentenceDuration;
@@ -160,12 +145,9 @@ public final class TheBrig implements ITheBrig {
 
     @Override
     public boolean isInJail(String clientIdentifier) {
-        if (!constants.isTheBrigEnabled) {
-            return false;
-        }
         lock.lock();
         try {
-            return inmatesDb.values().stream().anyMatch(x -> x.getClientId().equals(clientIdentifier));
+            return inmatesDb.findExactlyOne(CLIENT_IDENTIFIER_INDEX, clientIdentifier) != null;
         } finally {
             lock.unlock();
         }

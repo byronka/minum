@@ -62,9 +62,7 @@ public class ActionQueueKillerTests {
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new TestLogger(constants, executorService, "testing kill all queues");
 
-        var context1 = new Context(executorService, constants);
-
-        context1.setLogger(logger);
+        var context1 = new Context(executorService, constants, logger);
         // creating a database will cause an ActionQueue to be initialized.
         context1.getDb("testing_aq_killer", new DbTests.Foo(0, 0, ""));
         MyThread.sleep(10);

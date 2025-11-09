@@ -1,6 +1,5 @@
 package com.renomad.minum.utils;
 
-import com.renomad.minum.testing.TestFramework;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;

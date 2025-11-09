@@ -45,6 +45,7 @@ public final class Constants {
         maxElementsLruCacheStaticFiles = getProp("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", 1000);
         maxAppendCount = getProp("MAX_DATABASE_APPEND_COUNT", 100_000);
         maxLinesPerConsolidatedDatabaseFile = getProp("MAX_DATABASE_CONSOLIDATED_FILE_LINES", 100_000);
+        enableSystemRunningMarker = getProp("ENABLE_SYSTEM_RUNNING_MARKER", true);
     }
 
     /**
@@ -204,6 +205,19 @@ public final class Constants {
     public final int maxElementsLruCacheStaticFiles;
 
     /**
+     * This flag controls whether the system will write a file to disk
+     * indicating that the program is running, and delete that file
+     * when the program ends.  Default is true.
+     */
+    public final boolean enableSystemRunningMarker;
+
+
+    /* ************************ **
+            HELPER METHODS
+    ** ************************ */
+
+
+    /**
      * A helper method to remove some redundant boilerplate code for grabbing
      * configuration values from minum.config
      */
@@ -266,7 +280,6 @@ public final class Constants {
         return props;
     }
 
-
     /**
      * Given a list of strings representing logging levels,
      * convert it to a list of enums.  Log levels are enumerated
@@ -302,15 +315,14 @@ public final class Constants {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Constants constants = (Constants) o;
-        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxAppendCount == constants.maxAppendCount && maxLinesPerConsolidatedDatabaseFile == constants.maxLinesPerConsolidatedDatabaseFile && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
+        return serverPort == constants.serverPort && secureServerPort == constants.secureServerPort && maxReadSizeBytes == constants.maxReadSizeBytes && maxReadLineSizeBytes == constants.maxReadLineSizeBytes && socketTimeoutMillis == constants.socketTimeoutMillis && keepAliveTimeoutSeconds == constants.keepAliveTimeoutSeconds && vulnSeekingJailDuration == constants.vulnSeekingJailDuration && isTheBrigEnabled == constants.isTheBrigEnabled && startTime == constants.startTime && staticFileCacheTime == constants.staticFileCacheTime && useCacheForStaticFiles == constants.useCacheForStaticFiles && maxAppendCount == constants.maxAppendCount && maxLinesPerConsolidatedDatabaseFile == constants.maxLinesPerConsolidatedDatabaseFile && maxElementsLruCacheStaticFiles == constants.maxElementsLruCacheStaticFiles && enableSystemRunningMarker == constants.enableSystemRunningMarker && Objects.equals(properties, constants.properties) && Objects.equals(hostName, constants.hostName) && Objects.equals(dbDirectory, constants.dbDirectory) && Objects.equals(staticFilesDirectory, constants.staticFilesDirectory) && Objects.equals(logLevels, constants.logLevels) && Objects.equals(keystorePath, constants.keystorePath) && Objects.equals(keystorePassword, constants.keystorePassword) && Objects.equals(suspiciousErrors, constants.suspiciousErrors) && Objects.equals(suspiciousPaths, constants.suspiciousPaths) && Objects.equals(extraMimeMappings, constants.extraMimeMappings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, maxReadLineSizeBytes, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxAppendCount, maxLinesPerConsolidatedDatabaseFile, maxElementsLruCacheStaticFiles);
+        return Objects.hash(properties, serverPort, secureServerPort, hostName, dbDirectory, staticFilesDirectory, logLevels, keystorePath, keystorePassword, maxReadSizeBytes, maxReadLineSizeBytes, socketTimeoutMillis, keepAliveTimeoutSeconds, vulnSeekingJailDuration, isTheBrigEnabled, suspiciousErrors, suspiciousPaths, startTime, extraMimeMappings, staticFileCacheTime, useCacheForStaticFiles, maxAppendCount, maxLinesPerConsolidatedDatabaseFile, maxElementsLruCacheStaticFiles, enableSystemRunningMarker);
     }
 }
 

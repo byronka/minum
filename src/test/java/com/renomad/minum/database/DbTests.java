@@ -1,5 +1,6 @@
 package com.renomad.minum.database;
 
+import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.Logger;
@@ -299,6 +300,26 @@ public class DbTests {
         MyThread.sleep(FINISH_TIME);
     }
 
+    /**
+     * If the data is already loaded, then the loadData method
+     * will not need to be run.
+     * The question is, how do we know whether it was run or not?
+     * One way to tell: if there is no data to load, there will be a log
+     * statement mentioning "adding nothing to the data". If we don't see
+     * that log statement, it means we skipped loadDataFromDisk() successfully.
+     */
+    @Test
+    public void test_LoadData_NoNeed() {
+        Path dbPathForTest = foosDirectory.resolve("test_LoadData_NoNeed");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        final var db = new Db<>(dbPathForTest, context, INSTANCE);
+        db.hasLoadedData = true;
+
+        db.loadData();
+
+        assertThrows(TestLoggerException.class,
+                () -> logger.doesMessageExist("Loading data from disk for db classic"));
+    }
 
     /**
      * When this is looped a hundred thousand times, it takes 500 milliseconds to finish
@@ -1542,9 +1563,6 @@ public class DbTests {
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new Logger(constants, executorService, "db_perf_testing");
 
-        var context = new Context(executorService, constants);
-        context.setLogger(logger);
-
-        return context;
+        return new Context(executorService, constants, logger);
     }
 }

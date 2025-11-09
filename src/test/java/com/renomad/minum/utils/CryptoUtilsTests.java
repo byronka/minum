@@ -2,8 +2,6 @@ package com.renomad.minum.utils;
 
 import org.junit.Test;
 
-import java.security.NoSuchAlgorithmException;
-
 import static com.renomad.minum.testing.TestFramework.assertEquals;
 import static com.renomad.minum.testing.TestFramework.assertThrows;
 

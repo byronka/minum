@@ -278,6 +278,8 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * as getting the data loaded into memory immediately at program start.
      */
     private void loadDataFromDisk() throws IOException {
+        logger.logDebug(() -> "Loading data from disk. Db Engine2. Directory: " + dbDirectory);
+
         // if we find the "index.ddps" file, it means we are looking at an old
         // version of the database.  Update it to the new version, and then afterwards
         // remove the old version files.

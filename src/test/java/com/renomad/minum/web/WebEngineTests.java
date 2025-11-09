@@ -2,6 +2,7 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -9,6 +10,7 @@ import org.junit.Test;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.Properties;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -80,5 +82,48 @@ public class WebEngineTests {
     public void test_MalformedUrl() {
         var ex = assertThrows(WebServerException.class, () -> WebEngine.getKeyStoreResult(true, null, "password", logger));
         assertEquals(ex.getMessage(), "Error while building keystoreUrl: java.lang.NullPointerException");
+    }
+
+    /**
+     * If the user sets a port of -1 for the server (either normal or TLS-encrypted),
+     * then that server simply won't start.
+     */
+    @Test
+    public void test_DisabledServer() {
+        Properties properties = new Properties();
+        properties.put("SERVER_PORT", "-1");
+        properties.put("SSL_SERVER_PORT", "-1");
+
+        var localContext = buildTestingContext("test_DisabledServer", properties);
+        var webFramework = new WebFramework(localContext);
+        var myWebEngine = new WebEngine(localContext, webFramework);
+
+        assertTrue(myWebEngine.startServer() == null);
+        assertTrue(myWebEngine.startSslServer() == null);
+
+        TestFramework.shutdownTestingContext(localContext);
+    }
+
+    /**
+     * If the user sets a port of -1 for the server (either normal or TLS-encrypted),
+     * then that server simply won't start.
+     */
+    @Test
+    public void test_DisabledServer_AlternateCase() {
+        Properties properties = new Properties();
+        properties.put("SERVER_PORT", "-2");
+        properties.put("SSL_SERVER_PORT", "-2");
+
+        var localContext = buildTestingContext("test_DisabledServer_AlternateCase", properties);
+        var webFramework = new WebFramework(localContext);
+        var myWebEngine = new WebEngine(localContext, webFramework);
+
+        var ex1 = assertThrows(WebServerException.class, () -> myWebEngine.startServer());
+        assertEquals(ex1.getMessage(), "Failed to create serversocket on port -2");
+
+        var ex2 = assertThrows(WebServerException.class, () -> myWebEngine.startSslServer());
+        assertTrue(ex2.getMessage().contains("Exception during creation of SSL socket with port -2"));
+
+        TestFramework.shutdownTestingContext(localContext);
     }
 }
