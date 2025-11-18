@@ -123,7 +123,7 @@ public final class FullSystem {
         } else {
             theBrig = null;
         }
-        
+
         // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
 
@@ -162,11 +162,11 @@ public final class FullSystem {
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
-    IServer getServer() {
+    public IServer getServer() {
         return server;
     }
 
-    IServer getSslServer() {
+    public IServer getSslServer() {
         return sslServer;
     }
 
