@@ -164,11 +164,11 @@ public final class FullSystem {
         new File("SYSTEM_RUNNING").deleteOnExit();
     }
 
-    IServer getServer() {
+    public IServer getServer() {
         return server;
     }
 
-    IServer getSslServer() {
+    public IServer getSslServer() {
         return sslServer;
     }
 
