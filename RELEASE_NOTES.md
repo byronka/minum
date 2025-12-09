@@ -14,6 +14,13 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+v8.3.2
+------
+
+* Adjustment to behavior - if a user sends a request with a positive content-length
+  and doesn't process the body within the handler, the system will now skip that
+  length of bytes so the input stream is properly set for the next request handler.
+
 v8.3.1 Nov 24, 2025
 -------------------
 

@@ -93,6 +93,10 @@ public class TheRegister {
         // register a custom handler to run afterwards.  In this case
         // it is being used to override the 404 and 500 error responses.
         webFramework.registerLastMinuteHandler(TheRegister::lastMinuteHandlerCode);
+
+        // an unusual endpoint - processes POST requests but doesn't use the data, does
+        // not even try getting the body
+        webFramework.registerPath(POST, "unusualpost", sd::unusualPostHandler);
     }
 
     private static IResponse lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {

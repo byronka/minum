@@ -143,4 +143,9 @@ public final class Request implements IRequest {
 
         return bodyProcessor.getMultiPartIterable(getSocketWrapper().getInputStream(), boundaryValue, getHeaders().contentLength());
     }
+
+    @Override
+    public boolean hasAccessedBody() {
+        return hasStartedReadingBody || body != null ;
+    }
 }

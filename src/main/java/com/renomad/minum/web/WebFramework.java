@@ -160,7 +160,34 @@ public final class WebFramework {
                 // print how long this processing took
                 long endMillis = System.currentTimeMillis();
                 logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, requestLine, endMillis - startMillis));
-                if (!isKeepAlive) break;
+                if (!isKeepAlive) {
+                    logger.logTrace(() -> "We will not keep-alive this connection - exiting loop and closing socket");
+                    break;
+                } else {
+                    // if there was a body and the user has not read it by this point, we need to move the socket
+                    // pointer forward by the number of bytes specified by the content-length so we're in the right
+                    // place for the next request.
+                    final var contentType = headers.contentType();
+
+                    if (!request.hasAccessedBody()) {
+                        if (headers.contentLength() >= 0) {
+                            // note that the maxReadSizeBytes is configurable by users, but we're only going to hit this
+                            // if the client has sent us a request with a large body that the endpoint isn't handling.
+                            if (headers.contentLength() >= constants.maxReadSizeBytes) {
+                                throw new ForbiddenUseException("It is disallowed to process a body with a length more than " + constants.maxReadSizeBytes + " bytes");
+                            } else {
+                                sw.getInputStream().skip(headers.contentLength());
+                            }
+                        } else {
+                            // we don't process chunked transfer encodings.  just bail.
+                            List<String> transferEncodingHeaders = headers.valueByKey("transfer-encoding");
+                            if (List.of("chunked").equals(transferEncodingHeaders)) {
+                                throw new ForbiddenUseException("client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type.");
+                            }
+                        }
+                    }
+
+                }
             }
         } catch (SocketException | SocketTimeoutException ex) {
             handleReadTimedOut(sw, ex, logger);

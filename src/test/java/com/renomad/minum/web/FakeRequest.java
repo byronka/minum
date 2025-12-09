@@ -37,4 +37,9 @@ public class FakeRequest implements IRequest {
     public Iterable<StreamingMultipartPartition> getMultipartIterable() {
         return null;
     }
+
+    @Override
+    public boolean hasAccessedBody() {
+        return false;
+    }
 }

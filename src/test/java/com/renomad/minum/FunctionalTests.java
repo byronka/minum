@@ -2,16 +2,16 @@ package com.renomad.minum;
 
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.TagName;
+import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.utils.StacktraceUtils;
 import com.renomad.minum.web.*;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -33,13 +33,13 @@ import static com.renomad.minum.web.StatusLine.StatusCode.*;
  */
 public class FunctionalTests {
 
-    private static TestLogger logger;
-    private static Context context;
-    private static FunctionalTesting ft;
-    private static FullSystem fullSystem;
+    private TestLogger logger;
+    private Context context;
+    private FunctionalTesting ft;
+    private FullSystem fullSystem;
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         context = buildTestingContext("_integration_test");
         logger = (TestLogger) context.getLogger();
         var fileUtils = new FileUtils(logger, context.getConstants());
@@ -54,8 +54,8 @@ public class FunctionalTests {
                 context.getConstants().serverPort);
     }
 
-    @AfterClass
-    public static void cleanup() {
+    @After
+    public void cleanup() {
         // delay a sec so our system has time to finish before we start deleting files
         MyThread.sleep(500);
         fullSystem.shutdown();
@@ -298,9 +298,29 @@ public class FunctionalTests {
      * This test was needed to guarantee the system will clean up its sockets, that is,
      * it will not have a leak.
      */
-    private static void checkForClosedSocket() {
+    private void checkForClosedSocket() {
         MyThread.sleep(15);
         assertTrue(logger.doesMessageExist("from SetOfSws", 15));
+    }
+
+    /**
+     * This seems like an unusual case but it is allowed.  If the user
+     * registers an endpoint that handles POST requests but doesn't check
+     * the body, it should still function smoothly.
+     */
+    @Test
+    public void test_EdgeCase_PostHandler_IgnoreBody() throws IOException {
+        this.context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, true);
+        FunctionalTesting myFt = new FunctionalTesting(context, "localhost", 8080);
+        try (Socket socket = new Socket("localhost", 8080)) {
+            try (ISocketWrapper client = myFt.startClient(socket)) {
+                // first request goes fine...
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", "this is a test".getBytes(StandardCharsets.UTF_8), List.of()).statusLine().status(), CODE_200_OK);
+                // second request encounters the body from the previous request
+                // THIS NEXT LINE FAILS:
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", "this is a test".getBytes(StandardCharsets.UTF_8), List.of()).statusLine().status(), CODE_200_OK);
+            }
+        }
     }
 
 }

@@ -144,4 +144,12 @@ public interface IRequest {
      * using the {@link #getBody()} method, which is far more convenient.
      */
     Iterable<StreamingMultipartPartition> getMultipartIterable();
+
+    /**
+     * Returns true if the body has been accessed, either by running
+     * the {@link Request#getBody()} method, by accessing the
+     * {@link ISocketWrapper} using {@link Request#getSocketWrapper()},
+     * or by running {@link Request#getMultipartIterable()} or {@link Request#getUrlEncodedIterable()}
+     */
+    boolean hasAccessedBody();
 }

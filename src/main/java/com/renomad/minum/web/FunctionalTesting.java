@@ -177,7 +177,7 @@ public final class FunctionalTesting {
     /**
      * Create a client {@link ISocketWrapper} connected to the running host server
      */
-    ISocketWrapper startClient(Socket socket) throws IOException {
+    public ISocketWrapper startClient(Socket socket) throws IOException {
         logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }

@@ -1431,6 +1431,7 @@ public class WebTests {
             @Override public ISocketWrapper getSocketWrapper() {return null;}
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+            @Override public boolean hasAccessedBody() {return false;}
         };
 
         try (var sw = new FakeSocketWrapper()) {
