@@ -111,7 +111,7 @@ public class HeadersTests {
      */
     @Test
     public void test_ContentLength_TooMany() {
-        Headers headers = new Headers(List.of("content-length: 12", "content-length: 44"));
+        Headers headers = new Headers(List.of("content-length: 44", "content-length: 12"));
         var ex = assertThrows(WebServerException.class, headers::contentLength);
         assertEquals(ex.getMessage(), "The number of content-length headers must be exactly zero or one.  Received: [12, 44]");
     }

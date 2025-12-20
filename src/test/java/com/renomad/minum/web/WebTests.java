@@ -454,7 +454,7 @@ public class WebTests {
     public void test_ParseForm_EdgeCase_DuplicateKey() {
         byte[] bytes = "a=123&a=123".getBytes(StandardCharsets.US_ASCII);
         new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
-        var logs = logger.findFirstMessageThatContains("key (a) was duplicated in the post body - previous version was 123 and recent data was 123");
+        var logs = logger.findFirstMessageThatContains("Unexpected: key (a) was duplicated in the post body - previous value was 123 and was overwritten by 123");
         assertTrue(!logs.isBlank());
     }
 
@@ -1165,6 +1165,18 @@ public class WebTests {
         }
     }
 
+    /**
+     * If the query string has duplicate keys, throw an exception to make
+     * the issue clearer to developers
+     */
+    @Test
+    public void test_ParseQueryString_EdgeCase_DuplicateKey() {
+        RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
+
+        requestLine.extractMapFromQueryString("foo=bar&foo=baz");
+        assertTrue(logger.doesMessageExist("Unexpected: key (foo) was duplicated in the query line - previous value was bar and was overwritten by baz"));
+    }
+
     private static byte[] makeTestMultiPartData() {
         try {
         /*
@@ -1416,6 +1428,20 @@ public class WebTests {
     }
 
     /**
+     * Checking on behavior when there are no spaces in the line
+     */
+    @Test
+    public void testLineWithNoSpaces() {
+        String startLineString = "abcd";
+        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
+        var webFramework = new WebFramework(context);
+
+        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
+
+        assertTrue(response == null);
+    }
+
+    /**
      * If processRequest is given a handlerFinder that returns null
      * for the path, we'll return a 404 not found.
      */
@@ -1540,7 +1566,8 @@ public class WebTests {
     public void testDetermineIfKeepAlive_EdgeCase_HttpVersionNone() {
         RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.NONE, "", logger);
         Headers headers = new Headers(List.of("connection: keep-alive"));
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        IRequest myRequest = getMyRequest(requestLine, headers);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(myRequest, logger, true);
         assertFalse(isKeepAlive);
     }
 
@@ -1550,7 +1577,8 @@ public class WebTests {
     @Test
     public void testDetermineIfKeepAlive_OneDotOne() {
         RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger);
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, new Headers(List.of()), logger);
+        IRequest myRequest = getMyRequest(requestLine, new Headers(List.of()));
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(myRequest, logger, true);
         assertTrue(isKeepAlive);
     }
 
@@ -1561,7 +1589,8 @@ public class WebTests {
     public void testDetermineIfKeepAlive_OneDotZero() {
         RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger);
         Headers headers = new Headers(List.of("connection: keep-alive"));
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        IRequest myRequest = getMyRequest(requestLine, headers);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(myRequest, logger, true);
         assertTrue(isKeepAlive);
     }
 
@@ -1571,7 +1600,8 @@ public class WebTests {
     @Test
     public void testDetermineIfKeepAlive_OneDotZero_NoHeader() {
         RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger);
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, new Headers(List.of()), logger);
+        IRequest myRequest = getMyRequest(requestLine, new Headers(List.of()));
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(myRequest, logger, true);
         assertFalse(isKeepAlive);
     }
 
@@ -1582,7 +1612,8 @@ public class WebTests {
     public void testDetermineIfKeepAlive_OneDotZero_ConnectionClose() {
         RequestLine requestLine = new RequestLine(GET, PathDetails.empty, HttpVersion.ONE_DOT_ZERO, "", logger);
         Headers headers = new Headers(List.of("connection: close"));
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        IRequest myRequest = getMyRequest(requestLine, headers);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(myRequest, logger, true);
         assertFalse(isKeepAlive);
     }
 
@@ -1593,7 +1624,8 @@ public class WebTests {
     public void testDetermineIfKeepAlive_OneDotOne_ConnectionClose() {
         RequestLine requestLine = new RequestLine(GET, PathDetails.empty, ONE_DOT_ONE, "", logger);
         Headers headers = new Headers(List.of("connection: close"));
-        boolean isKeepAlive = WebFramework.determineIfKeepAlive(requestLine, headers, logger);
+        IRequest myRequest = getMyRequest(requestLine, headers);
+        boolean isKeepAlive = WebFramework.determineIfKeepAlive(myRequest, logger, true);
         assertFalse(isKeepAlive);
     }
 
@@ -1618,6 +1650,33 @@ public class WebTests {
 
     private static ISocketWrapper getClient(Socket socket) throws IOException {
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
+    }
+
+    private static IRequest getMyRequest(RequestLine requestLine) {
+        var myRequest = new IRequest() {
+            @Override public Headers getHeaders() {return null;}
+            @Override public RequestLine getRequestLine() {return requestLine;}
+            @Override public Body getBody() {return null;}
+            @Override public String getRemoteRequester() {return "";}
+            @Override public ISocketWrapper getSocketWrapper() {return null;}
+            @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
+            @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+
+        };
+        return myRequest;
+    }
+
+    private static IRequest getMyRequest(RequestLine requestLine, Headers headers) {
+        var myRequest = new IRequest() {
+            @Override public Headers getHeaders() {return headers;}
+            @Override public RequestLine getRequestLine() {return requestLine;}
+            @Override public Body getBody() {return null;}
+            @Override public String getRemoteRequester() {return "";}
+            @Override public ISocketWrapper getSocketWrapper() {return null;}
+            @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
+            @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+        };
+        return myRequest;
     }
 
 }

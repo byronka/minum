@@ -17,4 +17,12 @@ public final class TestFailureException extends RuntimeException{
     public TestFailureException(String msg) {
         super(msg);
     }
+
+    /**
+     * This constructor allows users to provide a message and also
+     * the cause of the exception.
+     */
+    public TestFailureException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }

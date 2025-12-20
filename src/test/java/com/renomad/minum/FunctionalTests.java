@@ -2,6 +2,7 @@ package com.renomad.minum;
 
 import com.renomad.minum.htmlparsing.HtmlParseNode;
 import com.renomad.minum.htmlparsing.TagName;
+import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
@@ -9,12 +10,11 @@ import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.web.*;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,13 +33,13 @@ import static com.renomad.minum.web.StatusLine.StatusCode.*;
  */
 public class FunctionalTests {
 
-    private static TestLogger logger;
-    private static Context context;
-    private static FunctionalTesting ft;
-    private static FullSystem fullSystem;
+    private TestLogger logger;
+    private Context context;
+    private FunctionalTesting ft;
+    private FullSystem fullSystem;
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         context = buildTestingContext("_integration_test");
         logger = (TestLogger) context.getLogger();
         var fileUtils = new FileUtils(logger, context.getConstants());
@@ -54,8 +54,8 @@ public class FunctionalTests {
                 context.getConstants().serverPort);
     }
 
-    @AfterClass
-    public static void cleanup() {
+    @After
+    public void cleanup() {
         // delay a sec so our system has time to finish before we start deleting files
         MyThread.sleep(500);
         fullSystem.shutdown();
@@ -298,9 +298,54 @@ public class FunctionalTests {
      * This test was needed to guarantee the system will clean up its sockets, that is,
      * it will not have a leak.
      */
-    private static void checkForClosedSocket() {
+    private void checkForClosedSocket() {
         MyThread.sleep(15);
         assertTrue(logger.doesMessageExist("from SetOfSws", 15));
+    }
+
+    /**
+     * This seems like an unusual case but it is allowed.  If the user
+     * registers an endpoint that handles POST requests but doesn't check
+     * the body, it should still function smoothly.
+     */
+    @Test
+    public void test_EdgeCase_PostHandler_IgnoreBody() throws IOException {
+        // first we enable trace logging so we can see everything going on in this test
+        this.context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, true);
+
+        // initialize our web client
+        FunctionalTesting myFt = new FunctionalTesting(context, "localhost", 8080);
+
+        try (Socket socket = new Socket("localhost", 8080)) {
+            try {
+                logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, context.getConstants().socketTimeoutMillis, context.getConstants().hostName)) {
+
+                    // now we have an open connection to the web server.  If we send a POST to an endpoint that doesn't
+                    // do anything with the body, it goes through fine.  However, because our endpoint ignores the body,
+                    // the server will close the connection (this is fine, it just means the client needs to
+                    // open a new socket to talk with it.)
+                    byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
+                    assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
+                    assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
+                }
+            } catch (SocketException e) {
+                logger.logDebug(() -> "If you see this, we arrived in the exception handler because in fact the socket was closed, but that's alright and expected");
+            }
+        }
+
+        try (Socket socket = new Socket("localhost", 8080)) {
+            logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+            try (ISocketWrapper client = new SocketWrapper(socket, null, logger, context.getConstants().socketTimeoutMillis, context.getConstants().hostName)) {
+
+                // This call will go through again, since it is on a new socket
+                byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
+            }
+        }
+
+        // disable the trace-level logging for other tests
+        this.context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
 }

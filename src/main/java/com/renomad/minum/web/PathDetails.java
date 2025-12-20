@@ -62,6 +62,9 @@ public final class PathDetails {
     /**
      * This returns the query string portion of the request line as a map, with
      * case-sensitive keys.
+     * <p>
+     *     Note: in the case of duplicate keys, last-in wins
+     * </p>
      */
     public Map<String, String> getQueryString() {
         return new HashMap<>(queryString);

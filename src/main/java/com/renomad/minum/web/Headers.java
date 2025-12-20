@@ -30,6 +30,7 @@ public final class Headers{
 
     public static final Headers EMPTY = new Headers(List.of());
     private static final int MAX_HEADERS_COUNT = 70;
+    private Integer contentLength;
 
     /**
      * Each line of the headers is read into this data structure
@@ -101,13 +102,14 @@ public final class Headers{
      * we do not find a content length, return -1.
      */
     public int contentLength() {
+        // if we have a saved value for content length, use that
+        if (contentLength != null) return contentLength;
+
         List<String> cl = Objects.requireNonNullElse(headersMap.get("content-length"), List.of());
-        if (cl.size() > 1) {
-            cl.sort(Comparator.naturalOrder());
-            throw new WebServerException("The number of content-length headers must be exactly zero or one.  Received: " + cl);
-        }
-        int contentLength = -1;
-        if (!cl.isEmpty()) {
+        if (cl.size() > 1) throw new WebServerException("The number of content-length headers must be exactly zero or one.  Received: " + cl);
+        if (cl.isEmpty()) {
+            contentLength = -1;
+        } else {
             contentLength = Integer.parseInt(cl.getFirst());
             mustBeTrue(contentLength >= 0, "Content-length cannot be negative");
         }
@@ -174,15 +176,14 @@ public final class Headers{
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Headers headers = (Headers) o;
-        return Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap);
+        return Objects.equals(contentLength, headers.contentLength) && Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headerStrings, headersMap);
+        return Objects.hash(contentLength, headerStrings, headersMap);
     }
 
     @Override

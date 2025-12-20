@@ -144,4 +144,5 @@ public interface IRequest {
      * using the {@link #getBody()} method, which is far more convenient.
      */
     Iterable<StreamingMultipartPartition> getMultipartIterable();
+
 }

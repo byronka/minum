@@ -30,6 +30,18 @@ public class TestFrameworkTests {
     public void test_assertEquals_Basic() {
         assertEquals(true, true);
         assertThrows(TestFailureException.class, () -> assertEquals(true, false));
+        assertThrows(TestFailureException.class, () -> assertEquals(false, true));
+    }
+
+    /**
+     * If we compare null to null, it should return true
+     */
+    @Test
+    public void test_assertEquals_Nulls() {
+        assertThrows(TestFailureException.class, () -> assertEquals(null, null));
+        assertThrows(TestFailureException.class, () -> assertEquals(null, "a"));
+        assertThrows(TestFailureException.class, () -> assertEquals("a", null));
+        assertEquals("a", "a");
     }
 
     @Test
@@ -37,11 +49,19 @@ public class TestFrameworkTests {
         assertEquals(List.of("a","b"), List.of("a","b"));
         assertThrows(TestFailureException.class, () -> assertEquals(List.of("a","b", "c"), List.of("a","b")));
         assertThrows(TestFailureException.class, () -> assertEquals(List.of("a","b", "c"), List.of("a","b", "d")));
+        assertThrows(TestFailureException.class, () -> assertEquals(null, List.of("a","b", "d")));
+        assertThrows(TestFailureException.class, () -> assertEquals(List.of("a","b", "c"), null));
     }
 
     @Test
     public void test_assertEquals_ListsDifferentOrders() {
         assertEqualsDisregardOrder(List.of("a", "b"), List.of("b", "a"));
+        var ex1 = assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(null, List.of("b", "a")));
+        assertTrue(ex1.getMessage().contains("This assertion does not allow checking against null"));
+        var ex2 = assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(List.of("a", "b"), null));
+        assertTrue(ex2.getMessage().contains("This assertion does not allow checking against null"));
+        var ex3 = assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(null, null));
+        assertTrue(ex3.getMessage().contains("This assertion does not allow checking against null"));
         assertEqualsDisregardOrder(List.of("a", "b"), List.of("b", "a"), "This is my custom error");
         assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(List.of("a", "b", "c"), List.of("b", "a")));
         assertThrows(TestFailureException.class, () -> assertEqualsDisregardOrder(List.of("a", "b", "c"), List.of("b", "a", "d")));
@@ -81,23 +101,22 @@ public class TestFrameworkTests {
 
     @Test
     public void test_assertEqualsByteArray_LeftIsNull() {
-        assertThrows(TestFailureException.class,
-                "at least one of the inputs was null: left: null right: [4, 5, 6]",
+        var ex = assertThrows(TestFailureException.class,
                 () -> assertEqualByteArray(null, new byte[]{4,5,6}));
+        assertTrue(ex.getMessage().contains("This assertion does not allow checking against null"));
     }
 
     @Test
     public void test_assertEqualsByteArray_RightIsNull() {
-        assertThrows(TestFailureException.class,
-                "at least one of the inputs was null: left: [1, 2, 3] right: null",
+        var ex = assertThrows(TestFailureException.class,
                 () -> assertEqualByteArray(new byte[]{1,2,3}, null));
+        assertTrue(ex.getMessage().contains("This assertion does not allow checking against null"));
     }
 
     @Test
     public void test_assertEqualsByteArray_BothNull() {
-        assertThrows(TestFailureException.class,
-                "at least one of the inputs was null: left: null right: null",
-                () -> assertEqualByteArray(null, null));
+        var ex = assertThrows(TestFailureException.class, () -> assertEqualByteArray(null, null));
+        assertTrue(ex.getMessage().contains("This assertion does not allow checking against null"));
     }
 
     @Test
