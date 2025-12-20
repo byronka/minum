@@ -7,7 +7,6 @@ import com.renomad.minum.queue.ActionQueueKiller;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.web.FullSystem;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -53,11 +52,11 @@ public final class TestFramework {
         } catch (Exception ex) {
             if (!myEx.getTypeName().equals(ex.getClass().getTypeName())) {
                 String msg = String.format("This did not throw the expected exception type (%s).  Instead, (%s) was thrown", myEx, ex);
-                throw new TestFailureException(msg);
+                throw new TestFailureException(msg, ex);
             }
             if (expectedMsg != null && !ex.getMessage().equals(expectedMsg)) {
                 String msg = String.format("Did not get expected message (%s). Instead, got: %s", expectedMsg, ex.getMessage());
-                throw new TestFailureException(msg);
+                throw new TestFailureException(msg, ex);
             }
             return (T) ex;
         }
@@ -69,8 +68,43 @@ public final class TestFramework {
      * need to compare two byte arrays, see {@link #assertEqualByteArray(byte[], byte[])}
      */
     public static <T> void assertEquals(T left, T right) {
+        if (left == null || right == null) throw new TestFailureException("This assertion does not allow checking against null.  Use a form like assertTrue(a == null).  left was %s and right was %s".formatted(left, right));
         if (! left.equals(right)) {
-            throw new TestFailureException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(left.toString()), showWhiteSpace(right.toString())));
+            throw new TestFailureException("Not equal! %nleft:  %s %nright: %s".formatted(showWhiteSpace(String.valueOf(left)), showWhiteSpace(String.valueOf(right))));
+        }
+    }
+
+    /**
+     * asserts that two lists are equal in value and order.
+     * <br><br>
+     * For example, (a, b) is equal to (a, b)
+     * Does not expect null as an input value.
+     * Two empty lists are considered equal.
+     */
+    public static <T> void assertEquals(List<T> left, List<T> right) {
+        assertEquals(left, right, "");
+    }
+
+    /**
+     * asserts that two lists are equal in value and order.
+     * <br><br>
+     * For example, (a, b) is equal to (a, b)
+     * Does not expect null as an input value.
+     * Two empty lists are considered equal.
+     * <br><br>
+     * @param failureMessage a failureMessage that should be shown if this assertion fails
+     */
+    public static <T> void assertEquals(List<T> left, List<T> right, String failureMessage) {
+        if (left == null || right == null) throw new TestFailureException("This assertion does not allow checking against null.  Use a form like assertTrue(a == null).  left was %s and right was %s".formatted(left, right));
+        if (left.size() != right.size()) {
+            throw new TestFailureException(
+                    String.format("different sizes: left was %d, right was %d. %s", left.size(), right.size(), failureMessage));
+        }
+        for (int i = 0; i < left.size(); i++) {
+            if (!left.get(i).equals(right.get(i))) {
+                throw new TestFailureException(
+                        String.format("different values - left: \"%s\" right: \"%s\". %s", showWhiteSpace(String.valueOf(left.get(i))), showWhiteSpace(String.valueOf(right.get(i))), failureMessage));
+            }
         }
     }
 
@@ -78,7 +112,7 @@ public final class TestFramework {
      * Compares two byte arrays for equality
      */
     public static void assertEqualByteArray(byte[] left, byte[] right) {
-        if (left == null || right == null) throw new TestFailureException("at least one of the inputs was null: left: %s right: %s".formatted(Arrays.toString(left), Arrays.toString(right)));
+        if (left == null || right == null) throw new TestFailureException("This assertion does not allow checking against null.  Use a form like assertTrue(a == null).  left was %s and right was %s".formatted(left, right));
         if (left.length != right.length) throw new TestFailureException("Not equal! left length: %d right length: %d".formatted(left.length, right.length));
         for (int i = 0; i < left.length; i++) {
             if (left[i] != right[i]) throw new TestFailureException("Not equal! at index %d left was: %d right was: %d".formatted(i, left[i], right[i]));
@@ -101,6 +135,7 @@ public final class TestFramework {
      * a ClassCastException will be thrown
      */
     public static void assertEqualsDisregardOrder(List<? extends CharSequence> left, List<? extends CharSequence> right) {
+        if (left == null || right == null) throw new TestFailureException("This assertion does not allow checking against null.  Use a form like assertTrue(a == null).  left was %s and right was %s".formatted(left, right));
         if (left.size() != right.size()) {
             throw new TestFailureException(String.format("different sizes: left was %d, right was %d%n", left.size(), right.size()));
         }
@@ -108,14 +143,14 @@ public final class TestFramework {
         List<? extends CharSequence> orderedRight = right.stream().sorted().toList();
 
         for (int i = 0; i < left.size(); i++) {
-            if (!orderedLeft.get(i).toString().contentEquals(orderedRight.get(i))) {
+            if (!String.valueOf(orderedLeft.get(i)).contentEquals(orderedRight.get(i))) {
                 throw new TestFailureException(
                         String.format(
                                 "%n%ndifferent values:%n%nleft:  %s%nright: %s%n%nfull left:%n-----------%n%s%n%nfull right:%n-----------%n%s%n",
                                 orderedLeft.get(i),
                                 orderedRight.get(i),
-                                String.join("\n", showWhiteSpace(left.toString())),
-                                String.join("\n", showWhiteSpace(right.toString()))));
+                                String.join("\n", showWhiteSpace(String.valueOf(left))),
+                                String.join("\n", showWhiteSpace(String.valueOf(right)))));
             }
         }
     }
@@ -125,39 +160,6 @@ public final class TestFramework {
             assertEqualsDisregardOrder(left, right);
         } catch (TestFailureException ex) {
             throw new TestFailureException(ex.getMessage() + ". " + failureMessage);
-        }
-    }
-
-    /**
-     * asserts that two lists are equal in value and order.
-     * <br><br>
-     * For example, (a, b) is equal to (a, b)
-     * Does not expect null as an input value.
-     * Two empty lists are considered equal.
-     */
-    public static <T> void assertEquals(List<T> left, List<T> right) {
-       assertEquals(left, right, "");
-    }
-
-    /**
-     * asserts that two lists are equal in value and order.
-     * <br><br>
-     * For example, (a, b) is equal to (a, b)
-     * Does not expect null as an input value.
-     * Two empty lists are considered equal.
-     * <br><br>
-     * @param failureMessage a failureMessage that should be shown if this assertion fails
-     */
-    public static <T> void assertEquals(List<T> left, List<T> right, String failureMessage) {
-        if (left.size() != right.size()) {
-            throw new TestFailureException(
-                    String.format("different sizes: left was %d, right was %d. %s", left.size(), right.size(), failureMessage));
-        }
-        for (int i = 0; i < left.size(); i++) {
-            if (!left.get(i).equals(right.get(i))) {
-                throw new TestFailureException(
-                        String.format("different values - left: \"%s\" right: \"%s\". %s", showWhiteSpace(left.get(i).toString()), showWhiteSpace(right.get(i).toString()), failureMessage));
-            }
         }
     }
 

@@ -164,7 +164,7 @@ final class BodyProcessor implements IBodyProcessor {
                 final var result = postedPairs.put(key, convertedValue);
 
                 if (result != null) {
-                    throw new WebServerException("Error: key (" +key + ") was duplicated in the post body - previous version was " + new String(result, StandardCharsets.US_ASCII) + " and recent data was " + decodedValue);
+                    logger.logDebug(() -> "Unexpected: key (" +key + ") was duplicated in the post body - previous value was " + new String(result, StandardCharsets.US_ASCII) + " and was overwritten by " + decodedValue);
                 }
             }
         } catch (Exception ex) {
@@ -298,7 +298,7 @@ final class BodyProcessor implements IBodyProcessor {
                 int extraCrLfs = (2 * allHeaders.size()) + 2;
                 countBytesRead.incrementBy(lengthOfHeaders + extraCrLfs);
 
-                Headers headers = new Headers(allHeaders);
+                Headers headers = new Headers(allHeaders, logger);
 
                 List<String> cds = headers.valueByKey("Content-Disposition");
                 if (cds == null) {

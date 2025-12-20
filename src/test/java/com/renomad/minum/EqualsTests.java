@@ -80,7 +80,7 @@ public class EqualsTests {
 
         EqualsVerifier.forClass(UrlEncodedKeyValue.class).verify();
 
-        EqualsVerifier.forClass(Headers.class).verify();
+        EqualsVerifier.simple().forClass(Headers.class).verify();
 
 
     }

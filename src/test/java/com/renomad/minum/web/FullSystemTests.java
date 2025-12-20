@@ -50,7 +50,7 @@ public class FullSystemTests {
         assertEquals(fullSystem.getSslServer().getPort(), 8443);
         assertEquals(fullSystem.getContext().getConstants().dbDirectory, "out/simple_db");
         assertTrue(fullSystem.getWebEngine().toString().contains("com.renomad.minum.web.WebEngine"));
-        assertTrue(Files.exists(Path.of("SYSTEM_RUNNING")));
+        assertTrue(Files.exists(Path.of("SYSTEM_RUNNING")), "SYSTEM_RUNNING file must be found");
 
         fullSystem.block();
 

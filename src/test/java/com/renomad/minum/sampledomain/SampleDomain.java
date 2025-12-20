@@ -107,4 +107,12 @@ public class SampleDomain {
     public IResponse throwException(IRequest request) {
         throw new RuntimeException("This is a test of the business logic throwing an exception");
     }
+
+    /**
+     * This is a test of an unusual POST handler.  This handler won't get any
+     * data from the body
+     */
+    public IResponse unusualPostHandler(IRequest request) {
+        return Response.htmlOk("Hello from the unusual post handler");
+    }
 }

@@ -165,21 +165,14 @@ public final class FunctionalTesting {
      */
     public TestResponse send(RequestLine.Method method, String path, byte[] payload, List<String> extraHeaders) {
         try (Socket socket = new Socket(host, port)) {
-            try (ISocketWrapper client = startClient(socket)) {
+            logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+            try (ISocketWrapper client = new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName)) {
                 return innerClientSend(client, method, path, payload, extraHeaders);
             }
         } catch (Exception e) {
             logger.logDebug(() -> "Error during client send: " + StacktraceUtils.stackTraceToString(e));
             return TestResponse.EMPTY;
         }
-    }
-
-    /**
-     * Create a client {@link ISocketWrapper} connected to the running host server
-     */
-    ISocketWrapper startClient(Socket socket) throws IOException {
-        logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-        return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 
     public TestResponse innerClientSend(
@@ -204,7 +197,7 @@ public final class FunctionalTesting {
 
         StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
         List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
-        Headers headers = new Headers(allHeaders);
+        Headers headers = new Headers(allHeaders, logger);
         boolean hasBody = !headers.contentType().isBlank();
 
         if (hasBody && method != RequestLine.Method.HEAD) {

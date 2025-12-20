@@ -1,12 +1,10 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ThrowingSupplier;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.utils.InvariantException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,15 +18,17 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class HeadersTests {
 
-    private static Context context;
+    private Context context;
+    private TestLogger logger;
 
-    @BeforeClass
-    public static void init() {
-        context = buildTestingContext("header tests");
+    @Before
+    public void init() {
+        this.context = buildTestingContext("header tests");
+        this.logger = (TestLogger) context.getLogger();
     }
 
-    @AfterClass
-    public static void cleanup() {
+    @After
+    public void cleanup() {
         shutdownTestingContext(context);
     }
 
@@ -111,16 +111,39 @@ public class HeadersTests {
      */
     @Test
     public void test_ContentLength_TooMany() {
-        Headers headers = new Headers(List.of("content-length: 12", "content-length: 44"));
-        var ex = assertThrows(WebServerException.class, headers::contentLength);
-        assertEquals(ex.getMessage(), "The number of content-length headers must be exactly zero or one.  Received: [12, 44]");
+        Headers headers = new Headers(List.of("content-length: 44", "content-length: 12"), logger);
+        var result = headers.contentLength();
+        assertEquals(result, -1);
+        assertTrue(logger.doesMessageExist("Did not receive a valid content length.  Setting length to -1.  Received: [12, 44]"));
+    }
+
+    /**
+     * If they send more than one content length, it's invalid. Note that
+     * this test is the same as {@link #test_ContentLength_TooMany} but lacks logging.
+     */
+    @Test
+    public void test_ContentLength_TooMany_NoLogging() {
+        Headers headers = new Headers(List.of("content-length: 44", "content-length: 12"));
+        var result = headers.contentLength();
+        assertEquals(result, -1);
     }
 
     @Test
     public void test_ContentLength_Negative() {
+        Headers headers = new Headers(List.of("content-length: -123"), logger);
+        var result = headers.contentLength();
+        assertEquals(result, -1);
+        assertTrue(logger.doesMessageExist("Content length cannot be negative.  Setting length to -1.  Received: -123"));
+    }
+
+    /**
+     * Same as {@link test_ContentLength_Negative} but lacks logging
+     */
+    @Test
+    public void test_ContentLength_Negative_NoLogging() {
         Headers headers = new Headers(List.of("content-length: -123"));
-        var ex = assertThrows(InvariantException.class, headers::contentLength);
-        assertEquals(ex.getMessage(), "Content-length cannot be negative");
+        var result = headers.contentLength();
+        assertEquals(result, -1);
     }
 
     @Test

@@ -71,6 +71,9 @@ public final class Body {
      *     Note: if the request is a multipart/form-data, this
      *     method will throw a helpful exception to indicate that.
      * </p>
+     * <p>
+     *     Note: in the case of duplicate keys, last-in wins
+     * </p>
      *
      */
     public String asString(String key) {

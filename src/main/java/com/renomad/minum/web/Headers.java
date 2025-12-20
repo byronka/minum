@@ -1,12 +1,11 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ForbiddenUseException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
 /**
  * Details extracted from the headers.  For example,
@@ -28,21 +27,24 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  */
 public final class Headers{
 
-    public static final Headers EMPTY = new Headers(List.of());
+    public static final Headers EMPTY = new Headers(List.of(), null);
     private static final int MAX_HEADERS_COUNT = 70;
+    private Integer contentLength;
 
     /**
      * Each line of the headers is read into this data structure
      */
     private final List<String> headerStrings;
     private final Map<String, List<String>> headersMap;
+    private final ILogger logger;
 
-    public Headers(
-            List<String> headerStrings
-    ) {
+    public Headers(List<String> headerStrings, ILogger logger) {
         this.headerStrings = new ArrayList<>(headerStrings);
         this.headersMap = Collections.unmodifiableMap(extractHeadersToMap(headerStrings));
+        this.logger = logger;
     }
+
+    public Headers(List<String> headerStrings) { this(headerStrings, null); }
 
     public List<String> getHeaderStrings() {
         return new ArrayList<>(headerStrings);
@@ -101,17 +103,22 @@ public final class Headers{
      * we do not find a content length, return -1.
      */
     public int contentLength() {
-        List<String> cl = Objects.requireNonNullElse(headersMap.get("content-length"), List.of());
-        if (cl.size() > 1) {
-            cl.sort(Comparator.naturalOrder());
-            throw new WebServerException("The number of content-length headers must be exactly zero or one.  Received: " + cl);
-        }
-        int contentLength = -1;
-        if (!cl.isEmpty()) {
-            contentLength = Integer.parseInt(cl.getFirst());
-            mustBeTrue(contentLength >= 0, "Content-length cannot be negative");
-        }
+        // if we have a saved value for content length, use that
+        if (contentLength != null) return contentLength;
 
+        List<String> cl = Objects.requireNonNullElse(headersMap.get("content-length"), List.of());
+        if (cl.isEmpty()) {
+            contentLength = -1;
+        } else if (cl.size() > 1) {
+            if (logger != null) logger.logDebug(() -> "Did not receive a valid content length.  Setting length to -1.  Received: " + cl);
+            contentLength = -1;
+        } else {
+            contentLength = Integer.parseInt(cl.getFirst());
+            if (contentLength < 0) {
+                if (logger != null) logger.logDebug(() -> "Content length cannot be negative.  Setting length to -1.  Received: " + contentLength);
+                contentLength = -1;
+            }
+        }
         return contentLength;
     }
 
@@ -174,15 +181,14 @@ public final class Headers{
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Headers headers = (Headers) o;
-        return Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap);
+        return Objects.equals(contentLength, headers.contentLength) && Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap) && Objects.equals(logger, headers.logger);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headerStrings, headersMap);
+        return Objects.hash(contentLength, headerStrings, headersMap, logger);
     }
 
     @Override

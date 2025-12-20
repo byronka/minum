@@ -120,7 +120,6 @@ public final class WebFramework {
 
                 // React to what the user requested, generate a result
                 Headers headers = getHeaders(sw);
-                boolean isKeepAlive = determineIfKeepAlive(requestLine, headers, logger);
                 IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
                 IResponse response = processRequest(request, sw, requestLine, headers);
 
@@ -129,6 +128,8 @@ public final class WebFramework {
                 if (response == null) {
                     throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
                 }
+
+                boolean isKeepAlive = determineIfKeepAlive(request, logger, ((Request)request).hasAccessedBody());
 
                 // calculate proper headers for the response
                 StringBuilder headerStringBuilder = addDefaultHeaders(response);
@@ -160,7 +161,12 @@ public final class WebFramework {
                 // print how long this processing took
                 long endMillis = System.currentTimeMillis();
                 logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, requestLine, endMillis - startMillis));
-                if (!isKeepAlive) break;
+
+                if (!isKeepAlive) {
+                    logger.logTrace(() -> "We will not keep-alive this connection - exiting loop and closing socket");
+                    break;
+                }
+
             }
         } catch (SocketException | SocketTimeoutException ex) {
             handleReadTimedOut(sw, ex, logger);
@@ -261,24 +267,54 @@ public final class WebFramework {
        the content-type will include the boundary string.
     */
         List<String> allHeaders = Headers.getAllHeaders(sw.getInputStream(), inputStreamUtils);
-        Headers hi = new Headers(allHeaders);
+        Headers hi = new Headers(allHeaders, logger);
         logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
         return hi;
     }
 
     /**
-     * determine if we are in a keep-alive connection
+     * determine if we are in a keep-alive connection.
+     * <p>
+     *     This checks the headers and request-line for characteristics
+     *     which require keep-alive on or off.
+     * </p>
+     * <p>
+     *     It also checks whether there are lingering unread bytes from
+     *     a request.  If there are, it will set keep-alive to false, so
+     *     that the following request will encounter a clean starting point.
+     *     Lingering bytes could occur if the responsible handler does not
+     *     read the body bytes sent to it.
+     * </p>
+     * <p>
+     *     The algorithm is:
+     *     <ul>
+     *         <li>If the HTTP version is 1.0, then we keep-alive if there is a header telling us to</li>
+     *         <li>If the HTTP version is 1.1, then we *stop* keep-alive if there is a header telling us to</li>
+     *         <li>If we are keep-alive, but there are lingering body bytes that have not been read by
+     *         the handler, set keep-alive to false</li>
+     *     </ul>
+     * </p>
      */
-    static boolean determineIfKeepAlive(RequestLine sl, Headers hi, ILogger logger) {
+    static boolean determineIfKeepAlive(IRequest request, ILogger logger, boolean hasAccessedBody) {
         boolean isKeepAlive = false;
-        if (sl.getVersion() == HttpVersion.ONE_DOT_ZERO) {
-            isKeepAlive = hi.hasKeepAlive();
-        } else if (sl.getVersion() == HttpVersion.ONE_DOT_ONE) {
-            isKeepAlive = ! hi.hasConnectionClose();
+        if (request.getRequestLine().getVersion() == HttpVersion.ONE_DOT_ZERO) {
+            isKeepAlive = request.getHeaders().hasKeepAlive();
+        } else if (request.getRequestLine().getVersion() == HttpVersion.ONE_DOT_ONE) {
+            isKeepAlive = ! request.getHeaders().hasConnectionClose();
         }
+
+        if (isKeepAlive && request.getHeaders().contentLength() >= 0 && !hasAccessedBody) {
+            // if there was a body and the user has not read it by this point, we will log the
+            // discrepancy and close the socket.
+            logger.logDebug(() -> ("A body sized %d bytes was included in the request, but the endpoint (%s) did not access the body. " +
+                    "Closing socket after request is finished").formatted(request.getHeaders().contentLength(), request.getRequestLine()));
+            isKeepAlive = false;
+        }
+
         boolean finalIsKeepAlive = isKeepAlive;
-        logger.logTrace(() -> "Is this a keep-alive connection? " + finalIsKeepAlive);
-        return isKeepAlive;
+
+        logger.logTrace(() -> "Is this a keep-alive connection? %s".formatted(finalIsKeepAlive));
+        return finalIsKeepAlive;
     }
 
     RequestLine getProcessedRequestLine(ISocketWrapper sw, String rawStartLine) {

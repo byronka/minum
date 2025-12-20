@@ -211,7 +211,11 @@ public final class RequestLine {
             String myRawValue = currentKeyValue.substring(equalSignLocation + 1);
             try {
                 String value = StringUtils.decode(myRawValue);
-                queryStrings.put(key, value);
+                final var result = queryStrings.put(key, value);
+
+                if (result != null) {
+                    logger.logDebug(() -> "Unexpected: key (" +key + ") was duplicated in the query line - previous value was " + result + " and was overwritten by " + value);
+                }
             } catch (IllegalArgumentException ex) {
                 logger.logDebug(() -> "Query string parsing failed for key: (%s) value: (%s).  Skipping to next key-value pair. error message: %s".formatted(key, myRawValue, ex.getMessage()));
             }

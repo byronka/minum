@@ -14,6 +14,22 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+v8.3.2 Dec 28, 2025
+-------------------
+
+* If a user sends a request with a body and doesn't process the body within the handler,
+  the server will now close the socket after the request is complete.
+* Providing better clarity in test framework assertions when comparing against null and
+  when asserting against exceptions - the cause stacktrace will now be included in the 
+  overall stacktrace.
+* Better ordering of the methods in the TestFramework class
+* Handling duplicate keys in URL-encoded bodies and query strings in a more consistent
+  way.  Duplicate keys will add a debug logging entry and the last key in wins.
+* When an exception is thrown in an `assertThrows`, the cause of the exception will now
+  be included in the stacktrace, slightly improving maintainability.
+* Handling content-length exceptions differently - no exception if invalid, instead
+  just set length to -1 and log the situation.
+
 v8.3.1 Nov 24, 2025
 -------------------
 

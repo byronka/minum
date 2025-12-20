@@ -10,7 +10,7 @@ import java.nio.charset.Charset;
 /**
  * This wraps Sockets to make them more particular to our use case
  */
-final class SocketWrapper implements ISocketWrapper {
+public final class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final String hostName;
@@ -25,7 +25,7 @@ final class SocketWrapper implements ISocketWrapper {
      * @param logger not much more to say on this param
      * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
      */
-    SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) throws IOException {
+    public SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) throws IOException {
         this.socket = socket;
         this.hostName = hostName;
         logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));

@@ -28,7 +28,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,392 | 148,744 | 1,085,405   |
+| 6,410 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -48,7 +48,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2,701 | 163,000 | 242,000 |
+| 2,714 | 163,000 | 242,000 |
 
 
 Templating
@@ -112,7 +112,7 @@ types - assertTrue and assertEquals works for most cases.
 
 | Minum | JUnit4 |
 |-------|--------|
-| 183   | 10,834 |
+| 189   | 10,834 |
 
 
 Background task processing
