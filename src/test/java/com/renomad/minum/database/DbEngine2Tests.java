@@ -32,6 +32,7 @@ import static com.renomad.minum.database.DatabaseChangeAction.UPDATE;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
+import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.stream.IntStream.range;
 
 public class DbEngine2Tests {
@@ -488,7 +489,7 @@ public class DbEngine2Tests {
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("index", x -> x.b);
-        assertTrue(db.registerIndex("foo", x -> x.b));
+        assertTrue(db.registerIndex("foo", x -> x.b) != null);
     }
 
     /**
@@ -953,7 +954,11 @@ public class DbEngine2Tests {
         foos.sort(Comparator.comparingLong(Foo::getIndex));
         listRestarted.sort(Comparator.comparingLong(Foo::getIndex));
         assertEquals(listRestarted.toString(), foos.toString());
-        List<String> newDirectoryFiles = new ArrayList<>(Files.walk(newPersistenceDirectory).map(x -> x.getFileName().toString()).toList());
+        List<String> newDirectoryFiles = new ArrayList<>(
+                Files.walk(newPersistenceDirectory)
+                        .filter(x -> !x.getFileName().toString().contains(".checksum"))
+                        .map(x -> x.getFileName().toString())
+                        .toList());
         newDirectoryFiles.sort(Comparator.naturalOrder());
         assertEquals(newDirectoryFiles.toString(), "[11_to_15, 16_to_20, 1_to_5, 21_to_25, 26_to_30, 31_to_35, 36_to_40, 41_to_45, 46_to_50, 6_to_10, append_logs, consolidated_data, currentAppendLog, test_ConvertingDatabase_Db_To_DbEngine2]");
 
@@ -1363,6 +1368,127 @@ public class DbEngine2Tests {
 
         // This is on Windows:
 //        assertEquals(ex.getMessage(), "java.nio.file.AccessDeniedException: out\\simple_db_for_engine2_tests\\engine2\\foos\\test_WalkAndLoad_NegativeCase\\consolidated_data\\1_to_100");
+    }
+
+    /**
+     * When we consolidate, for each new file we will create a "checksum" string, a small value
+     * that is unique for those bytes, and which will be tested at read-time.  If
+     * the value is not identical, it means the data on disk has changed since writing,
+     * which can only happen due to corruption.  If this happens, Minum will be
+     * prevented from starting, with a clear alert message in the logs.  This is to
+     * prevent data corruption from becoming endemic in the system.  It is vital to
+     * keep backups of your data.  A failure at startup of this type may indicate the
+     * underlying disk is starting to fail, which would necessitate a migration.
+     */
+    @Test
+    public void testChecksums() throws IOException {
+
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_checksum");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+
+        // write some data to it
+        var foo = new Foo(0, 0, "hello world");
+        db.write(foo);
+
+        // consolidate (which creates checksums for each consolidation file)
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+        db.databaseConsolidator.consolidate();
+
+        // shutdown the database
+        db.stop();
+
+        // behind the scenes, alter the consolidated file
+        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "1|0|hello+world__CORRUPTED___\n");
+
+        // startup the database, have the database read that file, causing an exception to be thrown and halting the program
+        AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        var ex = assertThrows(DbException.class, restartedDb2::loadData);
+        assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + ex.getMessage());
+    }
+
+    /**
+     * This test is very similar to {@link #testChecksums()} but it focuses on the
+     * situation where the database is starting up and consolidating data from
+     * the append logs, and only then finding that there is a corruption.  In the
+     * other test, the failure happens when simply reading the consolidated data
+     * into memory.  A focus of concern is to ensure that no data is lost - here,
+     * we should see that even though the exception is thrown, the data that has
+     * not yet been processed is still in the append_logs folder.
+     */
+    @Test
+    public void testChecksums_FailureDuringRewrite() throws IOException {
+
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_checksum_failure_during_rewrite");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+
+        // write some data to it
+        var foo = new Foo(0, 0, "hello world");
+        db.write(foo);
+
+        // consolidate (which creates checksums for each consolidation file)
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+        db.databaseConsolidator.consolidate();
+
+        // write some more...
+        // this will go through a different flow, since when the database starts
+        // again it will try to consolidate this data.
+
+        // write some data to it
+        var foo2 = new Foo(0, 0, "hello world");
+        db.write(foo2);
+
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+
+        // shutdown the database
+        db.stop();
+
+        // behind the scenes, alter the consolidated file
+        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "1|0|hello+world__CORRUPTED___\n");
+
+        // startup the database, have the database read that file, causing an exception to be thrown and halting the program
+        AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        var ex = assertThrows(DbException.class, restartedDb2::loadData);
+        assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + ex.getMessage());
+    }
+
+    /**
+     * If we load a database with consolidated files that don't have
+     * accompanying checksum files, we'll just skip the checksum check.
+     * @throws IOException
+     */
+    @Test
+    public void testChecksums_ChecksumsMissingAtLoad() throws IOException {
+
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_checksum_with_checksum_file_missing");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+
+        // write some data to it
+        var foo = new Foo(0, 0, "hello world");
+        db.write(foo);
+
+        // consolidate (which creates checksums for each consolidation file)
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+        db.databaseConsolidator.consolidate();
+
+        // shutdown the database
+        db.stop();
+
+        // behind the scenes, alter the consolidated file
+        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "1|0|hello+world__CORRUPTED___\n");
+
+        // but also, delete the checksum - so the corruption won't be noticed.
+        Files.delete(dbPathForTest.resolve("consolidated_data/1_to_100000.checksum"));
+
+        // startup the database, have the database read that file, causing an exception to be thrown and halting the program
+        AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        AbstractDb<Foo> fooAbstractDb = restartedDb2.loadData();
+        assertEquals(fooAbstractDb.values().toString(), "[Foo{index=1, a=0, b='hello world__CORRUPTED___'}]");
     }
 
 

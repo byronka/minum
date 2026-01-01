@@ -51,19 +51,18 @@ public final class RegexUtils {
      *     For example, here's a regex with a named match group,
      *     in this example the name is "namevalue":
      * </p>
-     * <p>
-     *     <pre>
-     *         {@code "\\bname\\b=\"(?<namevalue>.*?)\""}
-     *     </pre>
-     * </p>
+     *
+     * <pre>
+     *     {@code "\\bname\\b=\"(?<namevalue>.*?)\""}
+     * </pre>
+     *
      * <p>
      *     Thus, to use it here, you would search like this:
      * </p>
-     * <p>
-     *     <pre>
-     *         {@code find("\\bname\\b=\"(?<namevalue>.*?)\"", data, "namevalue")}
-     *     </pre>
-     * </p>
+     *
+     * <pre>
+     *     {@code find("\\bname\\b=\"(?<namevalue>.*?)\"", data, "namevalue")}
+     * </pre>
      * <p>
      *     To summarize: in a regex, you specify a matching group by
      *     surrounding it with parentheses.  To name it, you insert

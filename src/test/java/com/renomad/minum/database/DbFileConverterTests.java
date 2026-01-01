@@ -338,4 +338,26 @@ public class DbFileConverterTests {
         assertEquals(ex.getMessage(), "For input string: \"a\"");
     }
 
+    @Test
+    public void testIsDataFile_Filtering() throws IOException {
+        Path myPath = Path.of("out/simple_db/db_file_converter_tests/testing_is_data_file");
+        fileUtils.deleteDirectoryRecursivelyIfExists(myPath);
+
+        // make directories
+        fileUtils.makeDirectory(myPath);
+        fileUtils.makeDirectory(myPath.resolve("baz"));
+        fileUtils.makeDirectory(myPath.resolve("baz.checksum"));
+
+        // write some regular files
+        Path dataFile = myPath.resolve("1_to_100");
+        Path checksumFile = myPath.resolve("1_to_100.checksum");
+        Files.writeString(dataFile, "foo");
+        Files.writeString(checksumFile, "bar");
+
+
+        assertTrue(DbFileConverter.isDataFile(dataFile));
+        assertFalse(DbFileConverter.isDataFile(checksumFile));
+        assertFalse(DbFileConverter.isDataFile(myPath.resolve("baz")));
+        assertFalse(DbFileConverter.isDataFile(myPath.resolve("baz.checksum")));
+    }
 }

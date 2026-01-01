@@ -4,6 +4,7 @@ Release notes
 * This is a list of the major versions, which are those requiring the developer to adjust
   their code.  From August 2023 to August 2024, there were 8 major versions. Version 8 has
   remained stable.
+  * 9: Fix race condition in templates
   * 8: Streaming videos, _August 2024_
   * 7: Read bodies more efficiently, _August 2024_
   * 6: Streaming responses, _July 2024_
@@ -13,6 +14,86 @@ Release notes
   * 2: Refactoring, _September 2023_
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
+
+v9.0.0
+------
+
+* Much appreciation to HSGamer for fantastic improvements and bug fixes! Among them:
+  * Found a race condition in the templates, and provided a fix.  This is the
+    main driver for incrementing the major version.
+    * Main result was to greatly simplify the template processor.  It no longer
+      handles inner templates.  Instead, it is incumbent on the user to build out
+      any inner parts and build up the resulting full template layer-by-layer. This
+      approach greatly simplifies and minimizes the code of the template processor and
+      its API, and avoids arcane edge cases.
+    * Unfortunately, this does slightly slow down the processor, but it is still one
+      of the fastest options compared to other common templating engines, and its
+      simplicity puts it squarely in the minimalist ethos.
+  * Found and fixed a bug with unicode characters in the HTML parser
+  * Enabled multiple set-cookie headers in the IResponse
+* The DbEngine2 database will now create and check "checksum" data.  This allows
+  the system to confirm the data is uncorrupted at startup.  Due to this change, it
+  is recommended to use a new pattern when instantiating a database.  Any `registerIndex`
+  calls should be run off the newly-constructed instance, and `loadData` should be called
+  off that.  This will ensure that any data corruption exceptions are able to bubble up
+  to the main method, thus halting the program - a data corruption is the kind of serious error
+  that must not be allowed to linger.  
+ 
+Here is an example:
+
+```Java
+AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
+    .registerIndex("name_index", PersonName::getFullname)
+    .loadData();
+```
+
+Because it is no longer possible to register inner templates in the TemplateProcessor,
+a number of methods were removed.  The removed methods are:
+
+   1. `renderTemplate()`
+   2. `renderTemplate(List<Map<String, String>> data, String delimiter)`
+   3. `registerInnerTemplate(String key, TemplateProcessor innerTemplate)`
+   4. `getInnerTemplate(String innerTemplateKey)`
+
+Therefore, it is now necessary to build up string output from the inside out,
+starting with the most-deeply-nested.  For example:
+
+```Java
+
+    /**
+     * Demonstrates what is necessary to build out an inner template.  In this
+     * example, we have a "ul" element representing the totality of our
+     * outer template, and then we expect to build out a list of names which is
+     * our inner template.  
+     * <br>
+     * After construction of the TemplateProcessor instances,
+     * we will first render out the internal template, then put that in the outer.
+     */
+    @Test
+    public void test_Template_SimpleInnerTemplate() {
+        // set up the templates
+        var innerTemplate = TemplateProcessor.buildProcessor("<li>{{ name }}</li>");
+        var outerTemplate = TemplateProcessor.buildProcessor("""
+                <ul>
+                    {{ inner_template_goes_here }}
+                </ul>
+                """);
+
+        // render the inner template
+        String renderedInnerTemplate = innerTemplate.renderTemplate(
+                List.of(Map.of("name", "alice"), Map.of("name", "bob")));
+
+        // merge that into the outer template, rendering the full final result
+        String finalResult = outerTemplate.renderTemplate(Map.of("inner_template_goes_here", renderedInnerTemplate));
+
+        assertEquals(finalResult, """
+                <ul>
+                    <li>alice</li>
+                    <li>bob</li>
+                </ul>
+                """);
+    }
+```
 
 v8.3.2 Dec 28, 2025
 -------------------

@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.renomad.minum.SearchHelpers.*;
 import static com.renomad.minum.testing.TestFramework.*;
@@ -39,7 +40,7 @@ public class FunctionalTests {
     private FullSystem fullSystem;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         context = buildTestingContext("_integration_test");
         logger = (TestLogger) context.getLogger();
         var fileUtils = new FileUtils(logger, context.getConstants());
@@ -348,4 +349,26 @@ public class FunctionalTests {
         this.context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
+    @Test
+    public void test_EdgeCase_Response_MultiCookies() {
+        TestResponse response = ft.get("multicookies");
+        assertEqualsDisregardOrder(List.of("b=value2", "a=value1"), response.headers().valueByKey("set-cookie"));
+    }
+
+    @Test
+    public void test_PathFunction_Response() {
+        TestResponse response = ft.get("patternpath/123");
+        assertEquals("Number: 123", response.body().asString());
+
+        TestResponse response1 = ft.get("patternpath/abc");
+        assertEquals(CODE_404_NOT_FOUND, response1.statusLine().status());
+    }
+
+    @Test
+    public void test_PathFunction_Response_Range() {
+        assertEquals("List: 1,2,3,4,5,6", ft.get("patternpath/range/1-6").body().asString());
+        assertEquals("List: 4,5,6,7,8", ft.get("patternpath/range/4-8").body().asString());
+        assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/abc").statusLine().status());
+        assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/1-6a").statusLine().status());
+    }
 }

@@ -175,7 +175,7 @@ public class ListPhotos {
      * Get a file from a path and create a response for it with a mime type.
      * <p>
      *     Parent directories are made unavailable by searching the path for
-     *     bad characters.  See {@link FileUtils#badFilePathPatterns}
+     *     bad characters.
      * </p>
      *
      * @param path the path to the file on disk.

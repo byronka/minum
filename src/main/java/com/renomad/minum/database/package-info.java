@@ -32,10 +32,10 @@
  *
  * // This will start a database using "DbEngine2", which is a fast database, and
  * // is the preferred one to use.
- * DbEngine2<PersonName> db = context.getDb2("names", PersonName.EMPTY);
+ * DbEngine2<PersonName> db = context.getDb2("names", PersonName.EMPTY).loadData();
  *
  * // This will start a database of the "classic" type.
- * Db<PersonName> db = context.getDb("names", PersonName.EMPTY);
+ * Db<PersonName> db = context.getDb("names", PersonName.EMPTY).loadData();
  *
  *
  * //--------------------------------------
@@ -59,8 +59,9 @@
  * // because if it happens after the data is loaded from disk, then the opportunity is
  * // missed to register each piece of data with this tool.
  *
- * Db<PersonName> db = context.getDb("names", PersonName.EMPTY);
- * db.registerIndex("myIndex", x -> x.getName());
+ * Db<PersonName> db = context.getDb("names", PersonName.EMPTY)
+ *                     .registerIndex("myIndex", x -> x.getName())
+ *                     .loadData();
  * PersonName name = db.findExactlyOne("myIndex", "Alice");
  *
  *

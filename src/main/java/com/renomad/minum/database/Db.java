@@ -96,7 +96,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * non-zero value to update data.
      * <p><em>
      *     Example of adding new data to the database:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *          final var newSalt = StringUtils.generateSecureRandomString(10);
      *          final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
@@ -105,7 +105,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * }
      * <p><em>
      *     Example of updating data:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *         // write the updated salted password to the database
      *         final var updatedUser = new User(
@@ -152,7 +152,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
 
     /**
      * Delete data
-     * <p><em>Example:</p></em>
+     * <p><em>Example:</em></p>
      * {@snippet :
      *      userDb.delete(user);
      * }
@@ -276,13 +276,14 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * and the second will encounter a branch which skips loading.
      */
     @Override
-    public void loadData() {
+    public AbstractDb<T> loadData() {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
                 loadDataFromDisk();
             }
             hasLoadedData = true;
+            return this;
         } catch (Exception ex) {
             throw new DbException("Failed to load data from disk.", ex);
         } finally {
@@ -308,7 +309,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * @param keyObtainingFunction a function which obtains data from the data in this database, used
      *                             to partition the data into groups (potentially up to a 1-to-1 correspondence
      *                             between id and object)
-     * @return true if the registration succeeded
+     * @return the database instance if the registration succeeded
      * @throws DbException if the parameters are not entered properly, if the index has already
      * been registered, or if the data has already been loaded. It is necessary that
      * this is run immediately after declaring the database. To explain further: the data is not
@@ -318,7 +319,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * registerIndex command is run before any data is loaded.
      */
     @Override
-    public boolean registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (hasLoadedData) {
             throw new DbException("This method must be run before the database loads data from disk.  Typically, " +
                     "it should be run immediately after the database is created.  See this method's documentation");

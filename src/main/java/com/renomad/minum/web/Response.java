@@ -11,10 +11,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
@@ -66,7 +63,7 @@ import static com.renomad.minum.web.StatusLine.StatusCode.CODE_206_PARTIAL_CONTE
 public final class Response implements IResponse {
 
     private final StatusLine.StatusCode statusCode;
-    private final Map<String, String> extraHeaders;
+    private final Headers extraHeaders;
     private final byte[] body;
     private final ThrowingConsumer<ISocketWrapper> outputGenerator;
     private final long bodyLength;
@@ -87,11 +84,16 @@ public final class Response implements IResponse {
      *                        such as {@link #buildResponse(StatusLine.StatusCode, Map, byte[])} for more details on this.
      * @param bodyLength this is used to set the content-length header for the response.  If this is
      *                   not provided, we set the header to "transfer-encoding: chunked", or in other words, streaming.
+     * @param isBodyText If true, the body is text, and therefore would probably benefit
+     *                   from being compressed before sending (presuming sufficiently large
+     *                   to make it worth the time for compression)
      */
-    Response(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body,
+    Response(StatusLine.StatusCode statusCode, Headers extraHeaders, byte[] body,
              ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength, boolean isBodyText) {
+        if (statusCode == null) throw new IllegalArgumentException("Status code must not be null");
+        if (extraHeaders == null) throw new IllegalArgumentException("Extra headers must not be null (may use Headers.EMPTY)");
         this.statusCode = statusCode;
-        this.extraHeaders = new HashMap<>(extraHeaders);
+        this.extraHeaders = extraHeaders;
         this.body = body;
         this.outputGenerator = outputGenerator;
         this.bodyLength = bodyLength;
@@ -106,57 +108,128 @@ public final class Response implements IResponse {
      * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
      *                        ability to send bytes on the socket.
      */
-    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
+    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
         return new Response(statusCode, extraHeaders, null, outputGenerator, 0, false);
     }
 
     /**
-     * Similar to {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer)} but here we know
+     * This factory method is intended for situations where the user wishes to stream data
+     * but lacks the content length.  This is only for unusual situations where the developer
+     * needs the extra control.  In most cases, other methods are more suitable.
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
+     *                        ability to send bytes on the socket.
+     */
+    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String,String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
+        return buildStreamingResponse(statusCode, convertMapToHeaders(extraHeaders), outputGenerator);
+    }
+
+    /**
+     * Similar to {@link Response#buildStreamingResponse(StatusLine.StatusCode, Headers, ThrowingConsumer)} but here we know
      * the body length, so that will be sent to the client as content-length.
      * @param extraHeaders any extra headers for the response, such as the content-type
      * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
      *                        ability to send bytes on the socket.
      * @param bodyLength the length, in bytes, of the data to be sent to the client
      */
-    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
+    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
         return new Response(statusCode, extraHeaders, null, outputGenerator, bodyLength, false);
+    }
+
+    /**
+     * Similar to {@link Response#buildStreamingResponse(StatusLine.StatusCode, Headers, ThrowingConsumer)} but here we know
+     * the body length, so that will be sent to the client as content-length.
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
+     *                        ability to send bytes on the socket.
+     * @param bodyLength the length, in bytes, of the data to be sent to the client
+     */
+    public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String,String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength) {
+        return buildStreamingResponse(statusCode, convertMapToHeaders(extraHeaders), outputGenerator, bodyLength);
     }
 
     /**
      * A constructor for situations where the developer wishes to send a small (less than a megabyte) byte array
      * to the client.  If there is need to send something of larger size, choose one these
      * alternate constructors:
-     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Map, String, Headers)}
+     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Headers, String, Headers)}
      * Streaming - for more custom streaming control with a known body size: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer, long)}
      * Streaming - for more custom streaming control with body size unknown: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer)}
      *
      * @param extraHeaders any extra headers for the response, such as the content-type.
      */
-    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, byte[] body) {
+    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, byte[] body) {
         return new Response(statusCode, extraHeaders, body, socketWrapper -> sendByteArrayResponse(socketWrapper, body), body.length, false);
+    }
+
+    /**
+     * A constructor for situations where the developer wishes to send a small (less than a megabyte) byte array
+     * to the client.  If there is need to send something of larger size, choose one these
+     * alternate constructors:
+     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Headers, String, Headers)}
+     * Streaming - for more custom streaming control with a known body size: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Headers, ThrowingConsumer, long)}
+     * Streaming - for more custom streaming control with body size unknown: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Headers, ThrowingConsumer)}
+     *
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     */
+    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String,String> extraHeaders, byte[] body) {
+        return buildResponse(statusCode, convertMapToHeaders(extraHeaders), body);
+    }
+
+    private static Headers convertMapToHeaders(Map<String, String> extraHeaders) {
+        if (extraHeaders.isEmpty()) return Headers.EMPTY;
+        return new Headers(extraHeaders.entrySet().stream().map(x -> x.getKey() + ": " + x.getValue()).toList());
     }
 
     /**
      * Build an ordinary response, with a known body
      * @param extraHeaders extra HTTP headers, like <pre>content-type: text/html</pre>
      */
-    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders, String body) {
+    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, String body) {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length, true);
     }
 
     /**
+     * Build an ordinary response, with a known body
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     */
+    public static IResponse buildResponse(StatusLine.StatusCode statusCode, Map<String,String> extraHeaders, String body) {
+        return buildResponse(statusCode, convertMapToHeaders(extraHeaders), body);
+    }
+
+
+    /**
      * This will send a large file to the client as a stream.
      * <em>Note that this does not check that the requested file is within a directory. If you expect the
-     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Map, String, String, Headers)}</em>
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers)}</em>
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     *                     For example "Content-Type: video/mp4" or "Content-Type: application/zip"
+     * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
+     * @param requestHeaders these are the headers from the request, which is needed here to set proper
+     *                       response headers in some cases.
+     */
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders) throws IOException {
+        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, requestHeaders);
+    }
+
+    /**
+     * This will send a large file to the client as a stream.
+     * <em>Note that this does not check that the requested file is within a directory. If you expect the
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers)}</em>
      * @param extraHeaders extra headers you would like in the response, as key-value pairs in a map - for
      *                     example "Content-Type: video/mp4" or "Content-Type: application/zip"
      * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Map<String, String> extraHeaders, String filePath, Headers requestHeaders) throws IOException {
-        Map<String, String> adjustedHeaders = new HashMap<>(extraHeaders);
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders) throws IOException {
+        Headers adjustedHeaders = extraHeaders;
         long fileSize = Files.size(Path.of(filePath));
         var range = new Range(requestHeaders, fileSize);
         StatusLine.StatusCode responseCode = CODE_200_OK;
@@ -165,7 +238,9 @@ public final class Response implements IResponse {
             long offset = range.getOffset();
             length = range.getLength();
             var lastIndex = (offset + length) - 1;
-            adjustedHeaders.put("Content-Range", String.format("bytes %d-%d/%d", offset, lastIndex, fileSize));
+            List<String> headerStrings = new ArrayList<>(extraHeaders.getHeaderStrings());
+            headerStrings.add("Content-Range: " + String.format("bytes %d-%d/%d", offset, lastIndex, fileSize));
+            adjustedHeaders = new Headers(headerStrings);
             responseCode = CODE_206_PARTIAL_CONTENT;
         }
 
@@ -193,24 +268,51 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Map<String, String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
         Path path = FileUtils.safeResolve(parentDirectory, filePath);
         return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
+    }
+
+    /**
+     * This will send a large file to the client as a stream.
+     * This is a safe version of the method, for when the file path is set by a user, meaning it is untrusted.
+     * By setting a parentDirectory, the system will ensure that the requested path is within that directory, thus
+     * disallowing path strings that could escape it, like prefixing with a slash.
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     *                     For example "Content-Type: video/mp4" or "Content-Type: application/zip"
+     * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
+     * @param requestHeaders these are the headers from the request, which is needed here to set proper
+     *                       response headers in some cases.
+     * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
+     *                        allows the developer to use directories anywhere in the system.
+     */
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
+        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, parentDirectory, requestHeaders);
     }
 
     /**
      * Build a {@link Response} with just a status code and headers, without a body
      * @param extraHeaders extra HTTP headers
      */
-    public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode, Map<String, String> extraHeaders) {
+    public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode, Headers extraHeaders) {
         return new Response(statusCode, extraHeaders, null, socketWrapper -> {}, 0, false);
+    }
+
+    /**
+     * Build a {@link Response} with just a status code and headers, without a body
+     * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
+     *                     key is the header key and the value is the header value. No colon necessary.
+     */
+    public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode, Map<String,String> extraHeaders) {
+        return buildLeanResponse(statusCode, convertMapToHeaders(extraHeaders));
     }
 
     /**
      * Build a {@link Response} with only a status code, with no body and no extra headers.
      */
     public static IResponse buildLeanResponse(StatusLine.StatusCode statusCode) {
-        return new Response(statusCode, Map.of(), null, socketWrapper -> {}, 0, false);
+        return new Response(statusCode, Headers.EMPTY, null, socketWrapper -> {}, 0, false);
     }
 
     /**
@@ -225,7 +327,7 @@ public final class Response implements IResponse {
         } catch (Exception ex) {
             throw new WebServerException("Failure in redirect to (" + locationUrl + "). Exception: " + ex);
         }
-        return buildResponse(StatusLine.StatusCode.CODE_303_SEE_OTHER, Map.of("location", locationUrl, "Content-Type", "text/html; charset=UTF-8"), "<p>See <a href=\""+locationUrl+"\">this link</a></p>");
+        return buildResponse(StatusLine.StatusCode.CODE_303_SEE_OTHER, new Headers(List.of("location: " + locationUrl, "Content-Type: text/html; charset=UTF-8")), "<p>See <a href=\""+locationUrl+"\">this link</a></p>");
     }
 
     /**
@@ -234,10 +336,10 @@ public final class Response implements IResponse {
      * lets you add extra headers on top of the basic content-type headers
      * that are needed to specify this is HTML.
      */
-    public static IResponse htmlOk(String body, Map<String, String> extraHeaders) {
-        var headers = new HashMap<String, String>();
-        headers.put("Content-Type", "text/html; charset=UTF-8");
-        headers.putAll(extraHeaders);
+    public static IResponse htmlOk(String body, Headers extraHeaders) {
+        List<String> headersList = new ArrayList<>(extraHeaders.getHeaderStrings());
+        headersList.add("Content-Type: text/html; charset=UTF-8");
+        var headers =  new Headers(headersList);
         return buildResponse(StatusLine.StatusCode.CODE_200_OK, headers, body);
     }
 
@@ -246,12 +348,12 @@ public final class Response implements IResponse {
      * lets you skip some of the boilerplate.
      */
     public static IResponse htmlOk(String body) {
-        return htmlOk(body, Map.of());
+        return htmlOk(body, Headers.EMPTY);
     }
 
     @Override
-    public Map<String, String> getExtraHeaders() {
-        return new HashMap<>(extraHeaders);
+    public Headers getExtraHeaders() {
+        return new Headers(this.extraHeaders.getHeaderStrings());
     }
 
     @Override

@@ -40,11 +40,11 @@ public class ResponseTests {
     @Test
     public void testToString() {
         IResponse response1 = Response.htmlOk("fooabcdefg");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=10, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=Headers{headerStrings=[Content-Type: text/html; charset=UTF-8]}, bodyLength=10, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefgh");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=11, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=Headers{headerStrings=[Content-Type: text/html; charset=UTF-8]}, bodyLength=11, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefghi");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=12, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=Headers{headerStrings=[Content-Type: text/html; charset=UTF-8]}, bodyLength=12, isBodyText=true}");
     }
 
     /**
@@ -111,6 +111,25 @@ public class ResponseTests {
         assertEquals(result.getMessage(), "Failure in redirect to (\r\n). Exception: java.lang.IllegalArgumentException: Illegal character in path at index 0: \r\n");
         var result2 = assertThrows(WebServerException.class, () -> Response.redirectTo(null));
         assertEquals(result2.getMessage(), "Failure in redirect to (null). Exception: java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"this.input\" is null");
+    }
+
+    /**
+     * The parameter in the constructor for extra headers is not allowed to be null,
+     * though it may be set to {@link Headers#EMPTY}.
+     */
+    @Test
+    public void testNullExtraHeaders() {
+        var ex1 = assertThrows(IllegalArgumentException.class, () -> new Response(CODE_200_OK, null, new byte[0], (x) -> {}, 0L, false));
+        assertEquals(ex1.getMessage(), "Extra headers must not be null (may use Headers.EMPTY)");
+    }
+
+    /**
+     * The parameter in the constructor for status code is not allowed to be null
+     */
+    @Test
+    public void testNullStatusCode() {
+        var ex1 = assertThrows(IllegalArgumentException.class, () -> new Response(null, Headers.EMPTY, new byte[0], (x) -> {}, 0L, false));
+        assertEquals(ex1.getMessage(), "Status code must not be null");
     }
 
 }

@@ -12,6 +12,8 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.renomad.minum.database.ChecksumUtility.buildChecksum;
+import static com.renomad.minum.database.ChecksumUtility.compareWithChecksum;
 import static com.renomad.minum.database.DatabaseAppender.simpleDateFormat;
 
 /**
@@ -145,16 +147,36 @@ final class DatabaseConsolidator {
             if (!Files.exists(fullPathToConsolidatedFile)) {
                 data = new ArrayList<>();
             } else {
-                data = Files.readAllLines(fullPathToConsolidatedFile);
+                data = readConsolidatedFileWithChecksum(fullPathToConsolidatedFile);
             }
 
             // update the data in memory per the instructions
             Collection<String> updatedData = updateData(filename, data, instructions.getValue());
 
+            String checksumString = buildChecksum(updatedData);
+
             // write the data to disk
             Files.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
+
+            // write a hash of the data to use as a checksum.  This value will be checked
+            // when reading the data later on, to confirm nothing has changed since writing.
+            Path fullPathToChecksumFile = this.consolidatedDataDirectory.resolve(filename + ".checksum");
+            Files.writeString(fullPathToChecksumFile, checksumString);
         }
     }
+
+    /**
+     * Reads data from consolidated file, confirming the checksum in the process.
+     */
+    private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) throws IOException {
+        // get all the data from the consolidated file
+        List<String> data = Files.readAllLines(fullPathToConsolidatedFile);
+
+        compareWithChecksum(fullPathToConsolidatedFile, data);
+
+        return data;
+    }
+
 
     /**
      * Here, we have raw lines of data from a file, and a list of instructions for updating

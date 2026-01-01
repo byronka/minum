@@ -217,7 +217,6 @@ public class WebTests {
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
-
     /**
      * If the developer registers the same endpoint twice,
      * throw an exception
@@ -239,6 +238,32 @@ public class WebTests {
         var wf = new WebFramework(context, default_zdt);
         wf.registerPartialPath(GET, "add_two_numbers", request -> null);
         var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+
+    /**
+     * Same as {@link #test_EdgeCase_DuplicateRegistrations()} but checking that
+     * we see duplicates between regular and partial path registrations
+     */
+    @Test
+    public void test_EdgeCase_DuplicateConsideringBothRegularAndPartialPathRegistrations() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+    /**
+     * Same as {@link #test_EdgeCase_DuplicateRegistrations()} but checking that
+     * we see duplicates between regular and partial path registrations, comparing
+     * in the opposite direction of {@link #test_EdgeCase_DuplicateConsideringBothRegularAndPartialPathRegistrations}
+     */
+    @Test
+    public void test_EdgeCase_DuplicateConsideringBothRegularAndPartialPathRegistrations_2() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPartialPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPath(GET, "add_two_numbers", request -> null));
         assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
     }
 
@@ -1017,7 +1042,7 @@ public class WebTests {
         var webFramework = new WebFramework(context, default_zdt);
 
         var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
-        assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
+        assertTrue(webFramework.findHandlerByPathFunction(startLine) == null);
     }
 
     /**
@@ -1031,7 +1056,7 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
         var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
-        assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
+        assertEquals(webFramework.findHandlerByPathFunction(startLine), helloHandler);
     }
 
     @Test
@@ -1042,7 +1067,7 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
         var startLine = new RequestLine(GET, new PathDetails("mypa_DOES_NOT_MATCH", "", Map.of()), ONE_DOT_ONE, "", logger);
-        assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
+        assertTrue(webFramework.findHandlerByPathFunction(startLine) == null);
     }
 
     @Test
@@ -1053,7 +1078,7 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "mypath", helloHandler);
 
         var startLine = new RequestLine(POST, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
-        assertTrue(webFramework.findHandlerByPartialMatch(startLine) == null);
+        assertTrue(webFramework.findHandlerByPathFunction(startLine) == null);
     }
 
     @Test
@@ -1065,7 +1090,101 @@ public class WebTests {
         webFramework.registerPartialPath(GET, "m", helloHandler);
 
         var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
-        assertEquals(webFramework.findHandlerByPartialMatch(startLine), helloHandler);
+        assertEquals(webFramework.findHandlerByPathFunction(startLine), helloHandler);
+    }
+
+    /**
+     * Test registerPath(Method, Function) with a function that returns a handler for matching paths
+     */
+    @Test
+    public void test_RegisterPathFunction_SimpleMatch() {
+        var webFramework = new WebFramework(context, default_zdt);
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
+
+        webFramework.registerPath(GET, path -> path.equals("mypath") ? helloHandler : null);
+
+        var startLine = new RequestLine(GET, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
+        assertEquals(webFramework.findHandlerByPathFunction(startLine), helloHandler);
+    }
+
+    /**
+     * Test registerPath(Method, Function) does not match different paths
+     */
+    @Test
+    public void test_RegisterPathFunction_DoesNotMatch() {
+        var webFramework = new WebFramework(context, default_zdt);
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
+
+        webFramework.registerPath(GET, path -> path.equals("mypath") ? helloHandler : null);
+
+        var startLine = new RequestLine(GET, new PathDetails("differentpath", "", Map.of()), ONE_DOT_ONE, "", logger);
+        assertTrue(webFramework.findHandlerByPathFunction(startLine) == null);
+    }
+
+    /**
+     * Test registerPath(Method, Function) does not match different HTTP methods
+     */
+    @Test
+    public void test_RegisterPathFunction_DifferentMethod() {
+        var webFramework = new WebFramework(context, default_zdt);
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
+
+        webFramework.registerPath(GET, path -> path.equals("mypath") ? helloHandler : null);
+
+        var startLine = new RequestLine(POST, new PathDetails("mypath", "", Map.of()), ONE_DOT_ONE, "", logger);
+        assertTrue(webFramework.findHandlerByPathFunction(startLine) == null);
+    }
+
+    /**
+     * Test registerPath(Method, Function) with a function that uses prefix matching
+     */
+    @Test
+    public void test_RegisterPathFunction_PrefixMatch() {
+        var webFramework = new WebFramework(context, default_zdt);
+        ThrowingFunction<IRequest, IResponse> helloHandler = request -> Response.htmlOk("hello");
+
+        webFramework.registerPath(GET, path -> path.startsWith("api/") ? helloHandler : null);
+
+        var startLine = new RequestLine(GET, new PathDetails("api/users", "", Map.of()), ONE_DOT_ONE, "", logger);
+        assertEquals(webFramework.findHandlerByPathFunction(startLine), helloHandler);
+    }
+
+    /**
+     * Test registerPath(Method, Function) with multiple registered functions
+     */
+    @Test
+    public void test_RegisterPathFunction_MultipleRegistrations() {
+        var webFramework = new WebFramework(context, default_zdt);
+        ThrowingFunction<IRequest, IResponse> handler1 = request -> Response.htmlOk("handler1");
+        ThrowingFunction<IRequest, IResponse> handler2 = request -> Response.htmlOk("handler2");
+
+        webFramework.registerPath(GET, path -> path.equals("path1") ? handler1 : null);
+        webFramework.registerPath(GET, path -> path.equals("path2") ? handler2 : null);
+
+        var startLine1 = new RequestLine(GET, new PathDetails("path1", "", Map.of()), ONE_DOT_ONE, "", logger);
+        var startLine2 = new RequestLine(GET, new PathDetails("path2", "", Map.of()), ONE_DOT_ONE, "", logger);
+
+        assertEquals(webFramework.findHandlerByPathFunction(startLine1), handler1);
+        assertEquals(webFramework.findHandlerByPathFunction(startLine2), handler2);
+    }
+
+    /**
+     * Test registerPath(Method, Function) using Regex patterns for flexible path matching
+     */
+    @Test
+    public void test_RegisterPathFunction_RegexPattern() {
+        var webFramework = new WebFramework(context, default_zdt);
+        ThrowingFunction<IRequest, IResponse> resourceHandler = request -> Response.htmlOk("resource");
+
+        // Use a regex pattern to match paths like "users/123", "users/abc", etc.
+        Pattern userResourcePattern = Pattern.compile("^users/\\d+$");
+        webFramework.registerPath(GET, path -> userResourcePattern.matcher(path).matches() ? resourceHandler : null);
+
+        var matchingLine = new RequestLine(GET, new PathDetails("users/123", "", Map.of()), ONE_DOT_ONE, "", logger);
+        var nonMatchingLine = new RequestLine(GET, new PathDetails("users/abc", "", Map.of()), ONE_DOT_ONE, "", logger);
+
+        assertEquals(webFramework.findHandlerByPathFunction(matchingLine), resourceHandler);
+        assertTrue(webFramework.findHandlerByPathFunction(nonMatchingLine) == null);
     }
 
     /**
@@ -1457,6 +1576,7 @@ public class WebTests {
             @Override public ISocketWrapper getSocketWrapper() {return null;}
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+            @Override public boolean hasAccessedBody() {return false;}
         };
 
         try (var sw = new FakeSocketWrapper()) {
@@ -1652,22 +1772,8 @@ public class WebTests {
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 
-    private static IRequest getMyRequest(RequestLine requestLine) {
-        var myRequest = new IRequest() {
-            @Override public Headers getHeaders() {return null;}
-            @Override public RequestLine getRequestLine() {return requestLine;}
-            @Override public Body getBody() {return null;}
-            @Override public String getRemoteRequester() {return "";}
-            @Override public ISocketWrapper getSocketWrapper() {return null;}
-            @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
-            @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
-
-        };
-        return myRequest;
-    }
-
     private static IRequest getMyRequest(RequestLine requestLine, Headers headers) {
-        var myRequest = new IRequest() {
+        return new IRequest() {
             @Override public Headers getHeaders() {return headers;}
             @Override public RequestLine getRequestLine() {return requestLine;}
             @Override public Body getBody() {return null;}
@@ -1675,8 +1781,8 @@ public class WebTests {
             @Override public ISocketWrapper getSocketWrapper() {return null;}
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+            @Override public boolean hasAccessedBody() {return false;}
         };
-        return myRequest;
     }
 
 }

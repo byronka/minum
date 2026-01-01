@@ -1,11 +1,13 @@
 package com.renomad.minum.database;
 
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.CryptoUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,6 +15,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static com.renomad.minum.database.ChecksumUtility.generateChecksumErrorMessage;
+import static com.renomad.minum.database.ChecksumUtility.getMessageDigest;
 import static com.renomad.minum.utils.Invariants.mustBeFalse;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
@@ -55,17 +59,17 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  *      at the same name as the previous, and it will convert the data.  If the previous
  *      call looked like this:
  *  </p>
- *  <code>
+ *  {@code
  *  Db<Photograph> photoDb = context.getDb("photos", Photograph.EMPTY);
- *  </code>
+ *  }
  *  <p>
  *  Then converting to the new database is just replacing it with the following
  *  line. <b>Please, backup your database before this change.</b>
  *  </p>
  *  <p>
- * <code>
+ * {@code
  *     DbEngine2<Photograph> photoDb = context.getDb2("photos", Photograph.EMPTY);
- * </code>
+ * }
  *  </p>
  *  <p>
  *     Once the new engine starts up, it will notice the old file structure and convert it
@@ -93,7 +97,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     int maxLinesPerAppendFile;
     boolean hasLoadedData;
     final DatabaseAppender databaseAppender;
-    private final DatabaseConsolidator databaseConsolidator;
+    final DatabaseConsolidator databaseConsolidator;
 
     /**
      * Here we track the number of appends we have made.  Once it hits
@@ -141,7 +145,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * non-zero value to update data.
      * <p><em>
      *     Example of adding new data to the database:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *          final var newSalt = StringUtils.generateSecureRandomString(10);
      *          final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
@@ -150,7 +154,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * }
      * <p><em>
      *     Example of updating data:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *         // write the updated salted password to the database
      *         final var updatedUser = new User(
@@ -239,7 +243,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
 
     /**
      * Delete data
-     * <p><em>Example:</p></em>
+     * <p><em>Example:</em></p>
      * {@snippet :
      *      userDb.delete(user);
      * }
@@ -313,7 +317,10 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     void walkAndLoad(Path dbDirectory) {
         List<String> consolidatedFiles = new ArrayList<>(
-                List.of(Objects.requireNonNull(dbDirectory.resolve("consolidated_data").toFile().list())));
+                Arrays.stream(Objects.requireNonNull(
+                        dbDirectory.resolve("consolidated_data").toFile().list()))
+                        .filter(x -> !x.contains("checksum"))
+                        .toList());
 
         // if there aren't any files, bail out
         if (consolidatedFiles.isEmpty()) return;
@@ -324,12 +331,33 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         for (String fileName : consolidatedFiles) {
             logger.logDebug(() -> "Processing database file: " + fileName);
             Path consolidatedDataFile = dbDirectory.resolve("consolidated_data").resolve(fileName);
+            Path checksumFilename = consolidatedDataFile.resolveSibling(consolidatedDataFile.getFileName() + ".checksum");
+
 
             // By using a lazy stream, we are able to read each item from the file into
             // memory without needing to read the whole file contents into memory at once,
             // thus avoiding requiring a great amount of memory
+            // build a hash for this data
+            MessageDigest messageDigestSha256 = getMessageDigest("SHA-256");
+
             try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
-                fileStream.forEach(line -> readAndDeserialize(line, fileName));
+
+                fileStream.forEach(line -> {
+                    messageDigestSha256.update(line.getBytes(StandardCharsets.US_ASCII));
+                    readAndDeserialize(line, fileName);
+                });
+
+                // check against the checksum for what we read, if applicable
+                if (Files.exists(checksumFilename)) {
+                    String checksum = Files.readString(checksumFilename);
+                    byte[] hashBytes = messageDigestSha256.digest();
+                    String hashString = CryptoUtils.bytesToHex(hashBytes);
+                    if (!hashString.equals(checksum)) {
+                        String errorMessage = generateChecksumErrorMessage(consolidatedDataFile);
+                        throw new DbChecksumException(errorMessage);
+                    }
+                }
+
             } catch (Exception e) {
                 throw new DbException(e);
             }
@@ -377,13 +405,14 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * and the second will encounter a branch which skips loading.
      */
     @Override
-    public void loadData() {
+    public AbstractDb<T> loadData() {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
                 loadDataFromDisk();
             }
             hasLoadedData = true;
+            return this;
         } catch (Exception ex) {
             throw new DbException("Failed to load data from disk.", ex);
         } finally {
@@ -412,7 +441,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     }
 
     @Override
-    public boolean registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (hasLoadedData) {
             throw new DbException("This method must be run before the database loads data from disk.  Typically, " +
                     "it should be run immediately after the database is created.  See this method's documentation");

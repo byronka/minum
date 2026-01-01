@@ -929,7 +929,7 @@ public class DbTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("index", x -> x.b);
-        assertTrue(db.registerIndex("foo", x -> x.b));
+        assertTrue(db.registerIndex("foo", x -> x.b) != null);
     }
 
     /**

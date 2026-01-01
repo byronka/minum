@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
+import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
+
 /**
  * Details extracted from the headers.  For example,
  * is this a keep-alive connection? what is the content-length,
@@ -25,7 +27,7 @@ import java.util.*;
  * of the document being downloaded, amongst others.
  * </p>
  */
-public final class Headers{
+public final class Headers {
 
     public static final Headers EMPTY = new Headers(List.of(), null);
     private static final int MAX_HEADERS_COUNT = 70;
@@ -84,7 +86,7 @@ public final class Headers{
      */
     public String contentType() {
         // find the header that starts with content-type
-        List<String> cts = Objects.requireNonNullElse(headersMap.get("content-type"), List.of());
+        List<String> cts = Objects.requireNonNullElse(headersMap.get("content-type"), new ArrayList<>());
         if (cts.size() > 1) {
             cts.sort(Comparator.naturalOrder());
             throw new WebServerException("The number of content-type headers must be exactly zero or one.  Received: " + cts);
@@ -171,6 +173,13 @@ public final class Headers{
     }
 
     /**
+     * Returns true if there is no header data in this instance.
+     */
+    public boolean isEmpty() {
+        return this.headersMap.isEmpty();
+    }
+
+    /**
      * Allows a user to obtain any header value by its key, case-insensitively
      * @return a {@link List} of string values, or null
      * if no header was found.
@@ -196,5 +205,16 @@ public final class Headers{
         return "Headers{" +
                 "headerStrings=" + headerStrings +
                 '}';
+    }
+
+    /**
+     * This is used in the WebFramework when building a Response string,
+     * to avoid needing to create a copy of the headers list when preparing
+     * to send.
+     */
+    void appendHeadersToBuilder(StringBuilder sb) {
+        for (String header : headerStrings) {
+            sb.append(header).append(HTTP_CRLF);
+        }
     }
 }

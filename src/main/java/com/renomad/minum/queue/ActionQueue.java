@@ -103,13 +103,11 @@ public final class ActionQueue implements AbstractActionQueue {
      * <p>
      *     Here is an example use of .enqueue:
      * </p>
-     * <p>
      * <pre>
      * {@code   actionQueue.enqueue("Write person file to disk at " + filePath, () -> {
      *             Files.writeString(filePath, pf.serialize());
      *         });}
      * </pre>
-     * </p>
      */
     @Override
     public void enqueue(String description, ThrowingRunnable action) {

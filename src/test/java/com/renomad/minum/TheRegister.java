@@ -1,6 +1,6 @@
 package com.renomad.minum;
 
-import com.renomad.minum.database.Db;
+import com.renomad.minum.database.AbstractDb;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.sampledomain.ListPhotos;
 import com.renomad.minum.sampledomain.PersonName;
@@ -13,11 +13,18 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.web.*;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.renomad.minum.web.RequestLine.Method.GET;
 import static com.renomad.minum.web.RequestLine.Method.POST;
+import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_403_FORBIDDEN;
 
 /**
@@ -62,7 +69,12 @@ public class TheRegister {
         webFramework.registerPath(GET, "photos", lp::ListPhotosPage);
         // it is necessary to register this image so explicitly because this is all in the test directory and the image
         // is not stored in the static files directory where it would normally be.
-        webFramework.registerPath(GET, "video_poster.jpg", request -> Response.buildResponse(StatusLine.StatusCode.CODE_200_OK, Map.of("Content-Type", "image/jpg"), fileUtils.readBinaryFile("src/test/resources/video_poster.jpg")));
+        webFramework.registerPath(GET, "video_poster.jpg",
+                request -> Response.buildResponse(
+                        StatusLine.StatusCode.CODE_200_OK,
+                        Map.of("Content-Type", "image/jpg"),
+                        fileUtils.readBinaryFile("src/test/resources/video_poster.jpg"))
+        );
         webFramework.registerPath(GET, "upload", up::uploadPage);
         webFramework.registerPath(GET, "upload_video", up::uploadVideoPage);
         webFramework.registerPath(POST, "upload", up::uploadPageReceivePost);
@@ -97,6 +109,41 @@ public class TheRegister {
         // an unusual endpoint - processes POST requests but doesn't use the data, does
         // not even try getting the body
         webFramework.registerPath(POST, "unusualpost", sd::unusualPostHandler);
+
+        // an endpoint with the header that contains multi-fields with the same header key
+        webFramework.registerPath(GET, "multicookies",
+                request -> Response.buildResponse(
+                        CODE_200_OK,
+                        new Headers(List.of("Set-Cookie: a=value1", "Set-Cookie: b=value2", "content-type: text/html")),
+                        "You have been authenticated.  Two cookies have been set: a and b"
+                ));
+        // endpoints to test the path function
+        webFramework.registerPath(GET, path -> {
+            String[] split = path.split("/", 2);
+            if (split.length != 2 || !split[0].equals("patternpath")) {
+                return null;
+            }
+
+            int number;
+            try {
+                number = Integer.parseInt(split[1]);
+            }  catch (NumberFormatException e) {
+                return null;
+            }
+
+            return request -> Response.htmlOk("Number: " + number);
+        });
+        Pattern pathRangePattern = Pattern.compile("patternpath/range/(?<from>\\d+)-(?<to>\\d+)");
+        webFramework.registerPath(GET, path -> {
+            Matcher matcher = pathRangePattern.matcher(path);
+            if (matcher.matches()) {
+                int from = Integer.parseInt(matcher.group("from"));
+                int to = Integer.parseInt(matcher.group("to"));
+                String result = "List: " + IntStream.range(from, to + 1).mapToObj(Integer::toString).collect(Collectors.joining(","));
+                return request -> Response.htmlOk(result);
+            }
+            return null;
+        });
     }
 
     private static IResponse lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
@@ -155,7 +202,9 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        Db<PersonName> sampleDomainDb = context.getDb("names", PersonName.EMPTY);
+        AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
+                .registerIndex("name_index", PersonName::getFullname)
+                .loadData();
         return new SampleDomain(sampleDomainDb, auth, context);
     }
 

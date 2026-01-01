@@ -173,6 +173,27 @@ public class HtmlParserTests {
     }
 
     /**
+     * Ensure the parser work with UTF-8 strings
+     */
+    @Test
+    public void test_HtmlParser_Edge_UTF() {
+        String input = "<title>Đăng nhập</title>";
+        var expected = List.of(
+                new HtmlParseNode(
+                        ParseNodeType.ELEMENT,
+                        new TagInfo(TagName.TITLE, Map.of()),
+                        List.of(new HtmlParseNode(
+                                ParseNodeType.CHARACTERS,
+                                TagInfo.EMPTY,
+                                List.of(),
+                                "Đăng nhập"
+                        )),
+                        ""));
+        List<HtmlParseNode> result = new HtmlParser().parse(input);
+        assertEquals(expected, result);
+    }
+
+    /**
      * invalid character after forward slash in start tag
      */
     @Test

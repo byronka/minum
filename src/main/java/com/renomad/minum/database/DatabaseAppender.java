@@ -175,9 +175,9 @@ final class DatabaseAppender {
 
     /**
      * This helper just wraps a method to enable easier testing.
-     * @return true if the appendCount is greater or equal to maxAppendCount,
+     * @return the name of the newly-created file if the appendCount is greater or equal to maxAppendCount,
      * meaning that we moved on to calling {@link #saveOffCurrentDataToReadyFolder()},
-     * false otherwise.
+     * empty-string otherwise.
      */
     String saveOffWrapped(int appendCount, int maxAppendCount) throws IOException {
         if (appendCount >= maxAppendCount) {

@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 
 import static com.renomad.minum.utils.FileUtils.checkFileIsWithinDirectory;
 import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
@@ -61,11 +62,22 @@ public final class WebFramework {
     private final Map<MethodPath, ThrowingFunction<IRequest, IResponse>> registeredDynamicPaths;
 
     /**
-     * These are registrations for paths that partially match, for example,
-     * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
+     * These are registrations for cases where the function depends on parts of the path conditionally.
+     * Like if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
      * and we want to match ".well-known/acme-challenge"
      */
-    private final Map<MethodPath, ThrowingFunction<IRequest, IResponse>> registeredPartialPaths;
+    private final Map<RequestLine.Method, List<Function<String, ThrowingFunction<IRequest, IResponse>>>> registeredPathFunctions;
+
+    /**
+     * A special path function that checks if the path starts with the defined one.
+     * It's here to retain the duplication check on {@link #registerPartialPath(RequestLine.Method, String, ThrowingFunction)},
+     */
+    private record PartialPathFunction(String pathName, ThrowingFunction<IRequest, IResponse> handler) implements Function<String, ThrowingFunction<IRequest, IResponse>> {
+        @Override
+        public ThrowingFunction<IRequest, IResponse> apply(String path) {
+            return path.startsWith(pathName) ? handler : null;
+        }
+    }
 
     /**
      * A function that will be run instead of the ordinary business code. Has
@@ -129,11 +141,11 @@ public final class WebFramework {
                     throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
                 }
 
-                boolean isKeepAlive = determineIfKeepAlive(request, logger, ((Request)request).hasAccessedBody());
+                boolean isKeepAlive = determineIfKeepAlive(request, logger, request.hasAccessedBody());
 
                 // calculate proper headers for the response
                 StringBuilder headerStringBuilder = addDefaultHeaders(response);
-                addOptionalExtraHeaders(response, headerStringBuilder);
+                response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
                 addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
 
                 // inspect the response being sent, see whether we can compress the data.
@@ -240,7 +252,7 @@ public final class WebFramework {
                 // information in the logs, which have that same value.
                 int randomNumber = randomErrorCorrelationId.nextInt();
                 logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                response = Response.buildResponse(CODE_500_INTERNAL_SERVER_ERROR, Map.of("Content-Type", "text/plain;charset=UTF-8"), "Server error: " + randomNumber);
+                response = Response.buildResponse(CODE_500_INTERNAL_SERVER_ERROR, new Headers(List.of("Content-Type: text/plain;charset=UTF-8")), "Server error: " + randomNumber);
             }
             long millisAtEnd = System.currentTimeMillis();
             logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, millisAtEnd - millisAtStart));
@@ -365,7 +377,8 @@ public final class WebFramework {
      */
     private StringBuilder addDefaultHeaders(IResponse response) {
 
-        String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        String date = Objects.requireNonNullElseGet(overrideForDateTime,
+                () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
         // we'll store the status line and headers in this
         StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
@@ -385,18 +398,6 @@ public final class WebFramework {
     }
 
     /**
-     * Add extra headers specified by the business logic (set by the developer)
-     */
-    private static void addOptionalExtraHeaders(IResponse response, StringBuilder stringBuilder) {
-        for (Map.Entry<String,String> header : response.getExtraHeaders().entrySet()) {
-            stringBuilder.append(header.getKey())
-                    .append(": ")
-                    .append(header.getValue())
-                    .append(HTTP_CRLF);
-        }
-    }
-
-    /**
      * If a response body exists, it needs to have a content-type specified,
      * or throw an exception. Otherwise, the user could totally miss they did
      * not set a content-type, because the browser will inspect the data and
@@ -404,7 +405,7 @@ public final class WebFramework {
      */
     static void confirmBodyHasContentType(IRequest request, IResponse response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = response.getExtraHeaders().keySet().stream().anyMatch(x -> x.toLowerCase(Locale.ROOT).equals("content-type"));
+        boolean hasContentType = response.getExtraHeaders().valueByKey("content-type") != null;
 
         // if there *is* data, we had better be returning a content type
         if (response.getBodyLength() > 0 && !hasContentType) {
@@ -494,7 +495,7 @@ public final class WebFramework {
 
         if (handler == null) {
             logger.logTrace(() -> "No direct handler found.  looking for a partial match for " + requestedPath);
-            handler = findHandlerByPartialMatch(sl);
+            handler = findHandlerByPathFunction(sl);
         }
 
         if (handler == null) {
@@ -585,9 +586,9 @@ public final class WebFramework {
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
-        var headers = Map.of(
-                "cache-control", "max-age=" + constants.staticFileCacheTime,
-                "content-type", mimeType);
+        var headers = new Headers(List.of(
+                "Cache-Control: max-age=" + constants.staticFileCacheTime,
+                "Content-Type: " + mimeType));
 
         return Response.buildResponse(
                 CODE_200_OK,
@@ -599,11 +600,11 @@ public final class WebFramework {
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) throws IOException {
-        var headers = Map.of(
-                "cache-control", "max-age=" + constants.staticFileCacheTime,
-                "content-type", mimeType,
-                "Accept-Ranges", "bytes"
-                );
+        var headers = new Headers(List.of(
+                "Cache-Control: max-age=" + constants.staticFileCacheTime,
+                "Content-Type: " + mimeType,
+                "Accept-Ranges: bytes"
+                ));
 
         return Response.buildLargeFileResponse(
                 headers,
@@ -629,19 +630,19 @@ public final class WebFramework {
 
 
     /**
-     * let's see if we can match the registered paths against a **portion** of the startline
+     * let's see if we can match the registered paths against a path function
      */
-    ThrowingFunction<IRequest, IResponse> findHandlerByPartialMatch(RequestLine sl) {
-        String requestedPath = sl.getPathDetails().getIsolatedPath();
-        var methodPathFunctionEntry = registeredPartialPaths.entrySet().stream()
-                .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
-                        x.getKey().method().equals(sl.getMethod()))
-                .findFirst().orElse(null);
-        if (methodPathFunctionEntry != null) {
-            return methodPathFunctionEntry.getValue();
-        } else {
+    ThrowingFunction<IRequest, IResponse> findHandlerByPathFunction(RequestLine sl) {
+        var functionList = registeredPathFunctions.get(sl.getMethod());
+        if (functionList == null) {
             return null;
         }
+        String requestedPath = sl.getPathDetails().getIsolatedPath();
+        return functionList.stream()
+                .map(function -> function.apply(requestedPath))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -667,7 +668,7 @@ public final class WebFramework {
         this.constants = context.getConstants();
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
-        this.registeredPartialPaths = new HashMap<>();
+        this.registeredPathFunctions = new EnumMap<>(RequestLine.Method.class);
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
 
@@ -728,6 +729,71 @@ public final class WebFramework {
         if (result != null) {
             throw new WebServerException("Duplicate endpoint registered: " + new MethodPath(method, pathName));
         }
+
+        checkForDuplicatePartialPath(method, pathName);
+    }
+
+    /**
+     * check if the user had already registered a "partial path" with this pathName, which
+     * means it would be duplicate endpoints, and throw an exception if so.
+     */
+    private void checkForDuplicatePartialPath(RequestLine.Method method, String pathName) {
+        List<Function<String, ThrowingFunction<IRequest, IResponse>>> existingPathFunctions = registeredPathFunctions.get(method);
+        if (existingPathFunctions != null) {
+            if (existingPathFunctions.stream()
+                    .filter(PartialPathFunction.class::isInstance)
+                    .map(PartialPathFunction.class::cast)
+                    .map(function -> function.pathName)
+                    .anyMatch(pathName::equals)
+            ) {
+                throw new WebServerException("Duplicate partial-path endpoint registered: " + new MethodPath(method, pathName));
+            }
+        }
+    }
+
+    /**
+     * Allows adding complex path function handling.
+     * <p>
+     *     <em>Note:</em> This is advanced functionality to provide extra flexibility
+     *     to the developer.  It is intended for use in those situations where the
+     *     minimalist approach is insufficient.  <em>Think hard whether this is truly
+     *     necessary or if the base assumptions should be reconsidered before going this route</em>
+     * </p>
+     * <h4>
+     *     Example use cases:
+     * </h4>
+     * <pre>{@code
+     *
+     * // an example helper method by the developer
+     * private void registerPatternPath(RequestLine.Method method, Pattern pattern, BiFunction<IRequest, Matcher, IResponse> function) {
+     *     webFramework.registerPath(method, path -> {
+     *         Matcher matcher = pattern.matcher(path);
+     *         if (matcher.matches()) {
+     *             return request -> function.apply(request, matcher);
+     *         }
+     *         return null;
+     *     });
+     * }
+     *
+     * // a regular expression to look for paths like "/projects/123" and to
+     * // collect the "123" part.
+     * Pattern idMatcher = Pattern.compile("projects/(\\d+)");
+     *
+     * // a regular endpoint, no advanced usage
+     * webFramework.registerPath(RequestLine.Method.GET, "projects", request -> {
+     *     return Response.htmlOk("Do GET /projects");
+     * });
+     *
+     * // registering a GET handler for the advanced use case
+     * registerPatternPath(RequestLine.Method.GET, idMatcher, (request, matcher) -> {
+     *     int id = Integer.parseInt(matcher.group(1));
+     *     return Response.htmlOk("Do GET /projects/" + id);
+     * });
+     *
+     * }</pre>
+     */
+    public void registerPath(RequestLine.Method method, Function<String, ThrowingFunction<IRequest, IResponse>> pathFunction) {
+        registeredPathFunctions.computeIfAbsent(method, k -> new ArrayList<>()).add(pathFunction);
     }
 
     /**
@@ -748,10 +814,15 @@ public final class WebFramework {
             throw new WebServerException(
                     String.format("Path should not be prefixed with a slash.  Corrected version: registerPartialPath(%s, \"%s\", ... )", method.name(), pathName.substring(1)));
         }
-        var result = registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
-        if (result != null) {
-            throw new WebServerException("Duplicate partial-path endpoint registered: " + new MethodPath(method, pathName));
+
+        // if the user had previously registered a normal path with this value, it would
+        // conflict and so we will throw an exception.
+        if (registeredDynamicPaths.containsKey(new MethodPath(method, pathName))) {
+            throw new WebServerException("Duplicate endpoint registered: " + new MethodPath(method, pathName));
         }
+
+        checkForDuplicatePartialPath(method, pathName);
+        registerPath(method, new PartialPathFunction(pathName, webHandler));
     }
 
     /**

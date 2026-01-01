@@ -38,8 +38,9 @@ package com.renomad.minum.web;
  *
  *      <li>
  *      an optional message body.
- *      </li>
+ *      <br>
  *      In the HTTP/1.1 protocol, all header fields except Host: hostname are optional.
+ *      </li>
  * </ul>
  *
  * <p>
@@ -145,4 +146,11 @@ public interface IRequest {
      */
     Iterable<StreamingMultipartPartition> getMultipartIterable();
 
+    /**
+     * Returns true if the body has been accessed, either by running
+     * the {@link Request#getBody()} method, by accessing the
+     * {@link ISocketWrapper} using {@link Request#getSocketWrapper()},
+     * or by running {@link Request#getMultipartIterable()} or {@link Request#getUrlEncodedIterable()}
+     */
+    boolean hasAccessedBody();
 }

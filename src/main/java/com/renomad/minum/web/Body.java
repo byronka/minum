@@ -24,7 +24,7 @@ import java.util.*;
  * Hello world!
  * }</pre>
  * <p>
- *     The message body (or content) in this example is the text <pre>Hello world!</pre>.
+ *     The message body (or content) in this example is the text <em>"Hello world!"</em>.
  * </p>
  */
 public final class Body {

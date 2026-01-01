@@ -3,8 +3,7 @@ package com.renomad.minum.templating;
 import java.io.Serial;
 
 /**
- * This exception is thrown for any failures during the rendering
- * of a template.
+ * Thrown when there are any issues found in the templating
  */
 public final class TemplateRenderException extends RuntimeException {
 

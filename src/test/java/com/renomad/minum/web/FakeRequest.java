@@ -38,4 +38,9 @@ public class FakeRequest implements IRequest {
         return null;
     }
 
+    @Override
+    public boolean hasAccessedBody() {
+        return false;
+    }
+
 }

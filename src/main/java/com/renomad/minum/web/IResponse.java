@@ -8,10 +8,11 @@ import java.util.Map;
  * to enable easier testing on web handlers.
  */
 public interface IResponse {
+
     /**
      * Any extra headers set on the Response by the developer
      */
-    Map<String, String> getExtraHeaders();
+    Headers getExtraHeaders();
 
     /**
      * The {@link com.renomad.minum.web.StatusLine.StatusCode} set by the developer

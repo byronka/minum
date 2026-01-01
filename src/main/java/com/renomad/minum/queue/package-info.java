@@ -3,16 +3,17 @@
  * a background task processor.
  * <p>
  *     This enables programs to be run outside the normal request/response flow.  For example,
- *     <ul>
- *         <li>
- *             a computationally-heavy or long-running process run nightly on the data.
- *         </li>
- *         <li>
- *             An action by a user that could take a while to complete, such as compressing
- *             a large number of files.
- *         </li>
- *     </ul>
  * </p>
+ * <ul>
+ *     <li>
+ *         a computationally-heavy or long-running process run nightly on the data.
+ *     </li>
+ *     <li>
+ *         An action by a user that could take a while to complete, such as compressing
+ *         a large number of files.
+ *     </li>
+ * </ul>
+ *
  * <p>
  *     A major difference between this and alternatives is its paradigm of lightness. Most
  *     background processors concern themselves with the potential risks - like if power goes out

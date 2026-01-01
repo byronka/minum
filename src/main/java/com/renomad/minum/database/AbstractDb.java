@@ -4,7 +4,6 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -127,7 +126,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * non-zero value to update data.
      * <p><em>
      * Example of adding new data to the database:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *          final var newSalt = StringUtils.generateSecureRandomString(10);
      *          final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
@@ -136,7 +135,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * }
      * <p><em>
      * Example of updating data:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *         // write the updated salted password to the database
      *         final var updatedUser = new User(
@@ -200,7 +199,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
 
     /**
      * Delete data
-     * <p><em>Example:</p></em>
+     * <p><em>Example:</em></p>
      * {@snippet :
      *      userDb.delete(user);
      * }
@@ -286,15 +285,35 @@ public abstract class AbstractDb<T extends DbData<?>> {
 
 
     /**
-     * Grabs all the data from disk and returns it as a list.  This
-     * method is run by various programs when the system first loads.
+     * Cause the database to immediately load all its data.
+     * <p>
+     *     If this method is not invoked by the developer, then the data will be loaded
+     *     lazily, at the first point where it is needed, such as when
+     *     getting or writing data.
+     * </p>
+     * <p>
+     *     It is a good idea to regularly use this method at database
+     *     initialization.  By doing so, the check for data corruption issues will
+     *     throw an exception that will cause the whole application to halt
+     *     immediately, which is far preferable to having the exception show
+     *     as a complaint in the logs.
+     * </p>
+     * <p>
+     *     An example database initialization with bells and whistles
+     *     is as follows:
+     * </p>
+     * <pre>
+     *     {@code
+     *     AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
+     *          .registerIndex("name_index", name -> name)
+     *          .loadData();
+     *     }
+     * </pre>
      */
-    public abstract void loadData() throws IOException;
+    public abstract AbstractDb<T> loadData();
 
     /**
-     * This method provides read capability for the values of a database.
-     * <br>
-     * The returned collection is a read-only view over the data, through {@link Collections#unmodifiableCollection(Collection)}
+     * This method returns a read-only view of the values of a database.
      *
      * <p><em>Example:</em></p>
      * {@snippet :
@@ -314,16 +333,19 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * </p>
      * <br>
      * Example:
-     *  {@snippet :
-     *           final var myDatabase = context.getDb("photos", Photograph.EMPTY);
-     *           myDatabase.registerIndex("url", photo -> photo.getUrl());
-     *  }
+     * <pre>
+     *     {@code
+     *      final var myDatabase = context.getDb("photos", Photograph.EMPTY)
+     *               .registerIndex("url", photo -> photo.getUrl())
+     *               .loadData();
+     *     }
+     * </pre>
      * @param indexName a string used to distinguish this index.  This string will be used again
      *                  when requesting data in a method like {@link #getIndexedData} or {@link #findExactlyOne}
      * @param keyObtainingFunction a function which obtains data from the data in this database, used
      *                             to partition the data into groups (potentially up to a 1-to-1 correspondence
      *                             between id and object)
-     * @return true if the registration succeeded
+     * @return the database instance if the registration succeeded
      * @throws DbException if the parameters are not entered properly, if the index has already
      * been registered, or if the data has already been loaded. It is necessary that
      * this is run immediately after declaring the database. To explain further: the data is not
@@ -332,7 +354,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * is read from disk only occurs once, at data load time.  Thus, it is crucial that the
      * registerIndex command is run before any data is loaded.
      */
-    public boolean registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (keyObtainingFunction == null) {
             throw new DbException("When registering an index, the partitioning algorithm must not be null");
         }
@@ -345,7 +367,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
         HashMap<String, Set<T>> stringCollectionHashMap = new HashMap<>();
         registeredIndexes.put(indexName, stringCollectionHashMap);
         partitioningMap.put(indexName, keyObtainingFunction);
-        return true;
+        return this;
     }
 
     /**
