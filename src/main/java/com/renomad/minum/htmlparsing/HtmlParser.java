@@ -60,19 +60,14 @@ public final class HtmlParser {
     public List<HtmlParseNode> parse(String input) {
         if (input.length() > MAX_HTML_SIZE)
             throw new ForbiddenUseException("Input exceeds max allowed HTML text size, " + MAX_HTML_SIZE + " chars");
-        var is = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
-
+        var chars = input.toCharArray();
         List<HtmlParseNode> nodes = new ArrayList<>();
         State state = State.buildNewState();
 
-        while (true) {
-            int value = is.read();
-            // if the value is -1, there's nothing left to read
-            if (value == -1) return nodes;
-
-            char currentChar = (char) value;
+        for (char currentChar : chars) {
             processState(currentChar, state, nodes);
         }
+        return nodes;
     }
 
     /**
