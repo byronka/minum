@@ -86,27 +86,6 @@ public class HtmlParserTests {
     }
 
     /**
-     * An experimental TDD-style test to ensure the parser work with UTF-8 strings
-     */
-    @Test
-    public void test_HtmlParser_UTF() {
-        String input = "<title>Đăng nhập</title>";
-        var expected = List.of(
-                new HtmlParseNode(
-                        ParseNodeType.ELEMENT,
-                        new TagInfo(TagName.TITLE, Map.of()),
-                        List.of(new HtmlParseNode(
-                                ParseNodeType.CHARACTERS,
-                                TagInfo.EMPTY,
-                                List.of(),
-                                "Đăng nhập"
-                        )),
-                        ""));
-        List<HtmlParseNode> result = new HtmlParser().parse(input);
-        assertEquals(expected, result);
-    }
-
-    /**
      * A larger-than-tiny example to help clarify the thinking for this
      * program.  Pragmatic TDD.
      */
@@ -191,6 +170,27 @@ public class HtmlParserTests {
         assertThrows(ParsingException.class,
                 "Did not find expected closing-tag type. Expected: P at line 1 and at the 8th character. 8 characters read in total.",
                 () -> new HtmlParser().parse("<p></br>"));
+    }
+
+    /**
+     * Ensure the parser work with UTF-8 strings
+     */
+    @Test
+    public void test_HtmlParser_Edge_UTF() {
+        String input = "<title>Đăng nhập</title>";
+        var expected = List.of(
+                new HtmlParseNode(
+                        ParseNodeType.ELEMENT,
+                        new TagInfo(TagName.TITLE, Map.of()),
+                        List.of(new HtmlParseNode(
+                                ParseNodeType.CHARACTERS,
+                                TagInfo.EMPTY,
+                                List.of(),
+                                "Đăng nhập"
+                        )),
+                        ""));
+        List<HtmlParseNode> result = new HtmlParser().parse(input);
+        assertEquals(expected, result);
     }
 
     /**
