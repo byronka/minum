@@ -266,15 +266,31 @@ public class TemplatingTests {
     }
 
     /**
-     * A TDD-style test to ensure the processor being thread-safe
+     * A TDD-style test to ensure the processor being thread-safe.
+     * Tests concurrent rendering with multiple threads and different data
+     * to verify that the TemplateProcessor correctly handles concurrent access
+     * without data corruption or race conditions.
      */
     @Test
     public void test_Template_Multi_Thread() {
         TemplateProcessor templateProcessor = buildProcessor("Hello {{name}}");
-        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> templateProcessor.renderTemplate(Map.of("name", "world")));
-        CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> templateProcessor.renderTemplate(Map.of("name", "future")));
-        assertEquals(future.join(), "Hello world");
-        assertEquals(future2.join(), "Hello future");
+        int threadCount = 10;
+        var futures = new ArrayList<CompletableFuture<String>>();
+        
+        // Create multiple concurrent render tasks with different data
+        for (int i = 0; i < threadCount; i++) {
+            final int threadNum = i;
+            var future = CompletableFuture.supplyAsync(() -> 
+                templateProcessor.renderTemplate(Map.of("name", "thread_" + threadNum))
+            );
+            futures.add(future);
+        }
+        
+        // Verify all threads completed successfully with correct results
+        for (int i = 0; i < threadCount; i++) {
+            String result = futures.get(i).join();
+            assertEquals(result, "Hello thread_" + i);
+        }
     }
 
 
