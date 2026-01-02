@@ -367,7 +367,7 @@ public final class TemplateProcessor {
         }
 
         for (TemplateProcessor tp : this.innerTemplates.values()) {
-            tp.correctnessCheck(tp.defaultDataList); // TODO: Inner Map Support
+            tp.correctnessCheck(tp.defaultDataList);
         }
 
     }
