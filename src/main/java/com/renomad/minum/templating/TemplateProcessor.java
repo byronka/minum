@@ -394,7 +394,7 @@ public final class TemplateProcessor {
         int sizeMultiplier = dataList.isEmpty() ? 1 : dataList.size();
         int fullCalculatedSize = sizeMultiplier * estimatedSize;
         for (TemplateProcessor innerProcessor : this.innerTemplates.values()) {
-            fullCalculatedSize += innerProcessor.calculateEstimatedSize(innerProcessor.defaultDataList); // TODO: Inner Map Support
+            fullCalculatedSize += innerProcessor.calculateEstimatedSize(innerProcessor.defaultDataList);
         }
         return fullCalculatedSize;
     }
@@ -415,7 +415,7 @@ public final class TemplateProcessor {
                 switch (templateSection.templateType) {
                     case STATIC_TEXT -> parts.append(templateSection.staticData);
                     case DYNAMIC_TEXT -> parts.append(myDataMap.get(templateSection.key));
-                    default -> templateSection.templateProcessor.internalRender(templateSection.indent, parts, templateSection.templateProcessor.defaultDataList); // TODO: Inner Map Support
+                    default -> templateSection.templateProcessor.internalRender(templateSection.indent, parts, templateSection.templateProcessor.defaultDataList);
                 }
 
             }
