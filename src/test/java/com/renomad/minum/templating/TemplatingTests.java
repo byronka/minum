@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 import static com.renomad.minum.templating.TemplateProcessor.buildProcessor;
@@ -262,6 +263,15 @@ public class TemplatingTests {
             assertEquals(templateProcessor.renderTemplate(data), "Hello world");
         });
         logger.logDebug(() -> String.format("processed %d templates in %d millis", renderingCount, stopwatch.stopTimer()));
+    }
+
+    @Test
+    public void test_Template_Multi_Thread() {
+        TemplateProcessor templateProcessor = buildProcessor("Hello {{name}}");
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> templateProcessor.renderTemplate(Map.of("name", "world")));
+        CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> templateProcessor.renderTemplate(Map.of("name", "future")));
+        assertEquals(future.join(), "Hello world");
+        assertEquals(future2.join(), "Hello future");
     }
 
 
