@@ -265,6 +265,9 @@ public class TemplatingTests {
         logger.logDebug(() -> String.format("processed %d templates in %d millis", renderingCount, stopwatch.stopTimer()));
     }
 
+    /**
+     * A TDD-style test to ensure the processor being thread-safe
+     */
     @Test
     public void test_Template_Multi_Thread() {
         TemplateProcessor templateProcessor = buildProcessor("Hello {{name}}");
