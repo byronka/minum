@@ -83,8 +83,6 @@ public final class TemplateProcessor {
      * multiple times.
      */
     public String renderTemplate(List<Map<String, String>> myMap) {
-        registerData(myMap);
-
         return internalRender(true, myMap).toString();
     }
 
