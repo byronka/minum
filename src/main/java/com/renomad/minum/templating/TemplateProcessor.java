@@ -46,7 +46,7 @@ public final class TemplateProcessor {
      * template sections by indentation
      */
     private Map<Integer, List<TemplateSection>> templatesSectionsByIndent;
-    private List<Map<String, String>> dataList = new ArrayList<>();
+    private List<Map<String, String>> defaultDataList = new ArrayList<>();
     private final Set<String> keysFoundInTemplate;
     private final Set<String> keysRegisteredForInnerTemplates;
     private final String originalText;
@@ -75,9 +75,7 @@ public final class TemplateProcessor {
      * Given a map of key names -> value, render a template.
      */
     public String renderTemplate(Map<String, String> myMap) {
-        registerData(List.of(myMap));
-
-        return internalRender(true).toString();
+        return internalRender(true, List.of(myMap)).toString();
     }
 
     /**
@@ -87,14 +85,14 @@ public final class TemplateProcessor {
     public String renderTemplate(List<Map<String, String>> myMap) {
         registerData(myMap);
 
-        return internalRender(true).toString();
+        return internalRender(true, myMap).toString();
     }
 
     /**
      * Recursively assembles the template and sub-templates
      */
     public String renderTemplate() {
-        return internalRender(true).toString();
+        return internalRender(true, defaultDataList).toString();
     }
 
     /**
@@ -109,7 +107,7 @@ public final class TemplateProcessor {
      *                      and HTTP processing.
      */
     public String renderTemplate(boolean runWithChecks) {
-        return internalRender(runWithChecks).toString();
+        return internalRender(runWithChecks, defaultDataList).toString();
     }
 
     /**
@@ -122,7 +120,7 @@ public final class TemplateProcessor {
             throw new TemplateRenderException("No data provided in registerData call");
         }
 
-        this.dataList = dataList;
+        this.defaultDataList = dataList;
     }
 
     /**
@@ -318,13 +316,13 @@ public final class TemplateProcessor {
      * now, loop through the lists of data we were given, with the
      * internal template sections in hand
      */
-    private StringBuilder internalRender(boolean runWithChecks) {
+    private StringBuilder internalRender(boolean runWithChecks, List<Map<String, String>> dataList) {
         if (runWithChecks) {
-            correctnessCheck();
+            correctnessCheck(dataList);
         }
-        int capacity = calculateEstimatedSize();
+        int capacity = calculateEstimatedSize(dataList);
         StringBuilder parts = new StringBuilder(capacity);
-        return internalRender(0, parts);
+        return internalRender(0, parts, dataList);
     }
 
     /**
@@ -334,11 +332,11 @@ public final class TemplateProcessor {
      * <br>
      *
      */
-    private void correctnessCheck() {
+    private void correctnessCheck(List<Map<String, String>> dataList) {
         HashSet<String> copyOfKeysInTemplate = new HashSet<>(keysFoundInTemplate);
         copyOfKeysInTemplate.removeAll(this.innerTemplates.keySet());
 
-        if (this.dataList.isEmpty()) {
+        if (dataList.isEmpty()) {
             if (!copyOfKeysInTemplate.isEmpty()) {
                 // at this point we know there is no data provided but the template
                 // requires data, so throw an exception.
@@ -348,8 +346,8 @@ public final class TemplateProcessor {
         } else {
 
             // check for inconsistencies between maps in the data list
-            Set<String> keysInFirstMap = this.dataList.getFirst().keySet();
-            for (Map<String, String> data : this.dataList) {
+            Set<String> keysInFirstMap = dataList.getFirst().keySet();
+            for (Map<String, String> data : dataList) {
                 if (!data.keySet().equals(keysInFirstMap)) {
                     Set<String> result = differenceBetweenSets(data.keySet(), keysInFirstMap);
                     throw new TemplateRenderException("In registered data, the maps were inconsistent on these keys: " + result);
@@ -371,7 +369,7 @@ public final class TemplateProcessor {
         }
 
         for (TemplateProcessor tp : this.innerTemplates.values()) {
-            tp.correctnessCheck();
+            tp.correctnessCheck(tp.defaultDataList); // TODO: Inner Map Support
         }
 
     }
@@ -391,17 +389,17 @@ public final class TemplateProcessor {
      * build up a calculated size estimate for this and all
      * nested templates.
      */
-    private int calculateEstimatedSize() {
+    private int calculateEstimatedSize(List<Map<String, String>> dataList) {
         // the size of the datalist specifies how many times we will render ourselves.
-        int sizeMultiplier = this.dataList.isEmpty() ? 1 : this.dataList.size();
+        int sizeMultiplier = dataList.isEmpty() ? 1 : dataList.size();
         int fullCalculatedSize = sizeMultiplier * estimatedSize;
         for (TemplateProcessor innerProcessor : this.innerTemplates.values()) {
-            fullCalculatedSize += innerProcessor.calculateEstimatedSize();
+            fullCalculatedSize += innerProcessor.calculateEstimatedSize(innerProcessor.defaultDataList); // TODO: Inner Map Support
         }
         return fullCalculatedSize;
     }
 
-    private StringBuilder internalRender(int indent, StringBuilder parts) {
+    private StringBuilder internalRender(int indent, StringBuilder parts, List<Map<String, String>> dataList) {
         Map<String, String> myDataMap = Map.of();
         List<TemplateSection> templateSections = templatesSectionsByIndent.get(indent);
         int templateSectionsSize = templateSections.size();
@@ -417,7 +415,7 @@ public final class TemplateProcessor {
                 switch (templateSection.templateType) {
                     case STATIC_TEXT -> parts.append(templateSection.staticData);
                     case DYNAMIC_TEXT -> parts.append(myDataMap.get(templateSection.key));
-                    default -> templateSection.templateProcessor.internalRender(templateSection.indent, parts);
+                    default -> templateSection.templateProcessor.internalRender(templateSection.indent, parts, templateSection.templateProcessor.defaultDataList); // TODO: Inner Map Support
                 }
 
             }
