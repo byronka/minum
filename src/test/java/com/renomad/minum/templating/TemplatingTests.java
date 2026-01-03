@@ -713,4 +713,50 @@ public class TemplatingTests {
                 mainTemplate.renderDeepTemplate(data)
         );
     }
+
+    /**
+     * A test to ensure we can check the existence of the inner data
+     */
+    @Test
+    public void test_DeepData_MissingInnerData() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", Map.of()
+        );
+
+        assertThrows(
+                TemplateRenderException.class,
+                "These keys in the template were not provided data: [name]",
+                () -> mainTemplate.renderDeepTemplate(data)
+        );
+    }
+
+    /**
+     * A test to ensure we can check the type of the inner data
+     */
+    @Test
+    public void test_DeepData_InvalidDataInInner() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", List.of(
+                        1,
+                        2,
+                        3
+                )
+        );
+
+        assertThrows(
+                TemplateRenderException.class,
+                "The entry in the list should be a Map<String, Object>. Unexpected entry in list[0]",
+                () -> mainTemplate.renderDeepTemplate(data)
+        );
+    }
 }
