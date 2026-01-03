@@ -48,7 +48,7 @@ public class WebFrameworkTests {
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
-        assertEquals(response.getExtraHeaders().get("content-type"), "text/css");
+        assertEquals(response.getExtraHeader("content-type").getFirst(), "text/css");
     }
 
     @Test
@@ -57,7 +57,7 @@ public class WebFrameworkTests {
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
-        assertEquals(response.getExtraHeaders().get("content-type"), "application/javascript");
+        assertEquals(response.getExtraHeader("content-type").getFirst(), "application/javascript");
     }
 
     @Test
@@ -66,7 +66,7 @@ public class WebFrameworkTests {
 
         assertEquals(response.getStatusCode(), StatusLine.StatusCode.CODE_200_OK);
         assertTrue(response.getBody().length > 0);
-        assertEquals(response.getExtraHeaders().get("content-type"), "text/html");
+        assertEquals(response.getExtraHeader("content-type").getFirst(), "text/html");
     }
 
     /**
@@ -150,7 +150,7 @@ public class WebFrameworkTests {
     @Test
     public void test_Edge_ApplicationOctetStream() {
         var response = webFramework.readStaticFile("Foo", defaultHeaders);
-        assertEquals(response.getExtraHeaders().get("content-type"), "application/octet-stream");
+        assertEquals(response.getExtraHeader("content-type").getFirst(), "application/octet-stream");
     }
 
     /**

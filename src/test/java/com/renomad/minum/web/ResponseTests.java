@@ -40,11 +40,24 @@ public class ResponseTests {
     @Test
     public void testToString() {
         IResponse response1 = Response.htmlOk("fooabcdefg");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=10, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Content-Type=text/html; charset=UTF-8], bodyLength=10, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefgh");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=11, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Content-Type=text/html; charset=UTF-8], bodyLength=11, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefghi");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=12, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Content-Type=text/html; charset=UTF-8], bodyLength=12, isBodyText=true}");
+    }
+
+    @Test
+    public void testSameHeaderKey() {
+        IResponse response1 = Response.buildResponse(
+                CODE_200_OK,
+                List.of(
+                        Map.entry("Set-Cookie", "a=value1"),
+                        Map.entry("Set-Cookie", "b=value2")
+                ),
+                "Test"
+        );
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Set-Cookie=a=value1, Set-Cookie=b=value2], bodyLength=4, isBodyText=true}");
     }
 
     /**

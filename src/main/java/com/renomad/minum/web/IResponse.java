@@ -1,6 +1,8 @@
 package com.renomad.minum.web;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -11,7 +13,18 @@ public interface IResponse {
     /**
      * Any extra headers set on the Response by the developer
      */
-    Map<String, String> getExtraHeaders();
+    Collection<Map.Entry<String, String>> getExtraHeaders();
+
+    /**
+     * A convenient method to get the values in the {@link #getExtraHeaders()} given the header key
+     */
+    default List<String> getExtraHeader(String key) {
+        return getExtraHeaders()
+                .stream()
+                .filter(entry -> key.equalsIgnoreCase(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .toList();
+    }
 
     /**
      * The {@link com.renomad.minum.web.StatusLine.StatusCode} set by the developer
