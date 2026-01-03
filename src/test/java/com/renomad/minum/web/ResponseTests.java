@@ -40,11 +40,11 @@ public class ResponseTests {
     @Test
     public void testToString() {
         IResponse response1 = Response.htmlOk("fooabcdefg");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=10, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Content-Type=text/html; charset=UTF-8], bodyLength=10, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefgh");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=11, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Content-Type=text/html; charset=UTF-8], bodyLength=11, isBodyText=true}");
         response1 = Response.htmlOk("fooabcdefghi");
-        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders={Content-Type=text/html; charset=UTF-8}, bodyLength=12, isBodyText=true}");
+        assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=[Content-Type=text/html; charset=UTF-8], bodyLength=12, isBodyText=true}");
     }
 
     /**
