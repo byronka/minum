@@ -388,7 +388,7 @@ public final class WebFramework {
      * Add extra headers specified by the business logic (set by the developer)
      */
     private static void addOptionalExtraHeaders(IResponse response, StringBuilder stringBuilder) {
-        for (Map.Entry<String,String> header : response.getExtraHeaders().entrySet()) {
+        for (Map.Entry<String,String> header : response.getExtraHeaders()) {
             stringBuilder.append(header.getKey())
                     .append(": ")
                     .append(header.getValue())
@@ -404,7 +404,7 @@ public final class WebFramework {
      */
     static void confirmBodyHasContentType(IRequest request, IResponse response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = response.getExtraHeaders().keySet().stream().anyMatch(x -> x.toLowerCase(Locale.ROOT).equals("content-type"));
+        boolean hasContentType = !response.getExtraHeader("content-type").isEmpty();
 
         // if there *is* data, we had better be returning a content type
         if (response.getBodyLength() > 0 && !hasContentType) {
