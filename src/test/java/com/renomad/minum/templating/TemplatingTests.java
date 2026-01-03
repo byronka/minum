@@ -443,7 +443,7 @@ public class TemplatingTests {
         outer.registerInnerTemplate("inner", inner);
         outer.registerData(List.of(Map.of("inner", "fubar")));
         assertThrows(TemplateRenderException.class,
-                "These keys in the data did not match anything in the template: [inner]",
+                "The data of the inner template should be either Map<String, Object> or List<Map<String, Object>>. Unexpected data in [inner]",
                 outer::renderTemplate);
     }
 
@@ -456,7 +456,7 @@ public class TemplatingTests {
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
         outer.registerInnerTemplate("inner", inner);
         assertThrows(TemplateRenderException.class,
-                "These keys in the data did not match anything in the template: [inner]",
+                "The data of the inner template should be either Map<String, Object> or List<Map<String, Object>>. Unexpected data in [inner]",
                 () -> outer.renderTemplate(Map.of("inner", "fubar")));
     }
 
@@ -610,4 +610,153 @@ public class TemplatingTests {
         assertEquals("C template.  {{ key1 }} {{ key2 }}", newCTemplate.getOriginalText());
     }
 
+    /**
+     * A test to try the rendering when setting the single data map for both the main and inner template
+     */
+    @Test
+    public void test_DeepData_SimpleCase() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", Map.of("name", "A")
+        );
+
+        assertEquals(
+                """
+                Hall of Fame:
+                - A""",
+                mainTemplate.renderDeepTemplate(data)
+        );
+    }
+
+    /**
+     * Similar to {@link #test_DeepData_SimpleCase()} but try a list of map in the inner data
+     */
+    @Test
+    public void test_DeepData_ListForInner() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", List.of(
+                        Map.of("name", "A"),
+                        Map.of("name", "B"),
+                        Map.of("name", "C")
+                )
+        );
+
+        assertEquals(
+                """
+                Hall of Fame:
+                - A
+                - B
+                - C""",
+                mainTemplate.renderDeepTemplate(data)
+        );
+    }
+
+    /**
+     * A test to ensure we can still use inner data in an inner data
+     */
+    @Test
+    public void test_DeepData_InnerInInner() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}\n  {{ notes }}");
+        TemplateProcessor notesTemplate = buildProcessor("+ {{ note }}");
+        listTemplate.registerInnerTemplate("notes", notesTemplate);
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", List.of(
+                        Map.of(
+                                "name", "A",
+                                "notes", List.of(
+                                        Map.of("note", "Hello World"),
+                                        Map.of("note", "Index 1")
+                                )
+                        ),
+                        Map.of(
+                                "name", "B",
+                                "notes", List.of(
+                                        Map.of("note", "Goodbye World"),
+                                        Map.of("note", "Index 2")
+                                )
+                        ),
+                        Map.of(
+                                "name", "C",
+                                "notes", List.of(
+                                        Map.of("note", "Hello Again"),
+                                        Map.of("note", "Index 3")
+                                )
+                        )
+                )
+        );
+
+        assertEquals(
+                """
+                Hall of Fame:
+                - A
+                  + Hello World
+                  + Index 1
+                - B
+                  + Goodbye World
+                  + Index 2
+                - C
+                  + Hello Again
+                  + Index 3""",
+                mainTemplate.renderDeepTemplate(data)
+        );
+    }
+
+    /**
+     * A test to ensure we can check the existence of the inner data
+     */
+    @Test
+    public void test_DeepData_MissingInnerData() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", Map.of()
+        );
+
+        assertThrows(
+                TemplateRenderException.class,
+                "These keys in the template were not provided data: [name]",
+                () -> mainTemplate.renderDeepTemplate(data)
+        );
+    }
+
+    /**
+     * A test to ensure we can check the type of the inner data
+     */
+    @Test
+    public void test_DeepData_InvalidDataInInner() {
+        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+        mainTemplate.registerInnerTemplate("list", listTemplate);
+
+        Map<String, Object> data = Map.of(
+                "type", "Fame",
+                "list", List.of(
+                        1,
+                        2,
+                        3
+                )
+        );
+
+        assertThrows(
+                TemplateRenderException.class,
+                "The entry in the list should be a Map<String, Object>. Unexpected entry in list[0]",
+                () -> mainTemplate.renderDeepTemplate(data)
+        );
+    }
 }
