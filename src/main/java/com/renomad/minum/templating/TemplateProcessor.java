@@ -461,15 +461,24 @@ public final class TemplateProcessor {
         for (var entry : this.innerTemplates.entrySet()) {
             var key = entry.getKey();
             var tp = entry.getValue();
-            boolean hasInnerData = false;
-            for (var data : dataList) {
-                var innerData = data.get(key);
-                if (innerData == null) continue;
-                hasInnerData = true;
-                correctnessCheckForInnerTemplate(key, innerData);
-                tp.correctnessCheck(normalizeDeepDataForInnerTemplate(innerData));
+
+            boolean needDefaultTest = false;
+            if (dataList.isEmpty()) {
+                // The data list is empty so we have to test the default one
+                needDefaultTest = true;
+            } else {
+                // We only test the default data if the one in the data list doesn't exist, usually in a case where the data list is not complete
+                for (var data : dataList) {
+                    var innerData = data.get(key);
+                    if (innerData == null) {
+                        needDefaultTest = true;
+                        continue;
+                    }
+                    correctnessCheckForInnerTemplate(key, innerData);
+                    tp.correctnessCheck(normalizeDeepDataForInnerTemplate(innerData));
+                }
             }
-            if (!hasInnerData) {
+            if (needDefaultTest) {
                 tp.correctnessCheck(tp.defaultDataList);
             }
         }
