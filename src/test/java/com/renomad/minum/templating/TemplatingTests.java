@@ -603,6 +603,17 @@ public class TemplatingTests {
     }
 
     /**
+     * An edge case to ensure we can parse any types of object in the template.
+     * If the object is not a List or Map, it will be wrapped as a Map.of("value", data).
+     * It means if we want to parse that object in the template, use the key "value"
+     */
+    @Test
+    public void test_EdgeCase_PrimitiveData() {
+        TemplateProcessor template = buildProcessor("Hello {{ value }}");
+        assertEquals("Hello Anna\nHello John\nHello Lucy", template.renderTemplate(List.of("Anna", "John", "Lucy")));
+    }
+
+    /**
      * A test to try the rendering when setting the single data map for both the main and inner template
      */
     @Test
