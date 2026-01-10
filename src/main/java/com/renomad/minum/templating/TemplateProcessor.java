@@ -46,7 +46,7 @@ public final class TemplateProcessor {
      * template sections by indentation
      */
     private Map<Integer, List<TemplateSection>> templatesSectionsByIndent;
-    private List<Map<String, Object>> defaultDataList = new ArrayList<>();
+    private List<?> defaultDataList = new ArrayList<>();
     private final Set<String> keysFoundInTemplate;
     private final Set<String> keysRegisteredForInnerTemplates;
     private final String originalText;
@@ -74,41 +74,8 @@ public final class TemplateProcessor {
     /**
      * Given a map of key names -> value, render a template.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public String renderTemplate(Map<String, String> myMap) {
-        /*
-         We have to do this hack since the IDE doesn't allow us to directly cast Map<String, String> to Map<String, Object>
-         although String is an Object, weird.
-         */
-        return renderDeepTemplate((Map<String, Object>) (Map) myMap);
-    }
-
-    /**
-     * Given a map of key names -> value, render a template.
-     */
-    public String renderDeepTemplate(Map<String, Object> myMap) {
-        return internalRender(true, List.of(myMap)).toString();
-    }
-
-    /**
-     * Given a list of maps of key names -> value, render a template
-     * multiple times.
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public String renderTemplate(List<Map<String, String>> myMap) {
-        /*
-         We have to do this hack since the IDE doesn't allow us to directly cast List<Map<String, String>> to List<Map<String, Object>>
-         although String is an Object, weird.
-         */
-        return renderDeepTemplate((List<Map<String, Object>>) (List) myMap);
-    }
-
-    /**
-     * Given a list of maps of key names -> value, render a template
-     * multiple times.
-     */
-    public String renderDeepTemplate(List<Map<String, Object>> myMap) {
-        return internalRender(true, myMap).toString();
+    public String renderTemplate(Object data) {
+        return internalRender(true, data).toString();
     }
 
     /**
@@ -136,29 +103,14 @@ public final class TemplateProcessor {
     /**
      * Assign data.  Keys must match to template.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public void registerData(List<Map<String, String>> dataList) {
-        if (dataList == null){
+    public void registerData(Object data) {
+        if (data == null){
             throw new TemplateRenderException("provided data cannot be null");
-        } else if (dataList.isEmpty()) {
-            throw new TemplateRenderException("No data provided in registerData call");
         }
 
-        /*
-         We have to do this hack since the IDE doesn't allow us to directly cast List<Map<String, String>> to List<Map<String, Object>>
-         although String is an Object, weird.
-         */
-        registerDeepData((List<Map<String, Object>>) (List) dataList);
-    }
-
-    /**
-     * Assign data.  Keys must match to template.
-     */
-    public void registerDeepData(List<Map<String, Object>> dataList) {
-        if (dataList == null){
-            throw new TemplateRenderException("provided data cannot be null");
-        } else if (dataList.isEmpty()) {
-            throw new TemplateRenderException("No data provided in registerDeepData call");
+        List<?> dataList = normalizeList(data);
+        if (dataList.isEmpty()){
+            throw new TemplateRenderException("No data provided in registerData call");
         }
 
         this.defaultDataList = dataList;
@@ -373,44 +325,31 @@ public final class TemplateProcessor {
      * now, loop through the lists of data we were given, with the
      * internal template sections in hand
      */
-    private StringBuilder internalRender(boolean runWithChecks, List<Map<String, Object>> dataList) {
+    private StringBuilder internalRender(boolean runWithChecks, Object data) {
+        List<?> dataList = normalizeList(data);
         if (runWithChecks) {
-            correctnessCheck(dataList);
+            correctnessCheck(dataList, "ROOT");
         }
         int capacity = calculateEstimatedSize(dataList);
         StringBuilder parts = new StringBuilder(capacity);
         return internalRender(0, parts, dataList);
     }
 
-    private void correctnessCheckForInnerTemplate(String key, Object data) {
-        if (data instanceof Map<?,?> map) {
-            for (var entry : map.entrySet()) {
-                if (!(entry.getKey() instanceof String)) {
-                    throw new TemplateRenderException("The key of the map should be an non-blank String. Unexpected key: " + entry.getKey() + " in inner template section " + key);
-                }
-            }
-        } else if (data instanceof List<?> list) {
-            for (int i = 0; i < list.size(); i++) {
-                var entry = list.get(i);
-                if (entry instanceof Map<?, ?> map) {
-                    correctnessCheckForInnerTemplate(key + "[" + i + "]", map);
-                } else {
-                    throw new TemplateRenderException("The entry in the list should be a Map<String, Object>. Unexpected entry in " + key + "[" + i + "]");
-                }
-            }
+    private List<?> normalizeList(Object data) {
+        if (data instanceof List) {
+            return (List<?>) data;
+        } else if (data instanceof Collection) {
+            return List.copyOf((Collection<?>) data);
         } else {
-            throw new TemplateRenderException("The data of the inner template should be either Map<String, Object> or List<Map<String, Object>>. Unexpected data in [" + key + "]");
+            return List.of(data);
         }
     }
 
-    @SuppressWarnings("unchecked") // Suppress because we did the correctness check
-    private List<Map<String, Object>> normalizeDeepDataForInnerTemplate(Object data) {
-        if (data instanceof Map<?,?> map) {
-            return List.of((Map<String, Object>) map);
-        } else if (data instanceof List<?> list) {
-            return (List<Map<String, Object>>) list;
+    private Map<?, ?> normalizeMap(Object data) {
+        if (data instanceof Map) {
+            return (Map<?, ?>) data;
         } else {
-            throw new TemplateRenderException("Unexpected data type for inner template section: " + data);
+            return Map.of("value", data);
         }
     }
 
@@ -421,85 +360,61 @@ public final class TemplateProcessor {
      * <br>
      *
      */
-    private void correctnessCheck(List<Map<String, Object>> dataList) {
-        HashSet<String> copyOfKeysInTemplate = new HashSet<>(keysFoundInTemplate);
-        copyOfKeysInTemplate.removeAll(this.innerTemplates.keySet());
-
+    private void correctnessCheck(List<?> dataList, String parentKey) {
         if (dataList.isEmpty()) {
-            if (!copyOfKeysInTemplate.isEmpty()) {
-                // at this point we know there is no data provided but the template
-                // requires data, so throw an exception.
-
-                throw new TemplateRenderException("No data was provided for these keys: " + copyOfKeysInTemplate);
+            // When the data list is empty, check if there is any required key in the template
+            HashSet<String> missingKeys = new HashSet<>();
+            for (String key : keysFoundInTemplate) {
+                if (innerTemplates.containsKey(key)) {
+                    // The key leads to an inner template with potential default data list
+                    // Check them instead
+                    var tp = innerTemplates.get(key);
+                    tp.correctnessCheck(tp.defaultDataList, parentKey + "." + key);
+                } else {
+                    // This key is sure a required key and missing from the data list
+                    // Add it the set of missing keys
+                    missingKeys.add(key);
+                }
+            }
+            if (!missingKeys.isEmpty()) {
+                throw new TemplateRenderException("Missing keys in data " + parentKey + ": " + missingKeys);
             }
         } else {
+            for (int i = 0; i < dataList.size(); i++) {
+                Object data = dataList.get(i);
+                String keyForException = parentKey + "[" + i + "]";
+                Map<?, ?> dataMap = normalizeMap(data);
 
-            // check for inconsistencies between maps in the data list
-            Set<String> keysInFirstMap = dataList.getFirst().keySet();
-            for (Map<String, Object> data : dataList) {
-                if (!data.keySet().equals(keysInFirstMap)) {
-                    Set<String> result = differenceBetweenSets(data.keySet(), keysInFirstMap);
-                    throw new TemplateRenderException("In registered data, the maps were inconsistent on these keys: " + result);
-                }
-            }
-
-            // ensure consistency between the registered data and the template keys
-            HashSet<String> copyOfTemplateKeys = new HashSet<>(copyOfKeysInTemplate);
-            copyOfTemplateKeys.removeAll(keysInFirstMap);
-            if (!copyOfTemplateKeys.isEmpty()) {
-                throw new TemplateRenderException("These keys in the template were not provided data: " + copyOfTemplateKeys);
-            }
-
-            HashSet<String> copyOfDataKeys = new HashSet<>(keysInFirstMap);
-            copyOfDataKeys.removeAll(copyOfKeysInTemplate);
-            copyOfDataKeys.removeAll(keysRegisteredForInnerTemplates);
-            if (!copyOfDataKeys.isEmpty()) {
-                throw new TemplateRenderException("These keys in the data did not match anything in the template: " + copyOfDataKeys);
-            }
-        }
-
-        for (var entry : this.innerTemplates.entrySet()) {
-            var key = entry.getKey();
-            var tp = entry.getValue();
-
-            boolean needDefaultTest = false;
-            if (dataList.isEmpty()) {
-                // The data list is empty so we have to test the default one
-                needDefaultTest = true;
-            } else {
-                // We only test the default data if the one in the data list doesn't exist, usually in a case where the data list is not complete
-                for (var data : dataList) {
-                    var innerData = data.get(key);
-                    if (innerData == null) {
-                        needDefaultTest = true;
-                        continue;
+                Set<String> missingKeys = new HashSet<>();
+                for (String key : keysFoundInTemplate) {
+                    if (!dataMap.containsKey(key) && !keysRegisteredForInnerTemplates.contains(key)) {
+                        missingKeys.add(key);
                     }
-                    correctnessCheckForInnerTemplate(key, innerData);
-                    tp.correctnessCheck(normalizeDeepDataForInnerTemplate(innerData));
+                }
+                if (!missingKeys.isEmpty()) {
+                    throw new TemplateRenderException("Missing keys in data map " + keyForException + ": " + missingKeys);
+                }
+
+                for (var entry : this.innerTemplates.entrySet()) {
+                    var key = entry.getKey();
+                    var tp = entry.getValue();
+
+                    Object value = dataMap.get(key);
+                    if (value == null) {
+                        value = tp.defaultDataList;
+                    }
+
+                    tp.correctnessCheck(normalizeList(value), keyForException + "." + key);
                 }
             }
-            if (needDefaultTest) {
-                tp.correctnessCheck(tp.defaultDataList);
-            }
         }
-    }
-
-    private static Set<String> differenceBetweenSets(Set<String> set1, Set<String> set2) {
-        Set<String> union = new HashSet<>(set2);
-        union.addAll(set1);
-        Set<String> intersection = new HashSet<>(set2);
-        intersection.retainAll(set1);
-
-        Set<String> result = new HashSet<>(union);
-        result.removeAll(intersection);
-        return result;
     }
 
     /**
      * build up a calculated size estimate for this and all
      * nested templates.
      */
-    private int calculateEstimatedSize(List<Map<String, Object>> dataList) {
+    private int calculateEstimatedSize(List<?> dataList) {
         // the size of the datalist specifies how many times we will render ourselves.
         int sizeMultiplier = dataList.isEmpty() ? 1 : dataList.size();
         int fullCalculatedSize = sizeMultiplier * estimatedSize;
@@ -507,20 +422,24 @@ public final class TemplateProcessor {
             var key = entry.getKey();
             var tp = entry.getValue();
             for (var data : dataList) {
-                var innerData = data.getOrDefault(key, tp.defaultDataList);
-                fullCalculatedSize += tp.calculateEstimatedSize(normalizeDeepDataForInnerTemplate(innerData));
+                var dataMap  = normalizeMap(data);
+                var innerData = dataMap.get(key);
+                if (innerData == null) {
+                    innerData = tp.defaultDataList;
+                }
+                fullCalculatedSize += tp.calculateEstimatedSize(normalizeList(innerData));
             }
         }
         return fullCalculatedSize;
     }
 
-    private StringBuilder internalRender(int indent, StringBuilder parts, List<Map<String, Object>> dataList) {
-        Map<String, Object> myDataMap = Map.of();
+    private StringBuilder internalRender(int indent, StringBuilder parts, List<?> dataList) {
+        Map<?, ?> myDataMap = Map.of();
         List<TemplateSection> templateSections = templatesSectionsByIndent.get(indent);
         int templateSectionsSize = templateSections.size();
         int dataListIndex = 0;
         if (!dataList.isEmpty()) {
-            myDataMap = dataList.get(dataListIndex);
+            myDataMap = normalizeMap(dataList.get(dataListIndex));
         }
 
         // build ourself out for each map of data given
@@ -531,15 +450,18 @@ public final class TemplateProcessor {
                     case STATIC_TEXT -> parts.append(templateSection.staticData);
                     case DYNAMIC_TEXT -> parts.append(myDataMap.get(templateSection.key));
                     default -> {
-                        var innerData = myDataMap.getOrDefault(templateSection.key, templateSection.templateProcessor.defaultDataList);
-                        templateSection.templateProcessor.internalRender(templateSection.indent, parts, normalizeDeepDataForInnerTemplate(innerData));
+                        var innerData = myDataMap.get(templateSection.key);
+                        if (innerData == null) {
+                            innerData = templateSection.templateProcessor.defaultDataList;
+                        }
+                        templateSection.templateProcessor.internalRender(templateSection.indent, parts, normalizeList(innerData));
                     }
                 }
 
             }
             dataListIndex += 1;
             if (!dataList.isEmpty() && dataListIndex < dataList.size()) {
-                myDataMap = dataList.get(dataListIndex);
+                myDataMap = normalizeMap(dataList.get(dataListIndex));
                 parts.append("\n").repeat(" ", indent);
             } else {
                 return parts;

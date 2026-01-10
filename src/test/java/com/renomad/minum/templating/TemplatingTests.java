@@ -83,7 +83,7 @@ public class TemplatingTests {
         TemplateProcessor tp = buildProcessor(template);
 
         var ex = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(data));
-        assertEquals(ex.getMessage(), "In registered data, the maps were inconsistent on these keys: [animal]");
+        assertEquals(ex.getMessage(), "Missing keys in data map ROOT[0]: [animal]");
     }
 
     @Test
@@ -97,11 +97,12 @@ public class TemplatingTests {
         TemplateProcessor tp = buildProcessor(template);
 
         var ex = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(data));
-        assertEquals(ex.getMessage(), "These keys in the template were not provided data: [color, animal]");
+        assertEquals(ex.getMessage(), "Missing keys in data map ROOT[0]: [color, animal]");
     }
 
     /**
-     * When keys are provided but there are no spots in the template for them
+     * When keys are provided but there are no spots in the template for them.
+     * We will ignore these unused keys and just render the template.
      */
     @Test
     public void test_Template_Multiple_EdgeCase_MissingKeys_3() {
@@ -112,9 +113,7 @@ public class TemplatingTests {
                 Map.of("foo", "bob")
         );
         TemplateProcessor tp = buildProcessor(template);
-
-        var ex = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(data));
-        assertEquals(ex.getMessage(), "These keys in the data did not match anything in the template: [foo]");
+        assertEquals("Hello world\nHello world\nHello world", tp.renderTemplate(data));
     }
 
     @Test
@@ -147,7 +146,7 @@ public class TemplatingTests {
         TemplateProcessor tp = buildProcessor(template);
         tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am {{ inner }}"));
         var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate());
-        assertEquals(exception.getMessage(), "No data was provided for these keys: [inner]");
+        assertEquals(exception.getMessage(), "Missing keys in data ROOT.inner_template: [inner]");
     }
 
     /**
@@ -162,13 +161,12 @@ public class TemplatingTests {
         tp.getInnerTemplate("inner_template").registerInnerTemplate("giraffe", TemplateProcessor.buildProcessor("my name is {{ name }}"));
         tp.getInnerTemplate("inner_template").registerData(List.of(Map.of("name", "foo")));
         var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(Map.of("name", "bar")));
-        assertEquals(exception.getMessage(), "No data was provided for these keys: [name]");
+        assertEquals(exception.getMessage(), "Missing keys in data ROOT[0].inner_template[0].giraffe: [name]");
     }
 
     /**
      * If the user specifies a key that doesn't get used,
-     * throw an exception.  We prioritize correctness with
-     * this system.
+     * just ignore it.
      */
     @Test
     public void test_Template_TooManyKeys() {
@@ -176,9 +174,7 @@ public class TemplatingTests {
         var myMap = Map.of("name", "byron", "animal", "cat");
         TemplateProcessor tp = buildProcessor(template);
 
-        assertThrows(TemplateRenderException.class,
-                "These keys in the data did not match anything in the template: [name, animal]",
-                () -> tp.renderTemplate(myMap));
+        assertEquals("Hello there byron", tp.renderTemplate(myMap));
     }
 
 
@@ -192,7 +188,7 @@ public class TemplatingTests {
         TemplateProcessor tp = buildProcessor(template);
 
         assertThrows(TemplateRenderException.class,
-                "These keys in the template were not provided data: [missing_key]",
+                "Missing keys in data map ROOT[0]: [missing_key]",
                 () -> tp.renderTemplate(myMap));
     }
 
@@ -408,7 +404,7 @@ public class TemplatingTests {
     public void test_EdgeCase_NoValueProvidedBeforeRender() {
         TemplateProcessor foo = TemplateProcessor.buildProcessor("Here is {{ foo }}");
         assertThrows(TemplateRenderException.class,
-                "No data was provided for these keys: [foo]",
+                "Missing keys in data ROOT: [foo]",
                 () -> foo.renderTemplate());
     }
 
@@ -434,30 +430,26 @@ public class TemplatingTests {
 
     /**
      * We can register both templates and ordinary data with the same keys,
-     * we must prevent that overlap!
+     * We will prioritize inner template if that happens
      */
     @Test
     public void test_EdgeCase_Overlap() {
-        TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
+        TemplateProcessor outer = TemplateProcessor.buildProcessor("{{ inner }} is king. {{ inner }} is empire.");
+        TemplateProcessor inner = TemplateProcessor.buildProcessor("Henry the eighth");
         outer.registerInnerTemplate("inner", inner);
         outer.registerData(List.of(Map.of("inner", "fubar")));
-        assertThrows(TemplateRenderException.class,
-                "The data of the inner template should be either Map<String, Object> or List<Map<String, Object>>. Unexpected data in [inner]",
-                outer::renderTemplate);
+        assertEquals("Henry the eighth is king. Henry the eighth is empire.", outer.renderTemplate());
     }
 
     /**
-     * Should get the error message with the .renderData() method too
+     * Should get the same result as {@link #test_EdgeCase_Overlap()} for {@link TemplateProcessor#renderTemplate(Object)}
      */
     @Test
     public void test_EdgeCase_Overlap_UsingRenderData() {
-        TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
+        TemplateProcessor outer = TemplateProcessor.buildProcessor("{{ inner }} is king. {{ inner }} is empire.");
+        TemplateProcessor inner = TemplateProcessor.buildProcessor("Henry the eighth");
         outer.registerInnerTemplate("inner", inner);
-        assertThrows(TemplateRenderException.class,
-                "The data of the inner template should be either Map<String, Object> or List<Map<String, Object>>. Unexpected data in [inner]",
-                () -> outer.renderTemplate(Map.of("inner", "fubar")));
+        assertEquals("Henry the eighth is king. Henry the eighth is empire.", outer.renderTemplate(Map.of("inner", "fubar")));
     }
 
 
@@ -506,7 +498,7 @@ public class TemplatingTests {
     public void test_EdgeCase_NoDataProvided_alternate() {
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
         inner.registerData(List.of(Map.of()));
-        assertThrows(TemplateRenderException.class, "These keys in the template were not provided data: [foo]", () -> inner.renderTemplate());
+        assertThrows(TemplateRenderException.class, "Missing keys in data map ROOT[0]: [foo]", () -> inner.renderTemplate());
     }
 
     @Test
@@ -514,7 +506,7 @@ public class TemplatingTests {
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
         inner.registerData(List.of(Map.of("foo", "abc"), Map.of("bar", "def")));
         assertThrows(TemplateRenderException.class,
-                "In registered data, the maps were inconsistent on these keys: [bar, foo]",
+                "Missing keys in data map ROOT[1]: [foo]",
                 inner::renderTemplate);
     }
 
@@ -523,7 +515,7 @@ public class TemplatingTests {
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
         inner.registerData(List.of(Map.of(), Map.of()));
         assertThrows(TemplateRenderException.class,
-                "These keys in the template were not provided data: [foo]",
+                "Missing keys in data map ROOT[0]: [foo]",
                 inner::renderTemplate);
     }
 
@@ -628,7 +620,7 @@ public class TemplatingTests {
                 """
                 Hall of Fame:
                 - A""",
-                mainTemplate.renderDeepTemplate(data)
+                mainTemplate.renderTemplate(data)
         );
     }
 
@@ -656,7 +648,7 @@ public class TemplatingTests {
                 - A
                 - B
                 - C""",
-                mainTemplate.renderDeepTemplate(data)
+                mainTemplate.renderTemplate(data)
         );
     }
 
@@ -710,7 +702,7 @@ public class TemplatingTests {
                 - C
                   + Hello Again
                   + Index 3""",
-                mainTemplate.renderDeepTemplate(data)
+                mainTemplate.renderTemplate(data)
         );
     }
 
@@ -730,8 +722,8 @@ public class TemplatingTests {
 
         assertThrows(
                 TemplateRenderException.class,
-                "These keys in the template were not provided data: [name]",
-                () -> mainTemplate.renderDeepTemplate(data)
+                "Missing keys in data map ROOT[0].list[0]: [name]",
+                () -> mainTemplate.renderTemplate(data)
         );
     }
 
@@ -755,8 +747,8 @@ public class TemplatingTests {
 
         assertThrows(
                 TemplateRenderException.class,
-                "The entry in the list should be a Map<String, Object>. Unexpected entry in list[0]",
-                () -> mainTemplate.renderDeepTemplate(data)
+                "Missing keys in data map ROOT[0].list[0]: [name]",
+                () -> mainTemplate.renderTemplate(data)
         );
     }
 }
