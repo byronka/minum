@@ -285,34 +285,30 @@ public final class TemplateProcessor {
     }
 
     private StringBuilder internalRender(StringBuilder parts, List<Map<String, String>> dataList) {
-        Map<String, String> myDataMap = Map.of();
-        int dataListIndex = 0;
-        if (!dataList.isEmpty()) {
-            myDataMap = dataList.get(dataListIndex);
+        if (dataList.isEmpty()) {
+            return parts;
         }
 
         // build ourself out for each map of data given
-        while (true) {
+        for (int dataListIndex = 0, dataListSize = dataList.size(); dataListIndex < dataListSize; dataListIndex++) {
+            if (dataListIndex > 0) {
+                parts.append("\n");
+            }
+            Map<String, String> myDataMap = dataList.get(dataListIndex);
+
             for (TemplateSection templateSection : templateSections) {
-                if (Objects.requireNonNull(templateSection.templateType) == TemplateType.STATIC_TEXT) {
+                if (templateSection.templateType == TemplateType.STATIC_TEXT) {
                     parts.append(templateSection.staticData);
                 } else {
                     String value = myDataMap.getOrDefault(templateSection.key, "");
                     if (templateSection.indent > 0) {
-                        String indent = " ".repeat(templateSection.indent);
-                        value = value.replace("\n", "\n" + indent);
+                        value = value.replace("\n", "\n" + " ".repeat(templateSection.indent));
                     }
                     parts.append(value);
                 }
             }
-            dataListIndex += 1;
-            if (!dataList.isEmpty() && dataListIndex < dataList.size()) {
-                myDataMap = dataList.get(dataListIndex);
-                parts.append("\n");
-            } else {
-                return parts;
-            }
         }
+        return parts;
     }
 }
 
