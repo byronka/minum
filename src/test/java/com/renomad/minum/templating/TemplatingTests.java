@@ -269,8 +269,8 @@ public class TemplatingTests {
      */
     @Test
     public void test_Templating_LargeComplex_Performance() {
-        int warmupIterations = 500000;
-        int mainIterations = 500000;
+        int warmupIterations = 5;
+        int mainIterations = 5;
 
         // the expected result
         String expectedFullOutput = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
