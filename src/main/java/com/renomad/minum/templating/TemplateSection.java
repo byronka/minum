@@ -14,7 +14,6 @@ class TemplateSection {
     public final int indent;
     public final String staticData;
     public final TemplateType templateType;
-    public final TemplateProcessor templateProcessor;
 
     /**
      * @param indent the column number, measured from the left, of the first character of this template key.  This is used
@@ -31,10 +30,9 @@ class TemplateSection {
      *                  it would generate three template sections - "my favorite color is" would be
      *                  the first subString, then a key of "color", then a third subString of "and I like it"
      */
-    public TemplateSection(String key, String subString, TemplateProcessor templateProcessor, TemplateType templateType, int indent) {
+    public TemplateSection(String key, String subString, TemplateType templateType, int indent) {
         this.key = key;
         this.staticData = subString;
-        this.templateProcessor = templateProcessor;
         this.templateType = templateType;
         this.indent = indent;
     }

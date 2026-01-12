@@ -126,46 +126,6 @@ public class TemplatingTests {
     }
 
     /**
-     * If we register an inner template but there's no keys provided or needed
-     */
-    @Test
-    public void test_Template_RenderingWithInnerTemplate_NoData() {
-        String template = "Hello {{ inner_template }}";
-        TemplateProcessor tp = buildProcessor(template);
-        tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am inner"));
-        String result = tp.renderTemplate();
-        assertEquals(result, "Hello I am inner");
-    }
-
-
-    /**
-     * If we register an inner template but give the whole thing no data
-     */
-    @Test
-    public void test_Template_EdgeCase_RenderingWithInnerTemplate_MissingData() {
-        String template = "Hello {{ inner_template }}";
-        TemplateProcessor tp = buildProcessor(template);
-        tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am {{ inner }}"));
-        var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate());
-        assertEquals(exception.getMessage(), "No data was provided for these keys: [inner]");
-    }
-
-    /**
-     * If we register an inner template and provide data for the outermost template
-     * and the middle nested template but not the most inner.
-     */
-    @Test
-    public void test_Template_EdgeCase_RenderingWithInnerTemplate_MissingData_DeeperNesting() {
-        String template = "Hello from the outer {{ name }}";
-        TemplateProcessor tp = buildProcessor(template);
-        tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am middle {{ name }}, {{ giraffe }}"));
-        tp.getInnerTemplate("inner_template").registerInnerTemplate("giraffe", TemplateProcessor.buildProcessor("my name is {{ name }}"));
-        tp.getInnerTemplate("inner_template").registerData(List.of(Map.of("name", "foo")));
-        var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(Map.of("name", "bar")));
-        assertEquals(exception.getMessage(), "No data was provided for these keys: [name]");
-    }
-
-    /**
      * If the user specifies a key that doesn't get used,
      * throw an exception.  We prioritize correctness with
      * this system.
@@ -309,8 +269,8 @@ public class TemplatingTests {
      */
     @Test
     public void test_Templating_LargeComplex_Performance() {
-        int warmupIterations = 5;
-        int mainIterations = 5;
+        int warmupIterations = 500000;
+        int mainIterations = 500000;
 
         // the expected result
         String expectedFullOutput = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
@@ -318,9 +278,6 @@ public class TemplatingTests {
         // create all the processors we'll need
         TemplateProcessor individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/individual_stock.html"));
         TemplateProcessor stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/stock_prices.html"));
-
-        // register internal templates
-        stockPrices.registerInnerTemplate("individual_stocks", individualStockProcessor);
 
         // define some stock data for testing
         List<Stock> stocks = Stock.dummyItems();
@@ -346,23 +303,23 @@ public class TemplatingTests {
         }
 
         logger.logDebug(() -> "STARTING WARMUP");
-        benchmark(warmupIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(warmupIterations, stockPrices, expectedFullOutput, stockPricesList, false);
+        benchmark(warmupIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, true);
+        benchmark(warmupIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, false);
 
         logger.logDebug(() -> "STARTING MAIN");
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, false);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, false);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, false);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, true);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, false);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, true);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, false);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, true);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList, false);
     }
 
-    private static void benchmark(int renderingCount, TemplateProcessor stockPrices, String expectedFullOutput, List<Map<String, String>> stockPricesList, boolean runWithChecks) {
+    private static void benchmark(int renderingCount, TemplateProcessor stockPrices, TemplateProcessor individualStock, String expectedFullOutput, List<Map<String, String>> stockPricesList, boolean runWithChecks) {
         StopwatchUtils stopwatch = new StopwatchUtils().startTimer();
         IntStream.range(0, renderingCount).boxed().parallel().forEach(x -> {
-            stockPrices.getInnerTemplate("individual_stocks").registerData(stockPricesList);
-            String resultantString = stockPrices.renderTemplate(runWithChecks);
+            String individualStockResult = individualStock.renderTemplate(stockPricesList, runWithChecks);
+            String resultantString = stockPrices.renderTemplate(Map.of("individual_stocks", individualStockResult), runWithChecks);
             assertEquals(expectedFullOutput, resultantString);
         });
         if (runWithChecks) {
@@ -380,6 +337,24 @@ public class TemplatingTests {
      */
     @Test
     public void test_indentation() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo bar\n  {{ baz }}");
+        String expected = """
+                foo bar
+                  test line 1
+                  test line 2
+                  test line 3
+                """.stripTrailing();
+
+        String result = templateProcessor.renderTemplate(Map.of("baz", "test line 1\ntest line 2\ntest line 3"));
+
+        assertEquals(result, expected);
+    }
+
+    /**
+     * When the key is in-line, we don't add indentation in the value
+     */
+    @Test
+    public void test_indentation_InlineKeyWithMultiLine() {
         TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("foo bar {{ baz }}");
         String expected = """
                 foo bar test line 1
@@ -408,123 +383,8 @@ public class TemplatingTests {
     public void test_EdgeCase_NoValueProvidedBeforeRender() {
         TemplateProcessor foo = TemplateProcessor.buildProcessor("Here is {{ foo }}");
         assertThrows(TemplateRenderException.class,
-                "No data was provided for these keys: [foo]",
-                () -> foo.renderTemplate());
-    }
-
-    /**
-     *
-     * We will allow building templates with no keys, because only templates will
-     *      have proper indentation added.
-     */
-    @Test
-    public void test_EdgeCase_applyingInnerTemplate() {
-        TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
-        outer.registerInnerTemplate("inner", inner);
-        String render = outer.renderTemplate();
-        assertEquals("""
-                Here is I'm Henry the eighth I am I am
-                        Henry the eighth I am I am
-                        I am married to the woman next door
-                and I'm Henry the eighth I am I am
-                    Henry the eighth I am I am
-                    I am married to the woman next door is here too.""", render);
-    }
-
-    /**
-     * We can register both templates and ordinary data with the same keys,
-     * we must prevent that overlap!
-     */
-    @Test
-    public void test_EdgeCase_Overlap() {
-        TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
-        outer.registerInnerTemplate("inner", inner);
-        outer.registerData(List.of(Map.of("inner", "fubar")));
-        assertThrows(TemplateRenderException.class,
-                "These keys in the data did not match anything in the template: [inner]",
-                outer::renderTemplate);
-    }
-
-    /**
-     * Should get the error message with the .renderData() method too
-     */
-    @Test
-    public void test_EdgeCase_Overlap_UsingRenderData() {
-        TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
-        outer.registerInnerTemplate("inner", inner);
-        assertThrows(TemplateRenderException.class,
-                "These keys in the data did not match anything in the template: [inner]",
-                () -> outer.renderTemplate(Map.of("inner", "fubar")));
-    }
-
-
-    @Test
-    public void test_EdgeCase_RegisteringInnerTemplateTwice() {
-        TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
-        outer.registerInnerTemplate("inner", inner);
-        assertThrows(TemplateRenderException.class,
-                "key is already registered for use in another template: inner",
-                () -> outer.registerInnerTemplate("inner", inner));
-    }
-
-    @Test
-    public void test_EdgeCase_CannotRegisterNullInnerTemplate() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        assertThrows(TemplateRenderException.class, "The template must not be null",
-                () -> inner.registerInnerTemplate("inner", null));
-        assertThrows(TemplateRenderException.class, "The key must be a valid non-blank string",
-                () -> inner.registerInnerTemplate("   ", inner));
-        assertThrows(TemplateRenderException.class, "The key must be a valid non-blank string",
-                () -> inner.registerInnerTemplate("", inner));
-        assertThrows(TemplateRenderException.class, "The key must be a valid non-blank string",
-                () -> inner.registerInnerTemplate(null, inner));
-    }
-
-    /**
-     * What happens if we register a template inside itself?
-     */
-    @Test
-    public void test_EdgeCase_RecursiveTemplates() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        assertThrows(TemplateRenderException.class,
-                "Disallowed to register a template to itself as an inner template",
-                () -> inner.registerInnerTemplate("inner", inner));
-    }
-
-    @Test
-    public void test_EdgeCase_NoDataProvided() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        assertThrows(TemplateRenderException.class, "No data provided in registerData call", () -> inner.registerData(List.of()));
-        assertThrows(TemplateRenderException.class, "provided data cannot be null", () -> inner.registerData(null));
-    }
-
-    @Test
-    public void test_EdgeCase_NoDataProvided_alternate() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        inner.registerData(List.of(Map.of()));
-        assertThrows(TemplateRenderException.class, "These keys in the template were not provided data: [foo]", () -> inner.renderTemplate());
-    }
-
-    @Test
-    public void test_EdgeCase_InconsistentMaps() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        inner.registerData(List.of(Map.of("foo", "abc"), Map.of("bar", "def")));
-        assertThrows(TemplateRenderException.class,
-                "In registered data, the maps were inconsistent on these keys: [bar, foo]",
-                inner::renderTemplate);
-    }
-
-    @Test
-    public void test_EdgeCase_MapsAreAllEmpty() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        inner.registerData(List.of(Map.of(), Map.of()));
-        assertThrows(TemplateRenderException.class,
                 "These keys in the template were not provided data: [foo]",
-                inner::renderTemplate);
+                () -> foo.renderTemplate());
     }
 
     /**
@@ -561,53 +421,6 @@ public class TemplatingTests {
 
         String result4 = TemplateProcessor.buildProcessor("hello {{ world }}").renderTemplate(Map.of("world", "foo"));
         assertEquals(result4, "hello foo");
-    }
-
-    /**
-     * Trying a case of a template nested
-     * two times.
-     */
-    @Test
-    public void test_EdgeCase_DeeplyNested() {
-        TemplateProcessor aTemplate = buildProcessor("A template. {{ b_template }}");
-        TemplateProcessor bTemplate = buildProcessor("B template. {{ c_template }}");
-        TemplateProcessor cTemplate = buildProcessor("C template.");
-
-        aTemplate.registerInnerTemplate("b_template", bTemplate);
-        TemplateProcessor bTemplate1 = aTemplate.getInnerTemplate("b_template");
-        bTemplate1.registerInnerTemplate("c_template", cTemplate);
-        TemplateProcessor cTemplate1 = bTemplate1.getInnerTemplate("c_template");
-
-        assertEquals("A template. B template. C template.", aTemplate.renderTemplate());
-        assertEquals("B template. C template.", bTemplate1.renderTemplate());
-        assertEquals("C template.", cTemplate1.renderTemplate());
-    }
-
-    /**
-     * A bit more involved than {@link #test_EdgeCase_DeeplyNested}, this one
-     * has data.
-     */
-    @Test
-    public void test_EdgeCase_DeeplyNested_withData() {
-        TemplateProcessor aTemplate = buildProcessor("A template. {{ key1 }} {{ key2 }} {{ b_template }}");
-        TemplateProcessor bTemplate = buildProcessor("B template.  {{ key1 }} {{ key2 }} {{ c_template }}");
-        TemplateProcessor cTemplate = buildProcessor("C template.  {{ key1 }} {{ key2 }}");
-
-        List<Map<String, String>> data = List.of(Map.of("key1", "foo",
-                "key2", "bar"));
-
-        var newBTemplate = aTemplate.registerInnerTemplate("b_template", bTemplate);
-        var newCTemplate = newBTemplate.registerInnerTemplate("c_template", cTemplate);
-        aTemplate.registerData(data);
-        newBTemplate.registerData(data);
-        newCTemplate.registerData(data);
-
-        assertEquals("A template. foo bar B template.  foo bar C template.  foo bar", aTemplate.renderTemplate());
-        assertEquals("B template.  foo bar C template.  foo bar", newBTemplate.renderTemplate());
-        assertEquals("C template.  foo bar", newCTemplate.renderTemplate());
-        assertEquals("A template. {{ key1 }} {{ key2 }} {{ b_template }}", aTemplate.getOriginalText());
-        assertEquals("B template.  {{ key1 }} {{ key2 }} {{ c_template }}", newBTemplate.getOriginalText());
-        assertEquals("C template.  {{ key1 }} {{ key2 }}", newCTemplate.getOriginalText());
     }
 
 }
