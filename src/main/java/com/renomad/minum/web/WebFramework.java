@@ -389,10 +389,15 @@ public final class WebFramework {
      */
     private static void addOptionalExtraHeaders(IResponse response, StringBuilder stringBuilder) {
         for (Map.Entry<String,String> header : response.getExtraHeaders().entrySet()) {
-            stringBuilder.append(header.getKey())
-                    .append(": ")
-                    .append(header.getValue())
-                    .append(HTTP_CRLF);
+            String key = header.getKey();
+            String value = header.getValue();
+            if (value.contains(HTTP_CRLF)) {
+                for (String split : value.split(HTTP_CRLF)) {
+                    stringBuilder.append(key).append(": ").append(split).append(HTTP_CRLF);
+                }
+            } else {
+                stringBuilder.append(key).append(": ").append(value).append(HTTP_CRLF);
+            }
         }
     }
 

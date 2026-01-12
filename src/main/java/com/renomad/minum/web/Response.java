@@ -11,10 +11,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
@@ -247,6 +244,15 @@ public final class Response implements IResponse {
      */
     public static IResponse htmlOk(String body) {
         return htmlOk(body, Map.of());
+    }
+
+    /**
+     * Construct a value to be used in the header map that contains multiple values separated by CRLF.
+     * @param values the list of values
+     * @return a single value constructed by the list of values separated by CRLF
+     */
+    public static String constructHeaderMultiValue(List<String> values) {
+        return String.join(WebEngine.HTTP_CRLF, values);
     }
 
     @Override

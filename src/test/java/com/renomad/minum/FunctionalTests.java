@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.renomad.minum.SearchHelpers.*;
 import static com.renomad.minum.testing.TestFramework.*;
@@ -348,4 +349,9 @@ public class FunctionalTests {
         this.context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
+    @Test
+    public void test_EdgeCase_Response_MultiCookies() {
+        TestResponse response = ft.get("multicookies");
+        assertEquals(Set.of("b=value2", "a=value1"), Set.copyOf(response.headers().valueByKey("set-cookie")));
+    }
 }
