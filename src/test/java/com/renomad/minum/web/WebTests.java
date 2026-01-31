@@ -217,7 +217,6 @@ public class WebTests {
         MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
     }
 
-
     /**
      * If the developer registers the same endpoint twice,
      * throw an exception
@@ -239,7 +238,33 @@ public class WebTests {
         var wf = new WebFramework(context, default_zdt);
         wf.registerPartialPath(GET, "add_two_numbers", request -> null);
         var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
-        assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+
+    /**
+     * Same as {@link #test_EdgeCase_DuplicateRegistrations()} but checking that
+     * we see duplicates between regular and partial path registrations
+     */
+    @Test
+    public void test_EdgeCase_DuplicateConsideringBothRegularAndPartialPathRegistrations() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+    }
+
+    /**
+     * Same as {@link #test_EdgeCase_DuplicateRegistrations()} but checking that
+     * we see duplicates between regular and partial path registrations, comparing
+     * in the opposite direction of {@link #test_EdgeCase_DuplicateConsideringBothRegularAndPartialPathRegistrations}
+     */
+    @Test
+    public void test_EdgeCase_DuplicateConsideringBothRegularAndPartialPathRegistrations_2() {
+        var wf = new WebFramework(context, default_zdt);
+        wf.registerPartialPath(GET, "add_two_numbers", request -> null);
+        var ex = assertThrows(WebServerException.class, () -> wf.registerPath(GET, "add_two_numbers", request -> null));
+        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
     }
 
     /**
