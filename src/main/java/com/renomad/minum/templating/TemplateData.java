@@ -60,6 +60,10 @@ public class TemplateData {
         return conversionResult;
     }
 
+    public List<Map<String, TemplateValue>> getData() {
+        return data;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

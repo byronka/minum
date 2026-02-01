@@ -4,6 +4,7 @@ import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.templating.TemplateData;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.utils.*;
 import com.renomad.minum.web.Headers;
