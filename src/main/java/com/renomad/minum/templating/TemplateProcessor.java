@@ -97,6 +97,12 @@ public final class TemplateProcessor {
         return internalRender(true, td.getData()).toString();
     }
 
+    public String renderTemplate(List<Map<String, String>> data) {
+        var td = new TemplateData();
+        td.add(data);
+        return internalRender(true, td.getData()).toString();
+    }
+
     /**
      * Builds a {@link TemplateProcessor} from a string
      * containing a proper template.  Templated values
