@@ -751,12 +751,9 @@ public final class WebFramework {
             throw new WebServerException(
                     String.format("Path should not be prefixed with a slash.  Corrected version: registerPartialPath(%s, \"%s\", ... )", method.name(), pathName.substring(1)));
         }
-
-        MethodPath key = new MethodPath(method, pathName);
-
-        var result = registeredPartialPaths.put(key, webHandler);
-        if (result != null || registeredDynamicPaths.containsKey(key)) {
-            throw new WebServerException("Duplicate endpoint registered: " + key);
+        var result = registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
+        if (result != null) {
+            throw new WebServerException("Duplicate partial-path endpoint registered: " + new MethodPath(method, pathName));
         }
     }
 
