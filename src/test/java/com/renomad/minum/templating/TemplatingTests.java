@@ -120,7 +120,7 @@ public class TemplatingTests {
     public void test_Template_RenderingWithoutKeys() {
         String template = "Hello world";
         TemplateProcessor tp = buildProcessor(template);
-        String result = tp.renderTemplate();
+        String result = tp.renderTemplate(Map.of());
         assertEquals(result, "Hello world");
     }
 
@@ -132,7 +132,7 @@ public class TemplatingTests {
         String template = "Hello {{ inner_template }}";
         TemplateProcessor tp = buildProcessor(template);
         tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am inner"));
-        String result = tp.renderTemplate();
+        String result = tp.renderTemplate(Map.of());
         assertEquals(result, "Hello I am inner");
     }
 
@@ -145,7 +145,7 @@ public class TemplatingTests {
         String template = "Hello {{ inner_template }}";
         TemplateProcessor tp = buildProcessor(template);
         tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am {{ inner }}"));
-        var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate());
+        var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(Map.of()));
         assertEquals(exception.getMessage(), "Missing keys in data ROOT.inner_template: [inner]");
     }
 
@@ -159,8 +159,10 @@ public class TemplatingTests {
         TemplateProcessor tp = buildProcessor(template);
         tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am middle {{ name }}, {{ giraffe }}"));
         tp.getInnerTemplate("inner_template").registerInnerTemplate("giraffe", TemplateProcessor.buildProcessor("my name is {{ name }}"));
-        tp.getInnerTemplate("inner_template").registerData(List.of(Map.of("name", "foo")));
-        var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(Map.of("name", "bar")));
+        var td = new TemplateData();
+        td.add("inner_template", Map.of("name", "foo"));
+        td.add(Map.of("name", "bar"));
+        var exception = assertThrows(TemplateRenderException.class, () -> tp.renderTemplate(td));
         assertEquals(exception.getMessage(), "Missing keys in data ROOT[0].inner_template[0].giraffe: [name]");
     }
 

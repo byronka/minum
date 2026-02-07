@@ -27,6 +27,11 @@ public class TemplateData {
         }
     }
 
+    public void add(String keyToInnerTemplate,
+                    Map<String,String> innerTemplateValues) {
+        add(keyToInnerTemplate, List.of(innerTemplateValues));
+    }
+
     public void add(Map<String, String> newMapData) {
         Map<String, TemplateValue> conversionMap = convertMapToTemplateValue(newMapData);
         data.add(conversionMap);
