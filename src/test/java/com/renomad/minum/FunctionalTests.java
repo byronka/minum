@@ -354,4 +354,21 @@ public class FunctionalTests {
         TestResponse response = ft.get("multicookies");
         assertEquals(Set.of("b=value2", "a=value1"), Set.copyOf(response.headers().valueByKey("set-cookie")));
     }
+
+    @Test
+    public void test_PathFunction_Response() {
+        TestResponse response = ft.get("patternpath/123");
+        assertEquals("Number: 123", response.body().asString());
+
+        TestResponse response1 = ft.get("patternpath/abc");
+        assertEquals(CODE_404_NOT_FOUND, response1.statusLine().status());
+    }
+
+    @Test
+    public void test_PathFunction_Response_Range() {
+        assertEquals("List: 1,2,3,4,5,6", ft.get("patternpath/range/1-6").body().asString());
+        assertEquals("List: 4,5,6,7,8", ft.get("patternpath/range/4-8").body().asString());
+        assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/abc").statusLine().status());
+        assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/1-6a").statusLine().status());
+    }
 }

@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 
 import static com.renomad.minum.utils.FileUtils.checkFileIsWithinDirectory;
 import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
@@ -61,11 +62,22 @@ public final class WebFramework {
     private final Map<MethodPath, ThrowingFunction<IRequest, IResponse>> registeredDynamicPaths;
 
     /**
-     * These are registrations for paths that partially match, for example,
-     * if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
+     * These are registrations for cases where the function depends on parts of the path conditionally.
+     * Like if the client sends us GET /.well-known/acme-challenge/HGr8U1IeTW4kY_Z6UIyaakzOkyQgPr_7ArlLgtZE8SX
      * and we want to match ".well-known/acme-challenge"
      */
-    private final Map<MethodPath, ThrowingFunction<IRequest, IResponse>> registeredPartialPaths;
+    private final Map<RequestLine.Method, List<Function<String, ThrowingFunction<IRequest, IResponse>>>> registeredPathFunctions;
+
+    /**
+     * A special path function that checks if the path starts with the defined one.
+     * It's here to retain the duplication check on {@link #registerPartialPath(RequestLine.Method, String, ThrowingFunction)},
+     */
+    private record PartialPathFunction(String pathName, ThrowingFunction<IRequest, IResponse> handler) implements Function<String, ThrowingFunction<IRequest, IResponse>> {
+        @Override
+        public ThrowingFunction<IRequest, IResponse> apply(String path) {
+            return path.startsWith(pathName) ? handler : null;
+        }
+    }
 
     /**
      * A function that will be run instead of the ordinary business code. Has
@@ -495,7 +507,7 @@ public final class WebFramework {
 
         if (handler == null) {
             logger.logTrace(() -> "No direct handler found.  looking for a partial match for " + requestedPath);
-            handler = findHandlerByPartialMatch(sl);
+            handler = findHandlerByPathFunction(sl);
         }
 
         if (handler == null) {
@@ -630,19 +642,19 @@ public final class WebFramework {
 
 
     /**
-     * let's see if we can match the registered paths against a **portion** of the startline
+     * let's see if we can match the registered paths against a path function
      */
-    ThrowingFunction<IRequest, IResponse> findHandlerByPartialMatch(RequestLine sl) {
-        String requestedPath = sl.getPathDetails().getIsolatedPath();
-        var methodPathFunctionEntry = registeredPartialPaths.entrySet().stream()
-                .filter(x -> requestedPath.startsWith(x.getKey().path()) &&
-                        x.getKey().method().equals(sl.getMethod()))
-                .findFirst().orElse(null);
-        if (methodPathFunctionEntry != null) {
-            return methodPathFunctionEntry.getValue();
-        } else {
+    ThrowingFunction<IRequest, IResponse> findHandlerByPathFunction(RequestLine sl) {
+        var functionList = registeredPathFunctions.get(sl.getMethod());
+        if (functionList == null) {
             return null;
         }
+        String requestedPath = sl.getPathDetails().getIsolatedPath();
+        return functionList.stream()
+                .map(function -> function.apply(requestedPath))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -668,7 +680,7 @@ public final class WebFramework {
         this.constants = context.getConstants();
         this.overrideForDateTime = overrideForDateTime;
         this.registeredDynamicPaths = new HashMap<>();
-        this.registeredPartialPaths = new HashMap<>();
+        this.registeredPathFunctions = new EnumMap<>(RequestLine.Method.class);
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
 
@@ -734,6 +746,19 @@ public final class WebFramework {
     }
 
     /**
+     * Similar to {@link WebFramework#registerPath(RequestLine.Method, String, ThrowingFunction)} except that we can provide the function conditionally
+     * based on custom predicate of the path.
+     * The function takes a path string and returns a web handler. It can return null if the path is not suitable.
+     * <p>
+     *     Be careful here, be thoughtful - partial paths will match a lot, and may
+     *     overlap with other URL's for your app, such as endpoints and static files.
+     * </p>
+     */
+    public void registerPath(RequestLine.Method method, Function<String, ThrowingFunction<IRequest, IResponse>> pathFunction) {
+        registeredPathFunctions.computeIfAbsent(method, k -> new ArrayList<>()).add(pathFunction);
+    }
+
+    /**
      * Similar to {@link WebFramework#registerPath(RequestLine.Method, String, ThrowingFunction)} except that the paths
      * registered here may be partially matched.
      * <p>
@@ -751,10 +776,18 @@ public final class WebFramework {
             throw new WebServerException(
                     String.format("Path should not be prefixed with a slash.  Corrected version: registerPartialPath(%s, \"%s\", ... )", method.name(), pathName.substring(1)));
         }
-        var result = registeredPartialPaths.put(new MethodPath(method, pathName), webHandler);
-        if (result != null) {
-            throw new WebServerException("Duplicate partial-path endpoint registered: " + new MethodPath(method, pathName));
+        var functionList = registeredPathFunctions.get(method);
+        if (functionList != null) {
+            if (functionList.stream()
+                    .filter(PartialPathFunction.class::isInstance)
+                    .map(PartialPathFunction.class::cast)
+                    .map(function -> function.pathName)
+                    .anyMatch(pathName::equals)
+            ) {
+                throw new WebServerException("Duplicate partial-path endpoint registered: " + new MethodPath(method, pathName));
+            }
         }
+        registerPath(method, new PartialPathFunction(pathName, webHandler));
     }
 
     /**
