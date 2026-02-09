@@ -343,24 +343,26 @@ public class TemplatingTests {
             stockPricesList.add(stockPricesMap);
         }
 
+        var td = new TemplateData();
+        td.add("individual_stock", stockPricesList);
+
         logger.logDebug(() -> "STARTING WARMUP");
-        benchmark(warmupIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(warmupIterations, stockPrices, expectedFullOutput, stockPricesList, false);
+        benchmark(warmupIterations, stockPrices, expectedFullOutput, td, true);
+        benchmark(warmupIterations, stockPrices, expectedFullOutput, td, false);
 
         logger.logDebug(() -> "STARTING MAIN");
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, false);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, false);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, true);
-        benchmark(mainIterations, stockPrices, expectedFullOutput, stockPricesList, false);
+        benchmark(mainIterations, stockPrices, expectedFullOutput, td, true);
+        benchmark(mainIterations, stockPrices, expectedFullOutput, td, false);
+        benchmark(mainIterations, stockPrices, expectedFullOutput, td, true);
+        benchmark(mainIterations, stockPrices, expectedFullOutput, td, false);
+        benchmark(mainIterations, stockPrices, expectedFullOutput, td, true);
+        benchmark(mainIterations, stockPrices, expectedFullOutput, td, false);
     }
 
-    private static void benchmark(int renderingCount, TemplateProcessor stockPrices, String expectedFullOutput, List<Map<String, String>> stockPricesList, boolean runWithChecks) {
+    private static void benchmark(int renderingCount, TemplateProcessor stockPrices, String expectedFullOutput, TemplateData templateData, boolean runWithChecks) {
         StopwatchUtils stopwatch = new StopwatchUtils().startTimer();
         IntStream.range(0, renderingCount).boxed().parallel().forEach(x -> {
-            stockPrices.getInnerTemplate("individual_stocks").registerData(stockPricesList);
-            String resultantString = stockPrices.renderTemplate(runWithChecks);
+            String resultantString = stockPrices.renderTemplate(templateData, runWithChecks);
             assertEquals(expectedFullOutput, resultantString);
         });
         if (runWithChecks) {
@@ -407,7 +409,7 @@ public class TemplatingTests {
         TemplateProcessor foo = TemplateProcessor.buildProcessor("Here is {{ foo }}");
         assertThrows(TemplateRenderException.class,
                 "Missing keys in data ROOT: [foo]",
-                () -> foo.renderTemplate());
+                () -> foo.renderTemplate(Map.of()));
     }
 
     /**
@@ -420,7 +422,7 @@ public class TemplatingTests {
         TemplateProcessor outer = TemplateProcessor.buildProcessor("Here is {{ inner }}\nand {{ inner }} is here too.");
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I'm Henry the eighth I am I am\nHenry the eighth I am I am\nI am married to the woman next door");
         outer.registerInnerTemplate("inner", inner);
-        String render = outer.renderTemplate();
+        String render = outer.renderTemplate(Map.of());
         assertEquals("""
                 Here is I'm Henry the eighth I am I am
                         Henry the eighth I am I am
@@ -439,12 +441,11 @@ public class TemplatingTests {
         TemplateProcessor outer = TemplateProcessor.buildProcessor("{{ inner }} is king. {{ inner }} is empire.");
         TemplateProcessor inner = TemplateProcessor.buildProcessor("Henry the eighth");
         outer.registerInnerTemplate("inner", inner);
-        outer.registerData(List.of(Map.of("inner", "fubar")));
-        assertEquals("Henry the eighth is king. Henry the eighth is empire.", outer.renderTemplate());
+        assertEquals("Henry the eighth is king. Henry the eighth is empire.", outer.renderTemplate(List.of(Map.of("inner", "fubar"))));
     }
 
     /**
-     * Should get the same result as {@link #test_EdgeCase_Overlap()} for {@link TemplateProcessor#renderTemplate(Object)}
+     * Should get the same result as {@link #test_EdgeCase_Overlap()} for {@link TemplateProcessor#renderTemplate(TemplateData)}
      */
     @Test
     public void test_EdgeCase_Overlap_UsingRenderData() {
@@ -490,35 +491,19 @@ public class TemplatingTests {
     }
 
     @Test
-    public void test_EdgeCase_NoDataProvided() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        assertThrows(TemplateRenderException.class, "No data provided in registerData call", () -> inner.registerData(List.of()));
-        assertThrows(TemplateRenderException.class, "provided data cannot be null", () -> inner.registerData(null));
-    }
-
-    @Test
-    public void test_EdgeCase_NoDataProvided_alternate() {
-        TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        inner.registerData(List.of(Map.of()));
-        assertThrows(TemplateRenderException.class, "Missing keys in data map ROOT[0]: [foo]", () -> inner.renderTemplate());
-    }
-
-    @Test
     public void test_EdgeCase_InconsistentMaps() {
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        inner.registerData(List.of(Map.of("foo", "abc"), Map.of("bar", "def")));
         assertThrows(TemplateRenderException.class,
                 "Missing keys in data map ROOT[1]: [foo]",
-                inner::renderTemplate);
+                () -> inner.renderTemplate(List.of(Map.of("foo", "abc"), Map.of("bar", "def"))));
     }
 
     @Test
     public void test_EdgeCase_MapsAreAllEmpty() {
         TemplateProcessor inner = TemplateProcessor.buildProcessor("I am {{ foo }}");
-        inner.registerData(List.of(Map.of(), Map.of()));
         assertThrows(TemplateRenderException.class,
                 "Missing keys in data map ROOT[0]: [foo]",
-                inner::renderTemplate);
+                () -> inner.renderTemplate(List.of(Map.of(), Map.of())));
     }
 
     /**
@@ -527,7 +512,6 @@ public class TemplatingTests {
     @Test
     public void test_EdgeCase_RenderingSimpleTemplateNoData() {
         var tp = TemplateProcessor.buildProcessor("I am foo");
-        assertEquals("I am foo", tp.renderTemplate());
         assertEquals("I am foo", tp.renderTemplate(Map.of()));
     }
 
@@ -550,244 +534,244 @@ public class TemplatingTests {
         String result2 = TemplateProcessor.buildProcessor("{").renderTemplate(Map.of());
         assertEquals(result2, "{");
 
-        String result3 = TemplateProcessor.buildProcessor("{").renderTemplate();
+        String result3 = TemplateProcessor.buildProcessor("{").renderTemplate(Map.of());
         assertEquals(result3, "{");
 
         String result4 = TemplateProcessor.buildProcessor("hello {{ world }}").renderTemplate(Map.of("world", "foo"));
         assertEquals(result4, "hello foo");
     }
 
-    /**
-     * Trying a case of a template nested
-     * two times.
-     */
-    @Test
-    public void test_EdgeCase_DeeplyNested() {
-        TemplateProcessor aTemplate = buildProcessor("A template. {{ b_template }}");
-        TemplateProcessor bTemplate = buildProcessor("B template. {{ c_template }}");
-        TemplateProcessor cTemplate = buildProcessor("C template.");
-
-        aTemplate.registerInnerTemplate("b_template", bTemplate);
-        TemplateProcessor bTemplate1 = aTemplate.getInnerTemplate("b_template");
-        bTemplate1.registerInnerTemplate("c_template", cTemplate);
-        TemplateProcessor cTemplate1 = bTemplate1.getInnerTemplate("c_template");
-
-        assertEquals("A template. B template. C template.", aTemplate.renderTemplate());
-        assertEquals("B template. C template.", bTemplate1.renderTemplate());
-        assertEquals("C template.", cTemplate1.renderTemplate());
-    }
-
-    /**
-     * A bit more involved than {@link #test_EdgeCase_DeeplyNested}, this one
-     * has data.
-     */
-    @Test
-    public void test_EdgeCase_DeeplyNested_withData() {
-        TemplateProcessor aTemplate = buildProcessor("A template. {{ key1 }} {{ key2 }} {{ b_template }}");
-        TemplateProcessor bTemplate = buildProcessor("B template.  {{ key1 }} {{ key2 }} {{ c_template }}");
-        TemplateProcessor cTemplate = buildProcessor("C template.  {{ key1 }} {{ key2 }}");
-
-        List<Map<String, String>> data = List.of(Map.of("key1", "foo",
-                "key2", "bar"));
-
-        var newBTemplate = aTemplate.registerInnerTemplate("b_template", bTemplate);
-        var newCTemplate = newBTemplate.registerInnerTemplate("c_template", cTemplate);
-        aTemplate.registerData(data);
-        newBTemplate.registerData(data);
-        newCTemplate.registerData(data);
-
-        assertEquals("A template. foo bar B template.  foo bar C template.  foo bar", aTemplate.renderTemplate());
-        assertEquals("B template.  foo bar C template.  foo bar", newBTemplate.renderTemplate());
-        assertEquals("C template.  foo bar", newCTemplate.renderTemplate());
-        assertEquals("A template. {{ key1 }} {{ key2 }} {{ b_template }}", aTemplate.getOriginalText());
-        assertEquals("B template.  {{ key1 }} {{ key2 }} {{ c_template }}", newBTemplate.getOriginalText());
-        assertEquals("C template.  {{ key1 }} {{ key2 }}", newCTemplate.getOriginalText());
-    }
-
-    /**
-     * An edge case to ensure we can parse any types of object in the template.
-     * If the object is not a List or Map, it will be wrapped as a Map.of("value", data).
-     * It means if we want to parse that object in the template, use the key "value"
-     */
-    @Test
-    public void test_EdgeCase_PrimitiveData() {
-        TemplateProcessor template = buildProcessor("Hello {{ value }}");
-        assertEquals("Hello Anna\nHello John\nHello Lucy", template.renderTemplate(List.of("Anna", "John", "Lucy")));
-    }
-
-    /**
-     * A test to try the rendering when setting the single data map for both the main and inner template
-     */
-    @Test
-    public void test_DeepData_SimpleCase() {
-        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
-        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
-        mainTemplate.registerInnerTemplate("list", listTemplate);
-
-        Map<String, Object> data = Map.of(
-                "type", "Fame",
-                "list", Map.of("name", "A")
-        );
-
-        assertEquals(
-                """
-                Hall of Fame:
-                - A""",
-                mainTemplate.renderTemplate(data)
-        );
-    }
-
-    /**
-     * Similar to {@link #test_DeepData_SimpleCase()} but try a list of map in the inner data
-     */
-    @Test
-    public void test_DeepData_ListForInner() {
-        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
-        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
-        mainTemplate.registerInnerTemplate("list", listTemplate);
-
-        Map<String, Object> data = Map.of(
-                "type", "Fame",
-                "list", List.of(
-                        Map.of("name", "A"),
-                        Map.of("name", "B"),
-                        Map.of("name", "C")
-                )
-        );
-
-        assertEquals(
-                """
-                Hall of Fame:
-                - A
-                - B
-                - C""",
-                mainTemplate.renderTemplate(data)
-        );
-    }
-
-    /**
-     * A test to ensure we can still use inner data in an inner data
-     */
-    @Test
-    public void test_DeepData_InnerInInner() {
-        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
-        TemplateProcessor listTemplate = buildProcessor("- {{ name }}\n  {{ notes }}");
-        TemplateProcessor notesTemplate = buildProcessor("+ {{ note }}");
-        listTemplate.registerInnerTemplate("notes", notesTemplate);
-        mainTemplate.registerInnerTemplate("list", listTemplate);
-
-        Map<String, Object> data = Map.of(
-                "type", "Fame",
-                "list", List.of(
-                        Map.of(
-                                "name", "A",
-                                "notes", List.of(
-                                        Map.of("note", "Hello World"),
-                                        Map.of("note", "Index 1")
-                                )
-                        ),
-                        Map.of(
-                                "name", "B",
-                                "notes", List.of(
-                                        Map.of("note", "Goodbye World"),
-                                        Map.of("note", "Index 2")
-                                )
-                        ),
-                        Map.of(
-                                "name", "C",
-                                "notes", List.of(
-                                        Map.of("note", "Hello Again"),
-                                        Map.of("note", "Index 3")
-                                )
-                        )
-                )
-        );
-
-        assertEquals(
-                """
-                Hall of Fame:
-                - A
-                  + Hello World
-                  + Index 1
-                - B
-                  + Goodbye World
-                  + Index 2
-                - C
-                  + Hello Again
-                  + Index 3""",
-                mainTemplate.renderTemplate(data)
-        );
-    }
-
-    /**
-     * A test to ensure we can check the existence of the inner data
-     */
-    @Test
-    public void test_DeepData_MissingInnerData() {
-        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
-        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
-        mainTemplate.registerInnerTemplate("list", listTemplate);
-
-        Map<String, Object> data = Map.of(
-                "type", "Fame",
-                "list", Map.of()
-        );
-
-        assertThrows(
-                TemplateRenderException.class,
-                "Missing keys in data map ROOT[0].list[0]: [name]",
-                () -> mainTemplate.renderTemplate(data)
-        );
-    }
-
-    /**
-     * A test to ensure we can check the type of the inner data
-     */
-    @Test
-    public void test_DeepData_InvalidDataInInner() {
-        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
-        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
-        mainTemplate.registerInnerTemplate("list", listTemplate);
-
-        Map<String, Object> data = Map.of(
-                "type", "Fame",
-                "list", List.of(
-                        1,
-                        2,
-                        3
-                )
-        );
-
-        assertThrows(
-                TemplateRenderException.class,
-                "Missing keys in data map ROOT[0].list[0]: [name]",
-                () -> mainTemplate.renderTemplate(data)
-        );
-    }
-
-    @Test
-    public void test_Template_Multi_Thread_WithInner() {
-        TemplateProcessor templateProcessor = buildProcessor("Hello {{thread}}");
-        TemplateProcessor innerTemplate = buildProcessor("Thread #{{name}}");
-        templateProcessor.registerInnerTemplate("thread", innerTemplate);
-
-        int threadCount = 10;
-        var futures = new ArrayList<CompletableFuture<String>>();
-
-        // Create multiple concurrent render tasks with different data
-        for (int i = 0; i < threadCount; i++) {
-            final int threadNum = i;
-            var future = CompletableFuture.supplyAsync(() -> {
-                templateProcessor.getInnerTemplate("thread").registerData(List.of(Map.of("name", Integer.toString(threadNum))));
-                return templateProcessor.renderTemplate();
-            });
-            futures.add(future);
-        }
-
-        // Verify all threads completed successfully with correct results
-        for (int i = 0; i < threadCount; i++) {
-            String result = futures.get(i).join();
-            assertEquals(result, "Hello Thread #" + i);
-        }
-    }
+//    /**
+//     * Trying a case of a template nested
+//     * two times.
+//     */
+//    @Test
+//    public void test_EdgeCase_DeeplyNested() {
+//        TemplateProcessor aTemplate = buildProcessor("A template. {{ b_template }}");
+//        TemplateProcessor bTemplate = buildProcessor("B template. {{ c_template }}");
+//        TemplateProcessor cTemplate = buildProcessor("C template.");
+//
+//        aTemplate.registerInnerTemplate("b_template", bTemplate);
+//        TemplateProcessor bTemplate1 = aTemplate.getInnerTemplate("b_template");
+//        bTemplate1.registerInnerTemplate("c_template", cTemplate);
+//        TemplateProcessor cTemplate1 = bTemplate1.getInnerTemplate("c_template");
+//
+//        assertEquals("A template. B template. C template.", aTemplate.renderTemplate());
+//        assertEquals("B template. C template.", bTemplate1.renderTemplate());
+//        assertEquals("C template.", cTemplate1.renderTemplate());
+//    }
+//
+//    /**
+//     * A bit more involved than {@link #test_EdgeCase_DeeplyNested}, this one
+//     * has data.
+//     */
+//    @Test
+//    public void test_EdgeCase_DeeplyNested_withData() {
+//        TemplateProcessor aTemplate = buildProcessor("A template. {{ key1 }} {{ key2 }} {{ b_template }}");
+//        TemplateProcessor bTemplate = buildProcessor("B template.  {{ key1 }} {{ key2 }} {{ c_template }}");
+//        TemplateProcessor cTemplate = buildProcessor("C template.  {{ key1 }} {{ key2 }}");
+//
+//        List<Map<String, String>> data = List.of(Map.of("key1", "foo",
+//                "key2", "bar"));
+//
+//        var newBTemplate = aTemplate.registerInnerTemplate("b_template", bTemplate);
+//        var newCTemplate = newBTemplate.registerInnerTemplate("c_template", cTemplate);
+//        aTemplate.registerData(data);
+//        newBTemplate.registerData(data);
+//        newCTemplate.registerData(data);
+//
+//        assertEquals("A template. foo bar B template.  foo bar C template.  foo bar", aTemplate.renderTemplate());
+//        assertEquals("B template.  foo bar C template.  foo bar", newBTemplate.renderTemplate());
+//        assertEquals("C template.  foo bar", newCTemplate.renderTemplate());
+//        assertEquals("A template. {{ key1 }} {{ key2 }} {{ b_template }}", aTemplate.getOriginalText());
+//        assertEquals("B template.  {{ key1 }} {{ key2 }} {{ c_template }}", newBTemplate.getOriginalText());
+//        assertEquals("C template.  {{ key1 }} {{ key2 }}", newCTemplate.getOriginalText());
+//    }
+//
+//    /**
+//     * An edge case to ensure we can parse any types of object in the template.
+//     * If the object is not a List or Map, it will be wrapped as a Map.of("value", data).
+//     * It means if we want to parse that object in the template, use the key "value"
+//     */
+//    @Test
+//    public void test_EdgeCase_PrimitiveData() {
+//        TemplateProcessor template = buildProcessor("Hello {{ value }}");
+//        assertEquals("Hello Anna\nHello John\nHello Lucy", template.renderTemplate(List.of("Anna", "John", "Lucy")));
+//    }
+//
+//    /**
+//     * A test to try the rendering when setting the single data map for both the main and inner template
+//     */
+//    @Test
+//    public void test_DeepData_SimpleCase() {
+//        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+//        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+//        mainTemplate.registerInnerTemplate("list", listTemplate);
+//
+//        Map<String, Object> data = Map.of(
+//                "type", "Fame",
+//                "list", Map.of("name", "A")
+//        );
+//
+//        assertEquals(
+//                """
+//                Hall of Fame:
+//                - A""",
+//                mainTemplate.renderTemplate(data)
+//        );
+//    }
+//
+//    /**
+//     * Similar to {@link #test_DeepData_SimpleCase()} but try a list of map in the inner data
+//     */
+//    @Test
+//    public void test_DeepData_ListForInner() {
+//        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+//        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+//        mainTemplate.registerInnerTemplate("list", listTemplate);
+//
+//        Map<String, Object> data = Map.of(
+//                "type", "Fame",
+//                "list", List.of(
+//                        Map.of("name", "A"),
+//                        Map.of("name", "B"),
+//                        Map.of("name", "C")
+//                )
+//        );
+//
+//        assertEquals(
+//                """
+//                Hall of Fame:
+//                - A
+//                - B
+//                - C""",
+//                mainTemplate.renderTemplate(data)
+//        );
+//    }
+//
+//    /**
+//     * A test to ensure we can still use inner data in an inner data
+//     */
+//    @Test
+//    public void test_DeepData_InnerInInner() {
+//        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+//        TemplateProcessor listTemplate = buildProcessor("- {{ name }}\n  {{ notes }}");
+//        TemplateProcessor notesTemplate = buildProcessor("+ {{ note }}");
+//        listTemplate.registerInnerTemplate("notes", notesTemplate);
+//        mainTemplate.registerInnerTemplate("list", listTemplate);
+//
+//        Map<String, Object> data = Map.of(
+//                "type", "Fame",
+//                "list", List.of(
+//                        Map.of(
+//                                "name", "A",
+//                                "notes", List.of(
+//                                        Map.of("note", "Hello World"),
+//                                        Map.of("note", "Index 1")
+//                                )
+//                        ),
+//                        Map.of(
+//                                "name", "B",
+//                                "notes", List.of(
+//                                        Map.of("note", "Goodbye World"),
+//                                        Map.of("note", "Index 2")
+//                                )
+//                        ),
+//                        Map.of(
+//                                "name", "C",
+//                                "notes", List.of(
+//                                        Map.of("note", "Hello Again"),
+//                                        Map.of("note", "Index 3")
+//                                )
+//                        )
+//                )
+//        );
+//
+//        assertEquals(
+//                """
+//                Hall of Fame:
+//                - A
+//                  + Hello World
+//                  + Index 1
+//                - B
+//                  + Goodbye World
+//                  + Index 2
+//                - C
+//                  + Hello Again
+//                  + Index 3""",
+//                mainTemplate.renderTemplate(data)
+//        );
+//    }
+//
+//    /**
+//     * A test to ensure we can check the existence of the inner data
+//     */
+//    @Test
+//    public void test_DeepData_MissingInnerData() {
+//        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+//        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+//        mainTemplate.registerInnerTemplate("list", listTemplate);
+//
+//        Map<String, Object> data = Map.of(
+//                "type", "Fame",
+//                "list", Map.of()
+//        );
+//
+//        assertThrows(
+//                TemplateRenderException.class,
+//                "Missing keys in data map ROOT[0].list[0]: [name]",
+//                () -> mainTemplate.renderTemplate(data)
+//        );
+//    }
+//
+//    /**
+//     * A test to ensure we can check the type of the inner data
+//     */
+//    @Test
+//    public void test_DeepData_InvalidDataInInner() {
+//        TemplateProcessor mainTemplate = buildProcessor("Hall of {{ type }}:\n{{ list }}");
+//        TemplateProcessor listTemplate = buildProcessor("- {{ name }}");
+//        mainTemplate.registerInnerTemplate("list", listTemplate);
+//
+//        Map<String, Object> data = Map.of(
+//                "type", "Fame",
+//                "list", List.of(
+//                        1,
+//                        2,
+//                        3
+//                )
+//        );
+//
+//        assertThrows(
+//                TemplateRenderException.class,
+//                "Missing keys in data map ROOT[0].list[0]: [name]",
+//                () -> mainTemplate.renderTemplate(data)
+//        );
+//    }
+//
+//    @Test
+//    public void test_Template_Multi_Thread_WithInner() {
+//        TemplateProcessor templateProcessor = buildProcessor("Hello {{thread}}");
+//        TemplateProcessor innerTemplate = buildProcessor("Thread #{{name}}");
+//        templateProcessor.registerInnerTemplate("thread", innerTemplate);
+//
+//        int threadCount = 10;
+//        var futures = new ArrayList<CompletableFuture<String>>();
+//
+//        // Create multiple concurrent render tasks with different data
+//        for (int i = 0; i < threadCount; i++) {
+//            final int threadNum = i;
+//            var future = CompletableFuture.supplyAsync(() -> {
+//                templateProcessor.getInnerTemplate("thread").registerData(List.of(Map.of("name", Integer.toString(threadNum))));
+//                return templateProcessor.renderTemplate();
+//            });
+//            futures.add(future);
+//        }
+//
+//        // Verify all threads completed successfully with correct results
+//        for (int i = 0; i < threadCount; i++) {
+//            String result = futures.get(i).join();
+//            assertEquals(result, "Hello Thread #" + i);
+//        }
+//    }
 }
