@@ -157,8 +157,10 @@ public class TemplatingTests {
     public void test_Template_EdgeCase_RenderingWithInnerTemplate_MissingData_DeeperNesting() {
         String template = "Hello from the outer {{ name }}";
         TemplateProcessor tp = buildProcessor(template);
-        tp.registerInnerTemplate("inner_template", TemplateProcessor.buildProcessor("I am middle {{ name }}, {{ giraffe }}"));
-        tp.getInnerTemplate("inner_template").registerInnerTemplate("giraffe", TemplateProcessor.buildProcessor("my name is {{ name }}"));
+        tp.registerInnerTemplate("inner_template",
+                TemplateProcessor.buildProcessor("I am middle {{ name }}, {{ giraffe }}"));
+        tp.getInnerTemplate("inner_template")
+                .registerInnerTemplate("giraffe", TemplateProcessor.buildProcessor("my name is {{ name }}"));
         var td = new TemplateData();
         td.add("inner_template", Map.of("name", "foo"));
         td.add(Map.of("name", "bar"));
@@ -373,7 +375,6 @@ public class TemplatingTests {
 
     }
 
-
     /**
      * When the template value is injected into the template, each newline
      * should be indented relative to the start.
@@ -433,15 +434,17 @@ public class TemplatingTests {
     }
 
     /**
-     * We can register both templates and ordinary data with the same keys,
-     * We will prioritize inner template if that happens
+     * We cannot register both templates and ordinary data with the same keys,
+     * because that is a confusing use case for users and we prioritize plainness.
+     * If they do that, we will throw an exception.
      */
     @Test
     public void test_EdgeCase_Overlap() {
         TemplateProcessor outer = TemplateProcessor.buildProcessor("{{ inner }} is king. {{ inner }} is empire.");
         TemplateProcessor inner = TemplateProcessor.buildProcessor("Henry the eighth");
         outer.registerInnerTemplate("inner", inner);
-        assertEquals("Henry the eighth is king. Henry the eighth is empire.", outer.renderTemplate(List.of(Map.of("inner", "fubar"))));
+        var ex = assertThrows(TemplateRenderException.class, () -> outer.renderTemplate(List.of(Map.of("inner", "fubar"))));
+        assertEquals(ex.getMessage(), "\"inner\" is registered as both an inner template and a string value, which is disallowed");
     }
 
     /**
@@ -452,7 +455,8 @@ public class TemplatingTests {
         TemplateProcessor outer = TemplateProcessor.buildProcessor("{{ inner }} is king. {{ inner }} is empire.");
         TemplateProcessor inner = TemplateProcessor.buildProcessor("Henry the eighth");
         outer.registerInnerTemplate("inner", inner);
-        assertEquals("Henry the eighth is king. Henry the eighth is empire.", outer.renderTemplate(Map.of("inner", "fubar")));
+        var ex = assertThrows(TemplateRenderException.class, () -> outer.renderTemplate(Map.of("inner", "fubar")));
+        assertEquals(ex.getMessage(), "\"inner\" is registered as both an inner template and a string value, which is disallowed");
     }
 
 

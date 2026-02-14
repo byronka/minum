@@ -350,7 +350,7 @@ public final class TemplateProcessor {
 
                 TemplateValue value = myMap.get(key);
 
-                if (value.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
+                if (value != null && value.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
                     tp.correctnessCheck(value.getInnerData(), keyForException + "." + key);
                 }
 
@@ -371,7 +371,7 @@ public final class TemplateProcessor {
             var tp = entry.getValue();
             for (var myMap : data) {
                 var innerData = myMap.get(key);
-                if (innerData.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
+                if (innerData != null && innerData.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
                     fullCalculatedSize += tp.calculateEstimatedSize(innerData.getInnerData());
                 }
             }
@@ -395,10 +395,14 @@ public final class TemplateProcessor {
                 switch (templateSection.templateType) {
                     case STATIC_TEXT -> parts.append(templateSection.staticData);
                     case DYNAMIC_TEXT -> parts.append(myDataMap.get(templateSection.key));
-                    default -> {
+                    case INNER_TEMPLATE -> {
                         var innerData = myDataMap.get(templateSection.key);
                         if (innerData.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
                             templateSection.templateProcessor.internalRender(templateSection.indent, parts, innerData.getInnerData());
+                        } else {
+                            String conflictError = ("\"%s\" is registered as both an inner template " +
+                                    "and a string value, which is disallowed").formatted(templateSection.key);
+                            throw new TemplateRenderException(conflictError);
                         }
                     }
                 }

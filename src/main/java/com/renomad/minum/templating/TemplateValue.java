@@ -47,10 +47,10 @@ public class TemplateValue {
 
     @Override
     public String toString() {
-        return "TemplateValue{" +
-                "innerData=" + innerData +
-                ", value='" + value + '\'' +
-                ", templateValueType=" + templateValueType +
-                '}';
+        if (templateValueType.equals(TemplateValueType.STRING)) {
+            return this.value;
+        } else {
+            return this.innerData.toString();
+        }
     }
 }
