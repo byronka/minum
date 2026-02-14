@@ -4,7 +4,6 @@ import com.renomad.minum.TheRegister;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.templating.TemplateData;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.StringUtils;

@@ -4,7 +4,6 @@ import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.templating.TemplateData;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.utils.*;
 import com.renomad.minum.web.Headers;
@@ -176,7 +175,7 @@ public class ListPhotos {
      * Get a file from a path and create a response for it with a mime type.
      * <p>
      *     Parent directories are made unavailable by searching the path for
-     *     bad characters.  See {@link FileUtils#badFilePathPatterns}
+     *     bad characters.
      * </p>
      *
      * @param path the path to the file on disk.

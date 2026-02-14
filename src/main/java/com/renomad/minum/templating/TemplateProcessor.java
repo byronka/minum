@@ -1,9 +1,7 @@
 package com.renomad.minum.templating;
 
-import java.util.*;
-import java.util.stream.Collectors;
 
-import static com.renomad.minum.utils.SerializationUtils.tokenizer;
+import java.util.*;
 
 /**
  * This class provides methods for working with templates.
@@ -42,65 +40,37 @@ import static com.renomad.minum.utils.SerializationUtils.tokenizer;
  */
 public final class TemplateProcessor {
 
-    /**
-     * template sections by indentation
-     */
-    private Map<Integer, List<TemplateSection>> templatesSectionsByIndent;
-    private final Set<String> keysFoundInTemplate;
-    private final Set<String> keysRegisteredForInnerTemplates;
-    private final String originalText;
-    /**
-     * This value is used to calculate a quick estimate of how many
-     * bytes of memory we will need for the buffer holding our generated string
-     */
-    private final static double SIZE_ESTIMATE_MODIFIER = 1.1;
-    private final int estimatedSize;
-    private Map<String, TemplateProcessor> innerTemplates;
+    private final List<TemplateSection> templateSections;
 
     /**
      * Instantiate a new object with a list of {@link TemplateSection}.
      */
-    private TemplateProcessor(List<TemplateSection> templateSections, String originalText) {
-        this.templatesSectionsByIndent = new HashMap<>();
-        this.templatesSectionsByIndent.put(0, templateSections);
-        keysFoundInTemplate = new HashSet<>();
-        keysRegisteredForInnerTemplates = new HashSet<>();
-        this.originalText = originalText;
-        this.innerTemplates = new HashMap<>();
-        estimatedSize = (int) Math.round(originalText.length() * SIZE_ESTIMATE_MODIFIER);
-    }
-
-    /**
-     * Given a map of key names -> value, render a template.
-     * @param runWithChecks Default: true.  Check that there is a 1-to-1 correspondence between
-     *                      the keys provided and keys in the template and sub-templates, throwing
-     *                      an exception if there are any errors. Also check that the maps
-     *                      of data are consistent.  This should be set true unless there is a reason
-     *                      to aim for maximum performance, which is actually not
-     *                      valuable in most cases, since the bottleneck is the business algorithms, database,
-     *                      and HTTP processing.
-     */
-    public String renderTemplate(TemplateData data, boolean runWithChecks) {
-        return internalRender(runWithChecks, data.getData()).toString();
+    private TemplateProcessor(List<TemplateSection> templateSections) {
+        this.templateSections = templateSections;
     }
 
     /**
      * Given a map of key names -> value, render a template.
      */
-    public String renderTemplate(TemplateData data) {
-        return internalRender(true, data.getData()).toString();
-    }
+    public String renderTemplate(Map<String, String> myMap) {
+        // This indicates the count of usages of each key
+        Map <String, Integer> usageMap = new HashMap<>();
+        List<String> parts = new ArrayList<>();
+        for (TemplateSection templateSection : templateSections) {
+            RenderingResult result = templateSection.render(myMap);
+            parts.add(result.renderedSection());
+            String appliedKey = result.appliedKey();
+            if (appliedKey != null) {
+                usageMap.merge(appliedKey, 1, Integer::sum);
+            }
+        }
+        Set<String> unusedKeys = new HashSet<>(myMap.keySet());
+        unusedKeys.removeIf(usageMap.keySet()::contains);
 
-    public String renderTemplate(Map<String, String> data) {
-        var td = new TemplateData();
-        td.add(data);
-        return internalRender(true, td.getData()).toString();
-    }
-
-    public String renderTemplate(List<Map<String, String>> data) {
-        var td = new TemplateData();
-        td.add(data);
-        return internalRender(true, td.getData()).toString();
+        if (!unusedKeys.isEmpty()) {
+            throw new TemplateRenderException("No corresponding key in template found for these keys: " + String.join(", ", unusedKeys));
+        }
+        return String.join("",parts);
     }
 
     /**
@@ -109,22 +79,6 @@ public final class TemplateProcessor {
      * are surrounded by double-curly-braces, i.e. {{foo}} or {{ foo }}
      */
     public static TemplateProcessor buildProcessor(String template) {
-        if (template == null || template.isEmpty()) {
-            throw new TemplateRenderException("The input to building a template must be a non-empty string");
-        }
-        var tp = new TemplateProcessor(new ArrayList<>(), template);
-        List<TemplateSection> tSections = tp.renderToTemplateSections(template);
-        Set<String> keysFound = tSections.stream()
-                .filter(x -> x.templateType.equals(TemplateType.DYNAMIC_TEXT))
-                .map(x -> x.key)
-                .collect(Collectors.toSet());
-        tp.keysFoundInTemplate.addAll(keysFound);
-        tp.templatesSectionsByIndent.put(0, tSections);
-
-        return tp;
-    }
-
-    private List<TemplateSection> renderToTemplateSections(String template) {
         // this value holds the entire template after processing, comprised
         // of an ordered list of TemplateSections
         var tSections = new ArrayList<TemplateSection>();
@@ -144,12 +98,12 @@ public final class TemplateProcessor {
         for (int i = 0; i < template.length(); i++) {
             char charAtCursor = template.charAt(i);
 
-            if (charAtCursor == '{' && (i + 1) < template.length() && template.charAt(i + 1) == '{') {
+            if (justArrivedInside(template, charAtCursor, i)) {
                 isInsideTemplateKeyLiteral = true;
-                startOfKey = columnNumber - 1;
+                startOfKey = columnNumber;
                 i += 1;
                 builder = processSectionInside(builder, tSections);
-            } else if (isInsideTemplateKeyLiteral && charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}') {
+            } else if (justArrivedOutside(template, charAtCursor, i, isInsideTemplateKeyLiteral)) {
                 isInsideTemplateKeyLiteral = false;
                 i += 1;
                 builder = processSectionOutside(builder, tSections, startOfKey);
@@ -172,7 +126,7 @@ public final class TemplateProcessor {
                         throw new TemplateParseException(
                                 "parsing failed for string starting with \"" + templateSample + "\" at line " + rowNumber + " and column " + columnNumber);
                     }
-                    tSections.add(new TemplateSection(null, builder.toString(), null, TemplateType.STATIC_TEXT, 0));
+                    tSections.add(new TemplateSection(null, builder.toString(), 0));
                 }
             }
 
@@ -184,246 +138,50 @@ public final class TemplateProcessor {
             }
 
         }
-        return tSections;
+
+        return new TemplateProcessor(tSections);
     }
 
-    private static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {
+    static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(null, builder.toString(), null, TemplateType.STATIC_TEXT, 0));
+            tSections.add(new TemplateSection(null, builder.toString(), 0));
             builder = new StringBuilder();
         }
         return builder;
     }
 
-    private static StringBuilder processSectionOutside(StringBuilder builder,
-                                               List<TemplateSection> tSections,
-                                               int indent) {
-        String key = builder.toString().trim();
-        tSections.add(new TemplateSection(key, "", null, TemplateType.DYNAMIC_TEXT, indent));
-        builder = new StringBuilder();
+    static StringBuilder processSectionOutside(StringBuilder builder, List<TemplateSection> tSections, int indent) {
+        if (!builder.isEmpty()) {
+            tSections.add(new TemplateSection(builder.toString().trim(), null, indent));
+            builder = new StringBuilder();
+        }
         return builder;
     }
 
     /**
-     * Binds an inner template to a key of this template.
-     */
-    public TemplateProcessor registerInnerTemplate(String key, TemplateProcessor innerTemplate) {
-        if (key == null || key.isBlank()) {
-            throw new TemplateRenderException("The key must be a valid non-blank string");
-        }
-        if (innerTemplate == null) {
-            throw new TemplateRenderException("The template must not be null");
-        }
-        if (this.equals(innerTemplate)) {
-            throw new TemplateRenderException("Disallowed to register a template to itself as an inner template");
-        }
-        if (keysRegisteredForInnerTemplates.contains(key)) {
-            throw new TemplateRenderException("key is already registered for use in another template: " + key);
-        }
-
-        // get the indent we should apply to each line after the first
-        // by seeing what indent exists in the template sections and
-        // creating a separate indented version for each one
-        Set<Integer> necessaryIndentations = this.templatesSectionsByIndent.get(0).stream()
-                .filter(x -> key.equals(x.key))
-                .map(x -> x.indent).collect(Collectors.toSet());
-
-        // make sure we have one for zero as well.
-        necessaryIndentations.add(0);
-
-
-        var copyOfInnerTemplate = new TemplateProcessor(innerTemplate.templatesSectionsByIndent.get(0), innerTemplate.getOriginalText());
-        copyOfInnerTemplate.keysFoundInTemplate.addAll(innerTemplate.keysFoundInTemplate);
-        copyOfInnerTemplate.keysRegisteredForInnerTemplates.addAll(innerTemplate.keysRegisteredForInnerTemplates);
-        copyOfInnerTemplate.innerTemplates = new HashMap<>(innerTemplate.innerTemplates);
-        this.innerTemplates.put(key, copyOfInnerTemplate);
-
-        copyOfInnerTemplate.templatesSectionsByIndent.clear();
-
-        // a non-configurable ceiling limit to avoid runaway loops
-        int MAXIMUM_LINES_ALLOWED = 10_000_000;
-        String originalText = copyOfInnerTemplate.getOriginalText();
-        List<String> lines = tokenizer(originalText, '\n', MAXIMUM_LINES_ALLOWED);
-
-        // if, after splitting on newlines, we have more than one line, we'll indent the remaining
-        // lines so that they end up at the same column as the first line.
-        for (int indentation : necessaryIndentations) {
-            var indentedInnerTemplateText = new StringBuilder(lines.getFirst());
-            for (int i = 1; i < lines.size(); i++) {
-                if (lines.get(i).isEmpty()) {
-                    indentedInnerTemplateText.append('\n');
-                } else {
-                    indentedInnerTemplateText.append('\n').append(" ".repeat(indentation)).append(lines.get(i));
-                }
-            }
-            List<TemplateSection> tSections = renderToTemplateSections(indentedInnerTemplateText.toString());
-            
-            // Convert DYNAMIC_TEXT sections back to INNER_TEMPLATE if they're registered in the inner template
-            for (int j = 0; j < tSections.size(); j++) {
-                TemplateSection section = tSections.get(j);
-                if (section.templateType == TemplateType.DYNAMIC_TEXT
-                        && copyOfInnerTemplate.innerTemplates.containsKey(section.key)) {
-                    tSections.set(j, new TemplateSection(
-                        section.key,
-                        section.staticData,
-                        copyOfInnerTemplate.innerTemplates.get(section.key),
-                        TemplateType.INNER_TEMPLATE,
-                        section.indent
-                    ));
-                }
-            }
-            
-            copyOfInnerTemplate.templatesSectionsByIndent.put(indentation, tSections);
-
-            // now, loop through all the template sections, replacing them appropriately with
-            // new data labeled as INNER_TEMPLATE.
-            Map<Integer, List<TemplateSection>> revisedTemplateSectionsByIndent = new HashMap<>();
-            for (var templateSectionsByIndent : templatesSectionsByIndent.entrySet()) {
-                List<TemplateSection> revisedList = new ArrayList<>();
-                for (TemplateSection templateSection : templateSectionsByIndent.getValue()) {
-                    if (key.equals(templateSection.key)) {
-                        revisedList.add(new TemplateSection(templateSection.key,
-                                templateSection.staticData,
-                                copyOfInnerTemplate,
-                                TemplateType.INNER_TEMPLATE,
-                                templateSection.indent));
-                    } else {
-                        revisedList.add(templateSection);
-                    }
-                }
-                revisedTemplateSectionsByIndent.put(templateSectionsByIndent.getKey(), revisedList);
-            }
-            templatesSectionsByIndent = revisedTemplateSectionsByIndent;
-
-            this.keysRegisteredForInnerTemplates.add(key);
-        }
-
-        return copyOfInnerTemplate;
-    }
-
-    /**
-     * Returns the original unchanged template string
-     */
-    public String getOriginalText() {
-        return originalText;
-    }
-
-    /**
-     * now, loop through the lists of data we were given, with the
-     * internal template sections in hand
-     */
-    private StringBuilder internalRender(boolean runWithChecks, List<Map<String, TemplateValue>> data) {
-        if (runWithChecks) {
-            correctnessCheck(data, "ROOT");
-        }
-        int capacity = calculateEstimatedSize(data);
-        StringBuilder parts = new StringBuilder(capacity);
-        return internalRender(0, parts, data);
-    }
-
-    /**
-     * This examines the currently registered data lists and template keys
-     * and confirms they are aligned.  It will throw an exception if they
-     * are not perfectly correlated.
-     * <br>
+     * Just left a template key value.
+     * <pre>
+     *     hello {{ world }}
+     *                ^
+     *                +------Template key
      *
+     * </pre>
      */
-    private void correctnessCheck(List<Map<String, TemplateValue>> data, String parentKey) {
-
-        for (int i = 0; i < data.size(); i++) {
-            Map<String, TemplateValue> myMap = data.get(i);
-            String keyForException = parentKey + "[" + i + "]";
-
-            Set<String> missingKeys = new HashSet<>();
-            for (String key : keysFoundInTemplate) {
-                if (!myMap.containsKey(key) && !keysRegisteredForInnerTemplates.contains(key)) {
-                    missingKeys.add(key);
-                }
-            }
-            if (!missingKeys.isEmpty()) {
-                throw new TemplateRenderException("Missing keys in data map " + keyForException + ": " + missingKeys);
-            }
-
-            for (var entry : this.innerTemplates.entrySet()) {
-                var key = entry.getKey();
-                var tp = entry.getValue();
-
-                TemplateValue value = myMap.get(key);
-
-                if (value != null && value.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
-                    tp.correctnessCheck(value.getInnerData(), keyForException + "." + key);
-                }
-
-            }
-        }
+    static boolean justArrivedOutside(String template, char charAtCursor, int i, boolean isInsideTemplateKeyLiteral) {
+        return charAtCursor == '}' && (i + 1) < template.length() && template.charAt(i + 1) == '}' && isInsideTemplateKeyLiteral;
     }
 
     /**
-     * build up a calculated size estimate for this and all
-     * nested templates.
+     * Just arrived inside a template key value.
+     * <pre>
+     *     hello {{ world }}
+     *                ^
+     *                +------Template key
+     *
+     * </pre>
      */
-    private int calculateEstimatedSize(List<Map<String, TemplateValue>> data) {
-        // the size of the datalist specifies how many times we will render ourselves.
-        int sizeMultiplier = data.isEmpty() ? 1 : data.size();
-        int fullCalculatedSize = sizeMultiplier * estimatedSize;
-        for (var entry : this.innerTemplates.entrySet()) {
-            var key = entry.getKey();
-            var tp = entry.getValue();
-            for (var myMap : data) {
-                var innerData = myMap.get(key);
-                if (innerData != null && innerData.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
-                    fullCalculatedSize += tp.calculateEstimatedSize(innerData.getInnerData());
-                }
-            }
-        }
-        return fullCalculatedSize;
-    }
-
-    private StringBuilder internalRender(int indent, StringBuilder parts, List<Map<String, TemplateValue>> data) {
-        Map<String, TemplateValue> myDataMap = Map.of();
-        List<TemplateSection> templateSections = templatesSectionsByIndent.get(indent);
-        int templateSectionsSize = templateSections.size();
-        int dataListIndex = 0;
-        if (!data.isEmpty()) {
-            myDataMap = data.get(dataListIndex);
-        }
-
-        // build ourself out for each map of data given
-        while (true) {
-            for (int i = 0; i < templateSectionsSize; i++) {
-                TemplateSection templateSection = templateSections.get(i);
-                switch (templateSection.templateType) {
-                    case STATIC_TEXT -> parts.append(templateSection.staticData);
-                    case DYNAMIC_TEXT -> parts.append(myDataMap.get(templateSection.key));
-                    case INNER_TEMPLATE -> {
-                        var innerData = myDataMap.get(templateSection.key);
-                        if (innerData.getTemplateValueType().equals(TemplateValueType.LIST_OF_MAPS)) {
-                            templateSection.templateProcessor.internalRender(templateSection.indent, parts, innerData.getInnerData());
-                        } else {
-                            String conflictError = ("\"%s\" is registered as both an inner template " +
-                                    "and a string value, which is disallowed").formatted(templateSection.key);
-                            throw new TemplateRenderException(conflictError);
-                        }
-                    }
-                }
-
-            }
-            dataListIndex += 1;
-            if (!data.isEmpty() && dataListIndex < data.size()) {
-                myDataMap = data.get(dataListIndex);
-                parts.append("\n").repeat(" ", indent);
-            } else {
-                return parts;
-            }
-        }
-    }
-
-    /**
-     * Returns the reference to an inner template, to enable registering
-     * data and sub-templates.
-     */
-    public TemplateProcessor getInnerTemplate(String innerTemplateKey) {
-        return this.innerTemplates.get(innerTemplateKey);
+    static boolean justArrivedInside(String template, char charAtCursor, int i) {
+        return charAtCursor == '{' && (i + 1) < template.length() && template.charAt(i + 1) == '{';
     }
 }
 
