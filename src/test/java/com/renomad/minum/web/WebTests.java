@@ -238,7 +238,7 @@ public class WebTests {
         var wf = new WebFramework(context, default_zdt);
         wf.registerPartialPath(GET, "add_two_numbers", request -> null);
         var ex = assertThrows(WebServerException.class, () -> wf.registerPartialPath(GET, "add_two_numbers", request -> null));
-        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+        assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
     }
 
 
@@ -264,7 +264,7 @@ public class WebTests {
         var wf = new WebFramework(context, default_zdt);
         wf.registerPartialPath(GET, "add_two_numbers", request -> null);
         var ex = assertThrows(WebServerException.class, () -> wf.registerPath(GET, "add_two_numbers", request -> null));
-        assertEquals(ex.getMessage(), "Duplicate endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
+        assertEquals(ex.getMessage(), "Duplicate partial-path endpoint registered: MethodPath[method=GET, path=add_two_numbers]");
     }
 
     /**
