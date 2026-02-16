@@ -2,7 +2,10 @@ package com.renomad.minum.templating;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import static com.renomad.minum.templating.TemplateType.DYNAMIC_TEXT;
+import static com.renomad.minum.templating.TemplateType.STATIC_TEXT;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.utils.SerializationUtils.tokenizer;
 
@@ -14,12 +17,13 @@ import static com.renomad.minum.utils.SerializationUtils.tokenizer;
  * then the substring gets concatenated unchanged when the final string
  * is rendered.
  */
-class TemplateSection {
+final class TemplateSection {
 
     final String key;
     private final String subString;
     private final int indent;
-    private RenderingResult result;
+    public final TemplateType templateType;
+
 
     /**
      * @param indent the column number, measured from the left, of the first character of this template key.  This is used
@@ -36,10 +40,15 @@ class TemplateSection {
      *                  it would generate three template sections - "my favorite color is" would be
      *                  the first subString, then a key of "color", then a third subString of "and I like it"
      */
-    public TemplateSection(String key, String subString, int indent) {
+    public TemplateSection(String key, String subString, int indent, TemplateType templateType) {
         this.key = key;
         this.subString = subString;
         this.indent = indent;
+        this.templateType = templateType;
+        if ((templateType.equals(STATIC_TEXT) && (key != null || subString == null)) ||
+            (templateType.equals(DYNAMIC_TEXT) && (key == null || subString != null))) {
+            throw new TemplateRenderException("Invalid templateSection: " + this);
+        }
     }
 
     /**
@@ -49,14 +58,9 @@ class TemplateSection {
      */
     static final int MAXIMUM_LINES_ALLOWED = 10_000_000;
 
-    public RenderingResult render(Map<String, String> myMap) {
-        mustBeTrue(subString != null || key != null, "Either the key or substring must exist");
-        if (subString != null) {
-            if (result == null) {
-                mustBeTrue(key == null, "If this object has a substring, then it must not have a key");
-                result = new RenderingResult(subString, null);
-            }
-            return result;
+    public void render(Map<String, String> myMap, StringBuilder stringBuilder) {
+        if (templateType.equals(STATIC_TEXT)) {
+            stringBuilder.append(subString);
         } else {
             String value = myMap.get(key);
             if (value == null) throw new TemplateRenderException("Missing a value for key {"+key+"}");
@@ -64,7 +68,7 @@ class TemplateSection {
 
             // if, after splitting on newlines, we have more than one line, we'll indent the remaining
             // lines so that they end up at the same column as the first line.
-            var stringBuilder = new StringBuilder(lines.getFirst());
+            stringBuilder.append(lines.getFirst());
             for (int i = 1; i < lines.size(); i++) {
                 if (lines.get(i).isEmpty()) {
                     stringBuilder.append('\n');
@@ -72,8 +76,28 @@ class TemplateSection {
                     stringBuilder.append('\n').append(" ".repeat(indent - 1)).append(lines.get(i));
                 }
             }
-            return new RenderingResult(stringBuilder.toString(), key);
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        TemplateSection that = (TemplateSection) o;
+        return indent == that.indent && Objects.equals(key, that.key) && Objects.equals(subString, that.subString) && templateType == that.templateType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(key, subString, indent, templateType);
+    }
+
+    @Override
+    public String toString() {
+        return "TemplateSection{" +
+                "key='" + key + '\'' +
+                ", subString='" + subString + '\'' +
+                ", indent=" + indent +
+                ", templateType=" + templateType +
+                '}';
+    }
 }

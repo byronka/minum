@@ -2,6 +2,7 @@ package com.renomad.minum.templating;
 
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class provides methods for working with templates.
@@ -40,38 +41,93 @@ import java.util.*;
  */
 public final class TemplateProcessor {
 
+    /**
+     * The template is made up of a list of these, which are the static (unchanging)
+     * parts, along with the dynamic parts the user fills in later.
+     */
     private final List<TemplateSection> templateSections;
+
+    /**
+     * This value is used to calculate a quick estimate of how many
+     * bytes of memory we will need for the buffer holding our generated string
+     */
+    private final static double SIZE_ESTIMATE_MODIFIER = 1.1;
+
+    /**
+     * The String value given to us by the developer when creating this template
+     */
+    private final String originalText;
+
+    /**
+     * A general estimate of the resulting size of the output from the
+     * template process, for one rendering of the template, to provide
+     * quick information when building a buffer to contain the results
+     * which is appropriately sized, which greatly improves performance
+     */
+    private final int estimatedSizeOfSingleTemplate;
+
+    /**
+     * Used when checking correctness - we check that the user is providing
+     * key->value pairs that match the expected template keys.
+     */
+    private final Set<String> keysFoundInTemplate;
+
 
     /**
      * Instantiate a new object with a list of {@link TemplateSection}.
      */
-    private TemplateProcessor(List<TemplateSection> templateSections) {
+    private TemplateProcessor(List<TemplateSection> templateSections, String originalText) {
         this.templateSections = templateSections;
+        this.originalText = originalText;
+        this.estimatedSizeOfSingleTemplate = (int) (originalText.length() * SIZE_ESTIMATE_MODIFIER);
+        keysFoundInTemplate = templateSections.stream()
+                .filter(x -> x.templateType.equals(TemplateType.DYNAMIC_TEXT))
+                .map(x -> x.key)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     /**
      * Given a map of key names -> value, render a template.
      */
     public String renderTemplate(Map<String, String> myMap) {
-        // This indicates the count of usages of each key
-        Map <String, Integer> usageMap = new HashMap<>();
-        List<String> parts = new ArrayList<>();
-        for (TemplateSection templateSection : templateSections) {
-            RenderingResult result = templateSection.render(myMap);
-            parts.add(result.renderedSection());
-            String appliedKey = result.appliedKey();
-            if (appliedKey != null) {
-                usageMap.merge(appliedKey, 1, Integer::sum);
+        return renderTemplate(List.of(myMap), "");
+    }
+
+    /**
+     * Given a list, map of key names -> value, render one template
+     * for each, joined by a newline.  Use {@link #renderTemplate(List, String)}
+     * for control over the delimiter.
+     */
+    public String renderTemplate(List<Map<String, String>> data) {
+        return renderTemplate(data, "\n");
+    }
+
+    /**
+     * Render a list of maps.
+     * <p>
+     *     Similar to {@link #renderTemplate(Map)} but takes a list of maps instead
+     *     of just one.  The "delimiter" argument is inserted between each rendered
+     *     template.
+     * </p>
+     */
+    public String renderTemplate(List<Map<String, String>> data, String delimiter) {
+        correctnessCheck(data);
+
+        // build an appropriately-sized buffer for output
+        int capacity = estimatedSizeOfSingleTemplate * data.size();
+        StringBuilder stringBuilder = new StringBuilder(capacity);
+
+        for (int i = 0; i < data.size(); i++) {
+            for (TemplateSection templateSection : templateSections) {
+                templateSection.render(data.get(i), stringBuilder);
+            }
+            if (i != data.size() - 1) {
+                stringBuilder.append(delimiter);
             }
         }
-        Set<String> unusedKeys = new HashSet<>(myMap.keySet());
-        unusedKeys.removeIf(usageMap.keySet()::contains);
-
-        if (!unusedKeys.isEmpty()) {
-            throw new TemplateRenderException("No corresponding key in template found for these keys: " + String.join(", ", unusedKeys));
-        }
-        return String.join("",parts);
+        return stringBuilder.toString();
     }
+
 
     /**
      * Builds a {@link TemplateProcessor} from a string
@@ -86,11 +142,13 @@ public final class TemplateProcessor {
         // these values are used for logging and setting proper indentation
         int rowNumber = 1;
         int columnNumber = 1;
+
         // this value records the indent of the beginning of template keys,
         // so we can properly indent the values later.
         int startOfKey = 0;
 
         StringBuilder builder = new StringBuilder();
+
         // this flag is to help us understand whether we are currently reading the
         // name of a template literal.
         // e.g. in the case of hello {{ name }}, "name" is the literal.
@@ -126,7 +184,7 @@ public final class TemplateProcessor {
                         throw new TemplateParseException(
                                 "parsing failed for string starting with \"" + templateSample + "\" at line " + rowNumber + " and column " + columnNumber);
                     }
-                    tSections.add(new TemplateSection(null, builder.toString(), 0));
+                    tSections.add(new TemplateSection(null, builder.toString(), 0, TemplateType.STATIC_TEXT));
                 }
             }
 
@@ -139,12 +197,17 @@ public final class TemplateProcessor {
 
         }
 
-        return new TemplateProcessor(tSections);
+        Set<String> keysFound = tSections.stream()
+                .filter(x -> x.templateType.equals(TemplateType.DYNAMIC_TEXT))
+                .map(x -> x.key)
+                .collect(Collectors.toSet());
+
+        return new TemplateProcessor(tSections, template);
     }
 
     static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(null, builder.toString(), 0));
+            tSections.add(new TemplateSection(null, builder.toString(), 0, TemplateType.STATIC_TEXT));
             builder = new StringBuilder();
         }
         return builder;
@@ -152,7 +215,8 @@ public final class TemplateProcessor {
 
     static StringBuilder processSectionOutside(StringBuilder builder, List<TemplateSection> tSections, int indent) {
         if (!builder.isEmpty()) {
-            tSections.add(new TemplateSection(builder.toString().trim(), null, indent));
+            String trimmedKey = builder.toString().trim();
+            tSections.add(new TemplateSection(trimmedKey, null, indent, TemplateType.DYNAMIC_TEXT));
             builder = new StringBuilder();
         }
         return builder;
@@ -183,5 +247,61 @@ public final class TemplateProcessor {
     static boolean justArrivedInside(String template, char charAtCursor, int i) {
         return charAtCursor == '{' && (i + 1) < template.length() && template.charAt(i + 1) == '{';
     }
+
+    /**
+     * This examines the currently registered data lists and template keys
+     * and confirms they are aligned.  It will throw an exception if they
+     * are not perfectly correlated.
+     * <br>
+     *
+     */
+    private void correctnessCheck(List<Map<String, String>> dataList) {
+        HashSet<String> copyOfKeysInTemplate = new HashSet<>(keysFoundInTemplate);
+
+        if (dataList.isEmpty()) {
+            if (!copyOfKeysInTemplate.isEmpty()) {
+                // at this point we know there is no data provided but the template
+                // requires data, so throw an exception.
+
+                throw new TemplateRenderException("No data was provided for these keys: " + copyOfKeysInTemplate);
+            }
+        } else {
+
+            // check for inconsistencies between maps in the data list
+            Set<String> keysInFirstMap = dataList.getFirst().keySet();
+
+            for (Map<String, String> data : dataList) {
+                if (!data.keySet().equals(keysInFirstMap)) {
+                    Set<String> result = differenceBetweenSets(data.keySet(), keysInFirstMap);
+                    throw new TemplateRenderException("In registered data, the maps were inconsistent on these keys: " + result);
+                }
+            }
+
+            // ensure consistency between the registered data and the template keys
+            HashSet<String> copyOfTemplateKeys = new HashSet<>(copyOfKeysInTemplate);
+            copyOfTemplateKeys.removeAll(keysInFirstMap);
+            if (!copyOfTemplateKeys.isEmpty()) {
+                throw new TemplateRenderException("These keys in the template were not provided data: " + copyOfTemplateKeys);
+            }
+
+            HashSet<String> copyOfDataKeys = new HashSet<>(keysInFirstMap);
+            copyOfDataKeys.removeAll(copyOfKeysInTemplate);
+            if (!copyOfDataKeys.isEmpty()) {
+                throw new TemplateRenderException("These keys in the data did not match anything in the template: " + copyOfDataKeys);
+            }
+        }
+    }
+
+    private static Set<String> differenceBetweenSets(Set<String> set1, Set<String> set2) {
+        Set<String> union = new HashSet<>(set2);
+        union.addAll(set1);
+        Set<String> intersection = new HashSet<>(set2);
+        intersection.retainAll(set1);
+
+        Set<String> result = new HashSet<>(union);
+        result.removeAll(intersection);
+        return result;
+    }
+
 }
 

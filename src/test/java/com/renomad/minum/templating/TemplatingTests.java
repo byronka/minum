@@ -11,6 +11,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
@@ -49,6 +50,27 @@ public class TemplatingTests {
         assertEquals(renderedTemplate, "Hello byron, I'm cat.  Nice to meet you byron");
     }
 
+    /**
+     * test providing a list of maps, which will cause the template to render multiple times,
+     * once for each map of data
+     */
+    @Test
+    public void test_Template_Basic_Multiple() {
+        String template = "Hello {{name}}, I'm {{animal}}.  Nice to meet you {{ name }}";
+        var data = List.of(
+                Map.of("name", "byron", "animal", "cat"),
+                Map.of("name", "alice", "animal", "dog"),
+                Map.of("name", "bob", "animal", "tuna")
+        );
+        TemplateProcessor tp = buildProcessor(template);
+
+        String renderedTemplate = tp.renderTemplate(data, "\n");
+
+        assertEquals(renderedTemplate, """
+                Hello byron, I'm cat.  Nice to meet you byron
+                Hello alice, I'm dog.  Nice to meet you alice
+                Hello bob, I'm tuna.  Nice to meet you bob""");
+    }
 
     /**
      * If the user specifies a key that doesn't get used,
@@ -61,9 +83,10 @@ public class TemplatingTests {
         var myMap = Map.of("name", "byron", "animal", "cat");
         TemplateProcessor tp = buildProcessor(template);
 
-        assertThrows(TemplateRenderException.class, "No corresponding key in template found for these keys: name, animal", () -> tp.renderTemplate(myMap));
+        assertThrows(TemplateRenderException.class,
+                "These keys in the data did not match anything in the template: [name, animal]",
+                () -> tp.renderTemplate(myMap));
     }
-
 
     /**
      * template rendering - missing keys
@@ -74,7 +97,9 @@ public class TemplatingTests {
         var myMap = Map.of("name", "byron", "animal", "cat");
         TemplateProcessor tp = buildProcessor(template);
 
-        assertThrows(TemplateRenderException.class, "Missing a value for key {missing_key}", () -> tp.renderTemplate(myMap));
+        assertThrows(TemplateRenderException.class,
+                "These keys in the template were not provided data: [missing_key]",
+                () -> tp.renderTemplate(myMap));
     }
 
     /**
@@ -193,6 +218,59 @@ public class TemplatingTests {
         String result = templateProcessor.renderTemplate(Map.of("baz", "test line 1\ntest line 2\ntest line 3"));
 
         assertEquals(result, expected);
+    }
+
+    /**
+     * A TDD-style test to ensure the processor being thread-safe.
+     * Tests concurrent rendering with multiple threads and different data
+     * to verify that the TemplateProcessor correctly handles concurrent access
+     * without data corruption or race conditions.
+     */
+    @Test
+    public void test_Template_Multi_Thread() {
+        TemplateProcessor templateProcessor = buildProcessor("Hello {{name}}");
+        int threadCount = 10;
+        var futures = new ArrayList<CompletableFuture<String>>();
+
+        // Create multiple concurrent render tasks with different data
+        for (int i = 0; i < threadCount; i++) {
+            final int threadNum = i;
+            var future = CompletableFuture.supplyAsync(() ->
+                    templateProcessor.renderTemplate(Map.of("name", "thread_" + threadNum))
+            );
+            futures.add(future);
+        }
+
+        // Verify all threads completed successfully with correct results
+        for (int i = 0; i < threadCount; i++) {
+            String result = futures.get(i).join();
+            assertEquals(result, "Hello thread_" + i);
+
+        }
+    }
+
+    @Test
+    public void test_EdgeCase_NoDataProvided_alternate() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        assertThrows(TemplateRenderException.class,
+                "These keys in the template were not provided data: [foo]",
+                () -> templateProcessor.renderTemplate(List.of(Map.of())));
+    }
+
+    @Test
+    public void test_EdgeCase_InconsistentMaps() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        assertThrows(TemplateRenderException.class,
+                "In registered data, the maps were inconsistent on these keys: [bar, foo]",
+                () -> templateProcessor.renderTemplate(List.of(Map.of("foo", "abc"), Map.of("bar", "def"))));
+    }
+
+    @Test
+    public void test_EdgeCase_MapsAreAllEmpty() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        assertThrows(TemplateRenderException.class,
+                "These keys in the template were not provided data: [foo]",
+                () -> templateProcessor.renderTemplate(List.of(Map.of(), Map.of())));
     }
 
 }

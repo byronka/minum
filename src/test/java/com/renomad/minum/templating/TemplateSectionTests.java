@@ -1,6 +1,7 @@
 package com.renomad.minum.templating;
 
 import com.renomad.minum.utils.InvariantException;
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -11,19 +12,32 @@ import static com.renomad.minum.testing.TestFramework.*;
 public class TemplateSectionTests {
 
     @Test
-    public void test_MissingKeyAndSubstring() {
-        var templateSection = new TemplateSection(null, null, 0);
-        assertThrows(InvariantException.class,
-                "Either the key or substring must exist",
-                () -> templateSection.render(null));
+    public void test_MissingKeyAndSubstring_WithStaticText() {
+        var sb = new StringBuilder();
+        var ex = assertThrows(TemplateRenderException.class, () -> new TemplateSection(null, null, 0, TemplateType.STATIC_TEXT));
+        assertEquals(ex.getMessage(), "Invalid templateSection: TemplateSection{key='null', subString='null', indent=0, templateType=STATIC_TEXT}");
+
     }
 
     @Test
-    public void test_HavingKeyAndSubstring() {
-        var templateSection = new TemplateSection("key", "substring", 0);
-        assertThrows(InvariantException.class,
-                "If this object has a substring, then it must not have a key",
-                () -> templateSection.render(null));
+    public void test_MissingKeyAndSubstring_WithDynamicText() {
+        var sb = new StringBuilder();
+        var ex = assertThrows(TemplateRenderException.class, () -> new TemplateSection(null, null, 0, TemplateType.DYNAMIC_TEXT));
+        assertEquals(ex.getMessage(), "Invalid templateSection: TemplateSection{key='null', subString='null', indent=0, templateType=DYNAMIC_TEXT}");
+    }
+
+    @Test
+    public void test_HavingKeyAndSubstring_WithStaticText() {
+        var sb = new StringBuilder();
+        var ex = assertThrows(TemplateRenderException.class, () -> new TemplateSection("key", "substring", 0, TemplateType.STATIC_TEXT));
+        assertEquals(ex.getMessage(), "Invalid templateSection: TemplateSection{key='key', subString='substring', indent=0, templateType=STATIC_TEXT}");
+    }
+
+    @Test
+    public void test_HavingKeyAndSubstring_WithDynamicText() {
+        var sb = new StringBuilder();
+        var ex = assertThrows(TemplateRenderException.class, () -> new TemplateSection("key", "substring", 0, TemplateType.DYNAMIC_TEXT));
+        assertEquals(ex.getMessage(), "Invalid templateSection: TemplateSection{key='key', subString='substring', indent=0, templateType=DYNAMIC_TEXT}");
     }
 
     /**
@@ -67,9 +81,10 @@ public class TemplateSectionTests {
      */
     @Test
     public void test_indenting_edgeCase_NoIndent() {
-        TemplateSection templateSection = new TemplateSection("abc", null, 5);
-        RenderingResult render = templateSection.render(Map.of("abc", "foo foo"));
-        assertEquals(render.renderedSection(), "foo foo");
+        var sb = new StringBuilder();
+        TemplateSection templateSection = new TemplateSection("abc", null, 5, TemplateType.DYNAMIC_TEXT);
+        templateSection.render(Map.of("abc", "foo foo"), sb);
+        assertEquals(sb.toString(), "foo foo");
     }
 
     /**
@@ -77,9 +92,15 @@ public class TemplateSectionTests {
      */
     @Test
     public void test_indenting_edgeCase_WithIndent() {
-        TemplateSection templateSection = new TemplateSection("abc", null, 5);
-        RenderingResult render = templateSection.render(Map.of("abc", "foo foo\nbar bar"));
-        assertEquals(render.renderedSection(), "foo foo\n    bar bar");
+        var sb = new StringBuilder();
+        TemplateSection templateSection = new TemplateSection("abc", null, 5, TemplateType.DYNAMIC_TEXT);
+        templateSection.render(Map.of("abc", "foo foo\nbar bar"), sb);
+        assertEquals(sb.toString(), "foo foo\n    bar bar");
+    }
+
+    @Test
+    public void test_equals() {
+        EqualsVerifier.forClass(TemplateSection.class).verify();
     }
 
 }
