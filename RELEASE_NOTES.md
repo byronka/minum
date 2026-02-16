@@ -18,11 +18,19 @@ Release notes
 v9.0.0
 ------
 
-* Great appreciation to HSGamer for contributing some fantastic improvements! Among them:
+* Much appreciation to HSGamer for fantastic improvements and bug fixes! Among them:
   * Found a race condition in the templates, and provided a fix.  This is the
     main driver for incrementing the major version.
+    * Main result was to greatly simplify the template processor.  It no longer
+      handles inner templates.  Instead, it is incumbent on the user to build out
+      any inner parts and build up the resulting full template layer-by-layer. This
+      approach greatly simplifies and minimizes the code of the template processor and
+      its API, and avoids arcane edge cases.
   * Found and fixed a bug with unicode characters in the HTML parser
   * Enabled multiple set-cookie headers in the IResponse
+
+Required changes:
+1. Lorem ipsum
 
 v8.3.2 Dec 28, 2025
 -------------------

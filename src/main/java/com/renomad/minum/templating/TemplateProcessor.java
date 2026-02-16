@@ -258,37 +258,27 @@ public final class TemplateProcessor {
     private void correctnessCheck(List<Map<String, String>> dataList) {
         HashSet<String> copyOfKeysInTemplate = new HashSet<>(keysFoundInTemplate);
 
-        if (dataList.isEmpty()) {
-            if (!copyOfKeysInTemplate.isEmpty()) {
-                // at this point we know there is no data provided but the template
-                // requires data, so throw an exception.
+        // check for inconsistencies between maps in the data list
+        Set<String> keysInFirstMap = dataList.getFirst().keySet();
 
-                throw new TemplateRenderException("No data was provided for these keys: " + copyOfKeysInTemplate);
+        for (Map<String, String> data : dataList) {
+            if (!data.keySet().equals(keysInFirstMap)) {
+                Set<String> result = differenceBetweenSets(data.keySet(), keysInFirstMap);
+                throw new TemplateRenderException("In registered data, the maps were inconsistent on these keys: " + result);
             }
-        } else {
+        }
 
-            // check for inconsistencies between maps in the data list
-            Set<String> keysInFirstMap = dataList.getFirst().keySet();
+        // ensure consistency between the registered data and the template keys
+        HashSet<String> copyOfTemplateKeys = new HashSet<>(copyOfKeysInTemplate);
+        copyOfTemplateKeys.removeAll(keysInFirstMap);
+        if (!copyOfTemplateKeys.isEmpty()) {
+            throw new TemplateRenderException("These keys in the template were not provided data: " + copyOfTemplateKeys);
+        }
 
-            for (Map<String, String> data : dataList) {
-                if (!data.keySet().equals(keysInFirstMap)) {
-                    Set<String> result = differenceBetweenSets(data.keySet(), keysInFirstMap);
-                    throw new TemplateRenderException("In registered data, the maps were inconsistent on these keys: " + result);
-                }
-            }
-
-            // ensure consistency between the registered data and the template keys
-            HashSet<String> copyOfTemplateKeys = new HashSet<>(copyOfKeysInTemplate);
-            copyOfTemplateKeys.removeAll(keysInFirstMap);
-            if (!copyOfTemplateKeys.isEmpty()) {
-                throw new TemplateRenderException("These keys in the template were not provided data: " + copyOfTemplateKeys);
-            }
-
-            HashSet<String> copyOfDataKeys = new HashSet<>(keysInFirstMap);
-            copyOfDataKeys.removeAll(copyOfKeysInTemplate);
-            if (!copyOfDataKeys.isEmpty()) {
-                throw new TemplateRenderException("These keys in the data did not match anything in the template: " + copyOfDataKeys);
-            }
+        HashSet<String> copyOfDataKeys = new HashSet<>(keysInFirstMap);
+        copyOfDataKeys.removeAll(copyOfKeysInTemplate);
+        if (!copyOfDataKeys.isEmpty()) {
+            throw new TemplateRenderException("These keys in the data did not match anything in the template: " + copyOfDataKeys);
         }
     }
 

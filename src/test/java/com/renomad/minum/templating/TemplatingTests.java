@@ -298,4 +298,12 @@ public class TemplatingTests {
                 () -> templateProcessor.renderTemplate(List.of(Map.of(), Map.of())));
     }
 
+    @Test
+    public void test_EdgeCase_MapsIsEmpty() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        assertThrows(TemplateRenderException.class,
+                "These keys in the template were not provided data: [foo]",
+                () -> templateProcessor.renderTemplate(Map.of()));
+    }
+
 }

@@ -63,7 +63,6 @@ final class TemplateSection {
             stringBuilder.append(subString);
         } else {
             String value = myMap.get(key);
-            if (value == null) throw new TemplateRenderException("Missing a value for key {"+key+"}");
             List<String> lines = tokenizer(value, '\n', MAXIMUM_LINES_ALLOWED);
 
             // if, after splitting on newlines, we have more than one line, we'll indent the remaining
