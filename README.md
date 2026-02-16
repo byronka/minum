@@ -194,10 +194,7 @@ easier, faster, and safer.
   in DbTests.java. O(1) reads (does not increase in time as database
   size increases) by use of indexing feature.
 * Template processing:
-  * 12,000,000 per second for tiny templates
-  * 335,000 per second for large complex templates. 
-  * See a [comparison benchmark](https://github.com/byronka/template-benchmark?tab=readme-ov-file#original-string-output-test), with
-    Minum's code represented [here](https://github.com/byronka/template-benchmark/blob/utf8/src/main/java/com/mitchellbosecke/benchmark/Minum.java).
+  * 100,000 per second for large complex templates. 
 
 See a [Minum versus Spring performance comparison](docs/perf_data/framework_perf_comparison.md)
 
@@ -540,32 +537,6 @@ List<Map<String,String>> data = figureOutSomeData();
 String renderedTemplate = myTemplate.renderTemplate(data);
 ```
 
-Even more advanced, it is possible to register internal templates!  This might be useful to
-push the boundaries of performance in some cases, and a more realistic case is demonstrated in
-the `test_Templating_LargeComplex_Performance` test [here](src/test/java/com/renomad/minum/templating/TemplatingTests.java).
-
-An example follows:
-
-```java
-    public void test_EdgeCase_DeeplyNested_withData() {
-    TemplateProcessor aTemplate = buildProcessor("A template. {{ key1 }} {{ key2 }} {{ b_template }}");
-    TemplateProcessor bTemplate = buildProcessor("B template.  {{ key1 }} {{ key2 }} {{ c_template }}");
-    TemplateProcessor cTemplate = buildProcessor("C template.  {{ key1 }} {{ key2 }}");
-
-    List<Map<String, String>> data = List.of(Map.of("key1", "foo",
-            "key2", "bar"));
-
-    var newBTemplate = aTemplate.registerInnerTemplate("b_template", bTemplate);
-    var newCTemplate = newBTemplate.registerInnerTemplate("c_template", cTemplate);
-    aTemplate.registerData(data);
-    newBTemplate.registerData(data);
-    newCTemplate.registerData(data);
-
-    assertEquals("A template. foo bar B template.  foo bar C template.  foo bar", aTemplate.renderTemplate());
-    assertEquals("B template.  foo bar C template.  foo bar", newBTemplate.renderTemplate());
-    assertEquals("C template.  foo bar", newCTemplate.renderTemplate());
-}
-```
 
 User Input
 ----------
