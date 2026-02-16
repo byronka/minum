@@ -9,6 +9,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -160,46 +161,70 @@ public class TemplatingTests {
     }
 
     /**
-     * template for a more realistic input
+     * A test for a large and complex template - has one template
+     * nested in the other, looped.
+     * <br>
+     * <pre>
+     * Current records, on a HP ProDesk 600 G1 using an Intel Core i5-4590 CPU at 3.30GHz running Windows 10
+     * ------------------------------------------------------------------------------------------------------
+     *
+     *   5000 milliseconds for 500,000 templates, about 100k per second
+     *
+     * </pre>
+     *
      */
     @Test
-    public void test_Templating_Performance() {
-        var individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/individual_stock.html"));
-        var stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/stock_prices.html"));
+    public void test_Templating_LargeComplex_Performance() {
+        int warmupIterations = 5;
+        int mainIterations = 5;
+
+        // the expected result
         String expectedFullOutput = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
+        // create all the processors we'll need
+        TemplateProcessor individualStockProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/individual_stock.html"));
+        TemplateProcessor stockPrices = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/stock_prices.html"));
 
-        StopwatchUtils stopwatch = new StopwatchUtils().startTimer();
-        // rendered 500,000 times in 15,764 millis, which is 31,717 templates per second.
-        // currently set lower to speed up testing in ordinary case
-        int renderingCount = 1;
-        IntStream.range(0, renderingCount).boxed().parallel().forEach(renderTemplate(individualStockProcessor, stockPrices, expectedFullOutput));
-        logger.logDebug(() -> String.format("processed %d templates in %d millis", renderingCount, stopwatch.stopTimer()));
+        // define some stock data for testing
+        List<Stock> stocks = Stock.dummyItems();
+
+        // create reusable maps
+        List<Map<String,String>> stockPricesList = new ArrayList<>();
+
+        // fill the maps with data from stocks
+        for (int i = 0; i < stocks.size(); i++) {
+            Stock stock = stocks.get(i);
+            HashMap<String, String> stockPricesMap = new HashMap<>();
+            stockPricesMap.put("class", i % 2 == 1 ? "even" : "odd"); // the example I used start with odd, so ...
+            stockPricesMap.put("index", String.valueOf(i + 1));
+            stockPricesMap.put("symbol", stock.getSymbol());
+            stockPricesMap.put("url", stock.getUrl());
+            stockPricesMap.put("name", stock.getName());
+            stockPricesMap.put("price", String.valueOf(stock.getPrice()));
+            stockPricesMap.put("is_negative_change", stock.getChange() < 0 ? " class=\"minus\"" : "");
+            stockPricesMap.put("is_negative_ratio", stock.getRatio() < 0 ? " class=\"minus\"" : "");
+            stockPricesMap.put("change", String.valueOf(stock.getChange()));
+            stockPricesMap.put("ratio", String.valueOf(stock.getRatio()));
+            stockPricesList.add(stockPricesMap);
+        }
+
+        logger.logDebug(() -> "STARTING WARMUP");
+        benchmark(warmupIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList);
+
+        logger.logDebug(() -> "STARTING MAIN");
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList);
+        benchmark(mainIterations, stockPrices, individualStockProcessor, expectedFullOutput, stockPricesList);
     }
 
-    private static Consumer<Integer> renderTemplate(TemplateProcessor individualStockProcessor, TemplateProcessor stockPrices, String expectedFullOutput) {
-        return x -> {
-            List<String> parts = new ArrayList<>();
-            for (int i = 0; i < Stock.dummyItems().size(); i++) {
-                Stock stock = Stock.dummyItems().get(i);
-                String renderedIndividualStock = individualStockProcessor.renderTemplate(Map.of(
-                        "class", i % 2 == 1 ? "even" : "odd", // the example I used start with odd, so ...
-                        "index", String.valueOf(i + 1),
-                        "symbol", stock.getSymbol(),
-                        "url", stock.getUrl(),
-                        "name", stock.getName(),
-                        "price", String.valueOf(stock.getPrice()),
-                        "is_negative_change", stock.getChange() < 0 ? " class=\"minus\"" : "",
-                        "is_negative_ratio", stock.getRatio() < 0 ? " class=\"minus\"" : "",
-                        "change", String.valueOf(stock.getChange()),
-                        "ratio", String.valueOf(stock.getRatio())
-                ));
-                parts.add(renderedIndividualStock);
-                if (i < Stock.dummyItems().size() - 1) parts.add("\n");
-            }
-            String result = stockPrices.renderTemplate(Map.of("individual_stocks", String.join("", parts)));
-            assertEquals(expectedFullOutput, result);
-        };
+    private static void benchmark(int renderingCount, TemplateProcessor stockPrices, TemplateProcessor individualStockProcessor, String expectedFullOutput, List<Map<String, String>> stockPricesList) {
+        StopwatchUtils stopwatch = new StopwatchUtils().startTimer();
+        IntStream.range(0, renderingCount).boxed().parallel().forEach(x -> {
+            String individualStockValuesRendered = individualStockProcessor.renderTemplate(stockPricesList);
+            String resultantString = stockPrices.renderTemplate(Map.of("individual_stocks", individualStockValuesRendered));
+            assertEquals(expectedFullOutput, resultantString);
+        });
+        logger.logDebug(() -> String.format("processed %d templates in %d millis", renderingCount, stopwatch.stopTimer()));
     }
 
     /**
