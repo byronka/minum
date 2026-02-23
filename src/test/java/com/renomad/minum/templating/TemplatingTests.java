@@ -49,6 +49,41 @@ public class TemplatingTests {
         String renderedTemplate = tp.renderTemplate(myMap);
 
         assertEquals(renderedTemplate, "Hello byron, I'm cat.  Nice to meet you byron");
+        assertEquals(tp.getOriginalText(), "Hello {{name}}, I'm {{animal}}.  Nice to meet you {{ name }}");
+    }
+
+    /**
+     * Demonstrates what is necessary to build out an inner template.  In this
+     * example, we have a "ul" element representing the totality of our
+     * outer template, and then we expect to build out a list of names which is
+     * our inner template.
+     * <br>
+     * After construction of the TemplateProcessor instances,
+     * we will first render out the internal template, then put that in the outer.
+     */
+    @Test
+    public void test_Template_SimpleInnerTemplate() {
+        // set up the templates
+        var innerTemplate = TemplateProcessor.buildProcessor("<li>{{ name }}</li>");
+        var outerTemplate = TemplateProcessor.buildProcessor("""
+                <ul>
+                    {{ inner_template_goes_here }}
+                </ul>
+                """);
+
+        // render the inner template
+        String renderedInnerTemplate = innerTemplate.renderTemplate(
+                List.of(Map.of("name", "alice"), Map.of("name", "bob")));
+
+        // merge that into the outer template, rendering the full final result
+        String finalResult = outerTemplate.renderTemplate(Map.of("inner_template_goes_here", renderedInnerTemplate));
+
+        assertEquals(finalResult, """
+                <ul>
+                    <li>alice</li>
+                    <li>bob</li>
+                </ul>
+                """);
     }
 
     /**

@@ -197,12 +197,14 @@ public final class TemplateProcessor {
 
         }
 
-        Set<String> keysFound = tSections.stream()
-                .filter(x -> x.templateType.equals(TemplateType.DYNAMIC_TEXT))
-                .map(x -> x.key)
-                .collect(Collectors.toSet());
-
         return new TemplateProcessor(tSections, template);
+    }
+
+    /**
+     * Returns the raw template string provided at creation.
+     */
+    public String getOriginalText() {
+        return this.originalText;
     }
 
     static StringBuilder processSectionInside(StringBuilder builder, List<TemplateSection> tSections) {

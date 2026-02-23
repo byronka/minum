@@ -1,5 +1,17 @@
 /**
- * Code and data for HTTP web serving.
+ * This package provides HTTP capabilities.
+ * <br>
+ * <div style="border: 5px solid red; margin-top: 10px; margin-bottom: 10px; padding: 2px;">
+ * <h3>Most valuable for those new to Minum:</h3>
+ * <ol>
+ *     <li><a href="WebFramework.html">WebFramework</a> - Provides methods to register endpoints</li>
+ *     <li>The <a href="IRequest.html">IRequest</a> interface for HTTP requests, primarily the request line (including query strings), headers, and body</li>
+ *     <li>The <a href="Response.html">Response</a> class, which provides methods to build an HTTP response</li>
+ * </ol>
+ * <p>
+ *     Most other classes provide capabilities to branch off those core concepts.
+ * </p>
+ * </div>
  * <p>
  * Here is a typical "main" method for an application. The important thing to note is we are initializing {@link com.renomad.minum.web.FullSystem} and
  * using it to register endpoints.  A more organized approach is to put the endpoint registrations
