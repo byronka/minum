@@ -93,7 +93,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     int maxLinesPerAppendFile;
     boolean hasLoadedData;
     final DatabaseAppender databaseAppender;
-    private final DatabaseConsolidator databaseConsolidator;
+    final DatabaseConsolidator databaseConsolidator;
 
     /**
      * Here we track the number of appends we have made.  Once it hits

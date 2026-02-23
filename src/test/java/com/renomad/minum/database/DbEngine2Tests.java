@@ -1365,6 +1365,42 @@ public class DbEngine2Tests {
 //        assertEquals(ex.getMessage(), "java.nio.file.AccessDeniedException: out\\simple_db_for_engine2_tests\\engine2\\foos\\test_WalkAndLoad_NegativeCase\\consolidated_data\\1_to_100");
     }
 
+    /**
+     * When we consolidate, for each new file we will create a "checksum" string, a small value
+     * that is unique for those bytes, and which will be tested at read-time.  If
+     * the value is not identical, it means the data on disk has changed since writing,
+     * which can only happen due to corruption.  If this happens, Minum will be
+     * prevented from starting, with a clear alert message in the logs.  This is to
+     * prevent data corruption from becoming endemic in the system.  It is vital to
+     * keep backups of your data.  A failure at startup of this type may indicate the
+     * underlying disk is starting to fail, which would necessitate a migration.
+     */
+    @Test
+    public void testChecksums() throws IOException {
+
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_checksum");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+
+        // write some data to it
+        var foo = new Foo(0, 0, "hello world");
+        db.write(foo);
+
+        // consolidate (which creates checksums for each consolidation file)
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+        db.databaseConsolidator.consolidate();
+
+        // shutdown the database
+        db.stop();
+
+        // behind the scenes, alter the consolidated file
+        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "I have been corrupted");
+
+        // startup the database, have the database read that file, causing an exception to be thrown and halting the program
+        assertThrows(DbException.class, () -> new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE));
+    }
+
 
     private static class BrokenBufferedWriter extends BufferedWriter {
 
