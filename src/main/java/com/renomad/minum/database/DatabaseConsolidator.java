@@ -2,12 +2,15 @@ package com.renomad.minum.database;
 
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.CryptoUtils;
 import com.renomad.minum.utils.FileUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -145,15 +148,59 @@ final class DatabaseConsolidator {
             if (!Files.exists(fullPathToConsolidatedFile)) {
                 data = new ArrayList<>();
             } else {
-                data = Files.readAllLines(fullPathToConsolidatedFile);
+                data = readConsolidatedFileWithChecksum(fullPathToConsolidatedFile);
             }
 
             // update the data in memory per the instructions
             Collection<String> updatedData = updateData(filename, data, instructions.getValue());
 
+            String checksumString = buildChecksum(updatedData);
+
             // write the data to disk
             Files.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
+
+            // write a hash of the data to use as a checksum.  This value will be checked
+            // when reading the data later on, to confirm nothing has changed since writing.
+            Path fullPathToChecksumFile = this.consolidatedDataDirectory.resolve(filename + ".checksum");
+            Files.writeString(fullPathToChecksumFile, checksumString);
         }
+    }
+
+    private static String buildChecksum(Collection<String> updatedData) {
+        // build a hash for this data
+        MessageDigest messageDigestSha256;
+        try {
+            messageDigestSha256 = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        for (String item : updatedData) {
+            messageDigestSha256.update(item.getBytes(StandardCharsets.US_ASCII));
+        }
+        byte[] hash = messageDigestSha256.digest();
+        return CryptoUtils.bytesToHex(hash);
+    }
+
+    /**
+     * Reads data from consolidated file, confirming the checksum in the process.
+     */
+    private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) throws IOException {
+        // get all the data from the consolidated file
+        List<String> data = Files.readAllLines(fullPathToConsolidatedFile);
+
+        // check against the checksum, if it exists. If it is not there or blank, just move on.
+        Path checksumPath = fullPathToConsolidatedFile.resolveSibling(fullPathToConsolidatedFile.getFileName() + ".checksum");
+        if (Files.exists(checksumPath)) {
+            String existingChecksumValue = Files.readString(checksumPath);
+            if (!existingChecksumValue.isBlank()) {
+                String checksumString = buildChecksum(data);
+                if (!checksumString.equals(existingChecksumValue)) {
+                    throw new DbException("Checksum failure for " + fullPathToConsolidatedFile + " in readConsolidatedFileWithChecksum, file considered corrupted");
+                }
+            }
+        }
+
+        return data;
     }
 
     /**

@@ -1,11 +1,14 @@
 package com.renomad.minum.database;
 
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.CryptoUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -313,7 +316,10 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     void walkAndLoad(Path dbDirectory) {
         List<String> consolidatedFiles = new ArrayList<>(
-                List.of(Objects.requireNonNull(dbDirectory.resolve("consolidated_data").toFile().list())));
+                Arrays.stream(Objects.requireNonNull(
+                        dbDirectory.resolve("consolidated_data").toFile().list()))
+                        .filter(x -> !x.contains("checksum"))
+                        .toList());
 
         // if there aren't any files, bail out
         if (consolidatedFiles.isEmpty()) return;
@@ -324,12 +330,35 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         for (String fileName : consolidatedFiles) {
             logger.logDebug(() -> "Processing database file: " + fileName);
             Path consolidatedDataFile = dbDirectory.resolve("consolidated_data").resolve(fileName);
+            Path checksumFilename = consolidatedDataFile.resolveSibling(consolidatedDataFile.getFileName() + ".checksum");
+
 
             // By using a lazy stream, we are able to read each item from the file into
             // memory without needing to read the whole file contents into memory at once,
             // thus avoiding requiring a great amount of memory
+            // build a hash for this data
+            MessageDigest messageDigestSha256;
+            try {
+                messageDigestSha256 = MessageDigest.getInstance("SHA-256");
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+
             try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
-                fileStream.forEach(line -> readAndDeserialize(line, fileName));
+                String checksum = "";
+                if (Files.exists(checksumFilename)) {
+                    checksum = Files.readString(checksumFilename);
+                }
+
+                fileStream.forEach(line -> {
+                    messageDigestSha256.update(line.getBytes(StandardCharsets.US_ASCII));
+                    readAndDeserialize(line, fileName);
+                });
+                byte[] hashBytes = messageDigestSha256.digest();
+                String hashString = CryptoUtils.bytesToHex(hashBytes);
+                if (!checksum.isBlank() && !hashString.equals(checksum)) {
+                    throw new RuntimeException("Checksum failed during read of " + fileName + " in walkAndLoad");
+                }
             } catch (Exception e) {
                 throw new DbException(e);
             }

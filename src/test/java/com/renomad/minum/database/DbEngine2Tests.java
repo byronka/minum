@@ -953,7 +953,11 @@ public class DbEngine2Tests {
         foos.sort(Comparator.comparingLong(Foo::getIndex));
         listRestarted.sort(Comparator.comparingLong(Foo::getIndex));
         assertEquals(listRestarted.toString(), foos.toString());
-        List<String> newDirectoryFiles = new ArrayList<>(Files.walk(newPersistenceDirectory).map(x -> x.getFileName().toString()).toList());
+        List<String> newDirectoryFiles = new ArrayList<>(
+                Files.walk(newPersistenceDirectory)
+                        .filter(x -> !x.getFileName().toString().contains(".checksum"))
+                        .map(x -> x.getFileName().toString())
+                        .toList());
         newDirectoryFiles.sort(Comparator.naturalOrder());
         assertEquals(newDirectoryFiles.toString(), "[11_to_15, 16_to_20, 1_to_5, 21_to_25, 26_to_30, 31_to_35, 36_to_40, 41_to_45, 46_to_50, 6_to_10, append_logs, consolidated_data, currentAppendLog, test_ConvertingDatabase_Db_To_DbEngine2]");
 
@@ -1398,7 +1402,8 @@ public class DbEngine2Tests {
         Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "I have been corrupted");
 
         // startup the database, have the database read that file, causing an exception to be thrown and halting the program
-        assertThrows(DbException.class, () -> new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE));
+        AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        assertThrows(DbException.class, restartedDb2::loadData);
     }
 
 

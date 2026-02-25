@@ -199,7 +199,7 @@ final class DbFileConverter {
         // get the list of consolidated data files
         List<Path> listOfFiles;
         try (Stream<Path> fileStream = Files.list(dbDirectory.resolve("consolidated_data"))) {
-            listOfFiles = new ArrayList<>(fileStream.filter(Files::isRegularFile).toList());
+            listOfFiles = new ArrayList<>(fileStream.filter(x -> Files.isRegularFile(x) && !x.toString().contains("checksum")).toList());
         } catch (IOException ex) {
             throw new DbException("Failed during the listing of files during conversion of db engine2 to db classic", ex);
         }
@@ -251,8 +251,10 @@ final class DbFileConverter {
                     logAlongConversion(logger, countConvertedFiles, 1000);
                 }
             }
-            // now we've converted everything from this file, delete it.
+            // now we've converted everything from this file, delete it and its checksum (if available)
             Files.delete(filePath);
+            Path checksumPath = filePath.resolveSibling(filePath.getFileName() + ".checksum");
+            Files.deleteIfExists(checksumPath);
         }
 
         deleteEmptyDbEngine2Directories(dbDirectory);
