@@ -28,6 +28,21 @@ v9.0.0
       its API, and avoids arcane edge cases.
   * Found and fixed a bug with unicode characters in the HTML parser
   * Enabled multiple set-cookie headers in the IResponse
+* The DbEngine2 database will now create and check "checksum" data.  This allows
+  the system to confirm the data is uncorrupted at startup.  Due to this change, it
+  is recommended to use a new pattern when instantiating a database.  Any `registerIndex`
+  calls should be run off the newly-constructed instance, and `loadData` should be called
+  off that.  This will ensure that any data corruption exceptions are able to bubble up
+  to the main method, thus halting the program - a data corruption is the kind of serious error
+  that must not be allowed to linger.  
+ 
+Here is an example:
+
+```Java
+AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
+     .registerIndex("name_index", name -> name)
+     .loadData();
+```
 
 Because it is no longer possible to register inner templates in the TemplateProcessor,
    a number of methods were removed.  The removed methods are:

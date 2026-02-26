@@ -1,6 +1,6 @@
 package com.renomad.minum;
 
-import com.renomad.minum.database.Db;
+import com.renomad.minum.database.AbstractDb;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.sampledomain.ListPhotos;
 import com.renomad.minum.sampledomain.PersonName;
@@ -13,6 +13,7 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.web.*;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class TheRegister {
         this.fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    public void registerDomains() {
+    public void registerDomains() throws IOException {
         var auth = buildAuthDomain();
         var up = setupUploadPhotos(auth);
         var lp = setupListPhotos(auth, up);
@@ -191,8 +192,10 @@ public class TheRegister {
         return endpoint.apply(request);
     }
 
-    private SampleDomain setupSampleDomain(AuthUtils auth) {
-        Db<PersonName> sampleDomainDb = context.getDb("names", PersonName.EMPTY);
+    private SampleDomain setupSampleDomain(AuthUtils auth) throws IOException {
+        AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
+                .registerIndex("name_index", PersonName::getFullname)
+                .loadData();
         return new SampleDomain(sampleDomainDb, auth, context);
     }
 

@@ -406,13 +406,14 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * and the second will encounter a branch which skips loading.
      */
     @Override
-    public void loadData() {
+    public AbstractDb<T> loadData() {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
                 loadDataFromDisk();
             }
             hasLoadedData = true;
+            return this;
         } catch (Exception ex) {
             throw new DbException("Failed to load data from disk.", ex);
         } finally {
@@ -441,7 +442,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     }
 
     @Override
-    public boolean registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (hasLoadedData) {
             throw new DbException("This method must be run before the database loads data from disk.  Typically, " +
                     "it should be run immediately after the database is created.  See this method's documentation");

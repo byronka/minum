@@ -488,7 +488,7 @@ public class DbEngine2Tests {
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("index", x -> x.b);
-        assertTrue(db.registerIndex("foo", x -> x.b));
+        assertTrue(db.registerIndex("foo", x -> x.b) != null);
     }
 
     /**

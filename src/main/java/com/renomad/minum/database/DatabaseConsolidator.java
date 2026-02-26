@@ -195,7 +195,27 @@ final class DatabaseConsolidator {
             if (!existingChecksumValue.isBlank()) {
                 String checksumString = buildChecksum(data);
                 if (!checksumString.equals(existingChecksumValue)) {
-                    throw new DbException("Checksum failure for " + fullPathToConsolidatedFile + " in readConsolidatedFileWithChecksum, file considered corrupted");
+                    throw new DbException("""
+                            
+                            WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
+                            **************************************************************************************
+                            **************************************************************************************
+                            
+                            Checksum failure for %s
+                            in readConsolidatedFileWithChecksum, file considered corrupted
+                            
+                            See also %s.checksum
+                            
+                            Next steps: This warning means the data does not align with its checksum, meaning
+                            it has changed by something other than the program.  That is, it is corrupted data.
+                            The best thing is to restore the data from backup for this.  Other options are to
+                            review the data.  Deleting the checksum file will cause this complaint to stop.
+                            
+                            **************************************************************************************
+                            **************************************************************************************
+                            WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
+                            
+                            """.stripIndent().formatted(fullPathToConsolidatedFile, fullPathToConsolidatedFile));
                 }
             }
         }

@@ -286,10 +286,37 @@ public abstract class AbstractDb<T extends DbData<?>> {
 
 
     /**
-     * Grabs all the data from disk and returns it as a list.  This
-     * method is run by various programs when the system first loads.
+     * Cause the database to immediately load all its data.
+     * <p>
+     *     If this method is not called, then the data will be loaded
+     *     lazily, at the first point where it is needed, such as when
+     *     getting data or writing new data.
+     * </p>
+     * <p>
+     *     It is a good idea to regularly use this method at database
+     *     initialization.  By doing so, any data corruption issues will
+     *     cause the whole application to halt immediately, which is far
+     *     preferable to having the exception show as a mere complaint
+     *     in the logs.
+     * </p>
+     * <p>
+     *     The only reason not to use this is when lazy loading is more
+     *     important - if the data load might take a long time.  That said,
+     *     the data load should take mere seconds for millions of entries.
+     * </p>
+     * <p>
+     *     An example database initialization with bells and whistles
+     *     is as follows:
+     * </p>
+     * <pre>
+     *     {@code
+     *     AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
+     *          .registerIndex("name_index", name -> name)
+     *          .loadData();
+     *     }
+     * </pre>
      */
-    public abstract void loadData() throws IOException;
+    public abstract AbstractDb<T> loadData() throws IOException;
 
     /**
      * This method provides read capability for the values of a database.
@@ -314,16 +341,19 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * </p>
      * <br>
      * Example:
-     *  {@snippet :
-     *           final var myDatabase = context.getDb("photos", Photograph.EMPTY);
-     *           myDatabase.registerIndex("url", photo -> photo.getUrl());
-     *  }
+     * <pre>
+     *     {@code
+     *      final var myDatabase = context.getDb("photos", Photograph.EMPTY)
+     *               .registerIndex("url", photo -> photo.getUrl())
+     *               .loadData();
+     *     }
+     * </pre>
      * @param indexName a string used to distinguish this index.  This string will be used again
      *                  when requesting data in a method like {@link #getIndexedData} or {@link #findExactlyOne}
      * @param keyObtainingFunction a function which obtains data from the data in this database, used
      *                             to partition the data into groups (potentially up to a 1-to-1 correspondence
      *                             between id and object)
-     * @return true if the registration succeeded
+     * @return the database instance if the registration succeeded
      * @throws DbException if the parameters are not entered properly, if the index has already
      * been registered, or if the data has already been loaded. It is necessary that
      * this is run immediately after declaring the database. To explain further: the data is not
@@ -332,7 +362,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * is read from disk only occurs once, at data load time.  Thus, it is crucial that the
      * registerIndex command is run before any data is loaded.
      */
-    public boolean registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (keyObtainingFunction == null) {
             throw new DbException("When registering an index, the partitioning algorithm must not be null");
         }
@@ -345,7 +375,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
         HashMap<String, Set<T>> stringCollectionHashMap = new HashMap<>();
         registeredIndexes.put(indexName, stringCollectionHashMap);
         partitioningMap.put(indexName, keyObtainingFunction);
-        return true;
+        return this;
     }
 
     /**
