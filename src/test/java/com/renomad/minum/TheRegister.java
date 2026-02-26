@@ -1,6 +1,6 @@
 package com.renomad.minum;
 
-import com.renomad.minum.database.AbstractDb;
+import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.sampledomain.ListPhotos;
 import com.renomad.minum.sampledomain.PersonName;
@@ -192,7 +192,7 @@ public class TheRegister {
     }
 
     private SampleDomain setupSampleDomain(AuthUtils auth) {
-        AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY);
+        Db<PersonName> sampleDomainDb = context.getDb("names", PersonName.EMPTY);
         return new SampleDomain(sampleDomainDb, auth, context);
     }
 

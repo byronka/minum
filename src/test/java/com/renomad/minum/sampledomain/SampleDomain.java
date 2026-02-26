@@ -1,7 +1,7 @@
 package com.renomad.minum.sampledomain;
 
 import com.renomad.minum.TheRegister;
-import com.renomad.minum.database.AbstractDb;
+import com.renomad.minum.database.Db;
 import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.templating.TemplateProcessor;
@@ -31,13 +31,13 @@ public class SampleDomain {
         fs.block();
     }
 
-    private final AbstractDb<PersonName> db;
+    private final Db<PersonName> db;
     private final AuthUtils auth;
     private final TemplateProcessor nameEntryTemplate;
     private final String authHomepage;
     private final String unauthHomepage;
 
-    public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) {
+    public SampleDomain(Db<PersonName> db, AuthUtils auth, Context context) {
         this.db = db;
         this.auth = auth;
         FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());

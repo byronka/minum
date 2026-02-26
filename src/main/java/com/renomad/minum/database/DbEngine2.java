@@ -90,6 +90,7 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  */
 public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
 
+    private final ReentrantLock loadDataLock;
     private final ReentrantLock consolidateLock;
     private final ReentrantLock writeLock;
     int maxLinesPerAppendFile;
@@ -132,7 +133,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         } catch (IOException e) {
             throw new DbException("Error while initializing DatabaseAppender in DbEngine2", e);
         }
-        loadData();
+        this.loadDataLock = new ReentrantLock();
         this.consolidateLock = new ReentrantLock();
         this.writeLock = new ReentrantLock();
         this.maxLinesPerAppendFile = context.getConstants().maxAppendCount;
@@ -170,6 +171,8 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     @Override
     public T write(T newData) {
         if (newData.getIndex() < 0) throw new DbException("Negative indexes are disallowed");
+        // load data if needed
+        if (!hasLoadedData) loadData();
 
         writeLock.lock();
         try {
@@ -248,6 +251,9 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public void delete(T dataToDelete) {
+        // load data if needed
+        if (!hasLoadedData) loadData();
+
         writeLock.lock();
         try {
             deleteFromDisk(dataToDelete);
@@ -256,15 +262,6 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             throw new DbException("failed to delete data " + dataToDelete, ex);
         } finally {
             writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void loadData() {
-        try {
-            loadDataFromDisk();
-        } catch (IOException e) {
-            throw new DbException("Failed to load data from disk.", e);
         }
     }
 
@@ -400,6 +397,29 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         }
     }
 
+
+    /**
+     * This is what loads the data from disk the
+     * first time someone needs it.  Because it is
+     * locked, only one thread can enter at
+     * a time.  The first one in will load the data,
+     * and the second will encounter a branch which skips loading.
+     */
+    @Override
+    public void loadData() {
+        loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
+        try {
+            if (!hasLoadedData) {
+                loadDataFromDisk();
+            }
+            hasLoadedData = true;
+        } catch (Exception ex) {
+            throw new DbException("Failed to load data from disk.", ex);
+        } finally {
+            loadDataLock.unlock();
+        }
+    }
+
     /**
      * This method provides read capability for the values of a database.
      * <br>
@@ -414,11 +434,26 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public Collection<T> values() {
+        // load data if needed
+        if (!hasLoadedData) loadData();
+
         return Collections.unmodifiableCollection(data.values());
     }
 
     @Override
+    public boolean registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+        if (hasLoadedData) {
+            throw new DbException("This method must be run before the database loads data from disk.  Typically, " +
+                    "it should be run immediately after the database is created.  See this method's documentation");
+        }
+        return super.registerIndex(indexName, keyObtainingFunction);
+    }
+
+
+    @Override
     public Collection<T> getIndexedData(String indexName, String key) {
+        // load data if needed
+        if (!hasLoadedData) loadData();
         return super.getIndexedData(indexName, key);
     }
 
