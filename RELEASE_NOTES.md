@@ -40,12 +40,13 @@ Here is an example:
 
 ```Java
 AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
-     .registerIndex("name_index", name -> name)
-     .loadData();
+    .registerIndex("name_index", PersonName::getFullname)
+    .loadData();
 ```
 
 Because it is no longer possible to register inner templates in the TemplateProcessor,
-   a number of methods were removed.  The removed methods are:
+a number of methods were removed.  The removed methods are:
+
    1. `renderTemplate()`
    2. `renderTemplate(List<Map<String, String>> data, String delimiter)`
    3. `registerInnerTemplate(String key, TemplateProcessor innerTemplate)`
