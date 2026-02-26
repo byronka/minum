@@ -296,13 +296,13 @@ public abstract class AbstractDb<T extends DbData<?>> {
      *     It is a good idea to regularly use this method at database
      *     initialization.  By doing so, any data corruption issues will
      *     cause the whole application to halt immediately, which is far
-     *     preferable to having the exception show as a mere complaint
-     *     in the logs.
+     *     preferable to having the exception show as a complaint
+     *     in the logs but allows the app to keep running.
      * </p>
      * <p>
      *     The only reason not to use this is when lazy loading is more
      *     important - if the data load might take a long time.  That said,
-     *     the data load should take mere seconds for millions of entries.
+     *     the data load should take seconds for millions of entries.
      * </p>
      * <p>
      *     An example database initialization with bells and whistles
