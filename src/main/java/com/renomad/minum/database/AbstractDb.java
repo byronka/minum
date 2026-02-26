@@ -316,7 +316,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      *     }
      * </pre>
      */
-    public abstract AbstractDb<T> loadData() throws IOException;
+    public abstract AbstractDb<T> loadData();
 
     /**
      * This method provides read capability for the values of a database.

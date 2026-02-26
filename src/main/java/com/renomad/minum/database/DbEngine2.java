@@ -16,6 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static com.renomad.minum.database.ChecksumUtility.generateChecksumErrorMessage;
 import static com.renomad.minum.utils.Invariants.mustBeFalse;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
@@ -341,7 +342,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             try {
                 messageDigestSha256 = MessageDigest.getInstance("SHA-256");
             } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
+                throw new DbException(e);
             }
 
             try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
@@ -354,10 +355,13 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
                     messageDigestSha256.update(line.getBytes(StandardCharsets.US_ASCII));
                     readAndDeserialize(line, fileName);
                 });
+
+                // check against the checksum for what we read, if applicable
                 byte[] hashBytes = messageDigestSha256.digest();
                 String hashString = CryptoUtils.bytesToHex(hashBytes);
                 if (!checksum.isBlank() && !hashString.equals(checksum)) {
-                    throw new RuntimeException("Checksum failed during read of " + fileName + " in walkAndLoad");
+                    String errorMessage = generateChecksumErrorMessage(consolidatedDataFile);
+                    throw new DbChecksumException(errorMessage);
                 }
             } catch (Exception e) {
                 throw new DbException(e);

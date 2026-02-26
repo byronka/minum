@@ -4,6 +4,7 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.MyThread;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,6 +52,10 @@ public class DatabaseAppenderTests {
         assertFalse(result2.isEmpty(), "Result must not be empty");
 
         da.appendCount = 6;
+
+        // need to have a little break here so we don't end up creating a new
+        // append log named with the same timestamp
+        MyThread.sleep(5);
 
         String result3 = da.appendToDatabase(DatabaseChangeAction.UPDATE, "THIS IS A TEST");
         assertFalse(result3.isEmpty(), "Result must not be empty");

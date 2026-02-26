@@ -9,12 +9,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.renomad.minum.database.ChecksumUtility.buildChecksum;
+import static com.renomad.minum.database.ChecksumUtility.compareWithChecksum;
 import static com.renomad.minum.database.DatabaseAppender.simpleDateFormat;
 
 /**
@@ -166,21 +166,6 @@ final class DatabaseConsolidator {
         }
     }
 
-    private static String buildChecksum(Collection<String> updatedData) {
-        // build a hash for this data
-        MessageDigest messageDigestSha256;
-        try {
-            messageDigestSha256 = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-        for (String item : updatedData) {
-            messageDigestSha256.update(item.getBytes(StandardCharsets.US_ASCII));
-        }
-        byte[] hash = messageDigestSha256.digest();
-        return CryptoUtils.bytesToHex(hash);
-    }
-
     /**
      * Reads data from consolidated file, confirming the checksum in the process.
      */
@@ -188,40 +173,11 @@ final class DatabaseConsolidator {
         // get all the data from the consolidated file
         List<String> data = Files.readAllLines(fullPathToConsolidatedFile);
 
-        // check against the checksum, if it exists. If it is not there or blank, just move on.
-        Path checksumPath = fullPathToConsolidatedFile.resolveSibling(fullPathToConsolidatedFile.getFileName() + ".checksum");
-        if (Files.exists(checksumPath)) {
-            String existingChecksumValue = Files.readString(checksumPath);
-            if (!existingChecksumValue.isBlank()) {
-                String checksumString = buildChecksum(data);
-                if (!checksumString.equals(existingChecksumValue)) {
-                    throw new DbException("""
-                            
-                            WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
-                            **************************************************************************************
-                            **************************************************************************************
-                            
-                            Checksum failure for %s
-                            in readConsolidatedFileWithChecksum, file considered corrupted
-                            
-                            See also %s.checksum
-                            
-                            Next steps: This warning means the data does not align with its checksum, meaning
-                            it has changed by something other than the program.  That is, it is corrupted data.
-                            The best thing is to restore the data from backup for this.  Other options are to
-                            review the data.  Deleting the checksum file will cause this complaint to stop.
-                            
-                            **************************************************************************************
-                            **************************************************************************************
-                            WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
-                            
-                            """.stripIndent().formatted(fullPathToConsolidatedFile, fullPathToConsolidatedFile));
-                }
-            }
-        }
+        compareWithChecksum(fullPathToConsolidatedFile, data);
 
         return data;
     }
+
 
     /**
      * Here, we have raw lines of data from a file, and a list of instructions for updating

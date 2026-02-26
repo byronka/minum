@@ -50,7 +50,7 @@ public class TheRegister {
         this.fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    public void registerDomains() throws IOException {
+    public void registerDomains() {
         var auth = buildAuthDomain();
         var up = setupUploadPhotos(auth);
         var lp = setupListPhotos(auth, up);
@@ -192,7 +192,7 @@ public class TheRegister {
         return endpoint.apply(request);
     }
 
-    private SampleDomain setupSampleDomain(AuthUtils auth) throws IOException {
+    private SampleDomain setupSampleDomain(AuthUtils auth) {
         AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
                 .registerIndex("name_index", PersonName::getFullname)
                 .loadData();
