@@ -26,6 +26,9 @@ v9.0.0
       any inner parts and build up the resulting full template layer-by-layer. This
       approach greatly simplifies and minimizes the code of the template processor and
       its API, and avoids arcane edge cases.
+    * Unfortunately, this does slightly slow down the processor, but it is still one
+      of the fastest options compared to other common templating engines, and its
+      simplicity puts it back into the minimalist ethos.
   * Found and fixed a bug with unicode characters in the HTML parser
   * Enabled multiple set-cookie headers in the IResponse
 * The DbEngine2 database will now create and check "checksum" data.  This allows
