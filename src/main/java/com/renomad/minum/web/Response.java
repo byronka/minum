@@ -247,8 +247,22 @@ public final class Response implements IResponse {
     }
 
     /**
-     * Construct a value to be used in the header map that contains multiple values separated by CRLF.
-     * @param values the list of values
+     * A helper method to construct a value to be used in the header map
+     * that contains multiple values separated by CRLF.
+     * <p>
+     *     For instance, if it is needed to set multiple cookies (using "set-cookie") in a response, this method
+     *     would be suitable. That usage might look like this:
+     * </p>
+     * <pre>
+     *     {@code
+     *      webFramework.registerPath(POST, "authenticate",
+     *                 request -> Response.buildResponse(
+     *                         CODE_200_OK,
+     *                         Map.of("Set-Cookie", Response.constructHeaderMultiValue(List.of("a=value1", "b=value2"))),
+     *                         "You have been authenticated.  Two cookies have been set: a and b"
+     *                         ));
+     *     }
+     * </pre>
      * @return a single value constructed by the list of values separated by CRLF
      */
     public static String constructHeaderMultiValue(List<String> values) {
