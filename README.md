@@ -310,6 +310,28 @@ database).
 
 <hr>
 
+_Checksum_
+
+On the `DbEngine2` database engine (the recommended engine for most users),
+there is a "checksum" feature.  In short, a hash will be generated on data
+when written, and checked against the file when read.  This confirms the
+data has not changed since it was written, which could indicate data
+corruption.  If that is discovered, an exception will be thrown when the
+data is loaded.  For that reason, it is recommended to use the following
+pattern when instantiating (note the `loadData` at the end):
+
+```Java
+AbstractDb<Foo> db = new DbEngine2<>(foosDirectory, context, new Foo()).loadData();
+```
+
+If registering indexes (see the section on _indexes_ later on), this pattern is recommended:
+
+```Java
+AbstractDb<Foo> db = new DbEngine2<>(foosDirectory, context, new Foo())
+        .registerIndex("id", x -> x.getId().toString())
+        .loadData();
+```
+
 _Adding a new object to a database_:
 
 ```java
