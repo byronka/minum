@@ -145,7 +145,7 @@ public final class WebFramework {
 
                 // calculate proper headers for the response
                 StringBuilder headerStringBuilder = addDefaultHeaders(response);
-                addOptionalExtraHeaders(response, headerStringBuilder);
+                response.getExtraHeaders().printHeaders(headerStringBuilder);
                 addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
 
                 // inspect the response being sent, see whether we can compress the data.
@@ -252,7 +252,7 @@ public final class WebFramework {
                 // information in the logs, which have that same value.
                 int randomNumber = randomErrorCorrelationId.nextInt();
                 logger.logAsyncError(() -> "error while running endpoint " + endpoint + ". Code: " + randomNumber + ". Error: " + StacktraceUtils.stackTraceToString(ex));
-                response = Response.buildResponse(CODE_500_INTERNAL_SERVER_ERROR, Map.of("Content-Type", "text/plain;charset=UTF-8"), "Server error: " + randomNumber);
+                response = Response.buildResponse(CODE_500_INTERNAL_SERVER_ERROR, new Headers(List.of("Content-Type: text/plain;charset=UTF-8")), "Server error: " + randomNumber);
             }
             long millisAtEnd = System.currentTimeMillis();
             logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, millisAtEnd - millisAtStart));
@@ -377,7 +377,8 @@ public final class WebFramework {
      */
     private StringBuilder addDefaultHeaders(IResponse response) {
 
-        String date = Objects.requireNonNullElseGet(overrideForDateTime, () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        String date = Objects.requireNonNullElseGet(overrideForDateTime,
+                () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
         // we'll store the status line and headers in this
         StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
@@ -397,19 +398,6 @@ public final class WebFramework {
     }
 
     /**
-     * Add extra headers specified by the business logic (set by the developer)
-     */
-    private static void addOptionalExtraHeaders(IResponse response, StringBuilder stringBuilder) {
-        for (Map.Entry<String,String> header : response.getExtraHeaders().entrySet()) {
-            String key = header.getKey();
-            String value = header.getValue();
-            for (String split : value.split(HTTP_CRLF)) {
-                stringBuilder.append(key).append(": ").append(split).append(HTTP_CRLF);
-            }
-        }
-    }
-
-    /**
      * If a response body exists, it needs to have a content-type specified,
      * or throw an exception. Otherwise, the user could totally miss they did
      * not set a content-type, because the browser will inspect the data and
@@ -417,7 +405,7 @@ public final class WebFramework {
      */
     static void confirmBodyHasContentType(IRequest request, IResponse response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = response.getExtraHeaders().keySet().stream().anyMatch(x -> x.toLowerCase(Locale.ROOT).equals("content-type"));
+        boolean hasContentType = ! response.getExtraHeaders().valueByKey("content-type").isEmpty();
 
         // if there *is* data, we had better be returning a content type
         if (response.getBodyLength() > 0 && !hasContentType) {
@@ -598,9 +586,9 @@ public final class WebFramework {
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
-        var headers = Map.of(
-                "cache-control", "max-age=" + constants.staticFileCacheTime,
-                "content-type", mimeType);
+        var headers = new Headers(List.of(
+                "cache-control: max-age=" + constants.staticFileCacheTime,
+                "content-type: " + mimeType));
 
         return Response.buildResponse(
                 CODE_200_OK,
@@ -612,11 +600,11 @@ public final class WebFramework {
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) throws IOException {
-        var headers = Map.of(
-                "cache-control", "max-age=" + constants.staticFileCacheTime,
-                "content-type", mimeType,
-                "Accept-Ranges", "bytes"
-                );
+        var headers = new Headers(List.of(
+                "cache-control: max-age=" + constants.staticFileCacheTime,
+                "content-type: " + mimeType,
+                "Accept-Ranges: bytes"
+                ));
 
         return Response.buildLargeFileResponse(
                 headers,

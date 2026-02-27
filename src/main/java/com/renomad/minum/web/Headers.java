@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
+import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
+
 /**
  * Details extracted from the headers.  For example,
  * is this a keep-alive connection? what is the content-length,
@@ -25,7 +27,7 @@ import java.util.*;
  * of the document being downloaded, amongst others.
  * </p>
  */
-public final class Headers{
+public final class Headers {
 
     public static final Headers EMPTY = new Headers(List.of(), null);
     private static final int MAX_HEADERS_COUNT = 70;
@@ -196,5 +198,16 @@ public final class Headers{
         return "Headers{" +
                 "headerStrings=" + headerStrings +
                 '}';
+    }
+
+    /**
+     * This is used in the WebFramework when building a Response string,
+     * to avoid needing to create a copy of the headers list when preparing
+     * to send.
+     */
+    void printHeaders(StringBuilder sb) {
+        for (String header : headerStrings) {
+            sb.append(header).append(HTTP_CRLF);
+        }
     }
 }
