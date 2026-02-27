@@ -199,7 +199,7 @@ final class DbFileConverter {
         // get the list of consolidated data files
         List<Path> listOfFiles;
         try (Stream<Path> fileStream = Files.list(dbDirectory.resolve("consolidated_data"))) {
-            listOfFiles = new ArrayList<>(fileStream.filter(x -> Files.isRegularFile(x) && !x.toString().contains("checksum")).toList());
+            listOfFiles = new ArrayList<>(fileStream.filter(DbFileConverter::isDataFile).toList());
         } catch (IOException ex) {
             throw new DbException("Failed during the listing of files during conversion of db engine2 to db classic", ex);
         }
@@ -259,6 +259,13 @@ final class DbFileConverter {
 
         deleteEmptyDbEngine2Directories(dbDirectory);
         createNewIndexFile(dbDirectory, currentMaxIndexValue);
+    }
+
+    /**
+     * A predicate used to filter for just regular database files, not checksum files
+     */
+    static boolean isDataFile(Path path) {
+        return Files.isRegularFile(path) && !path.toString().contains("checksum");
     }
 
     /**

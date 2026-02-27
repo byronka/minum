@@ -32,6 +32,7 @@ import static com.renomad.minum.database.DatabaseChangeAction.UPDATE;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
+import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.stream.IntStream.range;
 
 public class DbEngine2Tests {
@@ -1399,11 +1400,12 @@ public class DbEngine2Tests {
         db.stop();
 
         // behind the scenes, alter the consolidated file
-        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "I have been corrupted");
+        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "1|0|hello+world__CORRUPTED___\n");
 
         // startup the database, have the database read that file, causing an exception to be thrown and halting the program
         AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
-        assertThrows(DbException.class, restartedDb2::loadData);
+        var ex = assertThrows(DbException.class, restartedDb2::loadData);
+        assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + ex.getMessage());
     }
 
 

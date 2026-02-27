@@ -20,6 +20,9 @@ import java.util.List;
  */
 public class ChecksumUtility {
 
+    private ChecksumUtility() {
+        // not intended to be instantiated
+    }
 
     /**
      * Given a path to a consolidated database file, check its data against
@@ -27,7 +30,7 @@ public class ChecksumUtility {
      * @param fullPathToConsolidatedFile the path to a consolidated database file
      * @param data the list of strings of data in a consolidated database file
      */
-    static void compareWithChecksum(Path fullPathToConsolidatedFile, List<String> data) {
+    static boolean compareWithChecksum(Path fullPathToConsolidatedFile, List<String> data) {
         // check against the checksum, if it exists. If it is not there or blank, just move on.
         Path checksumPath = fullPathToConsolidatedFile.resolveSibling(fullPathToConsolidatedFile.getFileName() + ".checksum");
         if (Files.exists(checksumPath)) {
@@ -37,13 +40,12 @@ public class ChecksumUtility {
             } catch (IOException e) {
                 throw new DbChecksumException(e);
             }
-            if (!existingChecksumValue.isBlank()) {
-                String checksumString = buildChecksum(data);
-                if (!checksumString.equals(existingChecksumValue)) {
-                    throw new DbChecksumException(generateChecksumErrorMessage(fullPathToConsolidatedFile));
-                }
+            String checksumString = buildChecksum(data);
+            if (!checksumString.equals(existingChecksumValue)) {
+                throw new DbChecksumException(generateChecksumErrorMessage(fullPathToConsolidatedFile));
             }
         }
+        return true;
     }
 
     static String generateChecksumErrorMessage(Path fullPathToConsolidatedFile) {
@@ -55,9 +57,9 @@ public class ChecksumUtility {
                 
                 Checksum failure for %s
                 
-                file considered corrupted
+                THIS FILE IS CORRUPTED, AND NEEDS TO BE RESTORED FROM BACKUP!
                 
-                See also %s.checksum
+                The checksum file is at %s.checksum
                 
                 Next steps: This warning means the data does not align with its checksum, meaning
                 it has changed by something other than the program.  That is, it is corrupted data.
@@ -73,17 +75,20 @@ public class ChecksumUtility {
 
     static String buildChecksum(Collection<String> updatedData) {
         // build a hash for this data
-        MessageDigest messageDigestSha256;
-        try {
-            messageDigestSha256 = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new DbChecksumException(e);
-        }
+        MessageDigest messageDigestSha256 = getMessageDigest("SHA-256");
         for (String item : updatedData) {
             messageDigestSha256.update(item.getBytes(StandardCharsets.US_ASCII));
         }
         byte[] hash = messageDigestSha256.digest();
         return CryptoUtils.bytesToHex(hash);
+    }
+
+    static MessageDigest getMessageDigest(String algorithm) {
+        try {
+            return MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException e) {
+            throw new DbChecksumException(e);
+        }
     }
 
 }

@@ -17,6 +17,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.renomad.minum.database.ChecksumUtility.generateChecksumErrorMessage;
+import static com.renomad.minum.database.ChecksumUtility.getMessageDigest;
 import static com.renomad.minum.utils.Invariants.mustBeFalse;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
@@ -338,12 +339,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             // memory without needing to read the whole file contents into memory at once,
             // thus avoiding requiring a great amount of memory
             // build a hash for this data
-            MessageDigest messageDigestSha256;
-            try {
-                messageDigestSha256 = MessageDigest.getInstance("SHA-256");
-            } catch (NoSuchAlgorithmException e) {
-                throw new DbException(e);
-            }
+            MessageDigest messageDigestSha256 = getMessageDigest("SHA-256");
 
             try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
                 String checksum = "";
@@ -359,7 +355,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
                 // check against the checksum for what we read, if applicable
                 byte[] hashBytes = messageDigestSha256.digest();
                 String hashString = CryptoUtils.bytesToHex(hashBytes);
-                if (!checksum.isBlank() && !hashString.equals(checksum)) {
+                if (!hashString.equals(checksum)) {
                     String errorMessage = generateChecksumErrorMessage(consolidatedDataFile);
                     throw new DbChecksumException(errorMessage);
                 }
