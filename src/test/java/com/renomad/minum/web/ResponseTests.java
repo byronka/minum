@@ -51,7 +51,10 @@ public class ResponseTests {
     public void testResponse_Header_MultiValue() {
         var values = List.of("a=value1", "b=value2", "c=value3");
         String value = Response.constructHeaderMultiValue(values);
-        assertEquals(String.join("\r\n", values), value);
+        assertEquals(value, """
+                a=value1\r
+                b=value2\r
+                c=value3""");
     }
 
     /**
