@@ -51,7 +51,7 @@ public class ChecksumUtility {
     static String generateChecksumErrorMessage(Path fullPathToConsolidatedFile) {
         return """
                 
-                WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
+                WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
                 **************************************************************************************
                 **************************************************************************************
                 

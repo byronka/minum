@@ -3,8 +3,6 @@ package com.renomad.minum.htmlparsing;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.RingBuffer;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**

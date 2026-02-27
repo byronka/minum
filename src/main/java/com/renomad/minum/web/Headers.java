@@ -84,7 +84,7 @@ public final class Headers{
      */
     public String contentType() {
         // find the header that starts with content-type
-        List<String> cts = Objects.requireNonNullElse(headersMap.get("content-type"), List.of());
+        List<String> cts = Objects.requireNonNullElse(headersMap.get("content-type"), new ArrayList<>());
         if (cts.size() > 1) {
             cts.sort(Comparator.naturalOrder());
             throw new WebServerException("The number of content-type headers must be exactly zero or one.  Received: " + cts);

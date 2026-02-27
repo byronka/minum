@@ -148,7 +148,7 @@ public class StreamingMultipartPartition extends InputStream {
     }
 
     @Override
-    public byte[] readAllBytes()  {
+    public byte[] readAllBytes() {
         var baos = new ByteArrayOutputStream();
         while (true) {
             int result = 0;

@@ -132,7 +132,7 @@ public final class WebFramework {
 
                 // React to what the user requested, generate a result
                 Headers headers = getHeaders(sw);
-                IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+                Request request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
                 IResponse response = processRequest(request, sw, requestLine, headers);
 
                 // check that the response is non-null.  If it is null, that suggests
@@ -141,7 +141,7 @@ public final class WebFramework {
                     throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
                 }
 
-                boolean isKeepAlive = determineIfKeepAlive(request, logger, ((Request)request).hasAccessedBody());
+                boolean isKeepAlive = determineIfKeepAlive(request, logger, request.hasAccessedBody());
 
                 // calculate proper headers for the response
                 StringBuilder headerStringBuilder = addDefaultHeaders(response);

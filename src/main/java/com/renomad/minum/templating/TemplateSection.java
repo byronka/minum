@@ -6,7 +6,6 @@ import java.util.Objects;
 
 import static com.renomad.minum.templating.TemplateType.DYNAMIC_TEXT;
 import static com.renomad.minum.templating.TemplateType.STATIC_TEXT;
-import static com.renomad.minum.utils.Invariants.mustBeTrue;
 import static com.renomad.minum.utils.SerializationUtils.tokenizer;
 
 /**
