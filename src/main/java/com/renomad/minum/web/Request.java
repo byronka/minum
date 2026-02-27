@@ -144,12 +144,7 @@ public final class Request implements IRequest {
         return bodyProcessor.getMultiPartIterable(getSocketWrapper().getInputStream(), boundaryValue, getHeaders().contentLength());
     }
 
-    /**
-     * Returns true if the body has been accessed, either by running
-     * the {@link Request#getBody()} method, by accessing the
-     * {@link ISocketWrapper} using {@link Request#getSocketWrapper()},
-     * or by running {@link Request#getMultipartIterable()} or {@link Request#getUrlEncodedIterable()}
-     */
+    @Override
     public boolean hasAccessedBody() {
         return hasStartedReadingBody || body != null;
     }

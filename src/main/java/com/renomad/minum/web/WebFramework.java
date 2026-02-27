@@ -132,7 +132,7 @@ public final class WebFramework {
 
                 // React to what the user requested, generate a result
                 Headers headers = getHeaders(sw);
-                Request request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+                IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
                 IResponse response = processRequest(request, sw, requestLine, headers);
 
                 // check that the response is non-null.  If it is null, that suggests

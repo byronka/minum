@@ -106,8 +106,12 @@ public class TheRegister {
         webFramework.registerPath(POST, "unusualpost", sd::unusualPostHandler);
 
         // an endpoint with the header that contains multi-fields with the same header key
-        webFramework.registerPath(GET, "multicookies", request -> Response.buildResponse(CODE_200_OK, Map.of("Set-Cookie", Response.constructHeaderMultiValue(List.of("a=value1", "b=value2"))), ""));
-
+        webFramework.registerPath(GET, "multicookies",
+                request -> Response.buildResponse(
+                        CODE_200_OK,
+                        Map.of("Set-Cookie", Response.constructHeaderMultiValue(List.of("a=value1", "b=value2"))),
+                        "You have been authenticated.  Two cookies have been set: a and b"
+                ));
         // endpoints to test the path function
         webFramework.registerPath(GET, path -> {
             String[] split = path.split("/", 2);

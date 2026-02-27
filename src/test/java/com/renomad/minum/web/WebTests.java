@@ -1576,6 +1576,7 @@ public class WebTests {
             @Override public ISocketWrapper getSocketWrapper() {return null;}
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+            @Override public boolean hasAccessedBody() {return false;}
         };
 
         try (var sw = new FakeSocketWrapper()) {
@@ -1771,22 +1772,8 @@ public class WebTests {
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 
-    private static IRequest getMyRequest(RequestLine requestLine) {
-        var myRequest = new IRequest() {
-            @Override public Headers getHeaders() {return null;}
-            @Override public RequestLine getRequestLine() {return requestLine;}
-            @Override public Body getBody() {return null;}
-            @Override public String getRemoteRequester() {return "";}
-            @Override public ISocketWrapper getSocketWrapper() {return null;}
-            @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
-            @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
-
-        };
-        return myRequest;
-    }
-
     private static IRequest getMyRequest(RequestLine requestLine, Headers headers) {
-        var myRequest = new IRequest() {
+        return new IRequest() {
             @Override public Headers getHeaders() {return headers;}
             @Override public RequestLine getRequestLine() {return requestLine;}
             @Override public Body getBody() {return null;}
@@ -1794,8 +1781,8 @@ public class WebTests {
             @Override public ISocketWrapper getSocketWrapper() {return null;}
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
+            @Override public boolean hasAccessedBody() {return false;}
         };
-        return myRequest;
     }
 
 }
