@@ -145,7 +145,7 @@ public final class WebFramework {
 
                 // calculate proper headers for the response
                 StringBuilder headerStringBuilder = addDefaultHeaders(response);
-                response.getExtraHeaders().printHeaders(headerStringBuilder);
+                response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
                 addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
 
                 // inspect the response being sent, see whether we can compress the data.

@@ -212,7 +212,7 @@ public final class Headers {
      * to avoid needing to create a copy of the headers list when preparing
      * to send.
      */
-    void printHeaders(StringBuilder sb) {
+    void appendHeadersToBuilder(StringBuilder sb) {
         for (String header : headerStrings) {
             sb.append(header).append(HTTP_CRLF);
         }
