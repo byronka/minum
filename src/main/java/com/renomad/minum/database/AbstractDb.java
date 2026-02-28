@@ -287,21 +287,16 @@ public abstract class AbstractDb<T extends DbData<?>> {
     /**
      * Cause the database to immediately load all its data.
      * <p>
-     *     If this method is not called, then the data will be loaded
+     *     If this method is not invoked by the developer, then the data will be loaded
      *     lazily, at the first point where it is needed, such as when
-     *     getting data or writing new data.
+     *     getting or writing data.
      * </p>
      * <p>
      *     It is a good idea to regularly use this method at database
-     *     initialization.  By doing so, any data corruption issues will
-     *     cause the whole application to halt immediately, which is far
-     *     preferable to having the exception show as a complaint
-     *     in the logs but allows the app to keep running.
-     * </p>
-     * <p>
-     *     The only reason not to use this is when lazy loading is more
-     *     important - if the data load might take a long time.  That said,
-     *     the data load should take seconds for millions of entries.
+     *     initialization.  By doing so, the check for data corruption issues will
+     *     throw an exception that will cause the whole application to halt
+     *     immediately, which is far preferable to having the exception show
+     *     as a complaint in the logs.
      * </p>
      * <p>
      *     An example database initialization with bells and whistles
