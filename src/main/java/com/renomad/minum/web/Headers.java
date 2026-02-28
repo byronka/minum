@@ -172,6 +172,10 @@ public final class Headers {
         return headers;
     }
 
+    public boolean isEmpty() {
+        return this.headersMap.isEmpty();
+    }
+
     /**
      * Allows a user to obtain any header value by its key, case-insensitively
      * @return a {@link List} of string values, or null

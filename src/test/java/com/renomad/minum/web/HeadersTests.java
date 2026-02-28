@@ -160,4 +160,13 @@ public class HeadersTests {
         assertTrue(headers.hasConnectionClose());
     }
 
+    @Test
+    public void test_IsEmpty() {
+        Headers headers = Headers.EMPTY;
+        assertTrue(headers.isEmpty());
+
+        Headers headers2 = new Headers(List.of());
+        assertTrue(headers2.isEmpty());
+    }
+
 }
