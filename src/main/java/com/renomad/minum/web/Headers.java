@@ -172,6 +172,9 @@ public final class Headers {
         return headers;
     }
 
+    /**
+     * Returns true if there is no header data in this instance.
+     */
     public boolean isEmpty() {
         return this.headersMap.isEmpty();
     }
