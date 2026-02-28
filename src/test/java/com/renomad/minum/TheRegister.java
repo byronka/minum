@@ -69,7 +69,12 @@ public class TheRegister {
         webFramework.registerPath(GET, "photos", lp::ListPhotosPage);
         // it is necessary to register this image so explicitly because this is all in the test directory and the image
         // is not stored in the static files directory where it would normally be.
-        webFramework.registerPath(GET, "video_poster.jpg", request -> Response.buildResponse(StatusLine.StatusCode.CODE_200_OK, Map.of("Content-Type", "image/jpg"), fileUtils.readBinaryFile("src/test/resources/video_poster.jpg")));
+        webFramework.registerPath(GET, "video_poster.jpg",
+                request -> Response.buildResponse(
+                        StatusLine.StatusCode.CODE_200_OK,
+                        Map.of("Content-Type", "image/jpg"),
+                        fileUtils.readBinaryFile("src/test/resources/video_poster.jpg"))
+        );
         webFramework.registerPath(GET, "upload", up::uploadPage);
         webFramework.registerPath(GET, "upload_video", up::uploadVideoPage);
         webFramework.registerPath(POST, "upload", up::uploadPageReceivePost);
@@ -109,7 +114,7 @@ public class TheRegister {
         webFramework.registerPath(GET, "multicookies",
                 request -> Response.buildResponse(
                         CODE_200_OK,
-                        Map.of("Set-Cookie", Response.constructHeaderMultiValue(List.of("a=value1", "b=value2"))),
+                        new Headers(List.of("Set-Cookie: a=value1", "Set-Cookie: b=value2", "content-type: text/html")),
                         "You have been authenticated.  Two cookies have been set: a and b"
                 ));
         // endpoints to test the path function

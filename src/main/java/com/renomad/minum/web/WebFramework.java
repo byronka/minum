@@ -405,7 +405,7 @@ public final class WebFramework {
      */
     static void confirmBodyHasContentType(IRequest request, IResponse response) {
         // check the correctness of the content-type header versus the data length (if any data, that is)
-        boolean hasContentType = ! response.getExtraHeaders().valueByKey("content-type").isEmpty();
+        boolean hasContentType = response.getExtraHeaders().valueByKey("content-type") != null;
 
         // if there *is* data, we had better be returning a content type
         if (response.getBodyLength() > 0 && !hasContentType) {

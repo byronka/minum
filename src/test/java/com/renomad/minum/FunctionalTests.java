@@ -352,7 +352,7 @@ public class FunctionalTests {
     @Test
     public void test_EdgeCase_Response_MultiCookies() {
         TestResponse response = ft.get("multicookies");
-        assertEquals(Set.of("b=value2", "a=value1"), Set.copyOf(response.headers().valueByKey("set-cookie")));
+        assertEqualsDisregardOrder(List.of("b=value2", "a=value1"), response.headers().valueByKey("set-cookie"));
     }
 
     @Test
