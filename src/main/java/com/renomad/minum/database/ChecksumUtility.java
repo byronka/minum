@@ -14,9 +14,10 @@ import java.util.List;
 /**
  * This class contains some functions related to the "checksum" feature
  * of the database.  The "checksum" is a hash that is created when the
- * database writes data, and is checked when reading.  If the value is
- * different than expected while reading, an exception will be thrown
- * indicating that the data is considered corrupt.
+ * database writes data to a file, and is checked when reading that file.
+ * <br>
+ * If the value is different than expected while reading, an exception will be thrown
+ * indicating data corruption.
  */
 public class ChecksumUtility {
 
