@@ -313,9 +313,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
     public abstract AbstractDb<T> loadData();
 
     /**
-     * This method provides read capability for the values of a database.
-     * <br>
-     * The returned collection is a read-only view over the data, through {@link Collections#unmodifiableCollection(Collection)}
+     * This method returns a read-only view of the values of a database.
      *
      * <p><em>Example:</em></p>
      * {@snippet :
