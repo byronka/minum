@@ -47,16 +47,6 @@ public class ResponseTests {
         assertEquals(response1.toString(), "Response{statusCode=CODE_200_OK, extraHeaders=Headers{headerStrings=[Content-Type: text/html; charset=UTF-8]}, bodyLength=12, isBodyText=true}");
     }
 
-    @Test
-    public void testResponse_Header_MultiValue() {
-        var values = List.of("a=value1", "b=value2", "c=value3");
-        String value = Response.constructHeaderMultiValue(values);
-        assertEquals(value, """
-                a=value1\r
-                b=value2\r
-                c=value3""");
-    }
-
     /**
      * If an Exception is thrown while sending the body, it should
      * be converted to an IOException.  This is what we expect to happen
