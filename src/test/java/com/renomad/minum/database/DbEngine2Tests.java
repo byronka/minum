@@ -1408,6 +1408,53 @@ public class DbEngine2Tests {
         assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + ex.getMessage());
     }
 
+    /**
+     * This test is very similar to {@link #testChecksums()} but it focuses on the
+     * situation where the database is starting up and consolidating data from
+     * the append logs, and only then finding that there is a corruption.  In the
+     * other test, the failure happens when simply reading the consolidated data
+     * into memory.  A focus of concern is to ensure that no data is lost - here,
+     * we should see that even though the exception is thrown, the data that has
+     * not yet been processed is still in the append_logs folder.
+     */
+    @Test
+    public void testChecksums_FailureDuringRewrite() throws IOException {
+
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_checksum_failure_during_rewrite");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+
+        // write some data to it
+        var foo = new Foo(0, 0, "hello world");
+        db.write(foo);
+
+        // consolidate (which creates checksums for each consolidation file)
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+        db.databaseConsolidator.consolidate();
+
+        // write some more...
+        // this will go through a different flow, since when the database starts
+        // again it will try to consolidate this data.
+
+        // write some data to it
+        var foo2 = new Foo(0, 0, "hello world");
+        db.write(foo2);
+
+        db.databaseAppender.saveOffCurrentDataToReadyFolder();
+
+        // shutdown the database
+        db.stop();
+
+        // behind the scenes, alter the consolidated file
+        Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "1|0|hello+world__CORRUPTED___\n");
+
+        // startup the database, have the database read that file, causing an exception to be thrown and halting the program
+        AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        var ex = assertThrows(DbException.class, restartedDb2::loadData);
+        assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + ex.getMessage());
+    }
+
 
     private static class BrokenBufferedWriter extends BufferedWriter {
 
