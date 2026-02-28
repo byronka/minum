@@ -3,11 +3,7 @@ package com.renomad.minum.templating;
 import java.io.Serial;
 
 /**
- * This exception is thrown when we try to render a string
- * template but fail to include a key for one of the key
- * values - that is, if the template is "hello {foo}", and
- * our map doesn't include a value for foo, this exception
- * will get thrown.
+ * Thrown when there are any issues found in the templating
  */
 public final class TemplateRenderException extends RuntimeException {
 
