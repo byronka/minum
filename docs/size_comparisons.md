@@ -28,7 +28,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,463 | 148,744 | 1,085,405   |
+| 6,489 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -48,7 +48,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2,740 | 163,000 | 242,000 |
+| 2,772 | 163,000 | 242,000 |
 
 
 Templating
@@ -63,7 +63,7 @@ See an example of sophisticated use [here](https://github.com/byronka/template-b
 
 | Minum | Mustache | Pebble | Rocker | Thymeleaf |
 |-------|----------|--------|--------|-----------|
-| 215   | 11,346   | 16,876 | 11,996 | 43,056    |
+| 214   | 11,346   | 16,876 | 11,996 | 43,056    |
 
 
 Database
@@ -75,7 +75,7 @@ to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 1136  | 1,300,000  | 1,500,000 | 116,000 |
+| 1133  | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -100,7 +100,7 @@ testing.
 
 | Minum | JSoup  |
 |-------|--------|
-| 579   | 14,337 |
+| 577   | 14,337 |
 
 
 Testing
