@@ -587,8 +587,8 @@ public final class WebFramework {
      */
     private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
         var headers = new Headers(List.of(
-                "cache-control: max-age=" + constants.staticFileCacheTime,
-                "content-type: " + mimeType));
+                "Cache-Control: max-age=" + constants.staticFileCacheTime,
+                "Content-Type: " + mimeType));
 
         return Response.buildResponse(
                 CODE_200_OK,
@@ -601,8 +601,8 @@ public final class WebFramework {
      */
     private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) throws IOException {
         var headers = new Headers(List.of(
-                "cache-control: max-age=" + constants.staticFileCacheTime,
-                "content-type: " + mimeType,
+                "Cache-Control: max-age=" + constants.staticFileCacheTime,
+                "Content-Type: " + mimeType,
                 "Accept-Ranges: bytes"
                 ));
 
