@@ -341,10 +341,6 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             MessageDigest messageDigestSha256 = getMessageDigest("SHA-256");
 
             try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
-                String checksum = "";
-                if (Files.exists(checksumFilename)) {
-                    checksum = Files.readString(checksumFilename);
-                }
 
                 fileStream.forEach(line -> {
                     messageDigestSha256.update(line.getBytes(StandardCharsets.US_ASCII));
@@ -352,12 +348,16 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
                 });
 
                 // check against the checksum for what we read, if applicable
-                byte[] hashBytes = messageDigestSha256.digest();
-                String hashString = CryptoUtils.bytesToHex(hashBytes);
-                if (!hashString.equals(checksum)) {
-                    String errorMessage = generateChecksumErrorMessage(consolidatedDataFile);
-                    throw new DbChecksumException(errorMessage);
+                if (Files.exists(checksumFilename)) {
+                    String checksum = Files.readString(checksumFilename);
+                    byte[] hashBytes = messageDigestSha256.digest();
+                    String hashString = CryptoUtils.bytesToHex(hashBytes);
+                    if (!hashString.equals(checksum)) {
+                        String errorMessage = generateChecksumErrorMessage(consolidatedDataFile);
+                        throw new DbChecksumException(errorMessage);
+                    }
                 }
+
             } catch (Exception e) {
                 throw new DbException(e);
             }
