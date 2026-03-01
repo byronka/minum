@@ -126,7 +126,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * non-zero value to update data.
      * <p><em>
      * Example of adding new data to the database:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *          final var newSalt = StringUtils.generateSecureRandomString(10);
      *          final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
@@ -135,7 +135,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * }
      * <p><em>
      * Example of updating data:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *         // write the updated salted password to the database
      *         final var updatedUser = new User(
@@ -199,7 +199,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
 
     /**
      * Delete data
-     * <p><em>Example:</p></em>
+     * <p><em>Example:</em></p>
      * {@snippet :
      *      userDb.delete(user);
      * }

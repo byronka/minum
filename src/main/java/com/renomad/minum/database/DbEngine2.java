@@ -59,17 +59,17 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  *      at the same name as the previous, and it will convert the data.  If the previous
  *      call looked like this:
  *  </p>
- *  <code>
+ *  {@code
  *  Db<Photograph> photoDb = context.getDb("photos", Photograph.EMPTY);
- *  </code>
+ *  }
  *  <p>
  *  Then converting to the new database is just replacing it with the following
  *  line. <b>Please, backup your database before this change.</b>
  *  </p>
  *  <p>
- * <code>
+ * {@code
  *     DbEngine2<Photograph> photoDb = context.getDb2("photos", Photograph.EMPTY);
- * </code>
+ * }
  *  </p>
  *  <p>
  *     Once the new engine starts up, it will notice the old file structure and convert it
@@ -145,7 +145,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * non-zero value to update data.
      * <p><em>
      *     Example of adding new data to the database:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *          final var newSalt = StringUtils.generateSecureRandomString(10);
      *          final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
@@ -154,7 +154,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * }
      * <p><em>
      *     Example of updating data:
-     * </p></em>
+     * </em></p>
      * {@snippet :
      *         // write the updated salted password to the database
      *         final var updatedUser = new User(
@@ -243,7 +243,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
 
     /**
      * Delete data
-     * <p><em>Example:</p></em>
+     * <p><em>Example:</em></p>
      * {@snippet :
      *      userDb.delete(user);
      * }

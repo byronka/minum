@@ -33,9 +33,11 @@ public final class TestFramework {
      *     Example usage:
      * </p>
      * <pre>
-     *     <code>
-     *         {@code assertThrows(TemplateRenderException.class, "Missing a value for key {missing_key}", () -> tp.renderTemplate(myMap));}
-     *     </code>
+     *   {@code
+     *   assertThrows(TemplateRenderException.class,
+     *       "Missing a value for key {missing_key}",
+     *       () -> tp.renderTemplate(myMap));
+     *   }
      * </pre>
      */
     public static <T> T assertThrows(Class<T> myEx, ThrowingRunnable r) {

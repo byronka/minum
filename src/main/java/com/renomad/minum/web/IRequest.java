@@ -38,8 +38,9 @@ package com.renomad.minum.web;
  *
  *      <li>
  *      an optional message body.
- *      </li>
+ *      <br>
  *      In the HTTP/1.1 protocol, all header fields except Host: hostname are optional.
+ *      </li>
  * </ul>
  *
  * <p>
