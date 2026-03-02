@@ -77,9 +77,7 @@ example, this project's ability to attain such high test coverage was
 greatly enabled by the minimalism paradigm. The plentiful tests and
 comments help to make intent and implementation clearer.
 
-Minum follows _semantic versioning_, and has been version 8 since
-August 2024. It is intended not to make breaking changes for the
-forseeable future. There is no slated end-of-life for version 8.
+Minum follows _semantic versioning_.
 
 The design process
 ------------------
