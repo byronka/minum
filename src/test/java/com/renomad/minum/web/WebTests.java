@@ -1767,6 +1767,83 @@ public class WebTests {
         assertFalse(webFramework.dumpIfAttacker(null, (FullSystem) null));
     }
 
+    /**
+     * Slowloris attack mitigation test.
+     * This test ensures that if a client connects and sends data too slowly
+     * (exceeding the socket timeout), the server will forcefully close the connection
+     * to reclaim resources.
+     */
+    @Test
+    public void test_Slowloris_Mitigation() throws IOException {
+        var fullSystem = FullSystem.initialize();
+        try {
+            try (Socket socket = new Socket("localhost", 8080)) {
+                OutputStream os = socket.getOutputStream();
+                // Send just a part of the request line
+                os.write("GET / ".getBytes(StandardCharsets.UTF_8));
+                os.flush();
+
+                // Wait for the server to timeout our slow request.
+                // Our timeout is 300ms, so 1000ms should be plenty.
+                MyThread.sleep(1000);
+
+                // Now try to read - should return -1 (EOF) because the server closed the connection
+                int nextByte = socket.getInputStream().read();
+                assertEquals(nextByte, -1);
+            }
+        } finally {
+            fullSystem.shutdown();
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
+
+    /**
+     * Test the Keep-Alive state machine when an endpoint doesn't read the body.
+     * If a client sends a body but the endpoint doesn't access it, the framework
+     * should close the connection after the first request to prevent data corruption
+     * in the next request on the same socket.
+     */
+    @Test
+    public void test_KeepAlive_UnreadBody_ClosesConnection() throws IOException {
+        var fullSystem = FullSystem.initialize();
+        try {
+            var wf = fullSystem.getWebFramework();
+            // Register an endpoint that intentionally does NOT read the body
+            wf.registerPath(POST, "unread_body", request -> Response.htmlOk("done"));
+
+            try (Socket socket = new Socket("localhost", 8080)) {
+                OutputStream os = socket.getOutputStream();
+                InputStream is = socket.getInputStream();
+
+                // Send first request with a body
+                String body = "some data";
+                String request = "POST /unread_body HTTP/1.1\r\n" +
+                        "Content-Length: " + body.length() + "\r\n" +
+                        "Connection: keep-alive\r\n" +
+                        "\r\n" +
+                        body;
+                os.write(request.getBytes(StandardCharsets.UTF_8));
+                os.flush();
+
+                // Read the response for the first request
+                String response = new String(is.readNBytes(200), StandardCharsets.UTF_8);
+                assertTrue(response.contains("200 OK"));
+
+                // Now, because we didn't read the body, the framework should have set isKeepAlive to false.
+                // We verify this by attempting a second request - it should fail or find the socket closed.
+                // In Minum, it will close the socket.
+                os.write("GET / HTTP/1.1\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+                os.flush();
+
+                // Try to read - should return -1 (EOF) because the server closed the connection
+                int nextByte = is.read();
+                assertEquals(nextByte, -1);
+            }
+        } finally {
+            fullSystem.shutdown();
+        }
+        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
+    }
 
     private static ISocketWrapper getClient(Socket socket) throws IOException {
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);

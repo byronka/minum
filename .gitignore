@@ -31,3 +31,6 @@ src/test/webapp/static/largefile.txt
 *.prefs
 .classpath
 .project
+
+.vscode/
+.gemini/

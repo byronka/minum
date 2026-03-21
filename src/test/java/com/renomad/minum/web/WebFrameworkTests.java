@@ -154,6 +154,41 @@ public class WebFrameworkTests {
     }
 
     /**
+     * Test the Time-of-Check to Time-of-Use (TOCTOU) scenario.
+     * This test simulates a file that exists when the framework checks for it,
+     * but is deleted (or otherwise becomes unreadable) by the time the
+     * framework tries to read its content.
+     */
+    @Test
+    public void test_readStaticFile_TOCTOU_FileDeletedAfterCheck() {
+        // We use a custom file reader that simulates an IOException during read,
+        // even though the file might have existed during the framework's initial check.
+        webFramework = new WebFramework(context, default_zdt, throwingFileReader);
+        
+        // "index.html" is a file that definitely exists in the static directory,
+        // so the framework's check for Files.isRegularFile() will pass.
+        IResponse response = webFramework.readStaticFile("index.html", defaultHeaders);
+
+        // When the read fails, it should return a 400 Bad Request.
+        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
+        assertTrue(logger.doesMessageExist("Error while reading file: index.html"));
+    }
+
+    /**
+     * Ensure that requests for files outside the configured static files directory
+     * are correctly identified and rejected with a 404.
+     */
+    @Test
+    public void test_readStaticFile_OutsideAllowedDirectory() {
+        // The framework should prevent access to files outside the static directory.
+        // We try to access pom.xml which is in the root, not the static directory.
+        // This is caught by the bad pattern check and returns a 400.
+        IResponse response = webFramework.readStaticFile("../../pom.xml", defaultHeaders);
+
+        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
+    }
+
+    /**
      * Users can add more mime types to our system by registering them
      * in the minum.config file in EXTRA_MIME_MAPPINGS.
      */

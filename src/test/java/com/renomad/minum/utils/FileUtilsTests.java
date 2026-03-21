@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.FileUtils.*;
@@ -206,5 +207,50 @@ public class FileUtilsTests {
         safeResolve("src/test", "resources/kitty.jpg");
         assertThrows(InvariantException.class, () -> safeResolve("src/test", "/"));
         assertThrows(InvariantException.class, () -> safeResolve("src/test", "../../docs"));
+    }
+
+    /**
+     * Generative (fuzzing) test for path traversal and invalid characters.
+     * This test generates a variety of potentially malicious or malformed strings
+     * to ensure that {@link FileUtils#checkForBadFilePatterns(String)} consistently
+     * identifies and rejects them, protecting against path traversal and other
+     * file-system based attacks.
+     */
+    @Test
+    public void test_BadFilePathPatterns_Generative() {
+        List<String> badPatterns = List.of(
+                "../", "/..", "..\\", "\\..",
+                "//", ":", "*", "?", "\"", "<", ">", "|",
+                "\0", "\n", "\r", "\t",
+                "%2e%2e%2f", "%2e%2e%5c", "%2f%2e%2e", "%5c%2e%2e", // URL encoded path traversal
+                " ", "  ", "\u00A0", // Whitespace and non-breaking space
+                "наивный", "测试", "😀" // Non-ascii characters
+        );
+
+        for (String pattern : badPatterns) {
+            assertThrows(InvariantException.class, () -> checkForBadFilePatterns(pattern));
+        }
+
+        // Test random combinations
+        java.util.Random random = new java.util.Random(42); // Fixed seed for reproducibility
+        String allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/\\";
+        for (int i = 0; i < 100; i++) {
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < 20; j++) {
+                if (random.nextDouble() < 0.1) {
+                    sb.append(badPatterns.get(random.nextInt(badPatterns.size())));
+                } else {
+                    sb.append(allowedChars.charAt(random.nextInt(allowedChars.length())));
+                }
+            }
+            String candidate = sb.toString();
+            try {
+                checkForBadFilePatterns(candidate);
+            } catch (InvariantException ex) {
+                // Expected for many generated strings
+            } catch (Exception ex) {
+                assertTrue(false, "Generated string \"" + candidate + "\" caused an unexpected exception: " + ex);
+            }
+        }
     }
 }
