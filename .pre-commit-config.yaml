@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-aws-credentials
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
+        args: ["-L", "minum,renomad"]
+  - repo: local
+    hooks:
+      - id: test
+        name: run tests
+        entry: make test
+        pass_filenames: false
+        language: system
+        stages: [pre-push]
+
+default_install_hook_types: [pre-commit, pre-push]

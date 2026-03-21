@@ -838,7 +838,7 @@ public class DbTests {
      * Let's see the difference in performance using indexes.
      * <br>
      * We'll create 1000 elements in a database, each with a random
-     * UUID value as a propertly.  Then, we'll try repeatedly getting
+     * UUID value as a property.  Then, we'll try repeatedly getting
      * a particular item by uuid, and compare that to getting using
      * the index.
      */
@@ -1059,7 +1059,7 @@ public class DbTests {
         var ex1 = assertThrows(DbException.class, () -> db.findExactlyOne("indexes_by_a_value", "1"));
         assertEquals(ex1.getMessage(), "There is no index registered on the database Db<Foo> with a name of \"indexes_by_a_value\"");
     }
-    
+
     @Test
     public void testSearchUtility_EdgeCases_Various() {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtility");

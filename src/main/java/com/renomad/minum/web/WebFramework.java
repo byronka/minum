@@ -124,7 +124,7 @@ public final class WebFramework {
                 if (requestLine.equals(emptyRequestLine)) {
                     // here, the client sent something we cannot parse.
                     // nothing to do but return.
-                    logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
+                    logger.logTrace(() -> "RequestLine was unparsable.  Returning.");
                     break;
                 }
                 // check if the user is seeming to attack us.

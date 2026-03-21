@@ -1,38 +1,37 @@
 # AGENTS
 
-Minum is a minimal Java framework to build a web applications.
+Minum is a minimalist, high-performance Java web framework with zero external dependencies. It is designed for simplicity, observability, and 100% testability.
 
-Minum has zero dependencies, and is built of ordinary and well-tested
-code: hashmaps, sockets, and so on.
+- **CRITICAL:** **DO NOT** add any external dependencies (libraries). Use only Java 21+ standard library features.
+- **CRITICAL:** Maintain 100% line and branch coverage at all times.
 
-- **DO NOT** add any dependencies. Use only Java 21+.
+## Architecture Highlights
 
-## Philosophy
+*   **Virtual Threads**: Minum uses a thread-per-request model backed by Java Virtual Threads. Code should be written in a simple, blocking style; the framework handles the concurrency.
+*   **Dependency Injection**: Minum uses a `Context` object as a lightweight DI container. Avoid static state; always pass the `Context` or retrieve services (Logger, Constants, ExecutorService) from it.
+*   **Database**: Built-in in-memory database with disk persistence (record-per-file or append-only log).
+*   **No Magic**: No reflection, no annotations, and no classpath scanning. Every method call is explicit and traceable.
 
-* Embraces the concept of _kaizen_: small beneficial changes over time
-  leading to impressive capabilities
-* Designed with TDD (Test-Driven Development)
-* Relies on no dependencies other than the Java 21 (and up) SDK - i.e.
-  no Netty, Jetty, Tomcat, Log4j, Hibernate, MySql, etc.
-* Is thoroughly documented throughout, anticipating to benefit
-  developers' comprehension
-* No reflection - The framework's method calls are all
-  scope-respecting, and navigation of the code base is plain
-* No annotations - unlike certain other frameworks, the design
-  principle is to solely use ordinary Java method calls
-  for all behavior, and configuration is minimal and relegated to a
-  properties file
-* No magic - nothing unusual behind the scenes, no byte-code runtime
-  surprises.  Just ordinary Java
+## Development Workflow
 
+1.  **Understand**: Read the `README.md` and `DIRECTORIES_AND_FILES.md` to get oriented.
+2.  **TDD (Test-Driven Development)**: Always write a failing test in the appropriate `src/test/java` directory before making any changes to `src/main/java`.
+3.  **Implement**: Write the minimal amount of code needed to satisfy the test.
+4.  **Verify**: Run the tests.
+5.  **Refactor**: Improve the code while maintaining test correctness.
 
-## Tests
+## Tests & Verification
 
-Write a test before writing any other code. 
+Run tests frequently during development.
 
-Run the tests after any changes.
+*   `make test`: Standard test run.
+*   `make test_quiet`: **Recommended for LLMs.** Runs all tests with minimal output, silencing internal logs and noise. Use this to keep your context window clean.
+*   `make test_coverage`: Runs tests and generates a JaCoCo coverage report in `target/site/jacoco/index.html`. Coverage must remain at 100%.
+*   `make mutation_test`: Runs Pitest mutation testing. This is slow but essential for verifying the quality of your assertions.
 
-- `make test_coverage`
-- `make mutation_test`
+## Quality Standards
 
-Test coverage should be at 100%. Always look to improve the quality and quantity of tests.
+*   **Documentation**: Every class and public method must be documented with Javadoc.
+*   **Logs**: Use `logger.logDebug`, `logger.logTrace`, etc., appropriately. Avoid `System.out.println`.
+*   **Invariants**: Use `com.renomad.minum.utils.Invariants` to enforce state correctness at runtime.
+*   **Kaizen**: Focus on small, continuous improvements. Leave the code better than you found it.

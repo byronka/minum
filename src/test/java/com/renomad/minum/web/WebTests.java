@@ -1005,7 +1005,7 @@ public class WebTests {
                     client.sendHttpLine("");
                     client.flush();
                     MyThread.sleep(10);
-                    assertTrue(logger.doesMessageExist("RequestLine was unparseable.  Returning.", 20));
+                    assertTrue(logger.doesMessageExist("RequestLine was unparsable.  Returning.", 20));
                 }
             }
         }
@@ -1320,7 +1320,7 @@ public class WebTests {
                 """
                 \r
                 --i_am_a_boundary--\r
-                
+
                 """.getBytes(StandardCharsets.UTF_8));
 
             return baos.toByteArray();
@@ -1375,7 +1375,7 @@ public class WebTests {
                     """
                     \r
                     --i_am_a_boundary--\r
-                    
+
                     """.getBytes(StandardCharsets.UTF_8));
 
 
@@ -1431,7 +1431,7 @@ public class WebTests {
                     """
                     \r
                     --i_am_a_boundary--\r
-                    
+
                     """.getBytes(StandardCharsets.UTF_8));
 
 
