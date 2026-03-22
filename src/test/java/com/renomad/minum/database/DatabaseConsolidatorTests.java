@@ -67,7 +67,7 @@ public class DatabaseConsolidatorTests {
     @Test
     public void testParsingAppendLogs_EdgeCase_InvalidFilename() {
         var ex = assertThrows(DbException.class, () -> DatabaseConsolidator.convertFileListToDateList(new String[]{"NOT_A_DATE"}));
-        assertEquals(ex.getMessage(), "java.text.ParseException: Unparseable date: \"NOT_A_DATE\"");
+        assertEquals(ex.getMessage(), "java.text.ParseException: Unparsable date: \"NOT_A_DATE\"");
     }
 
     /**
