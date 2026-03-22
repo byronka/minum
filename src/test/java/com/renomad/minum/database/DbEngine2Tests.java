@@ -1232,7 +1232,7 @@ public class DbEngine2Tests {
 
         db.delete(foo);
 
-        assertTrue(logger1.doesMessageExist("Error during consolidation: com.renomad.minum.database.DbException: java.text.ParseException: Unparsable date: \"foofoo\""));
+        assertTrue(logger1.doesMessageExist("Error during consolidation: com.renomad.minum.database.DbException: java.text.ParseException: Unparseable date: \"foofoo\""));
         TestFramework.shutdownTestingContext(customContext);
     }
 
