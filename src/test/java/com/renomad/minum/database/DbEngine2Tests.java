@@ -1239,7 +1239,7 @@ public class DbEngine2Tests {
     /**
      * The {@link DbEngine2} constructor can throw an exception because
      * when it starts, it initializes the {@link DatabaseAppender} which
-     * can throw an exception, because it starts with doing some file operations.
+     * can throw an exception, because it starts with doing some file operations.ge
      * <br>
      * Here, we will try to get things into a state so an exception will
      * be thrown.

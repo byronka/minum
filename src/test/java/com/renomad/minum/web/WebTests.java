@@ -1005,7 +1005,7 @@ public class WebTests {
                     client.sendHttpLine("");
                     client.flush();
                     MyThread.sleep(10);
-                    assertTrue(logger.doesMessageExist("RequestLine was unparsable.  Returning.", 20));
+                    assertTrue(logger.doesMessageExist("RequestLine was unparseable.  Returning.", 20));
                 }
             }
         }
