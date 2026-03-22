@@ -219,29 +219,10 @@ public final class Constants {
 
     /**
      * A helper method to remove some redundant boilerplate code for grabbing
-     * configuration values from minum.config.
-     * This also checks for a system property with the same name, which will
-     * override any value found in the properties file.
-     */
-    private String getProp(String propName) {
-        String systemProperty = System.getProperty(propName);
-        if (systemProperty == null) {
-            return properties.getProperty(propName);
-        } else {
-            return systemProperty;
-        }
-    }
-
-    /**
-     * A helper method to remove some redundant boilerplate code for grabbing
      * configuration values from minum.config
      */
     private int getProp(String propName, int propDefault) {
-        String value = getProp(propName);
-        if (value == null) {
-            return propDefault;
-        }
-        return Integer.parseInt(value);
+        return Integer.parseInt(properties.getProperty(propName, String.valueOf(propDefault)));
     }
 
     /**
@@ -249,11 +230,7 @@ public final class Constants {
      * configuration values from minum.config
      */
     private boolean getProp(String propName, boolean propDefault) {
-        String value = getProp(propName);
-        if (value == null) {
-            return propDefault;
-        }
-        return Boolean.parseBoolean(value);
+        return Boolean.parseBoolean(properties.getProperty(propName, String.valueOf(propDefault)));
     }
 
     /**
@@ -261,7 +238,7 @@ public final class Constants {
      * configuration values from minum.config
      */
     private List<String> getProp(String propName, String propDefault) {
-        String propValue = getProp(propName);
+        String propValue = properties.getProperty(propName);
         return extractList(propValue, propDefault);
     }
 

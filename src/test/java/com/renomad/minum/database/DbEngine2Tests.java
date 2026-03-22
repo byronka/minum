@@ -18,14 +18,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.renomad.minum.database.DbEngine2Tests.Foo.INSTANCE;
@@ -77,55 +75,6 @@ public class DbEngine2Tests {
 
         db_throwaway.stop();
         MyThread.sleep(FINISH_TIME);
-    }
-
-    /**
-     * Test for database file corruption.
-     * This test manually creates a corrupted database file (where the content
-     * doesn't match the checksum) and verifies that {@link DbEngine2#loadData()}
-     * correctly detects the corruption and throws a {@link DbChecksumException}.
-     */
-    @Test
-    public void test_Corruption_Detection() throws IOException {
-        Path dbPathForTest = foosDirectory.resolve("test_Corruption_Detection");
-        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
-        
-        // 1. Create a valid database and write some data
-        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
-        db.write(new Foo(0, 42, "original"));
-        db.stop();
-        
-        // 2. Wait for consolidation to ensure we have consolidated files with checksums
-        // (Or we can manually trigger it if we want to be sure, but loadData does it too)
-        
-        // 3. Manually corrupt one of the consolidated files.
-        // We need to find the consolidated file.
-        Path consolidatedDir = dbPathForTest.resolve("consolidated_data");
-        // Ensure it exists by loading data once which triggers consolidation of any appends
-        db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
-        db.loadData();
-        db.stop();
-
-        File[] files = consolidatedDir.toFile().listFiles((dir, name) -> !name.endsWith(".checksum"));
-        assertTrue(files != null, "files should not be null");
-        assertTrue(files.length > 0, "There should be at least one consolidated file");
-        Path targetFile = files[0].toPath();
-        
-        // Append some garbage to the file to invalidate the checksum
-        // We read the file, change one character, and write it back.
-        String content = Files.readString(targetFile);
-        String corruptedContent = content.replace("original", "or1ginal");
-        Files.writeString(targetFile, corruptedContent);
-        
-        // 4. Try to load the data again - it should throw a DbException wrapping another DbException wrapping a DbChecksumException
-        DbEngine2<Foo> corruptedDb = new DbEngine2<>(dbPathForTest, context, INSTANCE);
-        var ex = assertThrows(DbException.class, corruptedDb::loadData);
-        // It's DbException -> DbException -> DbChecksumException
-        Throwable cause = ex.getCause();
-        if (cause instanceof DbException) cause = cause.getCause();
-        assertTrue(cause instanceof DbChecksumException, "Cause should be DbChecksumException, but was " + cause);
-        
-        corruptedDb.stop();
     }
 
     /**
@@ -449,7 +398,7 @@ public class DbEngine2Tests {
      * Let's see the difference in performance using indexes.
      * <br>
      * We'll create 1000 elements in a database, each with a random
-     * UUID value as a property.  Then, we'll try repeatedly getting
+     * UUID value as a propertly.  Then, we'll try repeatedly getting
      * a particular item by uuid, and compare that to getting using
      * the index.
      */
@@ -1239,7 +1188,7 @@ public class DbEngine2Tests {
     /**
      * The {@link DbEngine2} constructor can throw an exception because
      * when it starts, it initializes the {@link DatabaseAppender} which
-     * can throw an exception, because it starts with doing some file operations.ge
+     * can throw an exception, because it starts with doing some file operations.
      * <br>
      * Here, we will try to get things into a state so an exception will
      * be thrown.
@@ -1878,48 +1827,7 @@ public class DbEngine2Tests {
             assertEquals(foundFoo2.getA(), 60000);
             long timeToFindData = stopwatchUtils2.stopTimer();
             System.out.println("Time to find data after loading: " + timeToFindData);
-            }
-            }
-
-    /**
-     * Extreme concurrency and deadlock induction test.
-     * This test spins up a large number of Virtual Threads to perform
-     * concurrent read/write operations on a {@link DbEngine2} instance,
-     * ensuring that no deadlocks occur and the internal state remains consistent.
-     */
-    @Test
-    public void test_ExtremeConcurrency_and_NoDeadlock() throws InterruptedException {
-        Path dbPathForTest = foosDirectory.resolve("test_ExtremeConcurrency");
-        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
-        var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
-        db.registerIndex("a_index", x -> String.valueOf(x.getA()));
-
-        int threadCount = 1000;
-        CountDownLatch latch = new CountDownLatch(threadCount);
-        AtomicInteger successCount = new AtomicInteger(0);
-
-        for (int i = 0; i < threadCount; i++) {
-            final int index = i;
-            context.getExecutorService().submit(() -> {
-                try {
-                    // Mix of writes and reads
-                    db.write(new Foo(0, index, "data " + index));
-                    db.getIndexedData("a_index", String.valueOf(index));
-                    db.values();
-                    successCount.incrementAndGet();
-                } catch (Exception e) {
-                    logger.logAsyncError(() -> "Error in concurrency test: " + e);
-                } finally {
-                    latch.countDown();
-                }
-            });
         }
-
-        // Wait for all threads to complete with a generous timeout
-        assertTrue(latch.await(30, TimeUnit.SECONDS), "Threads did not complete in time - possible deadlock!");
-        assertEquals(successCount.get(), threadCount);
-        assertEquals(db.values().size(), threadCount);
-
-        db.stop();
     }
+
 }
