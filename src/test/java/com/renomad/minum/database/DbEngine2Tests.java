@@ -449,7 +449,7 @@ public class DbEngine2Tests {
      * Let's see the difference in performance using indexes.
      * <br>
      * We'll create 1000 elements in a database, each with a random
-     * UUID value as a propertly.  Then, we'll try repeatedly getting
+     * UUID value as a property.  Then, we'll try repeatedly getting
      * a particular item by uuid, and compare that to getting using
      * the index.
      */
@@ -1232,7 +1232,7 @@ public class DbEngine2Tests {
 
         db.delete(foo);
 
-        assertTrue(logger1.doesMessageExist("Error during consolidation: com.renomad.minum.database.DbException: java.text.ParseException: Unparseable date: \"foofoo\""));
+        assertTrue(logger1.doesMessageExist("Error during consolidation: com.renomad.minum.database.DbException: java.text.ParseException: Unparsable date: \"foofoo\""));
         TestFramework.shutdownTestingContext(customContext);
     }
 
