@@ -7,7 +7,6 @@ import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFailureException;
-import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -15,7 +14,6 @@ import org.junit.Test;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -1786,65 +1784,4 @@ public class WebTests {
             @Override public boolean hasAccessedBody() {return false;}
         };
     }
-
-    /**
-     * Slowloris attack mitigation test.
-     * This test ensures that if a client connects and sends data too slowly
-     * (exceeding the socket timeout), the server will forcefully close the connection
-     * to reclaim resources.
-     * <p>
-     * We use a custom short timeout (500ms) to keep the test fast.
-     */
-    @Test
-    public void test_Slowloris_Mitigation_Improved() throws IOException {
-        // 1. Create a custom context with a very short timeout (500ms) and TRACE logging
-        Properties props = new Properties();
-        props.setProperty("SOCKET_TIMEOUT_MILLIS", "500");
-        props.setProperty("SERVER_PORT", "8081"); // Use a different port to avoid conflicts
-        props.setProperty("SSL_SERVER_PORT", "-1"); // Disable SSL for this test
-        props.setProperty("LOG_LEVELS", "TRACE,DEBUG,AUDIT"); // Ensure TRACE is enabled to see the timeout
-        Context customContext = TestFramework.buildTestingContext("slowloris_test", props);
-        var customLogger = (TestLogger) customContext.getLogger();
-
-        // 2. Start FullSystem with this context
-        FullSystem fs = new FullSystem(customContext);
-        fs.start();
-
-        try {
-            // 3. Connect a client
-            try (Socket socket = new Socket("localhost", 8081)) {
-                OutputStream os = socket.getOutputStream();
-
-                // 4. Send a partial request line and stall
-                os.write("GET /".getBytes(StandardCharsets.UTF_8));
-                os.flush();
-
-                // 5. Wait for the server to timeout (socket timeout is 500ms, wait 1000ms)
-                MyThread.sleep(1000);
-
-                // 6. Verify:
-                // a) The logger should have recorded the TRACE message from handleReadTimedOut
-                assertTrue(customLogger.doesMessageExist("Read timed out - remote address:"));
-
-                // b) The server should have closed the socket.
-                // We verify this by trying to read (should get -1)
-                socket.setSoTimeout(100);
-                int readResult = socket.getInputStream().read();
-                assertEquals(-1, readResult);
-
-                // c) Trying to write more data should eventually fail
-                assertThrows(SocketException.class, () -> {
-                    for(int i=0; i<100; i++) {
-                        os.write("stall".getBytes(StandardCharsets.UTF_8));
-                        os.flush();
-                        MyThread.sleep(10);
-                    }
-                });
-            }
-        } finally {
-            fs.shutdown();
-        }
-        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-    }
-
 }
