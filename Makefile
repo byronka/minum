@@ -51,6 +51,11 @@ clean:
 test:
 	 @${MAVEN} test
 
+.PHONY: test_quiet
+#: run tests with minimal output
+test_quiet:
+	 @${MAVEN} test -DLOG_LEVELS=NONE 2>&1 | grep -E "Running com\.|Tests run:|BUILD SUCCESS|BUILD FAILURE" || true
+
 .PHONY: lint
 #: run linting tools
 lint:
