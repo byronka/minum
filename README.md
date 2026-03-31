@@ -107,7 +107,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>9.0.0</version>
+    <version>9.0.1</version>
 </dependency>
 ```
 

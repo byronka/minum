@@ -15,8 +15,60 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
-v9.0.0
-------
+v9.0.1
+--------
+
+Bug fixes found through AI analysis of the codebase.  Results of the analysis were
+used to build tests proving the bugs, which were then corrected by hand in the ordinary
+manner.  The most serious bugs were:
+
+* Index race condition
+  * a concurrent add/remove was able to cause incorrect data in the database index
+    sets.  Index sets are a feature which enables faster access to data.
+
+* Performance related
+  * Removing two `synchronized` blocks in the `abstractDb` class.  Using
+    `synchronized` causes thread pinning with virtual threads in Java 21 to 23.
+  * Documenting that LRUCache is not thread-safe, and adjusting calls to
+    it from the web framework to use locking. Also, documented that
+    the cache is non-thread-safe.
+  * Corrected a performance bug in the database code when looking for
+    existing entries. It was previously using a linear scan to find existing
+    data, which was unnecessary, the data being in a map collection already.
+
+* Minor fixes
+  * Now, if the server receives a "content-length" header with a string
+    value for length, like "content-length: abc", it won't throw an exception.
+    Instead, it will be logged, and content-length will be set to -1.
+  * Making stop flag more visible to all threads in ActionQueue. This
+    issue only manifests when the system is shutting down - it causes
+    the shutdown to be less clean than otherwise.  Corrected by setting
+    the variable to be `volatile` so its value is more immediately available
+    to all threads.
+  * Fixing potential resource leak in `Response.compressBody()`. This is
+    a minor issue - the resource only leaks if GzipOutputStream throws
+    an exception, which should be rare.
+  * RingBuffer code threw NoSuchElementException on a missed search. This
+    is mostly minor because the RingBuffer capabilities are not pushed
+    beyond some well-defined boundaries.  This does account for the edge
+    cases a bit better though.
+  * Query string would throw away already-parsed key-pairs if a malformed
+    pair was encountered.  
+  * Better body processing for multipart data.  Adjusted code to trim the
+    string after the end of the boundary value, in case there is a space
+    or semicolon marking the start of another attribute on that header. Which,
+    to be clear, is unlikely and has not been encountered in real usage 
+    thus far.
+
+Additionally, spelling corrections in the documentation and a new `test_quiet` target
+in the Makefile that runs tests without showing the logs.
+
+Many thanks to Adam and Matt for your invaluable conversations and experiments, and
+without whom these bugs would not have been noticed so early.  
+See docs/analysis_artifacts/AI_analysis_March_2026.txt for logs of the AI discussion.
+
+v9.0.0 Released on March 1
+--------------------------
 
 * Much appreciation to HSGamer for fantastic improvements and bug fixes! Among them:
   * Found a race condition in the templates, and provided a fix.  This is the

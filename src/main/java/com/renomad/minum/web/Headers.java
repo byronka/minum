@@ -115,7 +115,12 @@ public final class Headers {
             if (logger != null) logger.logDebug(() -> "Did not receive a valid content length.  Setting length to -1.  Received: " + cl);
             contentLength = -1;
         } else {
-            contentLength = Integer.parseInt(cl.getFirst());
+            try {
+                contentLength = Integer.parseInt(cl.getFirst());
+            } catch (NumberFormatException ex) {
+                logger.logDebug(() -> "Received a non-numeric content length value.  Setting length to -1.  Received: " + cl.getFirst());
+                return -1;
+            }
             if (contentLength < 0) {
                 if (logger != null) logger.logDebug(() -> "Content length cannot be negative.  Setting length to -1.  Received: " + contentLength);
                 contentLength = -1;

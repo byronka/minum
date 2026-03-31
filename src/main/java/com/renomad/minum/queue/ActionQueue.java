@@ -37,7 +37,7 @@ public final class ActionQueue implements AbstractActionQueue {
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private final ILogger logger;
-    private boolean stop = false;
+    private volatile boolean stop = false;
     private Thread queueThread;
     private boolean isStoppedStatus;
 

@@ -43,7 +43,7 @@ public class BoundaryBugTest {
      * which won't match the markers in the body.
      *
      * Expected: parsing succeeds and returns the partition data.
-     * Actual: boundary mismatch causes empty/failed parse.
+     * Bug, now fixed, was: boundary mismatch causes empty/failed parse.
      */
     @Test
     public void test_BoundaryWithTrailingParams_ShouldStillParse() {

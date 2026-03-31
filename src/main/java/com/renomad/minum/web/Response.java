@@ -432,10 +432,11 @@ public final class Response implements IResponse {
     Response compressBody() throws IOException {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        var gos = new GZIPOutputStream(out);
-        gos.write(body);
-        gos.finish();
-        return (Response)Response.buildResponse(
+        try (var gos = new GZIPOutputStream(out)) {
+            gos.write(body);
+            gos.finish();
+        }
+        return (Response) Response.buildResponse(
                 statusCode,
                 extraHeaders,
                 out.toByteArray()

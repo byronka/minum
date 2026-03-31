@@ -206,7 +206,10 @@ public final class RequestLine {
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
-            if (equalSignLocation <= 0) return Map.of();
+            if (equalSignLocation == -1) {
+                logger.logDebug(() -> "Discovered invalid key-value pair in query string for key (\"%s\").  Ignoring this key and continuing.  Full query string: %s".formatted(currentKeyValue, rawQueryString));
+                continue;
+            }
             String key = currentKeyValue.substring(0, equalSignLocation);
             String myRawValue = currentKeyValue.substring(equalSignLocation + 1);
             try {

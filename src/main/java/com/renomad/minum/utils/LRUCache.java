@@ -38,6 +38,9 @@ public final class LRUCache<K,V> extends LinkedHashMap<K, V> {
      * This is necessary since we provide this as a generic method,
      * and the assignment is what enables Java to determine
      * what types to build.
+     * <p>
+     *      <em>Note:</em> This cache is not thread safe
+     * </p>
      */
     public static <K,V> Map<K, V> getLruCache() {
         return getLruCache(DEFAULT_MAX_ENTRIES);
@@ -52,6 +55,9 @@ public final class LRUCache<K,V> extends LinkedHashMap<K, V> {
      * This is necessary since we provide this as a generic method,
      * and the assignment is what enables Java to determine
      * what types to build.
+     * <p>
+     *     <em>Note:</em> This cache is not thread safe
+     * </p>
      */
     public static <K,V> Map<K, V> getLruCache(int maxSize) {
         return new LRUCache<>(maxSize);

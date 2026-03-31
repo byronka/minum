@@ -30,7 +30,6 @@ public class ListPhotos {
 
     private final UploadPhoto up;
     private final AuthUtils auth;
-    private final Map<String, byte[]> lruCache;
     private final FileReader fileReader;
     private final long staticFileCacheTime;
 
@@ -44,8 +43,7 @@ public class ListPhotos {
         videoHtmlTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/video_element_template.html"));
         this.up = up;
         this.auth = auth;
-        this.lruCache = LRUCache.getLruCache();
-        this.fileReader = new FileReader(lruCache, true, logger);
+        this.fileReader = new FileReader(LRUCache.getLruCache(), true, logger);
     }
 
     public IResponse ListPhotosPage(IRequest r) {
@@ -112,18 +110,7 @@ public class ListPhotos {
         if (filename == null || filename.isBlank()) {
             return Response.buildLeanResponse(CODE_404_NOT_FOUND);
         }
-
-        // first, is it already in our cache?
         Path photoPath = dbDir.resolve("photo_files").resolve(filename);
-        if (lruCache.containsKey(photoPath.toString())) {
-            logger.logDebug(() -> "Found " + filename + " in the cache. Serving.");
-            return Response.buildResponse(CODE_200_OK,
-                    Map.of(
-                            "Cache-Control","max-age=604800",
-                            "Content-Type", "image/jpeg"
-                    ),
-                    lruCache.get(photoPath.toString()));
-        }
 
         // if it's not in our cache, let's check to see whether the file is even there.
         boolean doesFileExist = Files.exists(photoPath);

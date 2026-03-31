@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -59,7 +60,16 @@ public class FileReaderTests {
         lruCache.put("testingreadfile.txt", value);
         var fileReader = new FileReader(lruCache, true, logger);
         byte[] bytes = fileReader.readFile("testingreadfile.txt");
+        ReentrantLock cacheLock = fileReader.getCacheLock();
+        cacheLock.lock();
+        byte[] result;
+        try {
+            result = lruCache.get("testingreadfile.txt");
+        } finally {
+            cacheLock.unlock();
+        }
         assertEqualByteArray(bytes, value);
+        assertEqualByteArray(bytes, result);
     }
 
     @Test
@@ -75,7 +85,8 @@ public class FileReaderTests {
 
     @Test
     public void test_readTheFile_NoFileFound() {
-        assertThrows(FileNotFoundException.class, () -> FileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
+        var fileReader = new FileReader(lruCache, false, logger);
+        assertThrows(FileNotFoundException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
     }
 
 }

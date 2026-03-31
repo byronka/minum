@@ -104,7 +104,7 @@ public class RingBuffer<T> implements Iterable<T>{
         int myListLastIndex = myList.size() - 1;
         boolean comparing = false;
         var iterator = this.iterator();
-        while (true) {
+        while (iterator.hasNext()) {
             var value = iterator.next();
             if (i == index) {
                 comparing = true;
@@ -122,6 +122,7 @@ public class RingBuffer<T> implements Iterable<T>{
 
             i += 1;
         }
+        return false;
     }
 
     @Override

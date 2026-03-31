@@ -127,9 +127,16 @@ final class BodyProcessor implements IBodyProcessor {
         String boundaryKey = "boundary=";
         String boundaryValue = "";
         int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
-        if (indexOfBoundaryKey > 0) {
+        if (indexOfBoundaryKey >= 0) {
             // grab all the text after the key to obtain the boundary value
             boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
+            // the index after the end of the boundary value, used to trim the string if necessary
+            int indexEndOfBoundaryValue = 0;
+            for (char c : boundaryValue.toCharArray()) {
+                if (c == ' ' || c == ';') break;
+                indexEndOfBoundaryValue += 1;
+            }
+            boundaryValue = boundaryValue.substring(0, indexEndOfBoundaryValue);
         }
         return boundaryValue;
     }
