@@ -20,7 +20,7 @@ v9.0.1
 
 Bug fixes found through AI analysis of the codebase.  Results of the analysis were
 used to build tests proving the bugs, which were then corrected by hand in the ordinary
-manner.  The most serious bugs were:
+manner.
 
 * Index race condition
   * a concurrent add/remove was able to cause incorrect data in the database index
