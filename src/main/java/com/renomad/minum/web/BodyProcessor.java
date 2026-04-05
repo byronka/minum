@@ -133,7 +133,8 @@ final class BodyProcessor implements IBodyProcessor {
             // the index after the end of the boundary value, used to trim the string if necessary
             int indexEndOfBoundaryValue = 0;
             for (char c : boundaryValue.toCharArray()) {
-                if (c == ' ' || c == ';') break;
+                if (c == ' ') break;
+                if (c == ';') break;
                 indexEndOfBoundaryValue += 1;
             }
             boundaryValue = boundaryValue.substring(0, indexEndOfBoundaryValue);

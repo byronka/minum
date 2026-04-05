@@ -72,5 +72,19 @@ public class BoundaryBugTest {
         assertEquals(result.getBodyType(), BodyType.MULTIPART);
         assertFalse(result.getPartitionByName("text1").isEmpty(),
                 "Should find partition 'text1' but boundary mismatch causes parse failure");
+
+
+        // alternate test - if the character after the boundary value is a space.
+        Body result2 = bodyProcessor.extractBodyFromInputStream(
+                body.length(),
+                "multipart/form-data; boundary=i_am_a_boundary ; charset=utf-8",
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+
+        // If the boundary was correctly extracted, we'd find the partition.
+        // Instead, the mismatch causes parsing to fail — either returning
+        // no partitions or an UNRECOGNIZED body type.
+        assertEquals(result2.getBodyType(), BodyType.MULTIPART);
+        assertFalse(result2.getPartitionByName("text1").isEmpty(),
+                "Should find partition 'text1' but boundary mismatch causes parse failure");
     }
 }
