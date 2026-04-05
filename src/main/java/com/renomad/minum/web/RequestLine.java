@@ -206,9 +206,34 @@ public final class RequestLine {
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
+
+            // In the Minum framework, correctness and maintainability are paramount.  As much as can
+            // be reasonably provided, the system is geared to highlight subtle issues so developers
+            // are made aware.  As the saying goes, "sunlight is the best disinfectant" -Louis Brandeis.
+
+            // in this case, if we encounter an invalid key-value pair in a query string, it indicates
+            // an error that the developer should have handled.  There are three options that come to
+            // mind in this case:
+
+            // a) Throw an exception
+            // b) return an empty data structure
+            // c) ignore the incorrect piece and return all the valid pieces
+
+            // I'm going with option b.
+
+            // If we chose option a, it's excessive - lots of times we get invalid requests, no need to
+            // bring in exception handling - probably just user error.
+
+            // option c isn't great - it hides the fact that something was amiss.  The developer is likely
+            // to never even realize it.
+
+            // option b is a good middle ground.  It doesn't cause the system to throw up, but a
+            // developer will not see the results they expect, leading them to dig deeper, and will see
+            // a log statement explanation.
+
             if (equalSignLocation == -1) {
-                logger.logDebug(() -> "Discovered invalid key-value pair in query string for key (\"%s\").  Ignoring this key and continuing.  Full query string: %s".formatted(currentKeyValue, rawQueryString));
-                continue;
+                logger.logDebug(() -> "Discovered invalid key-value pair in query string for key (\"%s\").  Returning an empty map.  Full query string: %s".formatted(currentKeyValue, rawQueryString));
+                return Map.of();
             }
             String key = currentKeyValue.substring(0, equalSignLocation);
             String myRawValue = currentKeyValue.substring(equalSignLocation + 1);

@@ -52,8 +52,6 @@ manner.
     is mostly minor because the RingBuffer capabilities are not pushed
     beyond some well-defined boundaries.  This does account for the edge
     cases a bit better though.
-  * Query string would throw away already-parsed key-pairs if a malformed
-    pair was encountered.  
   * Better body processing for multipart data.  Adjusted code to trim the
     string after the end of the boundary value, in case there is a space
     or semicolon marking the start of another attribute on that header. Which,

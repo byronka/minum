@@ -89,43 +89,6 @@ public class BugExposureTests {
         assertFalse(result, "Pattern extending beyond buffer should return false, not throw");
     }
 
-    /**
-     * Bug: RequestLine.extractMapFromQueryString() returns Map.of()
-     * (empty) as soon as it encounters a key-value pair without an
-     * equals sign. This discards ALL previously-parsed valid params.
-     *
-     * For input "foo=bar&bad&baz=qux":
-     *   - "foo=bar" is parsed successfully
-     *   - "bad" has no '=' → early return Map.of()
-     *   - "baz=qux" is never reached
-     *
-     * Correct behavior: skip the malformed pair, keep valid ones.
-     *
-     * @see RequestLine#extractRequestLine(String)
-     */
-    @Test
-    public void test_QueryString_MalformedPairShouldNotDropValidParams() {
-        RequestLine template = new RequestLine(
-                RequestLine.Method.NONE,
-                PathDetails.empty,
-                HttpVersion.NONE,
-                "",
-                logger);
-
-        // Parse a full request line with a query string containing a malformed pair.
-        // "foo=bar" is valid, "bad" has no '=', "baz=qux" is valid.
-        RequestLine parsed = template.extractRequestLine("GET /path?foo=bar&bad&baz=qux HTTP/1.1");
-        assertTrue(logger.doesMessageExist("Discovered invalid key-value pair in query string for key (\"bad\").  Ignoring this key and continuing.  Full query string: foo=bar&bad&baz=qux"));
-
-        Map<String, String> qs = parsed.queryString();
-
-        // Correct: "foo" should still be present despite "bad" being malformed.
-        // bug, now fixed, was: qs is empty because extractMapFromQueryString returns Map.of()
-        // when it encounters the malformed "bad" pair (no '=').
-        assertEquals(qs.get("foo"), "bar");
-        assertEquals(qs.get("baz"), "qux");
-        assertFalse(qs.containsKey("bad"));
-    }
 
     /**
      * Bug: LRUCache extends LinkedHashMap with accessOrder=true,
