@@ -1253,7 +1253,7 @@ public class WebTests {
     public void test_ExtractMapFromQueryString_NoEqualsSign() {
         RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
         var ex = assertThrows(BadRequestException.class, () -> requestLine.extractMapFromQueryString("foo"));
-        assertEquals(ex.getMessage(), "Discovered invalid key-value pair in query string for key (\"foo\").  Returning an empty map.  Full query string: foo");
+        assertEquals(ex.getMessage(), "Discovered invalid key-value pair in query string for key (\"foo\").  Full query string: foo");
     }
 
     /**

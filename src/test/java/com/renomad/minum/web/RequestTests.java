@@ -242,8 +242,8 @@ public class RequestTests {
                 """.stripLeading().getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; "), socketWrapper);
-        var ex = assertThrows(WebServerException.class, () -> request.getMultipartIterable());
-        assertEquals(ex.getMessage(), "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: multipart/form-data;");
+        var ex = assertThrows(BadRequestException.class, () -> request.getMultipartIterable());
+        assertEquals(ex.getMessage(), "Did not find a valid boundary value for the multipart input. Header was: multipart/form-data;");
     }
 
 
@@ -268,8 +268,8 @@ public class RequestTests {
                 """.stripLeading().getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; boundary="), socketWrapper);
-        var ex = assertThrows(WebServerException.class, () -> request.getMultipartIterable());
-        assertEquals(ex.getMessage(), "Boundary value was blank. Returning an empty map and the raw bytes for the body. Header was: multipart/form-data; boundary=");
+        var ex = assertThrows(BadRequestException.class, () -> request.getMultipartIterable());
+        assertEquals(ex.getMessage(), "Boundary value was blank. Header was: multipart/form-data; boundary=");
     }
 
     /**
@@ -603,8 +603,8 @@ public class RequestTests {
         byte[] bytes = "foo=bar&biz=baz".getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: application/x-www-form-urlencoded"), socketWrapper);
-        var ex = assertThrows(WebServerException.class, () -> request.getMultipartIterable());
-        assertEquals(ex.getMessage(), "This request was not sent with a content type of multipart/form-data.  The content type was: application/x-www-form-urlencoded");
+        var ex = assertThrows(BadRequestException.class, () -> request.getMultipartIterable());
+        assertEquals(ex.getMessage(), "Did not find a valid boundary value for the multipart input. Header was: application/x-www-form-urlencoded");
     }
 
 

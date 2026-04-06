@@ -207,7 +207,7 @@ public final class RequestLine {
             int equalSignLocation = currentKeyValue.indexOf("=");
 
             if (equalSignLocation == -1) {
-                throw new BadRequestException("Discovered invalid key-value pair in query string for key (\"%s\").  Returning an empty map.  Full query string: %s".formatted(currentKeyValue, rawQueryString));
+                throw new BadRequestException("Discovered invalid key-value pair in query string for key (\"%s\").  Full query string: %s".formatted(currentKeyValue, rawQueryString));
             }
             String key = currentKeyValue.substring(0, equalSignLocation);
             String myRawValue = currentKeyValue.substring(equalSignLocation + 1);

@@ -89,8 +89,7 @@ final class BodyProcessor implements IBodyProcessor {
     private Body parseMultipartForm(int contentLength, String boundaryValue, InputStream inputStream) {
 
         if (boundaryValue.isBlank()) {
-            logger.logDebug(() -> "The boundary value was blank for the multipart input. Returning an empty map");
-            return new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED);
+            throw new BadRequestException("The boundary value was blank for the multipart input");
         }
 
         List<Partition> partitions = new ArrayList<>();

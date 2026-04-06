@@ -84,7 +84,7 @@ public class RequestLineTests {
         // Parse a full request line with a query string containing a malformed pair.
         // "foo=bar" is valid, "bad" has no '=', "baz=qux" is valid.
         var ex = assertThrows(BadRequestException.class, () -> template.extractRequestLine("GET /path?foo=bar&bad&baz=qux HTTP/1.1"));
-        assertEquals(ex.getMessage(), "Discovered invalid key-value pair in query string for key (\"bad\").  Returning an empty map.  Full query string: foo=bar&bad&baz=qux");
+        assertEquals(ex.getMessage(), "Discovered invalid key-value pair in query string for key (\"bad\").  Full query string: foo=bar&bad&baz=qux");
     }
 
     /**

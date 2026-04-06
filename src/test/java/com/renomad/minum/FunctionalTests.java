@@ -371,4 +371,15 @@ public class FunctionalTests {
         assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/abc").statusLine().status());
         assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/1-6a").statusLine().status());
     }
+
+    /**
+     * If bad data is sent to the server, like a malformed request line, headers,
+     * or body, then it will cause a HTTP 400 BAD REQUEST message response.
+     */
+    @Test
+    public void test_EdgeCase_BadRequest() {
+        TestResponse response = ft.get("foo?bar");
+        assertEquals(response.statusLine().status().toString(), "CODE_400_BAD_REQUEST");
+        assertEquals(response.body().asString(), "");
+    }
 }
