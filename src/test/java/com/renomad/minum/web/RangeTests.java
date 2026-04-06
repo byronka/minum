@@ -78,7 +78,7 @@ public class RangeTests {
     public void test_DetermineLengthFromRangeHeader_EdgeCase_FirstLarger() {
         List<String> listOfHeaders = List.of("Range: bytes=2-1");
         Headers headers = new Headers(listOfHeaders);
-        var ex = assertThrows(InvalidRangeException.class, () -> new Range(headers, 1000));
+        var ex = assertThrows(BadRequestException.class, () -> new Range(headers, 1000));
         assertEquals(ex.getMessage(), "Error: The value of the first part of the range was larger than the second.");
     }
 
@@ -166,7 +166,7 @@ public class RangeTests {
     public void test_MultipleRangeHeaders() {
         List<String> listOfHeaders = List.of("Range: 1-2", "Range: 3-4");
         Headers headers = new Headers(listOfHeaders);
-        var ex = assertThrows(InvalidRangeException.class, () -> new Range(headers, 1000));
+        var ex = assertThrows(BadRequestException.class, () -> new Range(headers, 1000));
         assertEquals(ex.getMessage(), "Error: Request contained more than one Range header");
     }
 

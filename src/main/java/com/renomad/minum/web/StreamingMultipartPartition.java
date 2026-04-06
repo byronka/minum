@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
  * developer to pull data incrementally, rather than reading it
  * all into memory at once.
  */
-public class StreamingMultipartPartition extends InputStream {
+public final class StreamingMultipartPartition extends InputStream {
 
     private final Headers headers;
     private final InputStream inputStream;

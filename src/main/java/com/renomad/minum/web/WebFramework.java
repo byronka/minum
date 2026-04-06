@@ -110,75 +110,73 @@ public final class WebFramework {
 
             // By default, browsers expect the server to run in keep-alive mode.
             // We'll break out later if we find that the browser doesn't do keep-alive
-            while (true) {
-                final String rawStartLine = inputStreamUtils.readLine(is);
-                long startMillis = System.currentTimeMillis();
-                if (rawStartLine == null || rawStartLine.isEmpty()) {
-                    // here, the client connected, sent nothing, and closed.
-                    // nothing to do but return.
-                    logger.logTrace(() -> "rawStartLine was empty.  Returning.");
-                    break;
+            try {
+                while (true) {
+                    final String rawStartLine = inputStreamUtils.readLine(is);
+                    long startMillis = System.currentTimeMillis();
+                    if (rawStartLine == null || rawStartLine.isEmpty()) {
+                        // here, the client connected, sent nothing, and closed.
+                        // nothing to do but return.
+                        logger.logTrace(() -> "rawStartLine was empty.  Returning.");
+                        break;
+                    }
+                    final RequestLine requestLine = getProcessedRequestLine(sw, rawStartLine);
+
+                    // check if the user is seeming to attack us.
+                    checkIfSuspiciousPath(sw, requestLine);
+
+                    // React to what the user requested, generate a result
+                    Headers headers = getHeaders(sw);
+                    IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+                    IResponse response = processRequest(request, sw, requestLine, headers);
+
+                    // check that the response is non-null.  If it is null, that suggests
+                    // the developer made a mistake.
+                    if (response == null) {
+                        throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
+                    }
+
+                    boolean isKeepAlive = determineIfKeepAlive(request, logger, request.hasAccessedBody());
+
+                    // calculate proper headers for the response
+                    StringBuilder headerStringBuilder = addDefaultHeaders(response);
+                    response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
+                    addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
+
+                    // inspect the response being sent, see whether we can compress the data.
+                    IResponse adjustedResponse = potentiallyCompress(request.getHeaders(), response, headerStringBuilder);
+                    applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
+                    confirmBodyHasContentType(request, response);
+
+                    // send the headers
+                    sw.send(headerStringBuilder.append(HTTP_CRLF).toString().getBytes(StandardCharsets.US_ASCII));
+
+                    // if the user sent a HEAD request, we send everything back except the body.
+                    // even though we skip the body, this requires full processing to get the
+                    // numbers right, like content-length.
+                    if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
+                        logger.logDebug(() -> "client " + request.getRemoteRequester() +
+                                " is requesting HEAD for " + request.getRequestLine().getPathDetails().getIsolatedPath() +
+                                ".  Excluding body from response");
+                    } else {
+                        // send the body
+                        adjustedResponse.sendBody(sw);
+                    }
+
+                    sw.flush();
+
+                    // print how long this processing took
+                    long endMillis = System.currentTimeMillis();
+                    logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, requestLine, endMillis - startMillis));
+
+                    if (!isKeepAlive) {
+                        logger.logTrace(() -> "We will not keep-alive this connection - exiting loop and closing socket");
+                        break;
+                    }
+
                 }
-                final RequestLine requestLine = getProcessedRequestLine(sw, rawStartLine);
-
-                if (requestLine.equals(emptyRequestLine)) {
-                    // here, the client sent something we cannot parse.
-                    // nothing to do but return.
-                    logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
-                    break;
-                }
-                // check if the user is seeming to attack us.
-                checkIfSuspiciousPath(sw, requestLine);
-
-                // React to what the user requested, generate a result
-                Headers headers = getHeaders(sw);
-                IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
-                IResponse response = processRequest(request, sw, requestLine, headers);
-
-                // check that the response is non-null.  If it is null, that suggests
-                // the developer made a mistake.
-                if (response == null) {
-                    throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
-                }
-
-                boolean isKeepAlive = determineIfKeepAlive(request, logger, request.hasAccessedBody());
-
-                // calculate proper headers for the response
-                StringBuilder headerStringBuilder = addDefaultHeaders(response);
-                response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
-                addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
-
-                // inspect the response being sent, see whether we can compress the data.
-                IResponse adjustedResponse = potentiallyCompress(request.getHeaders(), response, headerStringBuilder);
-                applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
-                confirmBodyHasContentType(request, response);
-
-                // send the headers
-                sw.send(headerStringBuilder.append(HTTP_CRLF).toString().getBytes(StandardCharsets.US_ASCII));
-
-                // if the user sent a HEAD request, we send everything back except the body.
-                // even though we skip the body, this requires full processing to get the
-                // numbers right, like content-length.
-                if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
-                    logger.logDebug(() -> "client " + request.getRemoteRequester() +
-                            " is requesting HEAD for " + request.getRequestLine().getPathDetails().getIsolatedPath() +
-                            ".  Excluding body from response");
-                } else {
-                    // send the body
-                    adjustedResponse.sendBody(sw);
-                }
-
-                sw.flush();
-
-                // print how long this processing took
-                long endMillis = System.currentTimeMillis();
-                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, requestLine, endMillis - startMillis));
-
-                if (!isKeepAlive) {
-                    logger.logTrace(() -> "We will not keep-alive this connection - exiting loop and closing socket");
-                    break;
-                }
-
+            } catch (BadRequestException ex) {
+                handleBadRequestException(sw, ex, logger);
             }
         } catch (SocketException | SocketTimeoutException ex) {
             handleReadTimedOut(sw, ex, logger);
@@ -221,6 +219,20 @@ public final class WebFramework {
         } else {
             logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
         }
+    }
+
+    /**
+     * if an error happens in parsing a request, and it's not considered an attack (which
+     * would instead use ForbiddenUseException), this is the
+     * last-chance handling of that error where we return a 400 Bad Request response and a
+     * random code to the client, so a developer can find the detailed
+     * information in the logs, which have that same value.
+     */
+    void handleBadRequestException(ISocketWrapper sw, BadRequestException ex, ILogger logger) throws IOException {
+        int randomNumber = randomErrorCorrelationId.nextInt();
+        logger.logDebug(() -> "Bad data in request. Code: " + randomNumber + " Error: " + ex.getMessage() + (ex.getCause() == null ? "" : "Cause: " + ex.getCause().getMessage()));
+        var response = Response.buildResponse(CODE_400_BAD_REQUEST, new Headers(List.of("Content-Type: text/plain;charset=UTF-8")), "Bad request from user (HTTP 400) error: " + randomNumber);
+        response.sendBody(sw);
     }
 
     /**
@@ -279,7 +291,7 @@ public final class WebFramework {
        the content-type will include the boundary string.
     */
         List<String> allHeaders = Headers.getAllHeaders(sw.getInputStream(), inputStreamUtils);
-        Headers hi = new Headers(allHeaders, logger);
+        Headers hi = new Headers(allHeaders);
         logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
         return hi;
     }

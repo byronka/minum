@@ -42,7 +42,7 @@ final class BodyProcessor implements IBodyProcessor {
             // we don't process chunked transfer encodings.  just bail.
             List<String> transferEncodingHeaders = h.valueByKey("transfer-encoding");
             if (List.of("chunked").equals(transferEncodingHeaders)) {
-                logger.logDebug(() -> "client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type.");
+                throw new BadRequestException("client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type.");
             }
             return Body.EMPTY;
         }
@@ -107,11 +107,9 @@ final class BodyProcessor implements IBodyProcessor {
 
 
         } catch (Exception ex) {
-            logger.logDebug(() -> "Unable to parse this body. returning what we have so far.  Exception message: " + ex.getMessage());
-            // we have to return nothing for the raw bytes, because at this point we are halfway through
-            // reading the inputstream and don't want to return broken data
-            return new Body(Map.of(), new byte[0], partitions, BodyType.MULTIPART);
+            throw new BadRequestException("Unable to parse the body as a multipart/form-data content-type", ex);
         }
+
         if (partitions.isEmpty()) {
             return new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED);
         } else {
@@ -172,14 +170,11 @@ final class BodyProcessor implements IBodyProcessor {
                 final var result = postedPairs.put(key, convertedValue);
 
                 if (result != null) {
-                    logger.logDebug(() -> "Unexpected: key (" +key + ") was duplicated in the post body - previous value was " + new String(result, StandardCharsets.US_ASCII) + " and was overwritten by " + decodedValue);
+                    throw new BadRequestException("Unexpected: key (" +key + ") was duplicated in the post body - previous value was " + new String(result, StandardCharsets.US_ASCII) + " and was overwritten by " + decodedValue);
                 }
             }
         } catch (Exception ex) {
-            logger.logDebug(() -> "Unable to parse this body. returning what we have so far.  Exception message: " + ex.getMessage());
-            // we have to return nothing for the raw bytes, because at this point we are halfway through
-            // reading the inputstream and don't want to return broken data
-            return new Body(postedPairs, new byte[0], List.of(), BodyType.UNRECOGNIZED);
+            throw new BadRequestException("Unable to parse the request body as a URL-encoded content type", ex);
         }
         // we return nothing for the raw bytes because the code for parsing the streaming data
         // doesn't begin with a fully-read byte array - it pulls data off the stream one byte
@@ -288,13 +283,13 @@ final class BodyProcessor implements IBodyProcessor {
                     try {
                         s = inputStreamUtils.readLine(inputStream);
                         if (s == null) {
-                            throw new IOException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+                            throw new WebServerException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
                         }
                         countBytesRead.incrementBy(s.length() + 2);
                         hasReadFirstPartition = true;
 
                         if (!s.contains(boundaryValue)) {
-                            throw new IOException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
+                            throw new WebServerException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
                         }
                     } catch (IOException e) {
                         throw new WebServerException(e);
@@ -306,7 +301,7 @@ final class BodyProcessor implements IBodyProcessor {
                 int extraCrLfs = (2 * allHeaders.size()) + 2;
                 countBytesRead.incrementBy(lengthOfHeaders + extraCrLfs);
 
-                Headers headers = new Headers(allHeaders, logger);
+                Headers headers = new Headers(allHeaders);
 
                 List<String> cds = headers.valueByKey("Content-Disposition");
                 if (cds == null) {

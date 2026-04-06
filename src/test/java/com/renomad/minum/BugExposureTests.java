@@ -44,25 +44,6 @@ public class BugExposureTests {
     }
 
     /**
-     * Bug: Headers.contentLength() calls Integer.parseInt() on the
-     * raw Content-Length value without a try-catch. A non-numeric
-     * value like "abc" should return -1 (as with other invalid
-     * content-length scenarios), but instead throws
-     * NumberFormatException.
-     *
-     * @see Headers#contentLength()
-     */
-    @Test
-    public void test_ContentLength_MalformedValue_ShouldReturnNegativeOne() {
-        Headers headers = new Headers(List.of("content-length: abc"), logger);
-        // Correct behavior: return -1 for unparseable content-length.
-        // bug, now fixed, was: throws java.lang.NumberFormatException: For input string: "abc"
-        int result = headers.contentLength();
-        assertTrue(logger.doesMessageExist("Received a non-numeric content length value.  Setting length to -1.  Received: abc"));
-        assertEquals(result, -1);
-    }
-
-    /**
      * Bug: RingBuffer.containsAt() uses while(true) with
      * iterator.next() but never checks hasNext(). When a search
      * pattern starts matching at the last buffer position but has

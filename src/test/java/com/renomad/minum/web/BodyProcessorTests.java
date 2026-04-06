@@ -52,11 +52,12 @@ public class BodyProcessorTests {
                 """.stripLeading();
         var bodyProcessor = new BodyProcessor(context);
 
-        bodyProcessor.extractBodyFromInputStream(
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: multipart/form-data; boundary=i_am_a_boundary",
-                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: Error: No name value set on multipart partition"));
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII))));
+        assertEquals(ex.getMessage(), "Unable to parse the body as a multipart/form-data content-type");
+        assertEquals(ex.getCause().getMessage(), "Error: No name value set on multipart partition");
     }
 
     /**
@@ -94,13 +95,11 @@ public class BodyProcessorTests {
         String body = "Foo";
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-
-        assertTrue(logger.doesMessageExist("Unable to parse this body. no key found during parsing"));
-        assertEquals(bodyResult.getBodyType(), BodyType.UNRECOGNIZED);
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII))));
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
     }
 
     /**
@@ -112,15 +111,12 @@ public class BodyProcessorTests {
         String body = "a".repeat(BodyProcessor.MAX_SIZE_DATA_RETURNED_IN_EXCEPTION + 1);
         var bodyProcessor = new BodyProcessor(context);
 
-        var bodyResult = bodyProcessor.extractBodyFromInputStream(
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-
-        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body", 1);
-        assertEquals(unableToParseThisBody, "Unable to parse this body. returning what we have so far.  Exception message: Maximum size for name attribute is 50 ascii characters");
-        assertEquals(bodyResult.getKeys(), Set.of());
-        assertEquals(bodyResult.toString(), "Body{bodyMap={}, bodyType=UNRECOGNIZED}");
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII))));
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Maximum size for name attribute is 50 ascii characters");
     }
 
     /**
@@ -323,9 +319,8 @@ public class BodyProcessorTests {
         var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
         Headers headers = new Headers(List.of("Transfer-Encoding: chunked"));
 
-        Body body = bodyProcessor.extractData(inputStream, headers);
-        assertEquals(body.asString(), "");
-        assertTrue(logger.doesMessageExist("client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type."));
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractData(inputStream, headers));
+        assertEquals(ex.getMessage(), "client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type.");
     }
 
     /**

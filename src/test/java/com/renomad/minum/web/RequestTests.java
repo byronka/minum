@@ -51,7 +51,7 @@ public class RequestTests {
                 .withPrefabValues(BodyProcessor.class, new BodyProcessor(context), new BodyProcessor(context))
                 .withPrefabValues(Request.class,
                         new Request(
-                                new Headers(List.of("a","b")),
+                                new Headers(List.of("content-length: 123","content-length: 456")),
                                 new RequestLine(
                                         RequestLine.Method.GET,
                                         new PathDetails("foo", "", Map.of()),
@@ -63,7 +63,7 @@ public class RequestTests {
                                 new BodyProcessor(context)
                         ),
                         new Request(
-                                new Headers(List.of("c","d")),
+                                new Headers(List.of("content-length: 678","content-length: 987")),
                                 new RequestLine(
                                         RequestLine.Method.GET,
                                         new PathDetails("bar", "biz", Map.of("aaa","bbb")),
@@ -125,8 +125,9 @@ public class RequestTests {
         byte[] bytes = makeTestMultiPartDataExcessivePartitions();
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
-        request.getBody();
-        assertTrue(logger.doesMessageExist("Error: body had excessive number of partitions (1000).  Maximum allowed: 1000"));
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
+        assertEquals(ex.getMessage(), "Unable to parse the body as a multipart/form-data content-type");
+        assertEquals(ex.getCause().getMessage(), "Error: body had excessive number of partitions (1000).  Maximum allowed: 1000");
     }
 
     /**
@@ -139,8 +140,9 @@ public class RequestTests {
         byte[] bytes = makeTestUrlEncodedDataExcessivePairs();
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: application/x-www-form-urlencoded"), socketWrapper);
-        request.getBody();
-        assertTrue(logger.doesMessageExist("Error: body had excessive number of partitions (1000).  Maximum allowed: 1000"));
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Error: body had excessive number of partitions (1000).  Maximum allowed: 1000");
     }
 
     /**
@@ -167,8 +169,9 @@ public class RequestTests {
         byte[] bytes = "".getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + 10, "content-type: application/x-www-form-urlencoded"), socketWrapper);
-        Body body = request.getBody();
-        assertEquals(body, new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED));
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Unable to parse this body. no key found during parsing");
     }
 
     /**
@@ -184,9 +187,9 @@ public class RequestTests {
             }
         };
         IRequest request = makeRequest(List.of("content-length: " + 10, "content-type: application/x-www-form-urlencoded"), socketWrapper);
-        Body body = request.getBody();
-        assertEquals(body, new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED));
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: java.io.IOException: Just a test"));
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "java.io.IOException: Just a test");
     }
 
     /**
@@ -198,9 +201,9 @@ public class RequestTests {
         byte[] bytes = "=bar".getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: application/x-www-form-urlencoded"), socketWrapper);
-        Body body = request.getBody();
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: Unable to parse this body. no key found during parsing"));
-        assertEquals(body, new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED));
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Unable to parse this body. no key found during parsing");
     }
 
     /**
@@ -293,7 +296,7 @@ public class RequestTests {
         Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
         Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
         var ex = assertThrows(WebServerException.class, () -> iterator.next());
-        assertEquals(ex.getMessage(), "java.io.IOException: Error: First line must contain the expected boundary value. Expected to find: foo_foo in: --i_am_a_boundary");
+        assertEquals(ex.getMessage(), "Error: First line must contain the expected boundary value. Expected to find: foo_foo in: --i_am_a_boundary");
     }
 
     /**
@@ -312,8 +315,10 @@ public class RequestTests {
         FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
         socketWrapper.is = new ByteArrayInputStream(bytes);
         IRequest request = makeRequest(List.of("content-length: " + (bytes.length + 10), "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
-        request.getBody();
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: java.io.IOException: Error: The inputstream has closed unexpectedly while reading"));
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
+
+        assertEquals(ex.getMessage(), "Unable to parse the body as a multipart/form-data content-type");
+        assertEquals(ex.getCause().getMessage(), "java.io.IOException: Error: The inputstream has closed unexpectedly while reading");
     }
 
     @Test
@@ -330,9 +335,10 @@ public class RequestTests {
         int extraBytes = 1;
         IRequest request = makeRequest(List.of("content-length: " + (bytes.length + extraBytes), "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
 
-        request.getBody();
+        var ex = assertThrows(BadRequestException.class, () -> request.getBody());
 
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: java.io.IOException: Error: The inputstream has closed unexpectedly while reading"));
+        assertEquals(ex.getMessage(), "Unable to parse the body as a multipart/form-data content-type");
+        assertEquals(ex.getCause().getMessage(), "java.io.IOException: Error: The inputstream has closed unexpectedly while reading");
     }
 
     @Test
@@ -498,7 +504,7 @@ public class RequestTests {
         Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
         Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
         var ex = assertThrows(WebServerException.class, () -> iterator.next());
-        assertEquals(ex.getMessage(), "java.io.IOException: Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+        assertEquals(ex.getMessage(), "Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
     }
 
     /**

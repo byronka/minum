@@ -123,6 +123,9 @@ final class Server implements IServer {
     }
 
     static void handleServerException(IOException ex, ILogger logger) {
+        // we do expect to see an exception bubbling up to here if we
+        // are closing our server, so if the message includes certain values,
+        // we will skip logging an error.
         if (!(ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
             logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
         }

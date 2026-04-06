@@ -197,7 +197,7 @@ public final class FunctionalTesting {
 
         StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
         List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
-        Headers headers = new Headers(allHeaders, logger);
+        Headers headers = new Headers(allHeaders);
         boolean hasBody = !headers.contentType().isBlank();
 
         if (hasBody && method != RequestLine.Method.HEAD) {

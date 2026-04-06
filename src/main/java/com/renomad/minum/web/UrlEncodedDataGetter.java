@@ -9,7 +9,7 @@ import java.io.InputStream;
  * from the Request body. This enables the developer to pull data
  * incrementally, rather than reading it all into memory at once.
  */
-public class UrlEncodedDataGetter extends InputStream {
+public final class UrlEncodedDataGetter extends InputStream {
     private final InputStream inputStream;
     private final CountBytesRead countBytesRead;
     private final long contentLength;

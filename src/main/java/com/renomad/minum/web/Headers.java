@@ -29,7 +29,7 @@ import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
  */
 public final class Headers {
 
-    public static final Headers EMPTY = new Headers(List.of(), null);
+    public static final Headers EMPTY = new Headers(List.of());
     private static final int MAX_HEADERS_COUNT = 70;
     private Integer contentLength;
 
@@ -38,15 +38,11 @@ public final class Headers {
      */
     private final List<String> headerStrings;
     private final Map<String, List<String>> headersMap;
-    private final ILogger logger;
 
-    public Headers(List<String> headerStrings, ILogger logger) {
+    public Headers(List<String> headerStrings) {
         this.headerStrings = new ArrayList<>(headerStrings);
         this.headersMap = Collections.unmodifiableMap(extractHeadersToMap(headerStrings));
-        this.logger = logger;
     }
-
-    public Headers(List<String> headerStrings) { this(headerStrings, null); }
 
     public List<String> getHeaderStrings() {
         return new ArrayList<>(headerStrings);
@@ -61,8 +57,8 @@ public final class Headers {
         for (var h : headerStrings) {
             var indexOfFirstColon = h.indexOf(":");
 
-            // if the header is malformed, just move on
-            if (indexOfFirstColon <= 0) continue;
+            // if the header is malformed, make the user know
+            if (indexOfFirstColon <= 0) throw new BadRequestException("Invalid formatting on header in request, was expecting to find a colon separating key from value: " + h);
 
             String key = h.substring(0, indexOfFirstColon).toLowerCase(Locale.ROOT);
             String value = h.substring(indexOfFirstColon+1).trim();
@@ -88,8 +84,8 @@ public final class Headers {
         // find the header that starts with content-type
         List<String> cts = Objects.requireNonNullElse(headersMap.get("content-type"), new ArrayList<>());
         if (cts.size() > 1) {
-            cts.sort(Comparator.naturalOrder());
-            throw new WebServerException("The number of content-type headers must be exactly zero or one.  Received: " + cts);
+            cts.sort(Comparator.naturalOrder()); // sorting so our error message is consistent
+            throw new BadRequestException("The number of content-type headers must be exactly zero or one.  Received: " + cts);
         }
         if (!cts.isEmpty()) {
             return cts.getFirst();
@@ -112,18 +108,15 @@ public final class Headers {
         if (cl.isEmpty()) {
             contentLength = -1;
         } else if (cl.size() > 1) {
-            if (logger != null) logger.logDebug(() -> "Did not receive a valid content length.  Setting length to -1.  Received: " + cl);
-            contentLength = -1;
+            throw new BadRequestException("Received multiple content-length headers, which does not make sense.  Received: " + cl);
         } else {
             try {
                 contentLength = Integer.parseInt(cl.getFirst());
             } catch (NumberFormatException ex) {
-                logger.logDebug(() -> "Received a non-numeric content length value.  Setting length to -1.  Received: " + cl.getFirst());
-                return -1;
+                throw new BadRequestException("Received a non-numeric content length value. Received: " + cl.getFirst(), ex);
             }
             if (contentLength < 0) {
-                if (logger != null) logger.logDebug(() -> "Content length cannot be negative.  Setting length to -1.  Received: " + contentLength);
-                contentLength = -1;
+                throw new BadRequestException("Content length cannot be negative.  Received: " + contentLength);
             }
         }
         return contentLength;
@@ -197,12 +190,12 @@ public final class Headers {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Headers headers = (Headers) o;
-        return Objects.equals(contentLength, headers.contentLength) && Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap) && Objects.equals(logger, headers.logger);
+        return Objects.equals(contentLength, headers.contentLength) && Objects.equals(headerStrings, headers.headerStrings) && Objects.equals(headersMap, headers.headersMap);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contentLength, headerStrings, headersMap, logger);
+        return Objects.hash(contentLength, headerStrings, headersMap);
     }
 
     @Override
