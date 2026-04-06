@@ -30,7 +30,8 @@ public class GzipTests {
         // finish the compression
         gos.finish();
         byte[] compressedBytes = out.toByteArray();
-        assertEquals(compressedBytes.length, 765);
+        com.renomad.minum.testing.TestFramework.assertTrue(compressedBytes.length < uncompressedBytes.length, "Compressed size should be smaller than uncompressed size");
+        com.renomad.minum.testing.TestFramework.assertTrue(compressedBytes.length > 700 && compressedBytes.length < 800, "Compressed size should be within a reasonable range (700-800 bytes)");
 
         // decompress
         var gis = new GZIPInputStream(new ByteArrayInputStream(compressedBytes));

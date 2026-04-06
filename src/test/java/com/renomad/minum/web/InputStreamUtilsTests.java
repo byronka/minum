@@ -110,6 +110,26 @@ public class InputStreamUtilsTests {
     }
 
     @Test
+    public void testReading_PipeliningCorruption() {
+        // Provide 16,384 bytes of data.
+        // 10,000 bytes for the first body, and 6,384 bytes for the next pipelined request.
+        byte[] inputData = new byte[16384];
+        for(int i = 0; i < 16384; i++) {
+            inputData[i] = (byte) (i % 256);
+        }
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(inputData);
+
+        // Read 10,000 bytes.
+        byte[] result1 = inputStreamUtils.read(10000, inputStream);
+        assertEquals(result1.length, 10000);
+        
+        // Read 2 bytes. If the bug exists, these will be bytes from offset 10000 and 10001.
+        // With the bug, the stream pointer is at 16384, so the next read will throw ForbiddenUseException.
+        byte[] result2 = inputStreamUtils.read(2, inputStream);
+        assertEqualByteArray(result2, new byte[] { (byte)(10000 % 256), (byte)(10001 % 256) });
+    }
+
+    @Test
     public void testEquals() {
         EqualsVerifier.forClass(InputStreamUtils.class).verify();
     }

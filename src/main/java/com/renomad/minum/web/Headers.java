@@ -161,7 +161,7 @@ public final class Headers {
             } catch (IOException e) {
                 throw new WebServerException(e);
             }
-            if (value != null && value.isBlank()) {
+            if (value != null && value.isEmpty()) {
                 break;
             } else if (value == null) {
                 return headers;

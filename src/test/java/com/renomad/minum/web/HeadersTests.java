@@ -76,6 +76,17 @@ public class HeadersTests {
         };
     }
 
+    @Test
+    public void test_GetAllHeaders_SmugglingVector() {
+        String input = "foo: bar\r\n   \r\nbiz: baz\r\n\r\n";
+        InputStream inputStream = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
+        IInputStreamUtils utils = new InputStreamUtils(1024);
+
+        var result = Headers.getAllHeaders(inputStream, utils);
+        assertEquals(result.size(), 3);
+        assertEquals(result, List.of("foo: bar", "   ", "biz: baz"));
+    }
+
     /**
      * In this case, the header has no colon - that's malformed.
      * In that case, we simply skip it.

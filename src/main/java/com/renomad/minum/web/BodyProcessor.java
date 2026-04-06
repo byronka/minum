@@ -156,7 +156,7 @@ final class BodyProcessor implements IBodyProcessor {
                 if (countOfPartitions >= MAX_BODY_KEYS_URL_ENCODED) {
                     throw new WebServerException("Error: body had excessive number of partitions ("+countOfPartitions+").  Maximum allowed: " + MAX_BODY_KEYS_URL_ENCODED);
                 }
-                String value = new String(keyValue.getUedg().readAllBytes(), StandardCharsets.US_ASCII);
+                String value = new String(keyValue.getUedg().readAllBytes(), StandardCharsets.UTF_8);
                 String key = keyValue.getKey();
                 final var decodedValue = StringUtils.decode(value);
                 final var convertedValue = decodedValue == null ? "".getBytes(StandardCharsets.UTF_8) : decodedValue.getBytes(StandardCharsets.UTF_8);
@@ -230,7 +230,7 @@ final class BodyProcessor implements IBodyProcessor {
                     // if this is true, we're done with the key
                     if (myByte == '=') {
                         // URL encoding is in ASCII only.
-                        key = byteArrayOutputStream.toString(StandardCharsets.US_ASCII);
+                        key = byteArrayOutputStream.toString(StandardCharsets.UTF_8);
                         break;
                     } else {
                         if (byteArrayOutputStream.size() >= MAX_KEY_SIZE_BYTES) {

@@ -64,15 +64,12 @@ final class InputStreamUtils implements IInputStreamUtils {
         int read;
         int totalRead = 0;
         try {
-            while ((read = inputStream.read(buf)) >= 0) {
+            while (totalRead < lengthToRead) {
+                int bytesToRead = Math.min(lengthToRead - totalRead, typicalBufferSize);
+                read = inputStream.read(buf, 0, bytesToRead);
+                if (read < 0) break;
                 totalRead += read;
-                if (totalRead < lengthToRead) {
-                    // if we haven't gotten everything we wanted, write this to the output and loop again
-                    baos.write(buf, 0, read);
-                } else {
-                    baos.write(buf, 0, read - (totalRead - lengthToRead));
-                    break;
-                }
+                baos.write(buf, 0, read);
             }
         } catch (IOException ex) {
             throw new UtilsException(ex);

@@ -201,6 +201,23 @@ public class DbEngine2Tests {
         assertEquals(ex.getMessage(), "Cannot invoke \"com.renomad.minum.database.DbData.serialize()\" because \"dataToDelete\" is null");
     }
 
+    @Test
+    public void test_UTF8_Preservation() {
+        Path dbPathForTest = foosDirectory.resolve("test_UTF8_Preservation");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        var db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        
+        Foo foo = new Foo(0, 10, "Hello 世界 🌍!");
+        db.write(foo);
+        db.stop();
+        
+        var db2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
+        var data = db2.values();
+        
+        Foo retrievedFoo = data.iterator().next();
+        assertEquals(retrievedFoo.getB(), "Hello 世界 🌍!");
+    }
+
     /**
      * Investigate race conditions
      * <p>

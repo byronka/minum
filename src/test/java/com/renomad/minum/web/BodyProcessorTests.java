@@ -34,6 +34,18 @@ public class BodyProcessorTests {
         shutdownTestingContext(context);
     }
 
+    @Test
+    public void testParseUrlEncodedForm_RawUTF8() {
+        String body = "foo=Hello 世界";
+        byte[] bodyBytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.io.ByteArrayInputStream inputStream = new java.io.ByteArrayInputStream(bodyBytes);
+        var bodyProcessor = new BodyProcessor(context);
+        
+        Body result = bodyProcessor.parseUrlEncodedForm(inputStream, bodyBytes.length);
+        
+        assertEquals(new String(result.asBytes("foo"), java.nio.charset.StandardCharsets.UTF_8), "Hello 世界");
+    }
+
     /**
      * Edge case - if a multipart form body is missing a valid name value in its headers, ah
      * well, such is life.  WOn't be particularly useful - but then, if we're getting
