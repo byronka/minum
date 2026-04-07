@@ -176,7 +176,7 @@ public final class WebFramework {
                 } catch (BadRequestException ex) {
                     // this catch block needs to be down below the scope where
                     // the request variable is needed.
-                    headerStringBuilder.setLength(0);
+                    headerStringBuilder.setLength(0); // clear the contents
                     adjustedResponse = handleBadRequestException(ex);
                     addDefaultHeaders(adjustedResponse, headerStringBuilder);
                     isKeepAlive = false;
@@ -186,11 +186,12 @@ public final class WebFramework {
                 // send the headers
                 sw.send(headerStringBuilder.append(HTTP_CRLF).toString().getBytes(StandardCharsets.US_ASCII));
 
-               if (!isHeadRequest) {
+                if (!isHeadRequest) {
                     // send the body
                     adjustedResponse.sendBody(sw);
                 }
 
+                // ship it out
                 sw.flush();
 
                 // print how long this processing took
