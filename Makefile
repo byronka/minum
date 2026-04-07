@@ -47,14 +47,14 @@ clean:
 	 @rm -fr target
 
 .PHONY: test
-#: test the whole system
+#: test the whole system, and build a coverage report in target/site/jacoco
 test:
-	 @${MAVEN} test
+	 @${MAVEN} jacoco:prepare-agent test jacoco:report
 
 .PHONY: test_quiet
-#: run tests with minimal output
+#: run tests with minimal output, and build a coverage report
 test_quiet:
-	 @${MAVEN} test -DLOG_LEVELS=NONE 2>&1 | grep -E "Running com\.|Tests run:|BUILD SUCCESS|BUILD FAILURE" || true
+	@${MAVEN} jacoco:prepare-agent test jacoco:report -DLOG_LEVELS=NONE 2>&1 | grep -E "Running com\.|Tests run:|BUILD SUCCESS|BUILD FAILURE" || true
 
 .PHONY: lint
 #: run linting tools
@@ -65,11 +65,6 @@ lint:
 #: create the site report
 site:
 	 @${MAVEN} site
-
-.PHONY: test_coverage
-#: run tests, and build a coverage report
-test_coverage:
-	 @${MAVEN} jacoco:prepare-agent test jacoco:report
 
 .PHONY: mutation_test
 #: run mutation testing using pitest
