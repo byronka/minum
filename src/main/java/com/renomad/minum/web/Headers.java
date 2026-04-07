@@ -154,11 +154,7 @@ public final class Headers {
                 throw new ForbiddenUseException("User tried sending too many headers.  max: " + MAX_HEADERS_COUNT);
             }
             String value;
-            try {
-                value = inputStreamUtils.readLine(is);
-            } catch (IOException e) {
-                throw new WebServerException(e);
-            }
+            value = inputStreamUtils.readLine(is);
             if (value != null && value.isBlank()) {
                 break;
             } else if (value == null) {

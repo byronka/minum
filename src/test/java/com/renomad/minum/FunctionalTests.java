@@ -8,6 +8,7 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
+import com.renomad.minum.utils.UtilsException;
 import com.renomad.minum.web.*;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
 import org.junit.*;
@@ -330,7 +331,7 @@ public class FunctionalTests {
                     assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
                     assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
                 }
-            } catch (SocketException e) {
+            } catch (UtilsException e) {
                 logger.logDebug(() -> "If you see this, we arrived in the exception handler because in fact the socket was closed, but that's alright and expected");
             }
         }

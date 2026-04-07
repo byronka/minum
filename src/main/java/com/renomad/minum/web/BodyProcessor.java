@@ -279,19 +279,15 @@ final class BodyProcessor implements IBodyProcessor {
                 // and avoid including the boundary value in the first set of headers
                 if (! hasReadFirstPartition) {
                     String s;
-                    try {
-                        s = inputStreamUtils.readLine(inputStream);
-                        if (s == null) {
-                            throw new WebServerException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
-                        }
-                        countBytesRead.incrementBy(s.length() + 2);
-                        hasReadFirstPartition = true;
+                    s = inputStreamUtils.readLine(inputStream);
+                    if (s == null) {
+                        throw new WebServerException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+                    }
+                    countBytesRead.incrementBy(s.length() + 2);
+                    hasReadFirstPartition = true;
 
-                        if (!s.contains(boundaryValue)) {
-                            throw new WebServerException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
-                        }
-                    } catch (IOException e) {
-                        throw new WebServerException(e);
+                    if (!s.contains(boundaryValue)) {
+                        throw new WebServerException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
                     }
                 }
                 List<String> allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);

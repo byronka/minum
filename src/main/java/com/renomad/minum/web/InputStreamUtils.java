@@ -21,22 +21,23 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public String readLine(InputStream inputStream) throws IOException  {
+    public String readLine(InputStream inputStream) {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
         final var result = new ByteArrayOutputStream(maxReadLineSizeBytes / 3);
         int bytesRead = 0;
-        for (int i = 0;; i++) {
-            if (i >= maxReadLineSizeBytes) {
-                inputStream.close();
-                throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
-            }
-            int a = inputStream.read();
-            if (a == -1) {
-                if (bytesRead > 0) {
-                    return result.toString(StandardCharsets.UTF_8);
-                } else {
+        try {
+            for (int i = 0; ; i++) {
+                if (i >= maxReadLineSizeBytes) {
+                    inputStream.close();
+                    throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
+                }
+                int a = inputStream.read();
+                if (a == -1) {
+                    if (bytesRead > 0) {
+                        return result.toString(StandardCharsets.UTF_8);
+                    } else {
                     /*
                     it could be unclear whether we read a line that's an empty string, or we
                     reached the end of stream.  With this code, if we get an empty string,
@@ -44,13 +45,16 @@ final class InputStreamUtils implements IInputStreamUtils {
                     that means we didn't have any characters read into our ByteArrayOutputStream,
                     and tried reading at the end of stream.
                     */
-                    return null;
+                        return null;
+                    }
                 }
+                if (a == CARRIAGE_RETURN_DECIMAL) continue;
+                if (a == NEWLINE_DECIMAL) break;
+                result.write(a);
+                bytesRead += 1;
             }
-            if (a == CARRIAGE_RETURN_DECIMAL) continue;
-            if (a == NEWLINE_DECIMAL) break;
-            result.write(a);
-            bytesRead += 1;
+        } catch (IOException ex) {
+            throw new UtilsException(ex);
         }
         return result.toString(StandardCharsets.UTF_8);
     }

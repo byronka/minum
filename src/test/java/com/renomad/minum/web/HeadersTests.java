@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -53,25 +54,10 @@ public class HeadersTests {
         assertEquals(result, new ArrayList<>());
     }
 
-    @Test
-    public void test_GetAllHeaders_EdgeCase_IOException() {
-        String input = """
-                foo: bar
-                biz: baz
-                """;
-        InputStream inputStream = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
-        IInputStreamUtils throwingInputStreamUtils = mockInputStreamUtils(() -> {
-            throw new IOException("just a test");
-        });
-
-        var ex = assertThrows(WebServerException.class, () -> Headers.getAllHeaders(inputStream, throwingInputStreamUtils));
-        assertEquals(ex.getMessage(), "java.io.IOException: just a test");
-    }
-
-    private IInputStreamUtils mockInputStreamUtils(ThrowingSupplier<String, IOException> readLineAction) {
+    private IInputStreamUtils mockInputStreamUtils(Supplier<String> readLineAction) {
 
         return new IInputStreamUtils() {
-            @Override public String readLine(InputStream inputStream) throws IOException { return readLineAction.get(); }
+            @Override public String readLine(InputStream inputStream) { return readLineAction.get(); }
             @Override public byte[] read(int lengthToRead, InputStream inputStream) {return new byte[0];}
         };
     }

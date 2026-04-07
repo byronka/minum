@@ -150,11 +150,7 @@ public class InputStreamUtilsTests {
             InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
             String foo = "";
             do {
-                try {
-                    foo = inputStreamUtils.readLine(inputStream);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                foo = inputStreamUtils.readLine(inputStream);
             } while (foo != null);
         });
         long l = stopwatchUtils.stopTimer();
