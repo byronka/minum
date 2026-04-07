@@ -256,7 +256,7 @@ public final class WebFramework {
      */
     IResponse handleBadRequestException(BadRequestException ex) throws IOException {
         int randomNumber = randomErrorCorrelationId.nextInt();
-        logger.logDebug(() -> "Bad data in request. Code: " + randomNumber + " Error: " + ex.getMessage() + (ex.getCause() == null ? "" : "Cause: " + ex.getCause().getMessage()));
+        logger.logDebug(() -> "Bad data in request. Code: " + randomNumber + " Error: " + ex.getMessage() + (ex.getCause() == null ? "" : " Cause: " + ex.getCause().getMessage()));
         return Response.buildResponse(CODE_400_BAD_REQUEST, new Headers(List.of("Content-Type: text/plain;charset=UTF-8")), "Bad request from user (HTTP 400) error: " + randomNumber);
     }
 
