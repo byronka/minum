@@ -200,7 +200,7 @@ public final class FunctionalTesting {
         Headers headers = new Headers(allHeaders);
         boolean hasBody = !headers.contentType().isBlank();
 
-        if (hasBody && method != RequestLine.Method.HEAD) {
+        if (hasBody && !method.equals(RequestLine.Method.HEAD)) {
             logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
             body = bodyProcessor.extractData(is, headers);
         }

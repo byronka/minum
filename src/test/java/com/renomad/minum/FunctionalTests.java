@@ -382,4 +382,12 @@ public class FunctionalTests {
         assertEquals(response.statusLine().status().toString(), "CODE_400_BAD_REQUEST");
         assertEquals(response.body().asString(), "");
     }
+
+    @Test
+    public void test_EdgeCase_BadRequest2() {
+        TestResponse response = ft.get("foo?name=baz%2&foo=bar");
+        assertEquals(response.statusLine().status().toString(), "CODE_400_BAD_REQUEST");
+        assertEquals(response.body().asString(), "");
+    }
+
 }
