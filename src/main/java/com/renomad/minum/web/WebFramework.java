@@ -208,13 +208,15 @@ public final class WebFramework {
             handleReadTimedOut(sw, ex, logger);
         } catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
+        } catch (UtilsException ex) {
+            handleIOException(sw, ex.getCause(), logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         } catch (IOException ex) {
             handleIOException(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         }
     }
 
 
-    static void handleIOException(ISocketWrapper sw, IOException ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
+    static void handleIOException(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
         logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
 
         if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
