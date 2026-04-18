@@ -37,7 +37,7 @@ public class SampleDomain {
     private final String authHomepage;
     private final String unauthHomepage;
 
-    public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) {
+    public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) throws IOException {
         this.db = db;
         this.auth = auth;
         FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());

@@ -268,8 +268,8 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
-        Path path = FileUtils.safeResolve(parentDirectory, filePath);
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) throws IOException {
+        Path path = fileUtils.safeResolve(parentDirectory, filePath);
         return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
     }
 
@@ -287,8 +287,8 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
-        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, parentDirectory, requestHeaders);
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) throws IOException {
+        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, parentDirectory, requestHeaders, fileUtils);
     }
 
     /**

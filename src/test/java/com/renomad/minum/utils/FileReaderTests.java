@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
@@ -49,9 +50,8 @@ public class FileReaderTests {
     @Test
     public void test_ReadFile_BadPath() throws IOException {
         var fileReader = new FileReader(lruCache, true, logger);
-        byte[] bytes = fileReader.readFile("../testingreadfile.txt");
-        assertEqualByteArray(bytes, new byte[0]);
-        assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
+        var ex = assertThrows(ForbiddenUseException.class, () -> fileReader.readFile("../testingreadfile.txt"));
+        assertEquals(ex.getMessage(), "filename (../testingreadfile.txt) contained invalid characters");
     }
 
     @Test

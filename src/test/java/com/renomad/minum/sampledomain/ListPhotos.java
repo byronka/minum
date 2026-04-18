@@ -31,9 +31,11 @@ public class ListPhotos {
     private final UploadPhoto up;
     private final AuthUtils auth;
     private final FileReader fileReader;
+    private final FileUtils fileUtils;
     private final long staticFileCacheTime;
 
-    public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
+
+    public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) throws IOException {
         this.logger = context.getLogger();
         Constants constants = context.getConstants();
         FileUtils fileUtils = new FileUtils(logger, constants);
@@ -44,6 +46,7 @@ public class ListPhotos {
         this.up = up;
         this.auth = auth;
         this.fileReader = new FileReader(LRUCache.getLruCache(), true, logger);
+        this.fileUtils = new FileUtils(logger, constants);
     }
 
     public IResponse ListPhotosPage(IRequest r) {
@@ -102,7 +105,7 @@ public class ListPhotos {
     /**
      * Like you would think - a way to read a photo from disk to put on the wire
      */
-    public IResponse grabPhoto(IRequest r) {
+    public IResponse grabPhoto(IRequest r) throws IOException {
         String filename = r.getRequestLine().queryString().get("name");
         logger.logAudit(() -> r.getRemoteRequester() + " is looking for a photo named " + filename);
 
@@ -131,7 +134,7 @@ public class ListPhotos {
     /**
      * Returns videos we have stored
      */
-    public IResponse grabVideo(IRequest r) {
+    public IResponse grabVideo(IRequest r) throws IOException {
         String filename = r.getRequestLine().queryString().get("name");
         logger.logAudit(() -> r.getRemoteRequester() + " is looking for a video named " + filename);
 
@@ -170,7 +173,7 @@ public class ListPhotos {
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    IResponse readStaticFile(String path, String mimeType, Headers requestHeaders) {
+    IResponse readStaticFile(String path, String mimeType, Headers requestHeaders) throws IOException {
         try {
             checkForBadFilePatterns(path);
         } catch (Exception ex) {
@@ -178,12 +181,7 @@ public class ListPhotos {
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
 
-        try {
-            checkFileIsWithinDirectory(path, ".");
-        } catch (InvariantException ex) {
-            logger.logDebug(() -> String.format("Unable to find %s in allowed directories", path));
-            return Response.buildLeanResponse(CODE_404_NOT_FOUND);
-        }
+        fileUtils.checkFileIsWithinDirectory(path, ".");
 
         try {
             // convert from a string to a path object for some valuable methods

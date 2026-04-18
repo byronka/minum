@@ -135,7 +135,7 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_IOException() {
-        webFramework = new WebFramework(context, default_zdt, throwingFileReader);
+        webFramework = new WebFramework(context, default_zdt, throwingFileReader, null);
         IResponse response = webFramework.readStaticFile("Foo", defaultHeaders);
 
         assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);

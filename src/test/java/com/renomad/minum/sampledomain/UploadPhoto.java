@@ -42,7 +42,7 @@ public class UploadPhoto {
     private final Path dbDir;
     private final AuthUtils auth;
 
-    public UploadPhoto(Db<Photograph> db, Db<Video> videoDb, AuthUtils auth, Context context) {
+    public UploadPhoto(Db<Photograph> db, Db<Video> videoDb, AuthUtils auth, Context context) throws IOException {
         Constants constants = context.getConstants();
         this.auth = auth;
         this.logger = context.getLogger();

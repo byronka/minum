@@ -40,19 +40,7 @@ public final class FileReader implements IFileReader {
                 cacheLock.unlock();
             }
         }
-
-        try {
-            checkForBadFilePatterns(path);
-        } catch (Exception ex) {
-            logger.logDebug(() -> String.format("Bad path requested at readFile: %s. Exception: %s", path, ex.getMessage()));
-            return new byte[0];
-        }
-
-        if (!Files.exists(Path.of(path))) {
-            logger.logDebug(() -> String.format("No file found at %s, returning an empty byte array", path));
-            return new byte[0];
-        }
-
+        checkForBadFilePatterns(path);
         return readTheFile(path, logger, useCacheForStaticFiles, lruCache);
     }
 

@@ -12,6 +12,7 @@ import com.renomad.minum.web.IRequest;
 import com.renomad.minum.web.IResponse;
 import com.renomad.minum.web.Response;
 
+import java.io.IOException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -42,7 +43,7 @@ public class AuthUtils {
 
     public AuthUtils(Db<SessionId> sessionDiskData,
                      Db<User> userDiskData,
-                     Context context) {
+                     Context context) throws IOException {
         this.constants = context.getConstants();
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;

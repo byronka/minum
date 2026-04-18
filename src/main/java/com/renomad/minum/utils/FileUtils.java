@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 
@@ -151,13 +152,8 @@ public final class FileUtils {
      *     If there is an error, this will return an empty string.
      * </p>
      */
-    public String readTextFile(String path) {
-        try {
-            return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            logger.logDebug(() -> String.format("Error while reading file %s, returning empty string. %s", path, e));
-            return "";
-        }
+    public String readTextFile(String path) throws IOException {
+        return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
     }
 
     /**
@@ -166,36 +162,32 @@ public final class FileUtils {
      * for any code that reads from files where the user provides untrusted input.
      * @throws InvariantException if the file is not within the directory
      */
-    public static void checkFileIsWithinDirectory(String path, String directoryPath) {
+    public void checkFileIsWithinDirectory(String path, String directoryPath) throws IOException {
         Path directoryRealPath;
         Path fullRealPath;
-        try {
-            directoryRealPath = Path.of(directoryPath).toRealPath(LinkOption.NOFOLLOW_LINKS);
-            fullRealPath = directoryRealPath.resolve(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
-        } catch (IOException ex) {
-            throw new InvariantException(ex.toString());
-        }
+        directoryRealPath = Path.of(directoryPath).toRealPath(LinkOption.NOFOLLOW_LINKS);
+        fullRealPath = directoryRealPath.resolve(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
         if (! fullRealPath.startsWith(directoryRealPath)) {
-            throw new InvariantException(String.format("path (%s) was not within directory (%s)", path, directoryPath));
+            throw new ForbiddenUseException(String.format("path (%s) was not within directory (%s)", path, directoryPath));
         }
     }
 
     /**
      * Checks that the path string avoids bad patterns and meets our
      * whitelist for acceptable characters.
-     * @throws InvariantException if there are any issues with the path string, such
-     *                            as being an empty string, containing known bad patterns
-     *                            or including characters other than the set of characters we will allow for filenames.
+     * @throws IllegalArgumentException if the input is blank
+     * @throws ForbiddenUseException if the path parameter contains known bad patterns
+     *                            or includes characters other than the set of characters we will allow for filenames.
      *                            It is a small set of ascii characters - alphanumerics, underscore, dash, period,
      *                            forward and backward slash.
      */
     public static void checkForBadFilePatterns(String path) {
         if (path.isBlank()) {
-            throw new InvariantException("filename was empty");
+            throw new IllegalArgumentException("path was blank");
         }
         char firstChar = path.charAt(0);
         if (firstChar == '\\' || firstChar == '/') {
-            throw new InvariantException("filename ("+path+") contained invalid characters");
+            throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
         }
         boolean isPreviousCharDot = false;
         boolean isPreviousCharSlash = false;
@@ -204,11 +196,11 @@ public final class FileUtils {
             boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
                     c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
             if (!isWhitelistedChar) {
-                throw new InvariantException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
+                throw new ForbiddenUseException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
             }
             if (c == '.') {
                 if (isPreviousCharDot) {
-                    throw new InvariantException("filename ("+path+") contained invalid characters");
+                    throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
                 }
                 isPreviousCharDot = true;
             } else {
@@ -216,7 +208,7 @@ public final class FileUtils {
             }
             if (c == '/') {
                 if (isPreviousCharSlash) {
-                    throw new InvariantException("filename ("+path+") contained invalid characters");
+                    throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
                 }
                 isPreviousCharSlash = true;
             } else {
@@ -229,7 +221,7 @@ public final class FileUtils {
      * This helper method will ensure that the requested path is
      * within the parent directory and using safe characters
      */
-    public static Path safeResolve(String parentDirectory, String path) {
+    public Path safeResolve(String parentDirectory, String path) throws IOException {
         checkForBadFilePatterns(path);
         checkFileIsWithinDirectory(path, parentDirectory);
         return Path.of(parentDirectory).resolve(path);

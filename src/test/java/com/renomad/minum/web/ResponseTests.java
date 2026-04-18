@@ -1,6 +1,12 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -18,6 +24,18 @@ import static com.renomad.minum.web.Response.buildStreamingResponse;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 
 public class ResponseTests {
+
+    private Context context;
+
+    @Before
+    public void init() {
+        this.context = TestFramework.buildTestingContext("ResponseTests");
+    }
+
+    @After
+    public void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
 
     /**
      * If we use two different {@link Response} as keys in a
@@ -81,10 +99,11 @@ public class ResponseTests {
      */
     @Test
     public void testResponse_EdgeCase_BadPathRequested() throws IOException {
-        assertThrows(InvariantException.class, "filename (../foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of())));
-        assertThrows(InvariantException.class, "filename (c:/foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of())));
-        assertThrows(InvariantException.class, "filename (//foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "//foo", ".", new Headers(List.of())));
-        Response.buildLargeFileResponse(Map.of(), "src/test/resources/kitty.jpg", ".", new Headers(List.of()));
+        var fileUtils = new FileUtils(this.context.getLogger(), this.context.getConstants());
+        assertThrows(ForbiddenUseException.class, "filename (../foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of()), fileUtils));
+        assertThrows(ForbiddenUseException.class, "filename (c:/foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of()), fileUtils));
+        assertThrows(ForbiddenUseException.class, "filename (//foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "//foo", ".", new Headers(List.of()), fileUtils));
+        Response.buildLargeFileResponse(Map.of(), "src/test/resources/kitty.jpg", ".", new Headers(List.of()), fileUtils);
     }
 
     @Test

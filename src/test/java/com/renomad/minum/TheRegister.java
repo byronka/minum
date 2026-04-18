@@ -50,7 +50,7 @@ public class TheRegister {
         this.fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    public void registerDomains() {
+    public void registerDomains() throws IOException {
         var auth = buildAuthDomain();
         var up = setupUploadPhotos(auth);
         var lp = setupListPhotos(auth, up);
@@ -201,24 +201,24 @@ public class TheRegister {
         return endpoint.apply(request);
     }
 
-    private SampleDomain setupSampleDomain(AuthUtils auth) {
+    private SampleDomain setupSampleDomain(AuthUtils auth) throws IOException {
         AbstractDb<PersonName> sampleDomainDb = context.getDb2("names", PersonName.EMPTY)
                 .registerIndex("name_index", PersonName::getFullname)
                 .loadData();
         return new SampleDomain(sampleDomainDb, auth, context);
     }
 
-    private ListPhotos setupListPhotos(AuthUtils auth, UploadPhoto up) {
+    private ListPhotos setupListPhotos(AuthUtils auth, UploadPhoto up) throws IOException {
         return new ListPhotos(context, up, auth);
     }
 
-    private UploadPhoto setupUploadPhotos(AuthUtils auth) {
+    private UploadPhoto setupUploadPhotos(AuthUtils auth) throws IOException {
         var photoDb = context.getDb("photos", Photograph.EMPTY);
         var videoDb = context.getDb("videos", Video.EMPTY);
         return new UploadPhoto(photoDb, videoDb, auth, context);
     }
 
-    private AuthUtils buildAuthDomain() {
+    private AuthUtils buildAuthDomain() throws IOException {
         var sessionDb = context.getDb("sessions", SessionId.EMPTY);
         var userDb = context.getDb("users", User.EMPTY);
         var au = new AuthUtils(sessionDb, userDb, context);

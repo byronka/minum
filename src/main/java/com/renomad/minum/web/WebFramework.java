@@ -19,7 +19,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 
-import static com.renomad.minum.utils.FileUtils.checkFileIsWithinDirectory;
 import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
@@ -46,6 +45,7 @@ public final class WebFramework {
     private final RequestLine emptyRequestLine;
     private final RequestLine validRequestLine;
     private final ITheBrig theBrig;
+    private final FileUtils fileUtils;
 
     public Map<String,String> getSuffixToMimeMappings() {
         return new HashMap<>(fileSuffixToMime);
@@ -574,7 +574,7 @@ public final class WebFramework {
         String mimeType = null;
 
         try {
-            checkFileIsWithinDirectory(path, constants.staticFilesDirectory);
+            fileUtils.checkFileIsWithinDirectory(path, constants.staticFilesDirectory);
         } catch (Exception ex) {
             logger.logDebug(() -> String.format("Unable to find %s in allowed directories", path));
             return Response.buildLeanResponse(CODE_404_NOT_FOUND);
@@ -682,19 +682,28 @@ public final class WebFramework {
      * This constructor is used for the real production system
      */
     WebFramework(Context context) {
-        this(context, null, null);
+        this(context, null, null, null);
     }
 
+    /**
+     * This constructor is mainly used for testing
+     */
     WebFramework(Context context, ZonedDateTime overrideForDateTime) {
-        this(context, overrideForDateTime, null);
+        this(context, overrideForDateTime, null, null);
     }
 
     /**
      * This provides the ZonedDateTime as a parameter so we
      * can set the current date (for testing purposes)
-     * @param overrideForDateTime for those test cases where we need to control the time
+     * @param overrideForDateTime for those test cases where we need to control the time. Providing null
+     *                            for this parameter will cause code to use ZonedDateTime.now() instead,
+     *                            which is the expected behavior during ordinary system use.
+     * @param fileReader when we want to provide an instance for better control during testing. Providing
+     *                   null here will cause a FileReader to be instantiated in the constructor.
+     * @param fileUtils when we want to provide an instance for better control during testing. Providing
+     *                  null here will cause a FileUtils to be instantiated in the constructor.
      */
-    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader) {
+    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader, FileUtils fileUtils) {
         this.fs = context.getFullSystem();
         this.theBrig = this.fs != null ? this.fs.getTheBrig() : null;
         this.logger = context.getLogger();
@@ -704,6 +713,11 @@ public final class WebFramework {
         this.registeredPathFunctions = new EnumMap<>(RequestLine.Method.class);
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
+        if (fileUtils != null) {
+            this.fileUtils = fileUtils;
+        } else {
+            this.fileUtils = new FileUtils(logger, constants);
+        }
 
         // This random value is purely to help provide correlation between
         // error messages in the UI and error logs.  There are no security concerns.

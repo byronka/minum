@@ -8,6 +8,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -208,7 +209,7 @@ public class HtmlParserTests {
     }
 
     @Test
-    public void test_HtmlParser_Edge_LargerFile() {
+    public void test_HtmlParser_Edge_LargerFile() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
@@ -220,7 +221,7 @@ public class HtmlParserTests {
     }
 
     @Test
-    public void test_fuzzer() {
+    public void test_fuzzer() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
         List<HtmlParseNode> parsedNodes = new HtmlParser().parse(htmlText);
         HtmlParseNode firstPara = SearchHelpers.search(parsedNodes, TagName.P, Map.of("id", "testing-target")).getFirst();
@@ -236,7 +237,7 @@ public class HtmlParserTests {
      * @see #test_HtmlParser_Edge_LargerFile
      */
     @Test
-    public void test_HtmlParser_Edge_LargerFile_DEPRECATED() {
+    public void test_HtmlParser_Edge_LargerFile_DEPRECATED() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
@@ -254,7 +255,7 @@ public class HtmlParserTests {
      * @see #test_fuzzer()
      */
     @Test
-    public void test_fuzzer_DEPRECATED() {
+    public void test_fuzzer_DEPRECATED() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
         String firstParagraph = htmlRoots.get(1).search(TagName.P, Map.of()).getFirst().innerText();
