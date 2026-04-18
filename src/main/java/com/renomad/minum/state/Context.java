@@ -22,11 +22,12 @@ import java.util.concurrent.ExecutorService;
  *     <li>Building a Minum {@link Db} database</li>
  *     <li>Getting system constants like the database directory</li>
  *     <li>Getting the system {@link ExecutorService} for starting threads or an {@link com.renomad.minum.queue.ActionQueue}</li>
- *     <li>Getting a {@link FullSystem} object, which has</li>
+ *     <li>Getting a {@link FullSystem} object, which has
  *     <ul>
  *         <li>the {@link com.renomad.minum.web.WebFramework}, which registers endpoints</li>
  *         <li>the {@link com.renomad.minum.security.TheBrig}, which handles bad actors on the internet</li>
  *     </ul>
+ *     </li>
  * </ul>
  */
 public final class Context {
