@@ -18,6 +18,8 @@ Release notes
 v10.0.0
 --------
 
+Spring cleaning, 2026
+
 Bug fixes found through AI analysis of the codebase.  Results of the analysis were
 used to build tests proving the bugs, which were then corrected by hand in the ordinary
 manner.
