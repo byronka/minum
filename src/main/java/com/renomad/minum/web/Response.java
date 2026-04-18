@@ -206,7 +206,7 @@ public final class Response implements IResponse {
     /**
      * This will send a large file to the client as a stream.
      * <em>Note that this does not check that the requested file is within a directory. If you expect the
-     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers)}</em>
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers, FileUtils)}</em>
      * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
      *                     key is the header key and the value is the header value. No colon necessary.
      *                     For example "Content-Type: video/mp4" or "Content-Type: application/zip"
@@ -221,7 +221,7 @@ public final class Response implements IResponse {
     /**
      * This will send a large file to the client as a stream.
      * <em>Note that this does not check that the requested file is within a directory. If you expect the
-     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers)}</em>
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers, FileUtils)}</em>
      * @param extraHeaders extra headers you would like in the response, as key-value pairs in a map - for
      *                     example "Content-Type: video/mp4" or "Content-Type: application/zip"
      * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
