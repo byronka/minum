@@ -1207,7 +1207,7 @@ public class DbEngine2Tests {
 
         fileUtils.makeDirectory(path.resolve("currentAppendLog"));
 
-        var ex = assertThrows(AccessDeniedException.class, () -> new DbEngine2<>(path, context, INSTANCE));
+        var ex = assertThrows(IOException.class, () -> new DbEngine2<>(path, context, INSTANCE));
     }
 
     /**

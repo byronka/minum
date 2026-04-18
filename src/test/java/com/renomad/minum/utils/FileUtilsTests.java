@@ -161,9 +161,8 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_ReadTextFile_FileMissing() throws IOException {
-        var ex = assertThrows(FileNotFoundException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
-        assertEquals(ex.getMessage(), "target\\does_not_exist.txt (The system cannot find the file specified)");
+    public void test_ReadTextFile_FileMissing() {
+        assertThrows(FileNotFoundException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
     }
 
     @Test
