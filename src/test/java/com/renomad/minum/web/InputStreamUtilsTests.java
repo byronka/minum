@@ -39,7 +39,7 @@ public class InputStreamUtilsTests {
      * see the method in question for "typicalBufferSize"
      */
     @Test
-    public void testReadingLarge() {
+    public void testReadingLarge() throws IOException {
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
@@ -59,9 +59,9 @@ public class InputStreamUtilsTests {
             }
         }) {
 
-            var exception = assertThrows(UtilsException.class, () -> inputStreamUtils.read(2, inputStream));
+            var exception = assertThrows(IOException.class, () -> inputStreamUtils.read(2, inputStream));
 
-            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+            assertEquals(exception.getMessage(), "test exception only, no worries");
         }
     }
 
@@ -150,7 +150,11 @@ public class InputStreamUtilsTests {
             InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
             String foo = "";
             do {
-                foo = inputStreamUtils.readLine(inputStream);
+                try {
+                    foo = inputStreamUtils.readLine(inputStream);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             } while (foo != null);
         });
         long l = stopwatchUtils.stopTimer();

@@ -9,6 +9,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -40,7 +41,7 @@ public class TheBrigTests {
      * a time and after it has paid its dues, be released.
      */
     @Test
-    public void test_TheBrig_Basic() {
+    public void test_TheBrig_Basic() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -113,7 +114,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_TheBrig_RegularStop() {
+    public void test_TheBrig_RegularStop() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -129,7 +130,7 @@ public class TheBrigTests {
      * If the brig isn't initialized, there's no thread to stop
      */
     @Test
-    public void test_TheBrig_Uninitialized() {
+    public void test_TheBrig_Uninitialized() throws IOException {
         var b = new TheBrig(10, context);
         var ex = assertThrows(MinumSecurityException.class, b::stop);
         assertEquals(ex.getMessage(), "TheBrig was told to stop, but it was uninitialized");
@@ -141,7 +142,7 @@ public class TheBrigTests {
      * of the new transgression.
      */
     @Test
-    public void test_TheBrig_ExistingInmate() {
+    public void test_TheBrig_ExistingInmate() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -166,7 +167,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_BrigDisabled() {
+    public void test_BrigDisabled() throws IOException {
         Properties properties = new Properties();
         properties.setProperty("IS_THE_BRIG_ENABLED", "false");
         var disabledBrigContext = buildTestingContext("testing brig disabled", properties);

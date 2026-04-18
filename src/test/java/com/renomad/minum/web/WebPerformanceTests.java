@@ -50,7 +50,7 @@ public class WebPerformanceTests {
     AtomicInteger testLoopCounter;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         var constants = new Constants();
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         logger = new Logger(constants, executorService, "WebPerformanceTestLogger");

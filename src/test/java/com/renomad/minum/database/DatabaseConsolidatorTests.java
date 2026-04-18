@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -75,7 +76,7 @@ public class DatabaseConsolidatorTests {
      * the program will return an empty list.
      */
     @Test
-    public void testGetAppendFiles_EdgeCase_NoFiles() {
+    public void testGetAppendFiles_EdgeCase_NoFiles() throws IOException {
         Path path = Path.of("out/DOES_NOT_EXIST");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         assertEquals(List.of(), DatabaseConsolidator.getSortedAppendLogs(path));

@@ -24,19 +24,25 @@ Bug fixes found through AI analysis of the codebase.  Results of the analysis we
 used to build tests proving the bugs, which were then corrected by hand in the ordinary
 manner.
 
-* Breaking changes:
-  * IOException is allowed to bubble up more from FileReader and FileUtils. This
-    necessitates dealing with the exception at the endpoint level or allowing it
-    to bubble up, which could end up with a 500 status response.  Previously,
-    these exceptions were being obscured to avoid having to deal with unusual 
-    situations, but it turned out to hide useful information.  The realization
-    started with recognizing that returning an empty string when we failed to
-    read a file, in FileReader, is actually something that could be handled
-    at a higher level, and was hiding useful information.
-  * Some exceptional situations switched to ForbiddenUseException.  There were
-    several scenarios with paths that were wrapped in InvariantException, but if
+Practical breaking changes: IOException is now thrown in several more places and needs
+to be handled by the developer.  Some methods have been changed from static to instance
+methods, and some parameters have been changed to methods.
+
+* Breaking changes - brighter illumination of edge cases.
+  * Previously, it was a design concept to wrap IOException and then log
+    the details, so we could avoid "checked" exceptions, which require declaring
+    and handling the exception at each level of the call stack.  
+
+    Upon further consideration, the information it is providing us
+    is incredibly important, even if it causes the disruption of checked exceptions,
+    for the benefit of more precisely highlighting where the call stack might hit I/O.  
+    At the end of the day, we're intimately connected to the hardware, and its complaints
+    and data flow needs to be crystal clear.
+    
+  * Some exceptional situations switched to ForbiddenUseException.
+    There were several scenarios with paths that were wrapped in InvariantException, but if
     the system gets a request for a path that is meant to escape the directory,
-    that is considered a Forbidden situation, and should be tagged as such, allowing
+    that is considered a forbidden situation, and should be tagged as such, allowing
     the programmer to use any desired mechanisms to handle it (such as the Brig).
 
 * Index race condition

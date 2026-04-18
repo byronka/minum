@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.concurrent.Executors;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -57,7 +58,7 @@ public class ActionQueueKillerTests {
     }
 
     @Test
-    public void test_KillAllQueues() {
+    public void test_KillAllQueues() throws IOException {
         var constants = new Constants(null);
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new TestLogger(constants, executorService, "testing kill all queues");

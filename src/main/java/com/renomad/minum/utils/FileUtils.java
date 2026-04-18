@@ -45,16 +45,12 @@ public final class FileUtils {
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
      */
-    public void writeString(Path path, String content) {
+    public void writeString(Path path, String content) throws IOException {
         if (path.toString().isEmpty()) {
             logger.logDebug(() -> "an empty path was provided to writeString");
             return;
         }
-        try {
-            Files.writeString(path, content);
-        } catch (IOException e) {
-            throw new UtilsException(e);
-        }
+        Files.writeString(path, content);
     }
 
     /**
@@ -67,7 +63,7 @@ public final class FileUtils {
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
      */
-    public void deleteDirectoryRecursivelyIfExists(Path myPath) {
+    public void deleteDirectoryRecursivelyIfExists(Path myPath) throws IOException {
         if (!Files.exists(myPath)) {
             logger.logDebug(() -> "system was requested to delete directory: "+myPath+", but it did not exist");
         } else {
@@ -75,18 +71,16 @@ public final class FileUtils {
         }
     }
 
-    void walkPathDeleting(Path myPath) {
+    void walkPathDeleting(Path myPath) throws IOException {
         try (Stream<Path> walk = Files.walk(myPath)) {
 
             final var files = walk.sorted(Comparator.reverseOrder())
                     .map(Path::toFile).toList();
 
-            for(var file: files) {
+            for (var file : files) {
                 logger.logTrace(() -> "deleting " + file);
                 Files.delete(file.toPath());
             }
-        } catch (IOException ex) {
-            throw new UtilsException("Error during deleteDirectoryRecursivelyIfExists: " + ex);
         }
     }
 
@@ -102,7 +96,7 @@ public final class FileUtils {
      * building it, and mention it in the logs.
      * </p>
      */
-    public void makeDirectory(Path directory) {
+    public void makeDirectory(Path directory) throws IOException {
         logger.logDebug(() -> "Creating a directory " + directory);
         boolean directoryExists = Files.exists(directory);
         logger.logDebug(() -> "Directory: " + directory + ". Already exists: " + directory);
@@ -113,12 +107,9 @@ public final class FileUtils {
         }
     }
 
-    static void innerCreateDirectory(Path directory) {
-        try {
-            Files.createDirectories(directory);
-        } catch (Exception e) {
-            throw new UtilsException(e);
-        }
+    void innerCreateDirectory(Path directory) throws IOException {
+        if (directory == null) throw new IllegalArgumentException("directory parameter is disallowed to be null when creating a directory");
+        Files.createDirectories(directory);
     }
 
     /**

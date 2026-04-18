@@ -9,6 +9,7 @@ import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -98,7 +99,7 @@ public final class FullSystem {
      *   }
      * }</pre>
      */
-    public static FullSystem initialize() {
+    public static FullSystem initialize() throws IOException {
         var context = buildContext();
         var fullSystem = new FullSystem(context);
         return fullSystem.start();
@@ -110,7 +111,7 @@ public final class FullSystem {
      * require it for more control in testing.
      * @see #initialize()
      */
-    public FullSystem start() {
+    public FullSystem start() throws IOException {
         // create a file in our current working directory to indicate we are running
         if (constants.enableSystemRunningMarker) createSystemRunningMarker();
 
@@ -157,7 +158,7 @@ public final class FullSystem {
      * that will indicate the system is active.  It can be disabled
      * by configuring ENABLE_SYSTEM_RUNNING_MARKER to false.
      */
-    private void createSystemRunningMarker() {
+    private void createSystemRunningMarker() throws IOException {
         fileUtils.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
     }
 

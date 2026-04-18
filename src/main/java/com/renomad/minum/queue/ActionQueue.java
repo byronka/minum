@@ -114,7 +114,7 @@ public final class ActionQueue implements AbstractActionQueue {
         if (! stop) {
             queue.add(new RunnableWithDescription(action, description));
         } else {
-            throw new UtilsException(String.format("failed to enqueue %s - ActionQueue \"%s\" is stopped", description, this.name));
+            throw new QueueException(String.format("failed to enqueue %s - ActionQueue \"%s\" is stopped", description, this.name));
         }
     }
 

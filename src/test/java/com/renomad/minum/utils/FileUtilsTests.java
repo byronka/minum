@@ -39,7 +39,7 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_WriteString_EmptyPath() {
+    public void test_WriteString_EmptyPath() throws IOException {
         fileUtils.writeString(Path.of(""), "bar");
         assertTrue(logger.doesMessageExist("an empty path was provided to writeString"));
     }
@@ -50,9 +50,7 @@ public class FileUtilsTests {
      */
     @Test
     public void test_WriteString_IOException() {
-        var ex = assertThrows(UtilsException.class,
-                () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
-        assertTrue(RegexUtils.isFound("java.nio.file.NoSuchFileException: target.foo.bar", ex.getMessage()));
+        assertThrows(NoSuchFileException.class, () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
     }
 
     @Test
@@ -115,7 +113,7 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() {
+    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/foo"));
         assertTrue(logger.doesMessageExist("system was requested to delete directory"));
     }
@@ -185,16 +183,14 @@ public class FileUtilsTests {
     @Test
     public void test_walkPathDeleting() {
         FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
-        assertThrows(UtilsException.class,
-                "Error during deleteDirectoryRecursivelyIfExists: java.nio.file.NoSuchFileException: foofoo",
-                () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
+        assertThrows(NoSuchFileException.class, () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
     }
 
     @Test
     public void test_innerCreateDirectory() {
-        assertThrows(UtilsException.class,
-                "java.lang.NullPointerException: Cannot invoke \"java.nio.file.Path.getFileSystem()\" because \"path\" is null",
-                () -> FileUtils.innerCreateDirectory(null));
+        assertThrows(IllegalArgumentException.class,
+                "directory parameter is disallowed to be null when creating a directory",
+                () -> fileUtils.innerCreateDirectory(null));
     }
 
     /**

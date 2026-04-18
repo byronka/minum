@@ -7,6 +7,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.queue.ActionQueueState;
 import com.renomad.minum.web.FullSystem;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
@@ -83,7 +84,7 @@ public final class Context {
      * @param instance an instance of the {@link DbData} data. This is used in the
      *                 Db code to deserialize the data when reading.
      */
-    public <T extends DbData<?>> Db<T> getDb(String name, T instance) {
+    public <T extends DbData<?>> Db<T> getDb(String name, T instance) throws IOException {
         return new Db<>(Path.of(constants.dbDirectory, name), this, instance);
     }
 
@@ -99,7 +100,7 @@ public final class Context {
      *     <b>Please backup your database before conversion</b>
      * </p>
      */
-    public <T extends DbData<?>> DbEngine2<T> getDb2(String name, T instance) {
+    public <T extends DbData<?>> DbEngine2<T> getDb2(String name, T instance) throws IOException {
         return new DbEngine2<>(Path.of(constants.dbDirectory, name), this, instance);
     }
 

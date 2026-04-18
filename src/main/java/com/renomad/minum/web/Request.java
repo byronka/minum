@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -45,7 +46,7 @@ public final class Request implements IRequest {
     }
 
     @Override
-    public Body getBody() {
+    public Body getBody() throws IOException {
         if (hasStartedReadingBody) {
             throw new WebServerException("The InputStream in Request has already been accessed for reading, preventing body extraction from stream." +
                     " If intending to use getBody(), use it exclusively");

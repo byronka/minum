@@ -331,7 +331,7 @@ public class FunctionalTests {
                     assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
                     assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
                 }
-            } catch (UtilsException e) {
+            } catch (IOException e) {
                 logger.logDebug(() -> "If you see this, we arrived in the exception handler because in fact the socket was closed, but that's alright and expected");
             }
         }

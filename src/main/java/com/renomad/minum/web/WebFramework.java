@@ -208,8 +208,6 @@ public final class WebFramework {
             handleReadTimedOut(sw, ex, logger);
         } catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
-        } catch (UtilsException ex) {
-            handleIOException(sw, ex.getCause(), logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         } catch (IOException ex) {
             handleIOException(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         }
@@ -217,7 +215,8 @@ public final class WebFramework {
 
 
     static void handleIOException(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
-        logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
+        String cause = ex.getCause() == null ? "" : ". Cause: " + ex.getCause().getMessage();
+        logger.logDebug(() -> ex.getMessage() + cause + " (at WebFramework.httpProcessing)");
 
         if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
             logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
@@ -306,7 +305,7 @@ public final class WebFramework {
         return response;
     }
 
-    private Headers getHeaders(ISocketWrapper sw) {
+    private Headers getHeaders(ISocketWrapper sw) throws IOException {
     /*
        next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
 

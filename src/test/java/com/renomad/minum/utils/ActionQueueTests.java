@@ -1,6 +1,7 @@
 package com.renomad.minum.utils;
 
 import com.renomad.minum.queue.ActionQueue;
+import com.renomad.minum.queue.QueueException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
@@ -83,7 +84,7 @@ public class ActionQueueTests {
         var msg = logger.findFirstMessageThatContains("Queue Test ActionQueue has");
         assertFalse(RegexUtils.find("Queue Test ActionQueue has .? elements left but we're done waiting", msg).isEmpty());
         assertTrue(aq.isStopped());
-        assertThrows(UtilsException.class,
+        assertThrows(QueueException.class,
                 "failed to enqueue check if stopped - ActionQueue \"Test ActionQueue\" is stopped",
                 () ->  aq.enqueue("check if stopped", () -> System.out.println("testing if stopped")));
         assertEquals(aq.getQueue().size(), 0);

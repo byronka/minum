@@ -101,7 +101,7 @@ public class WebTests {
 
 
     @AfterClass
-    public static void tearDownClass() {
+    public static void tearDownClass() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         shutdownTestingContext(context);
     }
@@ -620,7 +620,7 @@ public class WebTests {
      * </p>
      */
     @Test
-    public void test_MultiPartForm_GetHeadersPerPartition() {
+    public void test_MultiPartForm_GetHeadersPerPartition() throws IOException {
         byte[] multiPartData = makeTestMultiPartData();
         var bp = new BodyProcessor(context);
 
@@ -1483,7 +1483,7 @@ public class WebTests {
         }
     }
 
-    private String readBody(InputStream is, int length) {
+    private String readBody(InputStream is, int length) throws IOException {
         byte[] read = inputStreamUtils.read(length, is);
         return StringUtils.byteArrayToString(read);
     }
@@ -1639,6 +1639,8 @@ public class WebTests {
             sw.getRemoteAddrAction = () -> attacker;
 
             ex = assertThrows(ForbiddenUseException.class, () -> webFramework.dumpIfAttacker(sw, theBrig));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         assertEquals(ex.getMessage(), "closing the socket on I_am_attacker due to being found in the brig");

@@ -6,6 +6,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.utils.TimeUtils;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -27,7 +28,7 @@ public final class TheBrig implements ITheBrig {
      */
     private final int sleepTime;
 
-    public TheBrig(int sleepTime, Context context) {
+    public TheBrig(int sleepTime, Context context) throws IOException {
         this.es = context.getExecutorService();
         this.logger = context.getLogger();
         this.inmatesDb = context.getDb2("the_brig", Inmate.EMPTY);
@@ -40,7 +41,7 @@ public final class TheBrig implements ITheBrig {
      * of the application, in an infinite loop removing keys from the list
      * under consideration.
      */
-    public TheBrig(Context context) {
+    public TheBrig(Context context) throws IOException {
         this(10 * 1000, context);
     }
 

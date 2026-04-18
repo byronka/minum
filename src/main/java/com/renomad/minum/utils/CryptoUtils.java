@@ -3,6 +3,8 @@ package com.renomad.minum.utils;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 
 /**
@@ -10,9 +12,7 @@ import java.security.spec.KeySpec;
  */
 public final class CryptoUtils {
 
-    private CryptoUtils() {
-        // cannot construct
-    }
+    public CryptoUtils() {}
 
     /**
      * Converts an array of bytes to their corresponding hex string
@@ -37,21 +37,21 @@ public final class CryptoUtils {
      * See docs/http_protocol/password_storage_cheat_sheet
      * </p>
      */
-    public static String createPasswordHash(String password, String salt) {
-        return createPasswordHash(password, salt, "PBKDF2WithHmacSHA1");
-    }
-
-    static String createPasswordHash(String password, String salt, String algorithm) {
-        final KeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 128);
-        final SecretKeyFactory factory;
-
+    public String createPasswordHash(String password, String salt) {
         try {
-            factory = SecretKeyFactory.getInstance(algorithm);
-            final byte[] hashed = factory.generateSecret(spec).getEncoded();
-            return bytesToHex(hashed);
+            return createPasswordHash(password, salt, "PBKDF2WithHmacSHA1");
         } catch (Exception e) {
             throw new UtilsException(e);
         }
+    }
+
+    String createPasswordHash(String password, String salt, String algorithm) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        final KeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 128);
+        final SecretKeyFactory factory;
+
+        factory = SecretKeyFactory.getInstance(algorithm);
+        final byte[] hashed = factory.generateSecret(spec).getEncoded();
+        return bytesToHex(hashed);
     }
 
 }

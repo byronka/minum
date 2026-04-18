@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -46,7 +47,7 @@ public class BoundaryBugTest {
      * Bug, now fixed, was: boundary mismatch causes empty/failed parse.
      */
     @Test
-    public void test_BoundaryWithTrailingParams_ShouldStillParse() {
+    public void test_BoundaryWithTrailingParams_ShouldStillParse() throws IOException {
         String body = """
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r

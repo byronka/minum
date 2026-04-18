@@ -1,6 +1,8 @@
 package com.renomad.minum.web;
 
 
+import java.io.IOException;
+
 /**
  * An HTTP request.
  * <p>
@@ -100,7 +102,7 @@ public interface IRequest {
      *     in the "minum.config" file.
      * </p>
      */
-    Body getBody();
+    Body getBody() throws IOException;
 
     /**
      * Gets a string of the ip address of the client sending this

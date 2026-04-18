@@ -50,7 +50,7 @@ final class DatabaseConsolidator {
      */
     private record DatabaseChangeInstruction(DatabaseChangeAction action, long dataIndex, String data) {}
 
-    DatabaseConsolidator(Path persistenceDirectory, Context context) {
+    DatabaseConsolidator(Path persistenceDirectory, Context context) throws IOException {
         this.appendLogDirectory = persistenceDirectory.resolve("append_logs");
         this.consolidatedDataDirectory = persistenceDirectory.resolve("consolidated_data");
         var constants = context.getConstants();

@@ -8,6 +8,7 @@ import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.MyThread;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -19,7 +20,7 @@ import static com.renomad.minum.testing.TestFramework.*;
 public class FullSystemTests {
 
     @Test
-    public void testFullSystem() {
+    public void testFullSystem() throws IOException {
         FullSystem fs = FullSystem.initialize();
         new Thread(() -> {
             MyThread.sleep(200);
@@ -34,7 +35,7 @@ public class FullSystemTests {
     }
 
     @Test
-    public void testFullSystem_WithRedirect() {
+    public void testFullSystem_WithRedirect() throws IOException {
         Properties properties = Constants.getConfiguredProperties();
         properties.setProperty("REDIRECT_TO_SECURE", "true");
         var context = buildTestingContext("testing redirect handler in FullSystem", properties);
@@ -62,7 +63,7 @@ public class FullSystemTests {
      * marker file to the disk.  Let's see that.
      */
     @Test
-    public void testFullSystem_DisabledSystemRunningMarker() {
+    public void testFullSystem_DisabledSystemRunningMarker() throws IOException {
         Properties properties = Constants.getConfiguredProperties();
         properties.setProperty("ENABLE_SYSTEM_RUNNING_MARKER", "false");
         var context = buildTestingContext("testing disabled system running marker", properties);
@@ -83,7 +84,7 @@ public class FullSystemTests {
      * Close right after start
      */
     @Test
-    public void testFullSystem_EdgeCase_InstantlyClosed() {
+    public void testFullSystem_EdgeCase_InstantlyClosed() throws IOException {
         FullSystem fs = FullSystem.initialize();
         fs.shutdown();
         assertEquals(fs.getServer().getHost(), "0.0.0.0");

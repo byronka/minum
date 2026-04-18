@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -49,7 +50,7 @@ public interface IBodyProcessor {
      * other way to reasonably do this.
      * </p>
      */
-    Body extractData(InputStream is, Headers h);
+    Body extractData(InputStream is, Headers h) throws IOException;
 
     /**
      * Return an iterable for stepping through the key-value pairs of URL-encoded data.

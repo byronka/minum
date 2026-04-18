@@ -70,7 +70,7 @@ public class UploadPhoto {
         return Response.htmlOk(uploadVideoTemplateHtml);
     }
 
-    public IResponse uploadPageReceivePost(IRequest request) {
+    public IResponse uploadPageReceivePost(IRequest request) throws IOException {
         AuthResult authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
             return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);

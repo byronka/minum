@@ -62,7 +62,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      *                 that each database (that is, each instance of this class), focuses on just one
      *                 data, which must be an implementation of {@link DbData}.
      */
-    public Db(Path dbDirectory, Context context, T instance) {
+    public Db(Path dbDirectory, Context context, T instance) throws IOException {
         super(dbDirectory, context, instance);
         this.hasLoadedData = false;
         this.fullPathForIndexFile = dbDirectory.resolve("index" + DATABASE_FILE_SUFFIX);
@@ -78,8 +78,6 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
                     String trim = s.trim();
                     indexValue = Long.parseLong(trim);
                 }
-            } catch (Exception e) {
-                throw new DbException("Exception while reading "+fullPathForIndexFile+" in Db constructor", e);
             }
 
             this.index = new AtomicLong(indexValue);
@@ -136,7 +134,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         return newData;
     }
 
-    private void writeToDisk(T newData) {
+    private void writeToDisk(T newData) throws IOException {
         final Path fullPath = dbDirectory.resolve(newData.getIndex() + DATABASE_FILE_SUFFIX);
         logger.logTrace(() -> String.format("writing data to %s", fullPath));
         String serializedData = newData.serialize();

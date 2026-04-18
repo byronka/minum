@@ -66,7 +66,7 @@ public class BodyProcessorTests {
      * an input.
      */
     @Test
-    public void test_MultiPart_EdgeCase_NoContentInPartition() {
+    public void test_MultiPart_EdgeCase_NoContentInPartition() throws IOException {
         String multipartBody = """
                 --i_am_a_boundary\r
                 Content-Disposition: form-data; name="text1"\r
@@ -125,7 +125,7 @@ public class BodyProcessorTests {
      * at the end.  This test is to examine the issue more closely.
      */
     @Test
-    public void test_MultiPart_Avoid_ExtraBytes() {
+    public void test_MultiPart_Avoid_ExtraBytes() throws IOException {
         String body = """
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
@@ -149,7 +149,7 @@ public class BodyProcessorTests {
      * at the end.  This test is to examine the issue more closely.
      */
     @Test
-    public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions() {
+    public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions() throws IOException {
         String body = """
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
@@ -179,7 +179,7 @@ public class BodyProcessorTests {
      * at the end.  This test is to examine the issue more closely.
      */
     @Test
-    public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions_Bytes() {
+    public void test_MultiPart_Avoid_ExtraBytes_MultiplePartitions_Bytes() throws IOException {
         String body = """
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
@@ -213,7 +213,7 @@ public class BodyProcessorTests {
      * filenames.  How should we handle that?
      */
     @Test
-    public void test_MultiPart_MultipleFilesSameInputName() {
+    public void test_MultiPart_MultipleFilesSameInputName() throws IOException {
         String body = """
                 ------WebKitFormBoundaryEdMgstSu0ppszI8o\r
                 Content-Disposition: form-data; name="myfile"; filename="one.txt"\r
@@ -253,7 +253,7 @@ public class BodyProcessorTests {
     }
 
     @Test
-    public void test_extractBodyFromBytes_EdgeCase_contentLengthZero() {
+    public void test_extractBodyFromBytes_EdgeCase_contentLengthZero() throws IOException {
         var bodyProcessor = new BodyProcessor(context);
         Body result = bodyProcessor.extractBodyFromInputStream(0, "application/x-www-form-urlencoded", new ByteArrayInputStream(new byte[0]));
         assertEqualByteArray(result.asBytes(), new byte[0]);
@@ -326,7 +326,7 @@ public class BodyProcessorTests {
      * an empty body instance.
      */
     @Test
-    public void test_extractData_Empty() {
+    public void test_extractData_Empty() throws IOException {
         var bodyProcessor = new BodyProcessor(context);
         var inputStream = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
         Headers headers = new Headers(List.of());
@@ -347,7 +347,7 @@ public class BodyProcessorTests {
      * key-value format, like a = hello and b = 123.
      */
     @Test
-    public void test_DataByKey_HappyPath() {
+    public void test_DataByKey_HappyPath() throws IOException {
         String body = "a=hello&b=123";
         ByteArrayInputStream inputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII));
         var bodyProcessor = new BodyProcessor(context);
@@ -373,7 +373,7 @@ public class BodyProcessorTests {
      * bodies.  This test passing proves that the issue no longer exists.
      */
     @Test
-    public void test_EdgeCase() {
+    public void test_EdgeCase() throws IOException {
         var bodyProcessor = new BodyProcessor(context);
 
         for (int i = 0; i < IBodyProcessor.MAX_BODY_KEYS_URL_ENCODED + 2; i++) {

@@ -150,7 +150,7 @@ public class RequestTests {
      * the incoming data has no boundaries, a body of type "UNRECOGNIZED" will be returned
      */
     @Test
-    public void test_Request_ImproperlyFormedMultipart() {
+    public void test_Request_ImproperlyFormedMultipart() throws IOException {
         FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
         byte[] bytes = "".getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
@@ -342,7 +342,7 @@ public class RequestTests {
     }
 
     @Test
-    public void test_Request_Multipart_ImproperlyFormed_CorrectContentLength() {
+    public void test_Request_Multipart_ImproperlyFormed_CorrectContentLength() throws IOException {
         byte[] bytes = """
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r
@@ -440,7 +440,7 @@ public class RequestTests {
      * throw an exception.
      */
     @Test
-    public void test_Request_getUrlEncoded_EdgeCase_ComplaintAfterGetBody() {
+    public void test_Request_getUrlEncoded_EdgeCase_ComplaintAfterGetBody() throws IOException {
         FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
         byte[] bytes = "foo=bar&biz=baz".getBytes(StandardCharsets.UTF_8);
         socketWrapper.is = new ByteArrayInputStream(bytes);
@@ -547,7 +547,7 @@ public class RequestTests {
     }
 
     @Test
-    public void test_Request_getMultipartForm_EdgeCase_ComplaintAfterGetBody() {
+    public void test_Request_getMultipartForm_EdgeCase_ComplaintAfterGetBody() throws IOException {
         FakeSocketWrapper socketWrapper = new FakeSocketWrapper();
         byte[] bytes = """
                 --i_am_a_boundary\r
@@ -754,7 +754,7 @@ public class RequestTests {
     }
 
     @Test
-    public void testSimplerRequest() {
+    public void testSimplerRequest() throws IOException {
         var r = buildSimpleRequest(List.of());
         assertEquals(r.getRemoteRequester(), "123.132.123.123");
         assertEquals(r.getBody(), Body.EMPTY);
@@ -777,7 +777,7 @@ public class RequestTests {
     }
 
     @Test
-    public void testRequest_ExpectComplaintAfterBegunReading_1() {
+    public void testRequest_ExpectComplaintAfterBegunReading_1() throws IOException {
         var r = buildSimpleRequest(List.of());
         r.getBody();
         var ex = assertThrows(WebServerException.class, r::getSocketWrapper);
@@ -809,7 +809,7 @@ public class RequestTests {
     }
 
     @Test
-    public void testRequest_ExpectComplaintAfterBegunReading_5() {
+    public void testRequest_ExpectComplaintAfterBegunReading_5() throws IOException {
         var r = buildSimpleRequest(List.of());
         r.getBody();
         var ex = assertThrows(WebServerException.class, r::getUrlEncodedIterable);
@@ -833,7 +833,7 @@ public class RequestTests {
     }
 
     @Test
-    public void testRequest_ExpectComplaintAfterBegunReading_8() {
+    public void testRequest_ExpectComplaintAfterBegunReading_8() throws IOException {
         var r = buildSimpleRequest(List.of());
         r.getBody();
         var ex = assertThrows(WebServerException.class, r::getMultipartIterable);

@@ -39,6 +39,7 @@ public class AuthUtils {
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
+    private final CryptoUtils cryptoUtils;
     private static final int MOST_COOKIES_WE_WILL_LOOK_THROUGH = 5;
 
     public AuthUtils(Db<SessionId> sessionDiskData,
@@ -50,6 +51,7 @@ public class AuthUtils {
         emptySessionId = SessionId.EMPTY;
         this.logger = context.getLogger();
         FileUtils fileUtils = new FileUtils(logger, constants);
+        this.cryptoUtils = new CryptoUtils();
 
         loginPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/login_page_template.html");
         registerPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/register_page_template.html");
@@ -157,7 +159,7 @@ public class AuthUtils {
             return new RegisterResult(RegisterResultStatus.ALREADY_EXISTING_USER, User.EMPTY);
         }
         final var newSalt = StringUtils.generateSecureRandomString(10);
-        final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
+        final var hashedPassword = cryptoUtils.createPasswordHash(newPassword, newSalt);
         final var newUser = new User(0, newUsername, hashedPassword, newSalt, null);
         userDiskData.write(newUser);
         return new RegisterResult(RegisterResultStatus.SUCCESS, newUser);
@@ -188,7 +190,7 @@ public class AuthUtils {
     }
 
     private LoginResult passwordCheck(User user, String password) {
-        final var hash = CryptoUtils.createPasswordHash(password, user.getSalt());
+        final var hash = cryptoUtils.createPasswordHash(password, user.getSalt());
         if (user.getHashedPassword().equals(hash)) {
             return new LoginResult(LoginResultStatus.SUCCESS, user);
         } else {
@@ -213,7 +215,7 @@ public class AuthUtils {
     }
 
 
-    public IResponse loginUser(IRequest r) {
+    public IResponse loginUser(IRequest r) throws IOException {
         String hostname = constants.hostName;
         if (processAuth(r).isAuthenticated()) {
             Response.redirectTo("photos");
@@ -249,7 +251,7 @@ public class AuthUtils {
     }
 
 
-    public IResponse registerUser(IRequest r) {
+    public IResponse registerUser(IRequest r) throws IOException {
         final var authResult = processAuth(r);
         if (authResult.isAuthenticated()) {
             return Response.buildLeanResponse(CODE_303_SEE_OTHER, Map.of("Location","index"));

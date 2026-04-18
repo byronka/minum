@@ -22,11 +22,11 @@ interface IInputStreamUtils {
      *             any line-termination characters, or null if the end of the
      *             stream has been reached without reading any characters
      */
-    String readLine(InputStream inputStream);
+    String readLine(InputStream inputStream) throws IOException;
 
     /**
      * Reads "lengthToRead" bytes from the input stream
      */
-    byte[] read(int lengthToRead, InputStream inputStream);
+    byte[] read(int lengthToRead, InputStream inputStream) throws IOException;
 
 }
