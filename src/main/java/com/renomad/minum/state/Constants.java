@@ -27,7 +27,7 @@ public final class Constants {
         hostName = properties.getProperty("HOST_NAME",  "localhost");
         dbDirectory = properties.getProperty("DB_DIRECTORY",  "db");
         staticFilesDirectory = properties.getProperty("STATIC_FILES_DIRECTORY",  "static");
-        logLevels = convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,ASYNC_ERROR,AUDIT,WARN"));
+        logLevels = convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,TRACE,AUDIT"));
         keystorePath = properties.getProperty("KEYSTORE_PATH",  "");
         keystorePassword = properties.getProperty("KEYSTORE_PASSWORD",  "");
         maxReadSizeBytes = getProp("MAX_READ_SIZE_BYTES",  10 * 1024 * 1024);
