@@ -362,7 +362,7 @@ to see an example of this.
 
 If an ASYNC_ERROR is seen in the logs, it means a developer error, so check your code.
 If WARN is seen in the logs, it means something important and unrecoverable has happened 
-in the hardware, operating system, or Java virtual machine.
+in the hardware, operating system, or Java virtual machine.  See also [Exceptions](#exception-data-flow)
 
 It is not possible to disable the WARN or ASYNC_ERROR logging.
 
