@@ -50,12 +50,15 @@ methods, and some parameters have been changed to methods.
     Fortunately, the Java compiler will indicate where methods need the exception marked.
     Unfortunately, it will be necessary to run the compiler over and over to fully discover
     the whole flow.
-  
+
   * Some exceptional situations switched to ForbiddenUseException.
     There were several scenarios with paths that were wrapped in InvariantException, but if
     the system gets a request for a path that is meant to escape the directory,
     that is considered a forbidden situation, and should be tagged as such, allowing
     the programmer to use any desired mechanisms to handle it (such as the Brig).
+  * UtilsException was removed
+  * Moved SearchUtils.findExactlyOne to the testing package, to emphasize it is not
+    particularly performant and probably should only be used for testing.
 
 * Index race condition
   * a concurrent add/remove was able to cause incorrect data in the database index
