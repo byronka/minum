@@ -215,12 +215,11 @@ public final class WebFramework {
 
 
     static void handleIOException(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
-        String cause = ex.getCause() == null ? "" : ". Cause: " + ex.getCause().getMessage();
-        logger.logDebug(() -> ex.getMessage() + cause + " (at WebFramework.httpProcessing)");
-
         if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
             logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
+        } else {
+            logger.logWarn(() -> "IOException caught in WebFramework.handleIOException: " + StacktraceUtils.stackTraceToString(ex));
         }
     }
 
@@ -283,6 +282,8 @@ public final class WebFramework {
                 } else {
                     response = endpoint.apply(clientRequest);
                 }
+            } catch (IOException ex) {
+                throw ex; // BYRON CHECK THIS
             } catch (Exception ex) {
                 // if an error happens while running an endpoint's code, this is the
                 // last-chance handling of that error where we return a 500 and a

@@ -37,6 +37,7 @@ Table of contents
 - [ActionQueue](#actionqueue)
 - [Dependency Injections](#dependency-injection)
 - [Sending larger and streaming data](#sending-larger-and-streaming-data)
+- [Exception data flow](#exception-data-flow)
 
 
 Features:
@@ -769,3 +770,19 @@ There are a few ways to do this:
    expecting a file path.  Using this will send the file's data as a stream, and
    is thread safe.  See `Response.buildLargeFileResponse`
 3) There is also a factory method for sending a custom stream.  See `Response.buildStreamingResponse`
+
+
+Exception Data Flow
+-------------------
+
+Java provides "Exceptions" as a way to handle unexpected situations, mainly errors.
+When a developer "throws" an exception, it will bubble up the call stack towards
+the top.
+
+Exceptions in Minum will typically bubble through the WebFramework code, specifically
+the `WebFramework.processRequest` method, where any unhandled `Exception` will be caught
+and a HTTP 500 response will be issued to the client.
+
+It is expected that programmers will handle exceptions before they get that far, unless
+it is something they cannot control, like `IOException` or `Error`.In cases of those, just
+allow them to bubble to the top, which will cause a full-blown 

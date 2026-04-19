@@ -1,4 +1,4 @@
-package com.renomad.minum.utils;
+package com.renomad.minum.testing;
 
 import com.renomad.minum.sampledomain.auth.User;
 import org.junit.Test;
@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.renomad.minum.testing.TestFramework.*;
-import static com.renomad.minum.utils.SearchUtils.findExactlyOne;
+import static com.renomad.minum.testing.SearchUtils.findExactlyOne;
 
 public class SearchUtilsTests {
 
@@ -40,7 +40,7 @@ public class SearchUtilsTests {
         List<String> items = List.of("a", "b", "b");
 
         // when finding "b", our method throws an exception because there are 2.
-        var ex = assertThrows(UtilsException.class, () -> findExactlyOne(items.stream(), x -> x.equals("b")));
+        var ex = assertThrows(RuntimeException.class, () -> findExactlyOne(items.stream(), x -> x.equals("b")));
         assertEquals(ex.getMessage(), "Must be zero or one of this thing, or it's a bug.  We found a size of 2");
     }
 
@@ -102,7 +102,7 @@ public class SearchUtilsTests {
         items.add(null);
 
         // if we find it, return it
-        var ex = assertThrows(UtilsException.class, () -> {
+        var ex = assertThrows(RuntimeException.class, () -> {
             findExactlyOne(items.stream(), x -> x.equals("b"), () -> {
                 throw new Exception("Just testing");
             });

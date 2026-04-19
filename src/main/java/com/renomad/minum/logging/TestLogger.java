@@ -66,6 +66,17 @@ public final class TestLogger extends Logger {
     }
 
     @Override
+    public void logWarn(ThrowingSupplier<String, Exception> msg) {
+        loggingLock.lock();
+        try {
+            addToCache(msg);
+            super.logWarn(msg);
+        } finally {
+            loggingLock.unlock();
+        }
+    }
+
+    @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
         loggingLock.lock();
         try {

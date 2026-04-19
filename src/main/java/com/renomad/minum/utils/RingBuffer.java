@@ -69,7 +69,7 @@ public class RingBuffer<T> implements Iterable<T>{
      */
     public boolean contains(List<T> myList) {
         if (myList == null || myList.isEmpty()) {
-            throw new UtilsException("expected a valid non-empty list to search for in the RingBuffer");
+            throw new IllegalArgumentException("expected a valid non-empty list to search for in the RingBuffer");
         }
         int myListIndex = 0;
         int myListLength = myList.size();
@@ -94,10 +94,10 @@ public class RingBuffer<T> implements Iterable<T>{
      */
     public boolean containsAt(List<T> myList, int index) {
         if (myList == null || myList.isEmpty()) {
-            throw new UtilsException("expected a valid non-empty list to search for in the RingBuffer");
+            throw new IllegalArgumentException("expected a valid non-empty list to search for in the RingBuffer");
         }
         if (index > lastIndex || index < 0) {
-            throw new UtilsException("expected an index greater than zero and less-than-or-equal to the last index of the buffer (the limit minus one)");
+            throw new IllegalArgumentException("expected an index greater than zero and less-than-or-equal to the last index of the buffer (the limit minus one)");
         }
         int i = 0;
         int myListIndex = 0;

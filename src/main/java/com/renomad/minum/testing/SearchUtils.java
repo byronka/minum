@@ -1,4 +1,6 @@
-package com.renomad.minum.utils;
+package com.renomad.minum.testing;
+
+import com.renomad.minum.utils.InvariantException;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,14 +44,14 @@ public final class SearchUtils {
     public static <T> T findExactlyOne(Stream<T> streamOfSomething, Predicate<? super T> searchPredicate, Callable<T> alternate) {
         List<T> listOfThings = streamOfSomething.filter(Objects::nonNull).filter(searchPredicate).toList();
         if (! (listOfThings.isEmpty() || listOfThings.size() == 1)) {
-            throw new UtilsException("Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
+            throw new RuntimeException("Must be zero or one of this thing, or it's a bug.  We found a size of " + listOfThings.size());
         }
         if (listOfThings.isEmpty()) {
             T returnValue;
             try {
                 returnValue = alternate.call();
             } catch (Exception ex) {
-                throw new UtilsException(ex);
+                throw new RuntimeException(ex);
             }
             return returnValue;
         } else {

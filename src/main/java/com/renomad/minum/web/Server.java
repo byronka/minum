@@ -118,7 +118,7 @@ final class Server implements IServer {
 
             webFramework.httpProcessing(socketWrapper);
         } catch (Exception ex) {
-            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
+            logger.logWarn(() -> "Exception caught in Server.doHttpWork: " + StacktraceUtils.stackTraceToString(ex));
         }
     }
 
@@ -127,7 +127,7 @@ final class Server implements IServer {
         // are closing our server, so if the message includes certain values,
         // we will skip logging an error.
         if (!(ex.getMessage().contains("Socket closed") || ex.getMessage().contains("Socket is closed"))) {
-            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(ex));
+            logger.logWarn(() -> StacktraceUtils.stackTraceToString(ex));
         }
     }
 

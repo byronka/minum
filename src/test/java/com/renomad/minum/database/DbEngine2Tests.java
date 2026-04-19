@@ -11,7 +11,7 @@ import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.SearchUtils;
+import com.renomad.minum.testing.SearchUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -20,7 +20,6 @@ import org.junit.Test;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -33,7 +32,6 @@ import static com.renomad.minum.database.DatabaseChangeAction.UPDATE;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
-import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.stream.IntStream.range;
 
 public class DbEngine2Tests {

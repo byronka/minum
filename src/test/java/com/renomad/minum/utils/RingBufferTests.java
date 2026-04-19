@@ -91,9 +91,9 @@ public class RingBufferTests {
         assertFalse(characters.contains(List.of('e')));
         assertFalse(characters.contains(List.of('a', 'b', 'z')));
 
-        var ex1 = assertThrows(UtilsException.class, () -> characters.contains(List.of()));
+        var ex1 = assertThrows(IllegalArgumentException.class, () -> characters.contains(List.of()));
         assertEquals(ex1.getMessage(), "expected a valid non-empty list to search for in the RingBuffer");
-        var ex2 = assertThrows(UtilsException.class, () -> characters.contains(null));
+        var ex2 = assertThrows(IllegalArgumentException.class, () -> characters.contains(null));
         assertEquals(ex2.getMessage(), "expected a valid non-empty list to search for in the RingBuffer");
     }
 
@@ -116,15 +116,15 @@ public class RingBufferTests {
         assertTrue(characters.containsAt(List.of('d'), 3));
         assertFalse(characters.containsAt(List.of('e'), 3));
         assertFalse(characters.containsAt(List.of('d'), 0));
-        var ex = assertThrows(UtilsException.class, () -> characters.containsAt(List.of(), 0));
+        var ex = assertThrows(IllegalArgumentException.class, () -> characters.containsAt(List.of(), 0));
         assertEquals(ex.getMessage(), "expected a valid non-empty list to search for in the RingBuffer");
-        var ex2 = assertThrows(UtilsException.class, () -> characters.containsAt(null, 0));
+        var ex2 = assertThrows(IllegalArgumentException.class, () -> characters.containsAt(null, 0));
         assertEquals(ex2.getMessage(), "expected a valid non-empty list to search for in the RingBuffer");
-        var ex3 = assertThrows(UtilsException.class, () -> characters.containsAt(List.of('a'), -1));
+        var ex3 = assertThrows(IllegalArgumentException.class, () -> characters.containsAt(List.of('a'), -1));
         assertEquals(ex3.getMessage(), "expected an index greater than zero and less-than-or-equal to the last index of the buffer (the limit minus one)");
-        var ex4 = assertThrows(UtilsException.class, () -> characters.containsAt(List.of('a'), 4));
+        var ex4 = assertThrows(IllegalArgumentException.class, () -> characters.containsAt(List.of('a'), 4));
         assertEquals(ex4.getMessage(), "expected an index greater than zero and less-than-or-equal to the last index of the buffer (the limit minus one)");
-        var ex5 = assertThrows(UtilsException.class, () -> characters.containsAt(List.of('a'), 5));
+        var ex5 = assertThrows(IllegalArgumentException.class, () -> characters.containsAt(List.of('a'), 5));
         assertEquals(ex5.getMessage(), "expected an index greater than zero and less-than-or-equal to the last index of the buffer (the limit minus one)");
     }
 

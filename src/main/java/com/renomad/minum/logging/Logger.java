@@ -80,6 +80,11 @@ public class Logger implements ILogger {
     }
 
     @Override
+    public void logWarn(ThrowingSupplier<String, Exception> msg) {
+        logHelper(msg, LoggingLevel.WARN, activeLogLevels, loggingActionQueue);
+    }
+
+    @Override
     public void logTrace(ThrowingSupplier<String, Exception> msg) {
         logHelper(msg, LoggingLevel.TRACE, activeLogLevels, loggingActionQueue);
     }

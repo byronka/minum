@@ -10,7 +10,7 @@ import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.SearchUtils;
+import com.renomad.minum.testing.SearchUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;

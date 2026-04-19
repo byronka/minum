@@ -8,7 +8,6 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.UtilsException;
 import com.renomad.minum.web.*;
 import com.renomad.minum.web.FunctionalTesting.TestResponse;
 import org.junit.*;

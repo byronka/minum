@@ -1,9 +1,7 @@
 package com.renomad.minum.htmlparsing;
 
 
-import com.renomad.minum.utils.SearchUtils;
-
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * Possible tag names per the W3C HTML spec.
@@ -70,9 +68,12 @@ public enum TagName {
     }
 
     public static TagName findMatchingTagname(String tagNameString) {
-        return SearchUtils.findExactlyOne(
-                Arrays.stream(TagName.values()),
-                x -> x.toString().equalsIgnoreCase(tagNameString),
-                () -> UNRECOGNIZED);
+        String capitalizedTagNameString = tagNameString.toUpperCase(Locale.ROOT);
+        Optional<TagName> first = Arrays.stream(TagName.values()).filter(x -> x.toString().equals(capitalizedTagNameString)).findFirst();
+        if (first.isEmpty()) {
+            return UNRECOGNIZED;
+        } else {
+            return first.get();
+        }
     }
 }
