@@ -699,12 +699,6 @@ public class DbEngine2Tests {
         assertEquals(exactlyOne, writtenFoo);
     }
 
-    /**
-     * When this is looped a hundred thousand times, it takes 500 milliseconds to finish
-     * making the updates in memory.  It takes several minutes later for it to
-     * finish getting those changes persisted to disk.
-     * a million writes in 500 milliseconds means 2 million writes in one sec.
-     */
     @Test
     public void test_Performance() throws IOException {
         int originalFooCount = 10;
