@@ -38,7 +38,19 @@ methods, and some parameters have been changed to methods.
     for the benefit of more precisely highlighting where the call stack might hit I/O.  
     At the end of the day, we're intimately connected to the hardware, and its complaints
     and data flow needs to be crystal clear.
-    
+  
+    Note that in case of unexpected hardware errors, such as a hard drive or network
+    card failure, that will bubble up as a unhandled exception and thus a 500 HTTP response
+    will be sent.
+
+    This change will require the IOException to be handled in some way.  It is sufficient
+    to allow it to be marked as a checked exception in methods all the way back to
+    getting registered in the WebFramework.  The reason I am allowing this annoyance is
+    to force the greater clarity of knowing where the data flow of possible I/O exceptions.
+    Fortunately, the Java compiler will indicate where methods need the exception marked.
+    Unfortunately, it will be necessary to run the compiler over and over to fully discover
+    the whole flow.
+  
   * Some exceptional situations switched to ForbiddenUseException.
     There were several scenarios with paths that were wrapped in InvariantException, but if
     the system gets a request for a path that is meant to escape the directory,
