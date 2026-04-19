@@ -360,6 +360,12 @@ The Logger class has a constructor which is specialized to enable creation of de
 share a `LoggingActionQueue`, enabling smooth output with customized logging.  See LoggerTests.testUsingDescendantLogger
 to see an example of this.
 
+If an ASYNC_ERROR is seen in the logs, it means a developer error, so check your code.
+If WARN is seen in the logs, it means something important and unrecoverable has happened 
+in the hardware, operating system, or Java virtual machine.
+
+It is not possible to disable the WARN or ASYNC_ERROR logging.
+
 Threads
 -------
 
@@ -786,3 +792,5 @@ and a HTTP 500 response will be issued to the client.
 It is expected that programmers will handle exceptions before they get that far, unless
 it is something they cannot control, like `IOException` or `Error`.In cases of those, just
 allow them to bubble to the top, which will cause a full-blown 
+
+See also [logging](#logging)
