@@ -1204,10 +1204,20 @@ public class DbEngine2Tests {
         // now, if there is a file, "currentAppendLog", that is not
         // actually a file but is actually a directory, that should
         // cause an exception to be thrown.
-
         fileUtils.makeDirectory(path.resolve("currentAppendLog"));
 
-        var ex = assertThrows(IOException.class, () -> new DbEngine2<>(path, context, INSTANCE));
+        // Mac and Windows treat this situation differently.
+        // Windows throws an AccessDeniedException, which is a descendant of the IOException class.
+        // Mac throws an IOException.
+        //
+        // Thus, we will need to use a different technique to test this.
+        try {
+            new DbEngine2<>(path, context, INSTANCE);
+            throw new RuntimeException("Test failed - should not arrive here");
+        } catch (IOException ex) {
+            // test passes if we arrive here
+            assertTrue(!ex.getMessage().isEmpty(), "Error message will not be empty, but will vary between operating systems");
+        }
     }
 
     /**
