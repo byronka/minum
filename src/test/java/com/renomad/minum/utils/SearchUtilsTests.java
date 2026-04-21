@@ -1,4 +1,4 @@
-package com.renomad.minum.testing;
+package com.renomad.minum.utils;
 
 import com.renomad.minum.sampledomain.auth.User;
 import org.junit.Test;
@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.renomad.minum.testing.TestFramework.*;
-import static com.renomad.minum.testing.SearchUtils.findExactlyOne;
+import static com.renomad.minum.utils.SearchUtils.findExactlyOne;
 
 public class SearchUtilsTests {
 

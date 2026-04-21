@@ -1,6 +1,4 @@
-package com.renomad.minum.testing;
-
-import com.renomad.minum.utils.InvariantException;
+package com.renomad.minum.utils;
 
 import java.util.List;
 import java.util.Objects;
