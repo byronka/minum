@@ -56,10 +56,10 @@ public class TheBrigTests {
         finalB.sendToJail("4.4.4.4_too_freq_downloads", 20);
 
         // what's the situation?
-        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"));
-        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"));
-        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"));
-        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"));
+        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"), "1.1.1.1_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"), "2.2.2.2_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"), "3.3.3.3_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"), "4.4.4.4_too_freq_downloads should be in jail");
         assertFalse(finalB.isInJail("DOES_NOT_EXIST"));
 
         MyThread.sleep(10);
@@ -80,10 +80,10 @@ public class TheBrigTests {
         MyThread.sleep(30);
 
         // after their release time, they should all be out, except 1.1.1.1, who bugged us
-        assertTrue(b.isInJail("1.1.1.1_too_freq_downloads"));
-        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"));
-        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"));
-        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"));
+        assertTrue( b.isInJail("1.1.1.1_too_freq_downloads"), "1.1.1.1_too_freq_downloads should be in jail");
+        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"), "2.2.2.2_too_freq_downloads should not be in jail");
+        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"), "3.3.3.3_too_freq_downloads should not be in jail");
+        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"), "4.4.4.4_too_freq_downloads should not be in jail");
 
         // 1.1.1.1 bugged us some more.
         b.sendToJail("1.1.1.1_too_freq_downloads", 40);
