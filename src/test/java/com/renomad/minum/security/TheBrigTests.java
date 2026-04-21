@@ -65,10 +65,10 @@ public class TheBrigTests {
         MyThread.sleep(10);
 
         // after a short time, they should all still be in jail
-        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"));
-        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"));
-        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"));
-        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"));
+        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"), "1.1.1.1_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"), "2.2.2.2_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"), "3.3.3.3_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"), "4.4.4.4_too_freq_downloads should be in jail");
 
         MyThread.sleep(80);
 
