@@ -282,8 +282,6 @@ public final class WebFramework {
                 } else {
                     response = endpoint.apply(clientRequest);
                 }
-            } catch (IOException ex) {
-                throw ex; // BYRON CHECK THIS
             } catch (Exception ex) {
                 // if an error happens while running an endpoint's code, this is the
                 // last-chance handling of that error where we return a 500 and a
