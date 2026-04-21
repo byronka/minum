@@ -28,8 +28,8 @@ public class MyThreadTests {
 
         boolean sleptWithoutInterruption = MyThread.sleep(30);
 
-        assertFalse(sleptWithoutInterruption);
-        assertTrue(Thread.currentThread().isInterrupted());
+        assertFalse(sleptWithoutInterruption, "MyThread should have been interrupted");
+        assertTrue(Thread.currentThread().isInterrupted(), "MyThread should have been interrupted");
     }
 
     @Test
