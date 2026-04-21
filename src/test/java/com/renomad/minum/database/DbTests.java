@@ -165,7 +165,7 @@ public class DbTests {
             MyThread.sleep(300);
 
             for (var foo : foos) {
-                assertFalse(Files.exists(dbPathForTest.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
+                assertFalse(Files.exists(dbPathForTest.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)), "File is not expected to exist: " + (dbPathForTest.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
             }
         }
         // give the action queue time to save files to disk
