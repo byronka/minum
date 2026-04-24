@@ -37,7 +37,7 @@ public final class CryptoUtils {
      * See docs/http_protocol/password_storage_cheat_sheet
      * </p>
      */
-    public String createPasswordHash(String password, String salt) {
+    public static String createPasswordHash(String password, String salt) {
         try {
             return createPasswordHash(password, salt, "PBKDF2WithHmacSHA1");
         } catch (Exception e) {
@@ -45,7 +45,7 @@ public final class CryptoUtils {
         }
     }
 
-    String createPasswordHash(String password, String salt, String algorithm) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    static String createPasswordHash(String password, String salt, String algorithm) throws NoSuchAlgorithmException, InvalidKeySpecException {
         final KeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 128);
         final SecretKeyFactory factory;
 

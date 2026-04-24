@@ -295,8 +295,6 @@ public final class WebFramework {
             logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, millisAtEnd - millisAtStart));
         }
 
-        // if the user has chosen to customize the response based on status code, that will
-        // be applied now, and it will override the previous response.
         if (lastMinuteHandler != null) {
             response = lastMinuteHandler.apply(new LastMinuteHandlerInputs(clientRequest, response));
         }

@@ -20,14 +20,14 @@ public class CryptoUtilsTests {
     @Test
     public void testCreatePasswordHash_BadAlgorithm() {
         var cryptoUtils = new CryptoUtils();
-        var ex = assertThrows(NoSuchAlgorithmException.class, () -> cryptoUtils.createPasswordHash("foo_password", "mysalt", "badalgorithm"));
+        var ex = assertThrows(NoSuchAlgorithmException.class, () -> CryptoUtils.createPasswordHash("foo_password", "mysalt", "badalgorithm"));
         assertEquals(ex.getMessage(), "badalgorithm SecretKeyFactory not available");
     }
 
     @Test
     public void testCreatePasswordHash() {
         var cryptoUtils = new CryptoUtils();
-        String passwordHash = cryptoUtils.createPasswordHash("abc123", "saltysalt");
+        String passwordHash = CryptoUtils.createPasswordHash("abc123", "saltysalt");
         assertEquals(passwordHash, "87f83512f4c18af25e82728cfdf96194");
     }
 }

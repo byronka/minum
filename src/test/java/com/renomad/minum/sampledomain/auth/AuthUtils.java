@@ -159,7 +159,7 @@ public class AuthUtils {
             return new RegisterResult(RegisterResultStatus.ALREADY_EXISTING_USER, User.EMPTY);
         }
         final var newSalt = StringUtils.generateSecureRandomString(10);
-        final var hashedPassword = cryptoUtils.createPasswordHash(newPassword, newSalt);
+        final var hashedPassword = CryptoUtils.createPasswordHash(newPassword, newSalt);
         final var newUser = new User(0, newUsername, hashedPassword, newSalt, null);
         userDiskData.write(newUser);
         return new RegisterResult(RegisterResultStatus.SUCCESS, newUser);
@@ -190,7 +190,7 @@ public class AuthUtils {
     }
 
     private LoginResult passwordCheck(User user, String password) {
-        final var hash = cryptoUtils.createPasswordHash(password, user.getSalt());
+        final var hash = CryptoUtils.createPasswordHash(password, user.getSalt());
         if (user.getHashedPassword().equals(hash)) {
             return new LoginResult(LoginResultStatus.SUCCESS, user);
         } else {

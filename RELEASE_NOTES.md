@@ -43,13 +43,14 @@ methods, and some parameters have been changed to methods.
     card failure, that will bubble up as a unhandled exception and thus a 500 HTTP response
     will be sent.
 
-    This change will require the IOException to be handled in some way.  It is sufficient
-    to allow it to be marked as a checked exception in methods all the way back to
-    getting registered in the WebFramework.  The reason I am allowing this annoyance is
-    to force the greater clarity of knowing where the data flow of possible I/O exceptions.
-    Fortunately, the Java compiler will indicate where methods need the exception marked.
-    Unfortunately, it will be necessary to run the compiler over and over to fully discover
-    the whole flow.
+    Although several methods are now marked as throwing IOException, this is just
+    for the information of the developers.  It is fine to wrap with a try-catch
+    and convert to a RuntimeException or other custom exception, and in some cases
+    it might make sense to handle differently in the catch block.  Any exceptions
+    that bubble to the top in developer code will end up being caught in the
+    `WebFramwork.processRequest` block which will return a 500.  (For advanced
+    users, there is also an option for registering a `preHandler` to handle the request, so
+    that last-minute exceptions can be more precisely universally controlled.
 
   * Some exceptional situations switched to ForbiddenUseException.
     There were several scenarios with paths that were wrapped in InvariantException, but if
