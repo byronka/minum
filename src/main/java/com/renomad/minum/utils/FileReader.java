@@ -3,6 +3,7 @@ package com.renomad.minum.utils;
 import com.renomad.minum.logging.ILogger;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -31,7 +32,7 @@ public final class FileReader implements IFileReader {
     }
 
     @Override
-    public byte[] readFile(String path) throws IOException {
+    public byte[] readFile(String path) {
         if (useCacheForStaticFiles && lruCache.containsKey(path)) {
             cacheLock.lock();
             try {
@@ -44,7 +45,7 @@ public final class FileReader implements IFileReader {
         return readTheFile(path, logger, useCacheForStaticFiles, lruCache);
     }
 
-    byte[] readTheFile(String path, ILogger logger, boolean useCacheForStaticFiles, Map<String, byte[]> lruCache) throws IOException {
+    byte[] readTheFile(String path, ILogger logger, boolean useCacheForStaticFiles, Map<String, byte[]> lruCache) {
         try (RandomAccessFile reader = new RandomAccessFile(path, "r");
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             FileChannel channel = reader.getChannel();
@@ -78,6 +79,8 @@ public final class FileReader implements IFileReader {
                 }
                 return bytes;
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
