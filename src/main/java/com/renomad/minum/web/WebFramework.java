@@ -204,9 +204,7 @@ public final class WebFramework {
                 }
 
             }
-        } catch (SocketException | SocketTimeoutException ex) {
-            handleReadTimedOut(sw, ex, logger);
-        } catch (ForbiddenUseException ex) {
+        }catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
         } catch (Exception ex) {
             finalExceptionHandler(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
@@ -218,7 +216,9 @@ public final class WebFramework {
      * Last-chance handler for any exceptions originating in WebFramework.httpProcessing
      */
     static void finalExceptionHandler(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
-        if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
+        if (ex.getCause() instanceof SocketException || ex.getCause() instanceof SocketTimeoutException) {
+            handleReadTimedOut(sw, ex.getCause(), logger);
+        } else if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
             logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
         } else {
@@ -235,7 +235,7 @@ public final class WebFramework {
         }
     }
 
-    static void handleReadTimedOut(ISocketWrapper sw, IOException ex, ILogger logger) {
+    static void handleReadTimedOut(ISocketWrapper sw, Throwable ex, ILogger logger) {
         /*
         if we close the application on the server side, there's a good
         likelihood a SocketException will come bubbling through here.
