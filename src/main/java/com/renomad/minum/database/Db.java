@@ -136,7 +136,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         return newData;
     }
 
-    private void writeToDisk(T newData) throws IOException {
+    private void writeToDisk(T newData) {
         final Path fullPath = dbDirectory.resolve(newData.getIndex() + DATABASE_FILE_SUFFIX);
         logger.logTrace(() -> String.format("writing data to %s", fullPath));
         String serializedData = newData.serialize();
@@ -192,7 +192,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    private void loadDataFromDisk() throws IOException {
+    private void loadDataFromDisk() {
         logger.logDebug(() -> "Loading data from disk. Db classic. Directory: " + dbDirectory);
 
         // check if the folder has content for a DbEngine2 database, meaning we
@@ -229,7 +229,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * Carry out the process of reading data files into our in-memory structure
      * @param p the path of a particular file
      */
-    void readAndDeserialize(Path p) throws IOException {
+    void readAndDeserialize(Path p) {
         Path fileName = p.getFileName();
         if (fileName == null) throw new DbException("At readAndDeserialize, path " + p + " returned a null filename");
         String filename = fileName.toString();
@@ -237,7 +237,12 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         if(startOfSuffixIndex == -1) {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
-        String fileContents = Files.readString(p);
+        String fileContents = null;
+        try {
+            fileContents = Files.readString(p);
+        } catch (IOException e) {
+            throw new DbException(e);
+        }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
         } else {

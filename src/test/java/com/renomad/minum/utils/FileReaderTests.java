@@ -48,14 +48,14 @@ public class FileReaderTests {
     }
 
     @Test
-    public void test_ReadFile_BadPath() throws IOException {
+    public void test_ReadFile_BadPath() {
         var fileReader = new FileReader(lruCache, true, logger);
         var ex = assertThrows(ForbiddenUseException.class, () -> fileReader.readFile("../testingreadfile.txt"));
         assertEquals(ex.getMessage(), "filename (../testingreadfile.txt) contained invalid characters");
     }
 
     @Test
-    public void test_ReadFile_InCache() throws IOException {
+    public void test_ReadFile_InCache() {
         byte[] value = {1, 2, 3};
         lruCache.put("testingreadfile.txt", value);
         var fileReader = new FileReader(lruCache, true, logger);
@@ -86,7 +86,7 @@ public class FileReaderTests {
     @Test
     public void test_readTheFile_NoFileFound() {
         var fileReader = new FileReader(lruCache, false, logger);
-        assertThrows(FileNotFoundException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
+        assertThrows(UtilsException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
     }
 
 }

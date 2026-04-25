@@ -145,7 +145,7 @@ public final class Headers {
     /**
      * Loop through the lines of header in the HTTP message
      */
-    static List<String> getAllHeaders(InputStream is, IInputStreamUtils inputStreamUtils) throws IOException {
+    static List<String> getAllHeaders(InputStream is, IInputStreamUtils inputStreamUtils) {
         // we'll give the list an initial size, since in most cases we're going to have headers.
         // 10 is just an arbitrary number, seems about right.
         List<String> headers = new ArrayList<>(10);

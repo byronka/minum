@@ -99,7 +99,7 @@ public final class FullSystem {
      *   }
      * }</pre>
      */
-    public static FullSystem initialize() throws IOException {
+    public static FullSystem initialize() {
         var context = buildContext();
         var fullSystem = new FullSystem(context);
         return fullSystem.start();
@@ -111,7 +111,7 @@ public final class FullSystem {
      * require it for more control in testing.
      * @see #initialize()
      */
-    public FullSystem start() throws IOException {
+    public FullSystem start() {
         // create a file in our current working directory to indicate we are running
         if (constants.enableSystemRunningMarker) createSystemRunningMarker();
 
@@ -158,7 +158,7 @@ public final class FullSystem {
      * that will indicate the system is active.  It can be disabled
      * by configuring ENABLE_SYSTEM_RUNNING_MARKER to false.
      */
-    private void createSystemRunningMarker() throws IOException {
+    private void createSystemRunningMarker() {
         fileUtils.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
     }
 

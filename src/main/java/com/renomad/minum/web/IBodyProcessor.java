@@ -50,7 +50,7 @@ public interface IBodyProcessor {
      * other way to reasonably do this.
      * </p>
      */
-    Body extractData(InputStream is, Headers h) throws IOException;
+    Body extractData(InputStream is, Headers h);
 
     /**
      * Return an iterable for stepping through the key-value pairs of URL-encoded data.

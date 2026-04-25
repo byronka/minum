@@ -50,7 +50,7 @@ public class WebPerformanceTests {
     AtomicInteger testLoopCounter;
 
     @Before
-    public void init() throws IOException {
+    public void init() {
         var constants = new Constants();
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         logger = new Logger(constants, executorService, "WebPerformanceTestLogger");
@@ -206,7 +206,7 @@ public class WebPerformanceTests {
         }
     }
 
-    private MyResponse clientSend (ISocketWrapper socketWrapper) throws IOException {
+    private MyResponse clientSend (ISocketWrapper socketWrapper) {
 
         socketWrapper.send("""
                             GET /hello?name=byron HTTP/1.1\r

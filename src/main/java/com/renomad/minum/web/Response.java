@@ -214,7 +214,7 @@ public final class Response implements IResponse {
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders) throws IOException {
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders) {
         return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, requestHeaders);
     }
 
@@ -228,9 +228,14 @@ public final class Response implements IResponse {
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders) throws IOException {
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders) {
         Headers adjustedHeaders = extraHeaders;
-        long fileSize = Files.size(Path.of(filePath));
+        long fileSize = 0;
+        try {
+            fileSize = Files.size(Path.of(filePath));
+        } catch (IOException e) {
+            throw new WebServerException("Error in Response.buildLargeFileResponse", e);
+        }
         var range = new Range(requestHeaders, fileSize);
         StatusLine.StatusCode responseCode = CODE_200_OK;
         long length = fileSize;
@@ -268,7 +273,7 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) throws IOException {
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) {
         Path path = fileUtils.safeResolve(parentDirectory, filePath);
         return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
     }
@@ -287,7 +292,7 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) throws IOException {
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) {
         return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, parentDirectory, requestHeaders, fileUtils);
     }
 
@@ -376,11 +381,11 @@ public final class Response implements IResponse {
     }
 
     @Override
-    public void sendBody(ISocketWrapper sw) throws IOException {
+    public void sendBody(ISocketWrapper sw) {
         try {
             outputGenerator.accept(sw);
         } catch (Exception ex) {
-            throw new IOException(ex.getMessage(), ex);
+            throw new WebServerException(ex.getMessage(), ex);
         }
     }
 
@@ -389,7 +394,7 @@ public final class Response implements IResponse {
      * @param fileChannel the file we are reading from, based on a {@link RandomAccessFile}
      * @param length the number of bytes to send.  May be less than the full length of this {@link FileChannel}
      */
-    private static void sendFileChannelResponse(ISocketWrapper sw, FileChannel fileChannel, long length) throws IOException {
+    private static void sendFileChannelResponse(ISocketWrapper sw, FileChannel fileChannel, long length) {
         try {
             int bufferSize = 8 * 1024;
             ByteBuffer buff = ByteBuffer.allocate(bufferSize);
@@ -409,12 +414,18 @@ public final class Response implements IResponse {
                 }
                 countBytesLeftToSend -= countBytesRead;
             }
+        } catch (IOException e) {
+            throw new WebServerException("Error in Response.sendFileChannelRespons", e);
         } finally {
-            fileChannel.close();
+            try {
+                fileChannel.close();
+            } catch (IOException e) {
+                throw new WebServerException("Error in finally block of Response.sendFileChannelResponse", e);
+            }
         }
     }
 
-    private static void sendByteArrayResponse(ISocketWrapper sw, byte[] body) throws IOException {
+    private static void sendByteArrayResponse(ISocketWrapper sw, byte[] body) {
         sw.send(body);
     }
 
@@ -429,12 +440,14 @@ public final class Response implements IResponse {
      * This operates by getting the body field from this instance of {@link Response} and
      * creating a new Response with the compressed data.
      */
-    Response compressBody() throws IOException {
+    Response compressBody() {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (var gos = new GZIPOutputStream(out)) {
             gos.write(body);
             gos.finish();
+        } catch (IOException e) {
+            throw new WebServerException("Error in Response.compressBody", e);
         }
         return (Response) Response.buildResponse(
                 statusCode,

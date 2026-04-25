@@ -58,7 +58,7 @@ public class ActionQueueKillerTests {
     }
 
     @Test
-    public void test_KillAllQueues() throws IOException {
+    public void test_KillAllQueues() {
         var constants = new Constants(null);
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         var logger = new TestLogger(constants, executorService, "testing kill all queues");

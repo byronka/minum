@@ -19,7 +19,7 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public String readLine(InputStream inputStream) throws IOException {
+    public String readLine(InputStream inputStream) {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
@@ -27,10 +27,19 @@ final class InputStreamUtils implements IInputStreamUtils {
         int bytesRead = 0;
         for (int i = 0; ; i++) {
             if (i >= maxReadLineSizeBytes) {
-                inputStream.close();
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    throw new WebServerException("Error in InputStreamUtils.readLine while closing inputStream", e);
+                }
                 throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
             }
-            int a = inputStream.read();
+            int a = 0;
+            try {
+                a = inputStream.read();
+            } catch (IOException e) {
+                throw new WebServerException(e);
+            }
             if (a == -1) {
                 if (bytesRead > 0) {
                     return result.toString(StandardCharsets.UTF_8);
@@ -54,14 +63,19 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public byte[] read(int lengthToRead, InputStream inputStream) throws IOException {
+    public byte[] read(int lengthToRead, InputStream inputStream) {
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.
         byte[] data;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         int read;
         int totalRead = 0;
-        while ((read = inputStream.read(buf)) >= 0) {
+        while (true) {
+            try {
+                if (!((read = inputStream.read(buf)) >= 0)) break;
+            } catch (IOException e) {
+                throw new WebServerException(e);
+            }
             totalRead += read;
             if (totalRead < lengthToRead) {
                 // if we haven't gotten everything we wanted, write this to the output and loop again

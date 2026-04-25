@@ -44,7 +44,7 @@ public class AuthUtils {
 
     public AuthUtils(Db<SessionId> sessionDiskData,
                      Db<User> userDiskData,
-                     Context context) throws IOException {
+                     Context context) {
         this.constants = context.getConstants();
         this.userDiskData = userDiskData;
         this.sessionDiskData = sessionDiskData;
@@ -215,7 +215,7 @@ public class AuthUtils {
     }
 
 
-    public IResponse loginUser(IRequest r) throws IOException {
+    public IResponse loginUser(IRequest r) {
         String hostname = constants.hostName;
         if (processAuth(r).isAuthenticated()) {
             Response.redirectTo("photos");
@@ -251,7 +251,7 @@ public class AuthUtils {
     }
 
 
-    public IResponse registerUser(IRequest r) throws IOException {
+    public IResponse registerUser(IRequest r) {
         final var authResult = processAuth(r);
         if (authResult.isAuthenticated()) {
             return Response.buildLeanResponse(CODE_303_SEE_OTHER, Map.of("Location","index"));

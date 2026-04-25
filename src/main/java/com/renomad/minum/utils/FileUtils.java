@@ -44,7 +44,7 @@ public final class FileUtils {
      *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public void writeString(Path path, String content) {
         if (path.toString().isEmpty()) {
@@ -54,7 +54,7 @@ public final class FileUtils {
         try {
             Files.writeString(path, content);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UtilsException(e);
         }
     }
 
@@ -67,7 +67,7 @@ public final class FileUtils {
      *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public void deleteDirectoryRecursivelyIfExists(Path myPath) {
         if (!Files.exists(myPath)) {
@@ -88,7 +88,7 @@ public final class FileUtils {
                 Files.delete(file.toPath());
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UtilsException(e);
         }
     }
 
@@ -99,7 +99,7 @@ public final class FileUtils {
      *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public void makeDirectory(Path directory) {
         logger.logDebug(() -> "Creating a directory " + directory);
@@ -117,7 +117,7 @@ public final class FileUtils {
         try {
             Files.createDirectories(directory);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UtilsException(e);
         }
     }
 
@@ -128,7 +128,7 @@ public final class FileUtils {
      *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public byte[] readBinaryFile(String path) {
         return fileReader.readFile(path);
@@ -141,7 +141,7 @@ public final class FileUtils {
      *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public String readTextFile(String path) {
         return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
@@ -152,7 +152,7 @@ public final class FileUtils {
      * parameter is within the directory specified by directoryPath.  Use this
      * for any code that reads from files where the user provides untrusted input.
      * @throws InvariantException if the file is not within the directory
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public void checkFileIsWithinDirectory(String path, String directoryPath) {
         Path directoryRealPath;
@@ -161,7 +161,7 @@ public final class FileUtils {
             directoryRealPath = Path.of(directoryPath).toRealPath(LinkOption.NOFOLLOW_LINKS);
             fullRealPath = directoryRealPath.resolve(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new UtilsException(ex);
         }
         if (! fullRealPath.startsWith(directoryRealPath)) {
             throw new ForbiddenUseException(String.format("path (%s) was not within directory (%s)", path, directoryPath));
@@ -216,7 +216,7 @@ public final class FileUtils {
     /**
      * This helper method will ensure that the requested path is
      * within the parent directory and using safe characters
-     * @throws RuntimeException as a wrapper around any IOException thrown
+     * @throws UtilsException as a wrapper around any IOException thrown
      */
     public Path safeResolve(String parentDirectory, String path) {
         checkForBadFilePatterns(path);

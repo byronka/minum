@@ -128,12 +128,8 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     public DbEngine2(Path dbDirectory, Context context, T instance) {
         super(dbDirectory, context, instance);
 
-        try {
-            this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
-            this.databaseAppender = new DatabaseAppender(dbDirectory, context);
-        } catch (IOException ex) {
-            throw new DbException("Error in DBEngine2 constructor", ex);
-        }
+        this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
+        this.databaseAppender = new DatabaseAppender(dbDirectory, context);
         this.loadDataLock = new ReentrantLock();
         this.consolidateLock = new ReentrantLock();
         this.writeLock = new ReentrantLock();
@@ -180,7 +176,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             boolean newElementCreated = processDataIndex(newData);
             writeToDisk(newData);
             writeToMemory(newData, newElementCreated);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
            throw new DbException("failed to write data " + newData, ex);
         } finally {
             writeLock.unlock();
@@ -192,7 +188,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     }
 
 
-    private void writeToDisk(T newData) throws IOException {
+    private void writeToDisk(T newData) {
         logger.logTrace(() -> String.format("writing data to disk: %s", newData));
         String serializedData = newData.serialize();
         mustBeFalse(serializedData == null || serializedData.isBlank(),
@@ -259,14 +255,14 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         try {
             deleteFromDisk(dataToDelete);
             deleteFromMemory(dataToDelete);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             throw new DbException("failed to delete data " + dataToDelete, ex);
         } finally {
             writeLock.unlock();
         }
     }
 
-    private void deleteFromDisk(T dataToDelete) throws IOException {
+    private void deleteFromDisk(T dataToDelete) {
         logger.logTrace(() -> String.format("deleting data from disk: %s", dataToDelete));
         databaseAppender.appendToDatabase(DatabaseChangeAction.DELETE, dataToDelete.serialize());
         appendCount.incrementAndGet();
@@ -281,7 +277,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * in cases where the developer wants greater control over the timing - such
      * as getting the data loaded into memory immediately at program start.
      */
-    private void loadDataFromDisk() throws IOException {
+    private void loadDataFromDisk() {
         logger.logDebug(() -> "Loading data from disk. Db Engine2. Directory: " + dbDirectory);
 
         // if we find the "index.ddps" file, it means we are looking at an old

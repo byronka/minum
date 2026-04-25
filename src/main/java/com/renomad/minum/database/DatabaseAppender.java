@@ -83,7 +83,7 @@ final class DatabaseAppender {
      */
     private long appendBytes;
 
-    DatabaseAppender(Path persistenceDirectory, Context context) throws IOException {
+    DatabaseAppender(Path persistenceDirectory, Context context) {
         this.persistenceDirectory = persistenceDirectory;
         this.appendLogDirectory = persistenceDirectory.resolve("append_logs");
         this.executorService = context.getExecutorService();
@@ -100,32 +100,36 @@ final class DatabaseAppender {
      * Creates a new append-file (a file used for appending data) and
      * resets the append count to zero.
      */
-    private void createNewAppendFile() throws IOException {
-        Path currentAppendFile = this.persistenceDirectory.resolve("currentAppendLog");
+    private void createNewAppendFile() {
+        try {
+            Path currentAppendFile = this.persistenceDirectory.resolve("currentAppendLog");
 
-        // if we are starting up with an existing currentAppendLog, set the appendCount
-        // appropriately.  Otherwise, initialize to 0.  The currentAppendLog file is
-        // never very large - it's mostly a temporary place to store incoming data
-        // until we can store it off elsewhere. For that reason, it's not a performance
-        // concern to read all the existing lines, just to get the count of current lines.
-        if (Files.exists(currentAppendFile)) {
-            List<String> lines = Files.readAllLines(currentAppendFile);
-            appendCount = lines.size();
-        } else {
-            // reset the count to zero, we're starting a new file.
-            logger.logDebug(() -> "Creating a new database append file. Previous file: %,d lines, %.2f megabytes".formatted(appendCount, (appendBytes / 1_048_576.0)));
-            appendCount = 0;
-            appendBytes = 0;
+            // if we are starting up with an existing currentAppendLog, set the appendCount
+            // appropriately.  Otherwise, initialize to 0.  The currentAppendLog file is
+            // never very large - it's mostly a temporary place to store incoming data
+            // until we can store it off elsewhere. For that reason, it's not a performance
+            // concern to read all the existing lines, just to get the count of current lines.
+            if (Files.exists(currentAppendFile)) {
+                List<String> lines = Files.readAllLines(currentAppendFile);
+                appendCount = lines.size();
+            } else {
+                // reset the count to zero, we're starting a new file.
+                logger.logDebug(() -> "Creating a new database append file. Previous file: %,d lines, %.2f megabytes".formatted(appendCount, (appendBytes / 1_048_576.0)));
+                appendCount = 0;
+                appendBytes = 0;
+            }
+
+            bufferedWriter = Files.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (Exception ex) {
+            throw new DbException("Error in DatabaseAppender.createNewAppendFile", ex);
         }
-
-        bufferedWriter = Files.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
     /**
      * Appends new data to the end of a file.
      * @return if we created a new append file, we'll return the name of it. Otherwise, an empty string.
      */
-    String appendToDatabase(DatabaseChangeAction action, String serializedData) throws IOException {
+    String appendToDatabase(DatabaseChangeAction action, String serializedData) {
         String newlyCreatedFileName = "";
         if (appendCount >= maxAppendCount) {
             moveFileLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
@@ -136,7 +140,11 @@ final class DatabaseAppender {
             }
         }
 
-        bufferedWriter.append(action.toString()).append(' ').append(serializedData).append('\n');
+        try {
+            bufferedWriter.append(action.toString()).append(' ').append(serializedData).append('\n');
+        } catch (IOException e) {
+            throw new DbException(e);
+        }
         setBufferedWriterHasUnwrittenData();
         appendCount += 1;
         appendBytes += serializedData.length() + 8; // 8 includes the action (e.g. UPDATE), a space character, and a newline
@@ -179,7 +187,7 @@ final class DatabaseAppender {
      * meaning that we moved on to calling {@link #saveOffCurrentDataToReadyFolder()},
      * empty-string otherwise.
      */
-    String saveOffWrapped(int appendCount, int maxAppendCount) throws IOException {
+    String saveOffWrapped(int appendCount, int maxAppendCount) {
         if (appendCount >= maxAppendCount) {
             return saveOffCurrentDataToReadyFolder();
         }
@@ -191,7 +199,7 @@ final class DatabaseAppender {
      * consolidation, and reset the append count.
      * @return the name of the newly-created file
      */
-    String saveOffCurrentDataToReadyFolder() throws IOException {
+    String saveOffCurrentDataToReadyFolder() {
         flush();
         String newFileName = moveToReadyFolder();
         createNewAppendFile();
@@ -203,9 +211,13 @@ final class DatabaseAppender {
      * folder named by the date + time + millis.
      * @return the name of the new file
      */
-    private String moveToReadyFolder() throws IOException {
+    private String moveToReadyFolder() {
         String appendFile = simpleDateFormat.format(new java.util.Date());
-        Files.move(persistenceDirectory.resolve("currentAppendLog"), this.appendLogDirectory.resolve(appendFile));
+        try {
+            Files.move(persistenceDirectory.resolve("currentAppendLog"), this.appendLogDirectory.resolve(appendFile));
+        } catch (IOException e) {
+            throw new DbException(e);
+        }
         return appendFile;
     }
 
@@ -218,8 +230,7 @@ final class DatabaseAppender {
         try {
             writer.flush();
         } catch (IOException e) {
-            logger.logAsyncError(() -> "Error while flushing in TimedFlusher: " + StacktraceUtils.stackTraceToString(e));
-            throw new DbException(e);
+            throw new DbException("Error while flushing in TimedFlusher", e);
         }
     }
 }

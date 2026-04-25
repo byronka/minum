@@ -28,7 +28,7 @@ public final class TheBrig implements ITheBrig {
      */
     private final int sleepTime;
 
-    public TheBrig(int sleepTime, Context context) throws IOException {
+    public TheBrig(int sleepTime, Context context) {
         this.es = context.getExecutorService();
         this.logger = context.getLogger();
         this.inmatesDb = context.getDb2("the_brig", Inmate.EMPTY);
@@ -41,7 +41,7 @@ public final class TheBrig implements ITheBrig {
      * of the application, in an infinite loop removing keys from the list
      * under consideration.
      */
-    public TheBrig(Context context) throws IOException {
+    public TheBrig(Context context) {
         this(10 * 1000, context);
     }
 

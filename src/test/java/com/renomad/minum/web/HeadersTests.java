@@ -43,7 +43,7 @@ public class HeadersTests {
     }
 
     @Test
-    public void test_GetAllHeaders_EdgeCase_ValueIsNull() throws IOException {
+    public void test_GetAllHeaders_EdgeCase_ValueIsNull() {
         String input = """
                 foo: bar
                 biz: baz

@@ -186,7 +186,7 @@ public class Book {
 
     private final TemplateProcessor bookTemplate;
 
-    public Book() throws IOException {
+    public Book() {
         String myTemplate = Files.readString(Path.of("src/main/webapp/templates/bookentry.html"));
         this.bookTemplate = TemplateProcessor.buildProcessor(myTemplate);
     }
@@ -422,7 +422,7 @@ public class Book {
     private final TemplateProcessor bookTemplate;
     private final AbstractDb<BookDbData> bookDb;
 
-    public Book(AbstractDb<BookDbData> bookDb) throws IOException {
+    public Book(AbstractDb<BookDbData> bookDb) {
         String myTemplate = Files.readString(Path.of("src/main/webapp/templates/bookentry.html"));
         this.bookTemplate = TemplateProcessor.buildProcessor(myTemplate);
         this.bookDb = bookDb;

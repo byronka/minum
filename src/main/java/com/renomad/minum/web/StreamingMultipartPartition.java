@@ -93,53 +93,61 @@ public final class StreamingMultipartPartition extends InputStream {
      * Reads from the inputstream using a buffer for checking whether we've
      * hit the end of a multpart partition.
      * @return -1 if we're at the end of a partition
-     * @throws IOException if the inputstream is closed unexpectedly while reading.
      */
     @Override
-    public int read() throws IOException {
-        if (isFinished) {
-            return -1;
-        }
-        if (!hasFilledBuffer) {
-            fillBuffer();
-            boolean atTheEnd = recentBytesBuffer.containsAt(boundaryValueList, 0);
-            if (atTheEnd) {
-                // don't really do anything with this, it's just to collect the
-                // last characters to have a clean finish.
-                byte[] unused = inputStream.readNBytes(2);
-                isFinished = true;
+    public int read() {
+        try {
+            if (isFinished) {
                 return -1;
             }
-        } else {
-            int result = inputStream.read();
-            countBytesRead.increment();
-            if (countBytesRead.getCount() >= contentLength) {
-                isFinished = true;
-                return -1;
-            }
-            if (result == -1) {
-                throw new IOException("Error: The inputstream has closed unexpectedly while reading");
-            }
-            byte byteValue = (byte) result;
-            boolean isAtEndOfPartition = updateRecentBytesBufferAndCheck(byteValue);
-            if (isAtEndOfPartition) {
-                // don't really do anything with this, it's just to collect the
-                // last characters to have a clean finish.
-                byte[] unused = inputStream.readNBytes(2);
-                isFinished = true;
-                return -1;
-            }
+            if (!hasFilledBuffer) {
+                fillBuffer();
+                boolean atTheEnd = recentBytesBuffer.containsAt(boundaryValueList, 0);
+                if (atTheEnd) {
+                    // don't really do anything with this, it's just to collect the
+                    // last characters to have a clean finish.
+                    byte[] unused = inputStream.readNBytes(2);
+                    isFinished = true;
+                    return -1;
+                }
+            } else {
+                int result = inputStream.read();
+                countBytesRead.increment();
+                if (countBytesRead.getCount() >= contentLength) {
+                    isFinished = true;
+                    return -1;
+                }
+                if (result == -1) {
+                    throw new WebServerException("Error: The inputstream has closed unexpectedly while reading");
+                }
+                byte byteValue = (byte) result;
+                boolean isAtEndOfPartition = updateRecentBytesBufferAndCheck(byteValue);
+                if (isAtEndOfPartition) {
+                    // don't really do anything with this, it's just to collect the
+                    // last characters to have a clean finish.
+                    byte[] unused = inputStream.readNBytes(2);
+                    isFinished = true;
+                    return -1;
+                }
 
+            }
+        } catch (Exception e) {
+            throw new WebServerException("Error in StreamingMultipartPartition.read", e);
         }
         return ((int)recentBytesBuffer.atNextIndex()) & 0xff;
     }
 
-    private void fillBuffer() throws IOException {
+    private void fillBuffer() {
         for (int i = 0; i < recentBytesBuffer.getLimit(); i++) {
-            int result = inputStream.read();
+            int result = 0;
+            try {
+                result = inputStream.read();
+            } catch (IOException e) {
+                throw new WebServerException("Error in StreamingMultipartPartition.fillBuffer", e);
+            }
             countBytesRead.increment();
             if (result == -1) {
-                throw new IOException("Error: The inputstream has closed unexpectedly while reading");
+                throw new WebServerException("Error: The inputstream has closed unexpectedly while reading");
             }
             byte byteValue = (byte) result;
             updateRecentBytesBufferAndCheck(byteValue);
@@ -152,11 +160,7 @@ public final class StreamingMultipartPartition extends InputStream {
         var baos = new ByteArrayOutputStream();
         while (true) {
             int result = 0;
-            try {
-                result = read();
-            } catch (IOException e) {
-                throw new WebServerException(e);
-            }
+            result = read();
             if (result == -1) {
                 return baos.toByteArray();
             }
@@ -178,7 +182,7 @@ public final class StreamingMultipartPartition extends InputStream {
      * so that our InputStream has been read until the start of the next partition.
      */
     @Override
-    public void close() throws IOException {
+    public void close() {
         while (true) {
             int result = read();
             if (result == -1) {

@@ -76,7 +76,7 @@ public class DatabaseConsolidatorTests {
      * the program will return an empty list.
      */
     @Test
-    public void testGetAppendFiles_EdgeCase_NoFiles() throws IOException {
+    public void testGetAppendFiles_EdgeCase_NoFiles() {
         Path path = Path.of("out/DOES_NOT_EXIST");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         assertEquals(List.of(), DatabaseConsolidator.getSortedAppendLogs(path));

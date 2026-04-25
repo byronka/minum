@@ -39,7 +39,7 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_WriteString_EmptyPath() throws IOException {
+    public void test_WriteString_EmptyPath() {
         fileUtils.writeString(Path.of(""), "bar");
         assertTrue(logger.doesMessageExist("an empty path was provided to writeString"));
     }
@@ -50,7 +50,8 @@ public class FileUtilsTests {
      */
     @Test
     public void test_WriteString_IOException() {
-        assertThrows(NoSuchFileException.class, () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
+        assertTrue(ex.getMessage().contains("NoSuchFileException"));
     }
 
     @Test
@@ -102,18 +103,19 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_WithinDirectory() throws IOException {
+    public void test_WithinDirectory() {
         fileUtils.checkFileIsWithinDirectory("resources/gettysburg_address.txt", "src/test");
         assertTrue(true, "should get here without an exception thrown");
 
         var result = assertThrows(ForbiddenUseException.class, () -> fileUtils.checkFileIsWithinDirectory("/", "src/test"));
         assertEquals(result.getMessage(), "path (/) was not within directory (src/test)");
 
-        var result3 = assertThrows(NoSuchFileException.class, () -> fileUtils.checkFileIsWithinDirectory("foobaz/foo", "src/test"));
+        var result3 = assertThrows(UtilsException.class, () -> fileUtils.checkFileIsWithinDirectory("foobaz/foo", "src/test"));
+        assertTrue(result3.getMessage().contains("NoSuchFileException"));
     }
 
     @Test
-    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() throws IOException {
+    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/foo"));
         assertTrue(logger.doesMessageExist("system was requested to delete directory"));
     }
@@ -138,16 +140,15 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadBinaryFile_FileMissing() {
-        byte[] bytes = fileUtils.readBinaryFile("target/does_not_exist.txt");
-        assertEqualByteArray(bytes, new byte[0]);
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.readBinaryFile("target/does_not_exist.txt"));
+        assertTrue(ex.getMessage().contains("The system cannot find the file specified"));
     }
 
     @Test
     public void test_ReadBinaryFile_IOException() {
         FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
-        byte[] bytes = fileUtils.readBinaryFile("foo");
-        assertEqualByteArray(bytes, new byte[0]);
-        assertTrue(logger.doesMessageExist("Error while reading file foo, returning empty byte array. java.io.IOException: Testing"));
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.readBinaryFile("foo"));
+        assertEquals(ex.getMessage(), "Testing");
     }
 
     @Test
@@ -162,13 +163,14 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadTextFile_FileMissing() {
-        assertThrows(FileNotFoundException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
+        assertTrue(ex.getMessage().contains("cannot find the file"));
     }
 
     @Test
     public void test_ReadTextFile_IOException() {
         FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
-        var ex = assertThrows(IOException.class, () -> fileUtils.readTextFile("foo"));
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.readTextFile("foo"));
         assertEquals(ex.getMessage(), "Testing");
     }
 
@@ -176,13 +178,14 @@ public class FileUtilsTests {
      * A {@link FileReader} that always throws an IOException
      */
     IFileReader throwingFileReader = path -> {
-        throw new IOException("Testing");
+        throw new UtilsException("Testing");
     };
 
     @Test
     public void test_walkPathDeleting() {
         FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
-        assertThrows(NoSuchFileException.class, () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
+        assertTrue(ex.getMessage().contains("NoSuchFileException"));
     }
 
     @Test
@@ -197,7 +200,7 @@ public class FileUtilsTests {
      * being requested is influenced by a user, and therefore untrusted.
      */
     @Test
-    public void test_SafeResolve() throws IOException {
+    public void test_SafeResolve() {
         fileUtils.safeResolve("src/test", "java");
         fileUtils.safeResolve("src/test", "resources/kitty.jpg");
         assertThrows(ForbiddenUseException.class, () -> fileUtils.safeResolve("src/test", "/"));

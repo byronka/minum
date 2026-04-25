@@ -41,7 +41,7 @@ public final class CryptoUtils {
         try {
             return createPasswordHash(password, salt, "PBKDF2WithHmacSHA1");
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new UtilsException(e);
         }
     }
 

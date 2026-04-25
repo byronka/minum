@@ -101,7 +101,7 @@ public class WebTests {
 
 
     @AfterClass
-    public static void tearDownClass() throws IOException {
+    public static void tearDownClass() {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         shutdownTestingContext(context);
     }
@@ -620,7 +620,7 @@ public class WebTests {
      * </p>
      */
     @Test
-    public void test_MultiPartForm_GetHeadersPerPartition() throws IOException {
+    public void test_MultiPartForm_GetHeadersPerPartition() {
         byte[] multiPartData = makeTestMultiPartData();
         var bp = new BodyProcessor(context);
 
@@ -1483,7 +1483,7 @@ public class WebTests {
         }
     }
 
-    private String readBody(InputStream is, int length) throws IOException {
+    private String readBody(InputStream is, int length) {
         byte[] read = inputStreamUtils.read(length, is);
         return StringUtils.byteArrayToString(read);
     }
@@ -1493,7 +1493,7 @@ public class WebTests {
      * gzip, we won't compress.
      */
     @Test
-    public void testCompression_EdgeCase_NoGzip() throws IOException {
+    public void testCompression_EdgeCase_NoGzip() {
         var stringBuilder = new StringBuilder();
         Response response = (Response) Response.htmlOk(gettysburgAddress);
 
@@ -1639,8 +1639,6 @@ public class WebTests {
             sw.getRemoteAddrAction = () -> attacker;
 
             ex = assertThrows(ForbiddenUseException.class, () -> webFramework.dumpIfAttacker(sw, theBrig));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         assertEquals(ex.getMessage(), "closing the socket on I_am_attacker due to being found in the brig");
@@ -1735,7 +1733,7 @@ public class WebTests {
     }
 
 
-    private static ISocketWrapper getClient(Socket socket) throws IOException {
+    private static ISocketWrapper getClient(Socket socket) {
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 

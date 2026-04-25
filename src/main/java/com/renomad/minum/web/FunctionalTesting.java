@@ -180,7 +180,7 @@ public final class FunctionalTesting {
             RequestLine.Method method,
             String path,
             byte[] payload,
-            List<String> extraHeaders) throws IOException {
+            List<String> extraHeaders) {
         Body body = Body.EMPTY;
 
         InputStream is = client.getInputStream();

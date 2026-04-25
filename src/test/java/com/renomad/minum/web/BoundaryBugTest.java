@@ -47,7 +47,7 @@ public class BoundaryBugTest {
      * Bug, now fixed, was: boundary mismatch causes empty/failed parse.
      */
     @Test
-    public void test_BoundaryWithTrailingParams_ShouldStillParse() throws IOException {
+    public void test_BoundaryWithTrailingParams_ShouldStillParse() {
         String body = """
                 --i_am_a_boundary\r
                 Content-Type: text/plain\r

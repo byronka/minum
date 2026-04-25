@@ -34,7 +34,7 @@ final class DbFileConverter {
      * @param dbDirectory this is the specific directory for this database,
      *                    for example, the full path to the "users" database directory.
      */
-    DbFileConverter(Context context, Path dbDirectory) throws IOException {
+    DbFileConverter(Context context, Path dbDirectory) {
         this.dbDirectory = dbDirectory;
         this.logger = context.getLogger();
         this.databaseAppender = new DatabaseAppender(dbDirectory, context);
@@ -46,14 +46,15 @@ final class DbFileConverter {
      * The old form was one file per data item, the new form has append-only
      * data logs and consolidated files.
      */
-    void convertClassicFolderStructureToDbEngine2Form() throws IOException {
+    void convertClassicFolderStructureToDbEngine2Form() {
         displayWarningConvertingClassicToDbEngine2();
-        try (var fileReader = new FileReader(dbDirectory.resolve("index.ddps").toFile(), US_ASCII)) {
-            try (BufferedReader br = new BufferedReader(fileReader)) {
-                String s = br.readLine();
-                if (s == null) throw new DbException("index file for " + dbDirectory + " returned null when reading a line from it");
-                mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
-            }
+        try (var fileReader = new FileReader(dbDirectory.resolve("index.ddps").toFile(), US_ASCII);
+             BufferedReader br = new BufferedReader(fileReader)) {
+            String s = br.readLine();
+            if (s == null) throw new DbException("index file for " + dbDirectory + " returned null when reading a line from it");
+            mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
+        } catch (IOException e) {
+            throw new DbException("Error in DbFileConverter.convertClassicFolderStructureToDbEngine2Form", e);
         }
 
         walkFilesAndConvertDbToDbEngine2(this.dbDirectory, this.logger);
@@ -85,34 +86,42 @@ final class DbFileConverter {
      * walk through all the files in this directory, collecting
      * all regular files (non-subdirectories) except for index.ddps
      */
-    static void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger) throws IOException {
+    static void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger) {
         List<Path> listOfFiles = getListOfFiles(dbDirectory);
 
         // convert each file to the new database schema by appending it
         // to the append log, and then delete it
-        for (int i = 0; i < listOfFiles.size(); i++) {
-            int percentCompletion = listOfFiles.size() / 100;
-            if (i == percentCompletion) {
-                logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
+        try {
+            for (int i = 0; i < listOfFiles.size(); i++) {
+                int percentCompletion = listOfFiles.size() / 100;
+                if (i == percentCompletion) {
+                    logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
+                }
+                Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
+                Files.delete(p);
             }
-            Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
-            Files.delete(p);
-        }
 
-        // at this point, after all the ordinary files have been removed, kill the index file
-        Files.delete(dbDirectory.resolve("index.ddps"));
+            // at this point, after all the ordinary files have been removed, kill the index file
+            Files.delete(dbDirectory.resolve("index.ddps"));
+        } catch (Exception e) {
+            throw new DbException("Error in DbFileConverter.walkFilesAndConvertDbToDbEngine2", e);
+        }
     }
 
     /**
      * This method digs into the Db Classic file, checks everything is kosher, and
      * if so, appends it to the append-only log file which is part of DbEngine2
      */
-    static Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze) throws IOException {
+    static Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze) {
         String fileContents = checkFileDetailsAreValid(fileToAnalyze, logger);
         if (!fileContents.isBlank()) {
-            Files.writeString(
-                    dbDirectory.resolve("currentAppendLog"),
-                    "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
+            try {
+                Files.writeString(
+                        dbDirectory.resolve("currentAppendLog"),
+                        "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
+            } catch (IOException e) {
+                throw new DbException(e);
+            }
         }
         return fileToAnalyze;
     }
@@ -139,13 +148,18 @@ final class DbFileConverter {
      * and returns the data. This method is called as part of
      * convert Db Classic to DbEngine2
      */
-    static String checkFileDetailsAreValid(Path p, ILogger logger) throws IOException {
+    static String checkFileDetailsAreValid(Path p, ILogger logger) {
         if (!Files.isRegularFile(p)) {
             throw new DbException("At checkFileDetailsAreValid, path " + p + " is not a regular file");
         }
         String fileName = p.getFileName().toString();
         int startOfSuffixIndex = fileName.indexOf('.');
-        String fileContents = Files.readString(p);
+        String fileContents = null;
+        try {
+            fileContents = Files.readString(p);
+        } catch (IOException e) {
+            throw new DbException(e);
+        }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
             return "";
@@ -173,7 +187,7 @@ final class DbFileConverter {
     /**
      * Convert the folder/file structure.  From DbEngine2 format to Db classic.
      */
-    void convertFolderStructureToDbClassic() throws IOException {
+    void convertFolderStructureToDbClassic() {
         displayWarningConvertingDbEngine2ToClassic();
 
         // if there are any remnant items in the current append-only file, move them
@@ -195,7 +209,7 @@ final class DbFileConverter {
      * multiple files and deleting files when finished, and closing file handles
      * appropriately when done with a file, and doing it in the proper order.
      */
-    static void walkFilesAndConvertDbEngine2ToDbClassic(Path dbDirectory, ILogger logger) throws IOException {
+    static void walkFilesAndConvertDbEngine2ToDbClassic(Path dbDirectory, ILogger logger) {
         // get the list of consolidated data files
         List<Path> listOfFiles;
         try (Stream<Path> fileStream = Files.list(dbDirectory.resolve("consolidated_data"))) {
@@ -250,11 +264,13 @@ final class DbFileConverter {
                     countConvertedFiles += 1;
                     logAlongConversion(logger, countConvertedFiles, 1000);
                 }
+                // now we've converted everything from this file, delete it and its checksum (if available)
+                Files.delete(filePath);
+                Path checksumPath = filePath.resolveSibling(filePath.getFileName() + ".checksum");
+                Files.deleteIfExists(checksumPath);
+            } catch (Exception ex) {
+                throw new DbException("Error in DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic", ex);
             }
-            // now we've converted everything from this file, delete it and its checksum (if available)
-            Files.delete(filePath);
-            Path checksumPath = filePath.resolveSibling(filePath.getFileName() + ".checksum");
-            Files.deleteIfExists(checksumPath);
         }
 
         deleteEmptyDbEngine2Directories(dbDirectory);

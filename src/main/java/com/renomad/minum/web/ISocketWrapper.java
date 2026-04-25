@@ -18,22 +18,22 @@ public interface ISocketWrapper extends Closeable {
      * Convert the provided string value into bytes
      * using the default charset, and send on the socket.
      */
-    void send(String msg) throws IOException;
+    void send(String msg);
 
     /**
      * Simply send the bytes on the socket, simple as that.
      */
-    void send(byte[] bodyContents) throws IOException;
+    void send(byte[] bodyContents);
 
-    void send(byte[] bodyContents, int off, int len) throws IOException;
+    void send(byte[] bodyContents, int off, int len);
 
-    void send(int b) throws IOException;
+    void send(int b);
 
     /**
      * Sends a line of text, with carriage-return and line-feed
      * appended to the end, required for the HTTP protocol.
      */
-    void sendHttpLine(String msg) throws IOException;
+    void sendHttpLine(String msg);
 
     /**
      * Get the port of the server
@@ -54,7 +54,7 @@ public interface ISocketWrapper extends Closeable {
     HttpServerType getServerType();
 
     @Override
-    void close() throws IOException;
+    void close();
 
     /**
      * Returns this socket's input stream for more granular access
@@ -70,5 +70,5 @@ public interface ISocketWrapper extends Closeable {
     /**
      * Send the data in the outgoing buffer into the socket.
      */
-    void flush() throws IOException;
+    void flush();
 }

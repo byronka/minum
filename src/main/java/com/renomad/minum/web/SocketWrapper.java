@@ -25,39 +25,59 @@ public final class SocketWrapper implements ISocketWrapper {
      * @param logger not much more to say on this param
      * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
      */
-    public SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) throws IOException {
+    public SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) {
         this.socket = socket;
         this.hostName = hostName;
         logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));
-        this.socket.setSoTimeout(timeoutMillis);
-        this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-        writer = new BufferedOutputStream(socket.getOutputStream());
+        try {
+            this.socket.setSoTimeout(timeoutMillis);
+            this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
+            writer = new BufferedOutputStream(socket.getOutputStream());
+        } catch (Exception ex) {
+            throw new WebServerException("Error in SocketWrapper constructor", ex);
+        }
         this.logger = logger;
         this.server = server;
     }
 
     @Override
-    public void send(String msg) throws IOException {
-        writer.write(msg.getBytes(Charset.defaultCharset()));
+    public void send(String msg) {
+        try {
+            writer.write(msg.getBytes(Charset.defaultCharset()));
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void send(byte[] bodyContents) throws IOException {
-        writer.write(bodyContents);
+    public void send(byte[] bodyContents) {
+        try {
+            writer.write(bodyContents);
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void send(byte[] bodyContents, int off, int len) throws IOException {
-        writer.write(bodyContents, off, len);
+    public void send(byte[] bodyContents, int off, int len) {
+        try {
+            writer.write(bodyContents, off, len);
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void send(int b) throws IOException {
-        writer.write(b);
+    public void send(int b) {
+        try {
+            writer.write(b);
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void sendHttpLine(String msg) throws IOException {
+    public void sendHttpLine(String msg) {
         logger.logTrace(() -> String.format("%s sending: \"%s\"", this, msg));
         send(msg + WebEngine.HTTP_CRLF);
     }
@@ -83,9 +103,13 @@ public final class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         logger.logTrace(() -> "close called on " + this);
-        socket.close();
+        try {
+            socket.close();
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
         if (server != null) server.removeMyRecord(this);
     }
 
@@ -110,7 +134,11 @@ public final class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public void flush() throws IOException {
-        this.writer.flush();
+    public void flush() {
+        try {
+            this.writer.flush();
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 }

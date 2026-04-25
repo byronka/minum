@@ -44,17 +44,17 @@ public class DbFileConverterTests {
      * which should cause it to throw an exception.
      */
     @Test
-    public void testConvertClassicFolderStructureToDbEngine2Form_EdgeCase_FileMissing() throws IOException {
+    public void testConvertClassicFolderStructureToDbEngine2Form_EdgeCase_FileMissing() {
         // arrange
         Path dbDirectory = Path.of("out/simple_db/db_file_converter_tests/classic_to_dbe2_file_missing");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbDirectory);
         DbFileConverter dbFileConverter = new DbFileConverter(context, dbDirectory);
 
         // act
-        var ex = assertThrows(FileNotFoundException.class, () -> dbFileConverter.convertClassicFolderStructureToDbEngine2Form());
+        var ex = assertThrows(DbException.class, () -> dbFileConverter.convertClassicFolderStructureToDbEngine2Form());
 
         // assert
-        String adjustedErrorMessage = ex.getMessage().replace('/', '.').replace('\\', '.');
+        String adjustedErrorMessage = ex.getCause().getMessage().replace('/', '.').replace('\\', '.');
         assertTrue(adjustedErrorMessage.contains("out.simple_db.db_file_converter_tests.classic_to_dbe2_file_missing.index.ddps"), "Message was: " + adjustedErrorMessage);
     }
 
@@ -238,7 +238,7 @@ public class DbFileConverterTests {
         // act
         var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
 
-        String adjustedMessage = ex.getMessage().replace('/', '.').replace('\\', '.');
+        String adjustedMessage = ex.getCause().getMessage().replace('/', '.').replace('\\', '.');
         assertEquals(adjustedMessage, "Unable to convert a line - check for corruption.  File: out.simple_db_for_engine2_tests.engine2.conversiontest3.consolidated_data.1_to_5 Data: hello world");
     }
 
@@ -258,7 +258,7 @@ public class DbFileConverterTests {
         // act
         var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
 
-        String adjustedMessage = ex.getMessage().replace('/', '.').replace('\\', '.');
+        String adjustedMessage = ex.getCause().getMessage().replace('/', '.').replace('\\', '.');
         assertEquals(adjustedMessage, "Unable to convert a line - check for corruption.  File: out.simple_db_for_engine2_tests.engine2.conversiontest4.consolidated_data.1_to_5 Data: a|b|c|d");
     }
 

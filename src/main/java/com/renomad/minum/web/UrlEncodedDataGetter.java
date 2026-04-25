@@ -27,10 +27,9 @@ public final class UrlEncodedDataGetter extends InputStream {
 
     /**
      * Mostly similar behavior to {@link InputStream#read()}
-     * @throws IOException if the inputstream is closed unexpectedly while reading.
      */
     @Override
-    public int read() throws IOException {
+    public int read() {
         if (isFinished) {
             return -1;
         }
@@ -38,7 +37,12 @@ public final class UrlEncodedDataGetter extends InputStream {
             isFinished = true;
             return -1;
         }
-        int result = inputStream.read();
+        int result = 0;
+        try {
+            result = inputStream.read();
+        } catch (IOException e) {
+            throw new WebServerException("Error in UrlEncodedDataGetter.read", e);
+        }
 
         if (result == -1) {
             isFinished = true;
@@ -47,7 +51,7 @@ public final class UrlEncodedDataGetter extends InputStream {
             // the stream is closed - but that should not have happened, because we should have stopped reading when
             // we hit the limit of bytes to read.  But in the real world, it will happen:  You can observe it by uploading a large
             // file and using the browser's "stop" button during the upload.
-            throw new IOException("Error: The inputstream has closed unexpectedly while reading");
+            throw new WebServerException("Error: The inputstream has closed unexpectedly while reading");
         }
 
         countBytesRead.increment();
@@ -60,7 +64,7 @@ public final class UrlEncodedDataGetter extends InputStream {
     }
 
     @Override
-    public byte[] readAllBytes() throws IOException {
+    public byte[] readAllBytes() {
         var baos = new ByteArrayOutputStream();
         while (true) {
             int result = read();
@@ -79,7 +83,7 @@ public final class UrlEncodedDataGetter extends InputStream {
      * so that our InputStream has been read until the start of the next partition.
      */
     @Override
-    public void close() throws IOException {
+    public void close() {
         while (true) {
             int result = read();
             if (result == -1) {

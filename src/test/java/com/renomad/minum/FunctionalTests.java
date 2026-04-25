@@ -40,7 +40,7 @@ public class FunctionalTests {
     private FullSystem fullSystem;
 
     @Before
-    public void init() throws IOException {
+    public void init() {
         context = buildTestingContext("_integration_test");
         logger = (TestLogger) context.getLogger();
         var fileUtils = new FileUtils(logger, context.getConstants());
@@ -318,20 +318,16 @@ public class FunctionalTests {
         FunctionalTesting myFt = new FunctionalTesting(context, "localhost", 8080);
 
         try (Socket socket = new Socket("localhost", 8080)) {
-            try {
-                logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, context.getConstants().socketTimeoutMillis, context.getConstants().hostName)) {
+            logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+            try (ISocketWrapper client = new SocketWrapper(socket, null, logger, context.getConstants().socketTimeoutMillis, context.getConstants().hostName)) {
 
-                    // now we have an open connection to the web server.  If we send a POST to an endpoint that doesn't
-                    // do anything with the body, it goes through fine.  However, because our endpoint ignores the body,
-                    // the server will close the connection (this is fine, it just means the client needs to
-                    // open a new socket to talk with it.)
-                    byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
-                    assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
-                    assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
-                }
-            } catch (IOException e) {
-                logger.logDebug(() -> "If you see this, we arrived in the exception handler because in fact the socket was closed, but that's alright and expected");
+                // now we have an open connection to the web server.  If we send a POST to an endpoint that doesn't
+                // do anything with the body, it goes through fine.  However, because our endpoint ignores the body,
+                // the server will close the connection (this is fine, it just means the client needs to
+                // open a new socket to talk with it.)
+                byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
             }
         }
 

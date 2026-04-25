@@ -1,5 +1,6 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.database.DbException;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
@@ -132,12 +133,16 @@ final class Server implements IServer {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         // close all the running sockets
         setOfSWs.stopAllServers();
         logger.logTrace(() -> "close called on " + this);
         // close the primary server socket
-        serverSocket.close();
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            throw new DbException(e);
+        }
     }
 
     @Override

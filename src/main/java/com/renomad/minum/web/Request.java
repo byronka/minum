@@ -52,11 +52,7 @@ public final class Request implements IRequest {
                     " If intending to use getBody(), use it exclusively");
         }
         if (body == null) {
-            try {
-                body = bodyProcessor.extractData(socketWrapper.getInputStream(), headers);
-            } catch (IOException e) {
-                throw new WebServerException("Exception thrown in Request.getBody", e);
-            }
+            body = bodyProcessor.extractData(socketWrapper.getInputStream(), headers);
         }
         return body;
     }

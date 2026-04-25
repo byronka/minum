@@ -208,18 +208,21 @@ public final class WebFramework {
             handleReadTimedOut(sw, ex, logger);
         } catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
-        } catch (IOException ex) {
-            handleIOException(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
+        } catch (Exception ex) {
+            finalExceptionHandler(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         }
     }
 
 
-    static void handleIOException(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
+    /**
+     * Last-chance handler for any exceptions originating in WebFramework.httpProcessing
+     */
+    static void finalExceptionHandler(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
         if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
             logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
         } else {
-            logger.logWarn(() -> "IOException caught in WebFramework.handleIOException: " + StacktraceUtils.stackTraceToString(ex));
+            logger.logWarn(() -> "Exception caught in WebFramework.finalExceptionHandler: " + StacktraceUtils.stackTraceToString(ex));
         }
     }
 
@@ -254,7 +257,7 @@ public final class WebFramework {
      * random code to the client, so a developer can find the detailed
      * information in the logs, which have that same value.
      */
-    IResponse handleBadRequestException(BadRequestException ex) throws IOException {
+    IResponse handleBadRequestException(BadRequestException ex) {
         int randomNumber = randomErrorCorrelationId.nextInt();
         logger.logDebug(() -> "Bad data in request. Code: " + randomNumber + " Error: " + ex.getMessage() + (ex.getCause() == null ? "" : " Cause: " + ex.getCause().getMessage()));
         return Response.buildResponse(CODE_400_BAD_REQUEST, new Headers(List.of("Content-Type: text/plain;charset=UTF-8")), "Bad request from user (HTTP 400) error: " + randomNumber);
@@ -302,7 +305,7 @@ public final class WebFramework {
         return response;
     }
 
-    private Headers getHeaders(ISocketWrapper sw) throws IOException {
+    private Headers getHeaders(ISocketWrapper sw) {
     /*
        next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
 
@@ -467,7 +470,7 @@ public final class WebFramework {
      * This method will examine the request headers and response content-type, and
      * compress the outgoing data if necessary.
      */
-    static IResponse potentiallyCompress(Headers requestHeaders, IResponse response, StringBuilder headerStringBuilder) throws IOException {
+    static IResponse potentiallyCompress(Headers requestHeaders, IResponse response, StringBuilder headerStringBuilder) {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
@@ -493,7 +496,7 @@ public final class WebFramework {
      *                       if we successfully compress data as gzip.
      * @param minNumberBytes number of bytes must be larger than this to compress.
      */
-    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) throws IOException {
+    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
         if (response.getBodyLength() >= minNumberBytes && allContentEncodingHeaders.contains("gzip")) {
             stringBuilder.append("Content-Encoding: gzip").append(HTTP_CRLF);
@@ -628,7 +631,7 @@ public final class WebFramework {
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
-    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) {
         var headers = new Headers(List.of(
                 "Cache-Control: max-age=" + constants.staticFileCacheTime,
                 "Content-Type: " + mimeType,

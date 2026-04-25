@@ -38,7 +38,7 @@ public class InputStreamUtilsTests {
      * see the method in question for "typicalBufferSize"
      */
     @Test
-    public void testReadingLarge() throws IOException {
+    public void testReadingLarge() {
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
@@ -58,9 +58,9 @@ public class InputStreamUtilsTests {
             }
         }) {
 
-            var exception = assertThrows(IOException.class, () -> inputStreamUtils.read(2, inputStream));
+            var exception = assertThrows(WebServerException.class, () -> inputStreamUtils.read(2, inputStream));
 
-            assertEquals(exception.getMessage(), "test exception only, no worries");
+            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
         }
     }
 
@@ -74,7 +74,7 @@ public class InputStreamUtilsTests {
      * </p>
      */
     @Test
-    public void testReading_EdgeCase_DifferentCount() throws IOException {
+    public void testReading_EdgeCase_DifferentCount() {
         try (InputStream inputStream = new InputStream() {
 
             private final byte[] sampleData = new byte[] {123};
@@ -95,11 +95,13 @@ public class InputStreamUtilsTests {
             var exception = assertThrows(ForbiddenUseException.class, () -> inputStreamUtils.read(2, inputStream));
 
             assertEquals(exception.getMessage(), "length of bytes read (1) must be what we expected (2)");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Test
-    public void testWeGetNullIndicatingFinish() throws IOException {
+    public void testWeGetNullIndicatingFinish() {
         String threeNewlines = "\n\n";
         InputStream inputStream = new ByteArrayInputStream(threeNewlines.getBytes(StandardCharsets.UTF_8));
         assertEquals(inputStreamUtils.readLine(inputStream), "");
@@ -149,11 +151,7 @@ public class InputStreamUtilsTests {
             InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
             String foo = "";
             do {
-                try {
-                    foo = inputStreamUtils.readLine(inputStream);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                foo = inputStreamUtils.readLine(inputStream);
             } while (foo != null);
         });
         long l = stopwatchUtils.stopTimer();

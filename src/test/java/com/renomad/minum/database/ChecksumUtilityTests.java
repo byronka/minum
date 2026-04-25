@@ -51,7 +51,7 @@ public class ChecksumUtilityTests {
      * becomes time, an exception should be thrown.
      */
     @Test
-    public void testCompareWithChecksum_NegativeCase_ChecksumMissing() throws IOException {
+    public void testCompareWithChecksum_NegativeCase_ChecksumMissing() {
         Path directory = Path.of("out/simple_db_for_engine2_tests/engine2/checksum/missing");
 
         // delete existing directory
@@ -87,7 +87,7 @@ public class ChecksumUtilityTests {
      * yet been upgraded to use checksums.
      */
     @Test
-    public void testCompareWithChecksum_NegativeCase_ChecksumDoesNotExist() throws IOException {
+    public void testCompareWithChecksum_NegativeCase_ChecksumDoesNotExist() {
         Path directory = Path.of("out/simple_db_for_engine2_tests/engine2/checksum/conflict");
 
         // delete existing directory

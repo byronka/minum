@@ -31,7 +31,7 @@ final class BodyProcessor implements IBodyProcessor {
     }
 
     @Override
-    public Body extractData(InputStream is, Headers h) throws IOException {
+    public Body extractData(InputStream is, Headers h) {
         final var contentType = h.contentType();
 
         if (h.contentLength() >= 0) {
@@ -60,7 +60,7 @@ final class BodyProcessor implements IBodyProcessor {
      *                    cases where this makes sense - if the user is sending us plain text,
      *                    html, json, or css, we want to simply accept the data and not try to parse it.
      */
-    Body extractBodyFromInputStream(int contentLength, String contentType, InputStream is) throws IOException {
+    Body extractBodyFromInputStream(int contentLength, String contentType, InputStream is) {
         // if the body is zero bytes long, just return
         if (contentLength == 0) {
             logger.logDebug(() -> "the length of the body was 0, returning an empty Body");
@@ -279,11 +279,7 @@ final class BodyProcessor implements IBodyProcessor {
                 // and avoid including the boundary value in the first set of headers
                 if (! hasReadFirstPartition) {
                     String s;
-                    try {
-                        s = inputStreamUtils.readLine(inputStream);
-                    } catch (IOException e) {
-                        throw new WebServerException("Error in BodyProcessor getMultiPartIterable while running inputStreamUtils.readLine", e);
-                    }
+                    s = inputStreamUtils.readLine(inputStream);
                     if (s == null) {
                         throw new WebServerException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
                     }
@@ -295,11 +291,7 @@ final class BodyProcessor implements IBodyProcessor {
                     }
                 }
                 List<String> allHeaders = null;
-                try {
-                    allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
-                } catch (IOException e) {
-                    throw new WebServerException("Error in BodyProcessor getMultiPartIterable while running Headers.getAllHeaders", e);
-                }
+                allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
                 int lengthOfHeaders = allHeaders.stream().map(String::length).reduce(0, Integer::sum);
                 // each line has a CR + LF (that's two bytes) and the headers end with a second pair of CR+LF.
                 int extraCrLfs = (2 * allHeaders.size()) + 2;

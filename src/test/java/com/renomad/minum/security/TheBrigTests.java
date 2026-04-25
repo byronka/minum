@@ -41,7 +41,7 @@ public class TheBrigTests {
      * a time and after it has paid its dues, be released.
      */
     @Test
-    public void test_TheBrig_Basic() throws IOException {
+    public void test_TheBrig_Basic() {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -114,7 +114,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_TheBrig_RegularStop() throws IOException {
+    public void test_TheBrig_RegularStop() {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -130,7 +130,7 @@ public class TheBrigTests {
      * If the brig isn't initialized, there's no thread to stop
      */
     @Test
-    public void test_TheBrig_Uninitialized() throws IOException {
+    public void test_TheBrig_Uninitialized() {
         var b = new TheBrig(10, context);
         var ex = assertThrows(MinumSecurityException.class, b::stop);
         assertEquals(ex.getMessage(), "TheBrig was told to stop, but it was uninitialized");
@@ -142,7 +142,7 @@ public class TheBrigTests {
      * of the new transgression.
      */
     @Test
-    public void test_TheBrig_ExistingInmate() throws IOException {
+    public void test_TheBrig_ExistingInmate() {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -167,7 +167,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_BrigDisabled() throws IOException {
+    public void test_BrigDisabled() {
         Properties properties = new Properties();
         properties.setProperty("IS_THE_BRIG_ENABLED", "false");
         var disabledBrigContext = buildTestingContext("testing brig disabled", properties);

@@ -76,7 +76,7 @@ public class ResponseTests {
         // This is just used to force an IOException to be thrown when running sendBody
         ISocketWrapper mockSocketWrapper = new ISocketWrapper() {
             @Override public void send(String msg) {}
-            @Override public void send(byte[] bodyContents) throws IOException {throw new IOException("This is just a test");}
+            @Override public void send(byte[] bodyContents) {throw new WebServerException("This is just a test");}
             @Override public void send(byte[] bodyContents, int off, int len) {}
             @Override public void send(int b) {}
             @Override public void sendHttpLine(String msg) {}
@@ -89,7 +89,7 @@ public class ResponseTests {
             @Override public String getHostName() {return null;}
             @Override public void flush() {}
         };
-        var ex = assertThrows(IOException.class, () ->  response.sendBody(mockSocketWrapper));
+        var ex = assertThrows(WebServerException.class, () ->  response.sendBody(mockSocketWrapper));
         assertEquals(ex.getMessage(), "This is just a test");
     }
 
@@ -98,7 +98,7 @@ public class ResponseTests {
      * that could be used to escape the directory, an exception will be thrown.
      */
     @Test
-    public void testResponse_EdgeCase_BadPathRequested() throws IOException {
+    public void testResponse_EdgeCase_BadPathRequested() {
         var fileUtils = new FileUtils(this.context.getLogger(), this.context.getConstants());
         assertThrows(ForbiddenUseException.class, "filename (../foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of()), fileUtils));
         assertThrows(ForbiddenUseException.class, "filename (c:/foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of()), fileUtils));
@@ -107,7 +107,7 @@ public class ResponseTests {
     }
 
     @Test
-    public void testResponse_Streaming() throws IOException {
+    public void testResponse_Streaming() {
         FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
         Response response = (Response)buildStreamingResponse(CODE_200_OK, Map.of(), sw -> sw.send("hello"));
         response.sendBody(fakeSocketWrapper);

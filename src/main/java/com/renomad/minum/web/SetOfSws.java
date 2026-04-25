@@ -31,7 +31,7 @@ record SetOfSws(
         logger.logTrace(() -> nameOfSet +" removed " + sw + " from SetOfSws. size: " + size);
     }
 
-    void stopAllServers() throws IOException {
+    void stopAllServers() {
         for(ISocketWrapper s : socketWrappers()) {
             s.close();
         }

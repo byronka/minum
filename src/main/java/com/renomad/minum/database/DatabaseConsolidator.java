@@ -50,7 +50,7 @@ final class DatabaseConsolidator {
      */
     private record DatabaseChangeInstruction(DatabaseChangeAction action, long dataIndex, String data) {}
 
-    DatabaseConsolidator(Path persistenceDirectory, Context context) throws IOException {
+    DatabaseConsolidator(Path persistenceDirectory, Context context) {
         this.appendLogDirectory = persistenceDirectory.resolve("append_logs");
         this.consolidatedDataDirectory = persistenceDirectory.resolve("consolidated_data");
         var constants = context.getConstants();
@@ -63,7 +63,7 @@ final class DatabaseConsolidator {
     /**
      * Loop through all the append-only files
      */
-    void consolidate() throws IOException {
+    void consolidate() {
         logger.logDebug(() -> "Starting database consolidator");
         List<Date> sortedList = getSortedAppendLogs(appendLogDirectory);
         if (sortedList.isEmpty()) {
@@ -98,34 +98,40 @@ final class DatabaseConsolidator {
      * <br>
      * Build a data structure holding instructions for the next step.
      */
-    private void processAppendLogFile(String filename) throws IOException {
+    private void processAppendLogFile(String filename) {
         Path fullPathToFile = this.appendLogDirectory.resolve(filename);
-        List<String> lines = Files.readAllLines(fullPathToFile);
-        Map<Long, DatabaseChangeInstruction> resultingInstructions = new HashMap<>();
+        List<String> lines = null;
+        try {
+            lines = Files.readAllLines(fullPathToFile);
 
-        // process each line from the file
+            Map<Long, DatabaseChangeInstruction> resultingInstructions = new HashMap<>();
 
-        for (String line : lines) {
-            DatabaseChangeInstruction databaseChange = parseDatabaseChangeInstructionString(line, filename);
+            // process each line from the file
 
-            // the trick here is that by using a Map, only the last item added will remain at the end
-            resultingInstructions.put(databaseChange.dataIndex(), databaseChange);
+            for (String line : lines) {
+                DatabaseChangeInstruction databaseChange = parseDatabaseChangeInstructionString(line, filename);
+
+                // the trick here is that by using a Map, only the last item added will remain at the end
+                resultingInstructions.put(databaseChange.dataIndex(), databaseChange);
+            }
+
+            // now we have the concise list of state changes, but the next step is figuring out how
+            // to organize them by their destination.  consolidated files will be grouped somehow.
+            // For example, indexes 1 - 1000, 1001-2000, etc (there may be more than 1000 per file).
+            // <br>
+            // So, we will group our data that way,
+            // and then efficiently update the files (a bad outcome, in contrast, would be updating
+            // the files multiple times each).
+
+            Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions = groupInstructionsByPartition(resultingInstructions);
+
+            rewriteFiles(groupedInstructions);
+
+            // delete the file
+            Files.delete(fullPathToFile);
+        } catch (IOException e) {
+            throw new DbException(e);
         }
-
-        // now we have the concise list of state changes, but the next step is figuring out how
-        // to organize them by their destination.  consolidated files will be grouped somehow.
-        // For example, indexes 1 - 1000, 1001-2000, etc (there may be more than 1000 per file).
-        // <br>
-        // So, we will group our data that way,
-        // and then efficiently update the files (a bad outcome, in contrast, would be updating
-        // the files multiple times each).
-
-        Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions = groupInstructionsByPartition(resultingInstructions);
-
-        rewriteFiles(groupedInstructions);
-
-        // delete the file
-        Files.delete(fullPathToFile);
     }
 
     /**
@@ -136,7 +142,7 @@ final class DatabaseConsolidator {
      * we want to merge our incoming data with what is already there.  Otherwise, we are just
      * creating a new file.
      */
-    private void rewriteFiles(Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions) throws IOException {
+    private void rewriteFiles(Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions) {
         for (Map.Entry<Long, Collection<DatabaseChangeInstruction>> instructions : groupedInstructions.entrySet()) {
             String filename = String.format("%d_to_%d", instructions.getKey(), instructions.getKey() + (maxLinesPerFile - 1));
             logger.logTrace(() -> "Writing consolidated data to " + filename);
@@ -155,22 +161,31 @@ final class DatabaseConsolidator {
 
             String checksumString = buildChecksum(updatedData);
 
-            // write the data to disk
-            Files.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
+            try {
+                // write the data to disk
+                Files.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
 
-            // write a hash of the data to use as a checksum.  This value will be checked
-            // when reading the data later on, to confirm nothing has changed since writing.
-            Path fullPathToChecksumFile = this.consolidatedDataDirectory.resolve(filename + ".checksum");
-            Files.writeString(fullPathToChecksumFile, checksumString);
+                // write a hash of the data to use as a checksum.  This value will be checked
+                // when reading the data later on, to confirm nothing has changed since writing.
+                Path fullPathToChecksumFile = this.consolidatedDataDirectory.resolve(filename + ".checksum");
+                Files.writeString(fullPathToChecksumFile, checksumString);
+            } catch (Exception ex) {
+                throw new DbException("Error in DatabaseConsolidator.rewriteFiles", ex);
+            }
         }
     }
 
     /**
      * Reads data from consolidated file, confirming the checksum in the process.
      */
-    private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) throws IOException {
+    private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) {
         // get all the data from the consolidated file
-        List<String> data = Files.readAllLines(fullPathToConsolidatedFile);
+        List<String> data = null;
+        try {
+            data = Files.readAllLines(fullPathToConsolidatedFile);
+        } catch (IOException e) {
+            throw new DbException(e);
+        }
 
         compareWithChecksum(fullPathToConsolidatedFile, data);
 

@@ -40,7 +40,7 @@ public interface IResponse {
      * By calling this method with a {@link ISocketWrapper} parameter, the method
      * will send bytes on the associated socket.
      */
-    void sendBody(ISocketWrapper sw) throws IOException;
+    void sendBody(ISocketWrapper sw);
 
     /**
      * Returns the bytes of the Response body being sent to the client

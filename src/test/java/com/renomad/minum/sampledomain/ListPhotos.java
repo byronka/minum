@@ -35,7 +35,7 @@ public class ListPhotos {
     private final long staticFileCacheTime;
 
 
-    public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) throws IOException {
+    public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
         this.logger = context.getLogger();
         Constants constants = context.getConstants();
         FileUtils fileUtils = new FileUtils(logger, constants);
@@ -105,7 +105,7 @@ public class ListPhotos {
     /**
      * Like you would think - a way to read a photo from disk to put on the wire
      */
-    public IResponse grabPhoto(IRequest r) throws IOException {
+    public IResponse grabPhoto(IRequest r) {
         String filename = r.getRequestLine().queryString().get("name");
         logger.logAudit(() -> r.getRemoteRequester() + " is looking for a photo named " + filename);
 
@@ -134,7 +134,7 @@ public class ListPhotos {
     /**
      * Returns videos we have stored
      */
-    public IResponse grabVideo(IRequest r) throws IOException {
+    public IResponse grabVideo(IRequest r) {
         String filename = r.getRequestLine().queryString().get("name");
         logger.logAudit(() -> r.getRemoteRequester() + " is looking for a video named " + filename);
 
@@ -173,7 +173,7 @@ public class ListPhotos {
      * @return a response with the file contents and caching headers and mime if valid.
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
-    IResponse readStaticFile(String path, String mimeType, Headers requestHeaders) throws IOException {
+    IResponse readStaticFile(String path, String mimeType, Headers requestHeaders) {
         try {
             checkForBadFilePatterns(path);
         } catch (Exception ex) {
@@ -219,7 +219,7 @@ public class ListPhotos {
      *
      * @param mimeType       a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType, Headers requestHeaders) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType, Headers requestHeaders) {
         var extraHeaders = Map.of(
                 "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);
@@ -234,7 +234,7 @@ public class ListPhotos {
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      * @param mimeType a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private IResponse createOkResponseForStaticFiles(Path staticFilePath, String mimeType) throws IOException {
+    private IResponse createOkResponseForStaticFiles(Path staticFilePath, String mimeType) {
         // this mild-looking method, "readFile", will cache the file contents.
         var fileContents = fileReader.readFile(staticFilePath.toString());
         var headers = Map.of(

@@ -80,7 +80,7 @@ public final class FileReader implements IFileReader {
                 return bytes;
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UtilsException(e);
         }
     }
 

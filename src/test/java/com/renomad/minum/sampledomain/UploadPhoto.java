@@ -42,7 +42,7 @@ public class UploadPhoto {
     private final Path dbDir;
     private final AuthUtils auth;
 
-    public UploadPhoto(Db<Photograph> db, Db<Video> videoDb, AuthUtils auth, Context context) throws IOException {
+    public UploadPhoto(Db<Photograph> db, Db<Video> videoDb, AuthUtils auth, Context context) {
         Constants constants = context.getConstants();
         this.auth = auth;
         this.logger = context.getLogger();
@@ -70,7 +70,7 @@ public class UploadPhoto {
         return Response.htmlOk(uploadVideoTemplateHtml);
     }
 
-    public IResponse uploadPageReceivePost(IRequest request) throws IOException {
+    public IResponse uploadPageReceivePost(IRequest request) {
         AuthResult authResult = auth.processAuth(request);
         if (! authResult.isAuthenticated()) {
             return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);

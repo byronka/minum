@@ -21,7 +21,7 @@ import static com.renomad.minum.web.StatusLine.StatusCode.CODE_401_UNAUTHORIZED;
 
 public class SampleDomain {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         // Start the system
         FullSystem fs = FullSystem.initialize();
 
@@ -37,7 +37,7 @@ public class SampleDomain {
     private final String authHomepage;
     private final String unauthHomepage;
 
-    public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) throws IOException {
+    public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) {
         this.db = db;
         this.auth = auth;
         FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
@@ -60,7 +60,7 @@ public class SampleDomain {
         return Response.htmlOk(nameEntryTemplate.renderTemplate(Map.of("names", names)));
     }
 
-    public IResponse testform(IRequest r) throws IOException {
+    public IResponse testform(IRequest r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
             return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);

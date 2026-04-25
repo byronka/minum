@@ -40,7 +40,7 @@ public class SearchUtilsTests {
         List<String> items = List.of("a", "b", "b");
 
         // when finding "b", our method throws an exception because there are 2.
-        var ex = assertThrows(RuntimeException.class, () -> findExactlyOne(items.stream(), x -> x.equals("b")));
+        var ex = assertThrows(UtilsException.class, () -> findExactlyOne(items.stream(), x -> x.equals("b")));
         assertEquals(ex.getMessage(), "Must be zero or one of this thing, or it's a bug.  We found a size of 2");
     }
 
@@ -102,7 +102,7 @@ public class SearchUtilsTests {
         items.add(null);
 
         // if we find it, return it
-        var ex = assertThrows(RuntimeException.class, () -> {
+        var ex = assertThrows(UtilsException.class, () -> {
             findExactlyOne(items.stream(), x -> x.equals("b"), () -> {
                 throw new Exception("Just testing");
             });
