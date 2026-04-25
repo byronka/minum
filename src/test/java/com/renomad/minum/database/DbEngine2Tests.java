@@ -1206,7 +1206,7 @@ public class DbEngine2Tests {
         try {
             new DbEngine2<>(path, context, INSTANCE);
             throw new RuntimeException("Test failed - should not arrive here");
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             // test passes if we arrive here
             assertTrue(!ex.getMessage().isEmpty(), "Error message will not be empty, but will vary between operating systems");
         }

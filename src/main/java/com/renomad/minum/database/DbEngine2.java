@@ -125,11 +125,15 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      *                 that each database (that is, each instance of this class), focuses on just one
      *                 data, which must be an implementation of {@link DbData}.
      */
-    public DbEngine2(Path dbDirectory, Context context, T instance) throws IOException {
+    public DbEngine2(Path dbDirectory, Context context, T instance) {
         super(dbDirectory, context, instance);
 
-        this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
-        this.databaseAppender = new DatabaseAppender(dbDirectory, context);
+        try {
+            this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
+            this.databaseAppender = new DatabaseAppender(dbDirectory, context);
+        } catch (IOException ex) {
+            throw new DbException("Error in DBEngine2 constructor", ex);
+        }
         this.loadDataLock = new ReentrantLock();
         this.consolidateLock = new ReentrantLock();
         this.writeLock = new ReentrantLock();

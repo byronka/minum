@@ -102,7 +102,7 @@ public interface IRequest {
      *     in the "minum.config" file.
      * </p>
      */
-    Body getBody() throws IOException;
+    Body getBody();
 
     /**
      * Gets a string of the ip address of the client sending this

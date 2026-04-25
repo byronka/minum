@@ -62,7 +62,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      *                 that each database (that is, each instance of this class), focuses on just one
      *                 data, which must be an implementation of {@link DbData}.
      */
-    public Db(Path dbDirectory, Context context, T instance) throws IOException {
+    public Db(Path dbDirectory, Context context, T instance) {
         super(dbDirectory, context, instance);
         this.hasLoadedData = false;
         this.fullPathForIndexFile = dbDirectory.resolve("index" + DATABASE_FILE_SUFFIX);
@@ -70,14 +70,16 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
 
         if (Files.exists(fullPathForIndexFile)) {
             long indexValue;
-            try (var fileReader = new FileReader(fullPathForIndexFile.toFile(), StandardCharsets.UTF_8)) {
-                try (BufferedReader br = new BufferedReader(fileReader)) {
-                    String s = br.readLine();
-                    if (s == null) throw new DbException("index file at " + fullPathForIndexFile + " returned null when reading a line from it");
-                    mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
-                    String trim = s.trim();
-                    indexValue = Long.parseLong(trim);
-                }
+            try (
+                    var fileReader = new FileReader(fullPathForIndexFile.toFile(), StandardCharsets.UTF_8);
+                    BufferedReader br = new BufferedReader(fileReader)) {
+                String s = br.readLine();
+                if (s == null) throw new DbException("index file at " + fullPathForIndexFile + " returned null when reading a line from it");
+                mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
+                String trim = s.trim();
+                indexValue = Long.parseLong(trim);
+            } catch (IOException e) {
+                throw new DbException("Error while reading index file", e);
             }
 
             this.index = new AtomicLong(indexValue);

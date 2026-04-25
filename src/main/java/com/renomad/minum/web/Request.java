@@ -46,13 +46,17 @@ public final class Request implements IRequest {
     }
 
     @Override
-    public Body getBody() throws IOException {
+    public Body getBody() {
         if (hasStartedReadingBody) {
             throw new WebServerException("The InputStream in Request has already been accessed for reading, preventing body extraction from stream." +
                     " If intending to use getBody(), use it exclusively");
         }
         if (body == null) {
-            body = bodyProcessor.extractData(socketWrapper.getInputStream(), headers);
+            try {
+                body = bodyProcessor.extractData(socketWrapper.getInputStream(), headers);
+            } catch (IOException e) {
+                throw new WebServerException("Exception thrown in Request.getBody", e);
+            }
         }
         return body;
     }
