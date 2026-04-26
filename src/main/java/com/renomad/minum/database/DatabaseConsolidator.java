@@ -100,7 +100,7 @@ final class DatabaseConsolidator {
      */
     private void processAppendLogFile(String filename) {
         Path fullPathToFile = this.appendLogDirectory.resolve(filename);
-        List<String> lines = null;
+        List<String> lines;
         try {
             lines = Files.readAllLines(fullPathToFile);
 
@@ -180,7 +180,7 @@ final class DatabaseConsolidator {
      */
     private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) {
         // get all the data from the consolidated file
-        List<String> data = null;
+        List<String> data;
         try {
             data = Files.readAllLines(fullPathToConsolidatedFile);
         } catch (IOException e) {

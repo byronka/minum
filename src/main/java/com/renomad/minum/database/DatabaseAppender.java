@@ -222,11 +222,11 @@ final class DatabaseAppender {
     }
 
     void flush() {
-        flush(this.bufferedWriter, this.logger);
+        flush(this.bufferedWriter);
         this.bufferedWriterHasUnwrittenData = false;
     }
 
-    static void flush(Writer writer, ILogger logger) {
+    static void flush(Writer writer) {
         try {
             writer.flush();
         } catch (IOException e) {
