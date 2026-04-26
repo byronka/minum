@@ -987,7 +987,7 @@ public class DbEngine2Tests {
             public void flush() {throw new DbException("This is a test exception");}
             @Override public void close() {}
         };
-        var ex = assertThrows(DbException.class, () -> DatabaseAppender.flush(exceptionThrowingWriter, logger));
+        var ex = assertThrows(DbException.class, () -> DatabaseAppender.flush(exceptionThrowingWriter));
         assertEquals(ex.getMessage(), "This is a test exception");
     }
 
