@@ -24,46 +24,35 @@ Bug fixes found through AI analysis of the codebase.  Results of the analysis we
 used to build tests proving the bugs, which were then corrected by hand in the ordinary
 manner.
 
-Practical breaking changes: IOException is now thrown in several more places and needs
-to be handled by the developer.  Some methods have been changed from static to instance
-methods, and some parameters have been changed to methods.
+Practical breaking changes: Exception handling has been changed.  Some methods have been 
+changed from static to instance methods, and some parameters have been changed to methods.
 
-* Breaking changes - brighter illumination of edge cases.
-  * Previously, it was a design concept to wrap IOException and then log
-    the details, so we could avoid "checked" exceptions, which require declaring
-    and handling the exception at each level of the call stack.  
-
-    Upon further consideration, the information it is providing us
-    is incredibly important, even if it causes the disruption of checked exceptions,
-    for the benefit of more precisely highlighting where the call stack might hit I/O.  
-    At the end of the day, we're intimately connected to the hardware, and its complaints
-    and data flow needs to be crystal clear.
-  
-    Note that in case of unexpected hardware errors, such as a hard drive or network
-    card failure, that will bubble up as a unhandled exception and thus a 500 HTTP response
-    will be sent.
-
-    Although several methods are now marked as throwing IOException, this is just
-    for the information of the developers.  It is fine to wrap with a try-catch
-    and convert to a RuntimeException or other custom exception, and in some cases
-    it might make sense to handle differently in the catch block.  Any exceptions
-    that bubble to the top in developer code will end up being caught in the
-    `WebFramwork.processRequest` block which will return a 500.  (For advanced
-    users, there is also an option for registering a `preHandler` to handle the request, so
-    that last-minute exceptions can be more precisely universally controlled.
-
+* Breaking changes
+  * The number of places where IOException is thrown has dropped.  Now these
+    are often wrapped in other RuntimeException-descendants tailored to the situation,
+    such as `DbException` or `WebServerException`
   * Some exceptional situations switched to ForbiddenUseException.
     There were several scenarios with paths that were wrapped in InvariantException, but if
     the system gets a request for a path that is meant to escape the directory,
     that is considered a forbidden situation, and should be tagged as such, allowing
     the programmer to use any desired mechanisms to handle it (such as the Brig).
-  * UtilsException was removed
-  * Moved SearchUtils.findExactlyOne to the testing package, to emphasize it is not
-    particularly performant and probably should only be used for testing.
+  * New exception, `BadRequestException` will be thrown if we receive certain invalid
+    data in requests, specifically:
+    * Receiving a request using chunked transfer-encoding (Minum does not handle that type)
+    * Lacking a properly-formed boundary value in a multipart form, or otherwise failing
+      to follow protocol for that form.
+    * Duplicate keys in a url-encoded form
+    * Excessive number of key-value pairs in a url-encoded form
+    * Malformed headers in request
+    * Multiple content-type headers
+    * Invalid content-length headers
+    * Multiple range headers
+    * Invalid range headers
+    * Empty request line
+    * Invalid request line
 
-* Index race condition
-  * a concurrent add/remove was able to cause incorrect data in the database index
-    sets.  Index sets are a feature which enables faster access to data.
+* Index race condition - a concurrent add/remove was able to cause incorrect
+  data in the database index sets.
 
 * Performance related
   * Removing two `synchronized` blocks in the `abstractDb` class.  Using
@@ -76,9 +65,6 @@ methods, and some parameters have been changed to methods.
     data, which was unnecessary, the data being in a map collection already.
 
 * Minor fixes
-  * Now, if the server receives a "content-length" header with a string
-    value for length, like "content-length: abc", it won't throw an exception.
-    Instead, it will be logged, and content-length will be set to -1.
   * Making stop flag more visible to all threads in ActionQueue. This
     issue only manifests when the system is shutting down - it causes
     the shutdown to be less clean than otherwise.  Corrected by setting
@@ -87,22 +73,11 @@ methods, and some parameters have been changed to methods.
   * Fixing potential resource leak in `Response.compressBody()`. This is
     a minor issue - the resource only leaks if GzipOutputStream throws
     an exception, which should be rare.
-  * RingBuffer code threw NoSuchElementException on a missed search. This
-    is mostly minor because the RingBuffer capabilities are not pushed
-    beyond some well-defined boundaries.  This does account for the edge
-    cases a bit better though.
-  * Better body processing for multipart data.  Adjusted code to trim the
-    string after the end of the boundary value, in case there is a space
-    or semicolon marking the start of another attribute on that header. Which,
-    to be clear, is unlikely and has not been encountered in real usage 
-    thus far.
 
 Additionally, spelling corrections in the documentation and a new `test_quiet` target
 in the Makefile that runs tests without showing the logs.
 
-Many thanks to Adam and Matt for your invaluable conversations and experiments, and
-without whom these bugs would not have been noticed so early.  
-See docs/analysis_artifacts/AI_analysis_March_2026.txt for logs of the AI discussion.
+Many thanks to Adam and Matt for their help!
 
 v9.0.0 Released on March 1
 --------------------------
