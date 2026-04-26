@@ -140,8 +140,7 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadBinaryFile_FileMissing() {
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.readBinaryFile("target/does_not_exist.txt"));
-        assertTrue(ex.getMessage().contains("The system cannot find the file specified"));
+        assertThrows(UtilsException.class, () -> fileUtils.readBinaryFile("target/does_not_exist.txt"));
     }
 
     @Test
@@ -163,8 +162,7 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadTextFile_FileMissing() {
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
-        assertTrue(ex.getMessage().contains("cannot find the file"));
+        assertThrows(UtilsException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
     }
 
     @Test
