@@ -6,7 +6,6 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.StacktraceUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

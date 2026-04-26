@@ -3,7 +3,6 @@ package com.renomad.minum.database;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.CryptoUtils;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;

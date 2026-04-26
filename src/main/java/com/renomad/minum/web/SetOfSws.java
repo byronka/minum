@@ -3,8 +3,6 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.ConcurrentSet;
 
-import java.io.IOException;
-
 /**
  * This is a data structure of the live set of {@link ISocketWrapper}
  * in our system.  It exists so that we can keep tabs on how many

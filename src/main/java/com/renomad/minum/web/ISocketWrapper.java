@@ -3,7 +3,6 @@ package com.renomad.minum.web;
 import com.renomad.minum.state.Constants;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
 

@@ -1,9 +1,7 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ForbiddenUseException;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 

@@ -9,7 +9,6 @@ import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;

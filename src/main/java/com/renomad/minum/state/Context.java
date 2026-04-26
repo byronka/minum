@@ -7,7 +7,6 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.queue.ActionQueueState;
 import com.renomad.minum.web.FullSystem;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 

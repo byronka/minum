@@ -1,8 +1,6 @@
 package com.renomad.minum.web;
 
 
-import java.io.IOException;
-
 /**
  * An HTTP request.
  * <p>

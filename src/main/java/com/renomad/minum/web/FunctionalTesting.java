@@ -8,7 +8,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StacktraceUtils;
-import java.io.IOException;
+
 import java.io.InputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
