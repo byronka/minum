@@ -215,7 +215,7 @@ final class DatabaseAppender {
         try {
             Files.move(persistenceDirectory.resolve("currentAppendLog"), this.appendLogDirectory.resolve(appendFile));
         } catch (IOException e) {
-            throw new DbException(e);
+            throw new DbException("Error while moving file in DatabaseAppender.moveToReadyFolder", e);
         }
         return appendFile;
     }
@@ -229,7 +229,7 @@ final class DatabaseAppender {
         try {
             writer.flush();
         } catch (IOException e) {
-            throw new DbException("Error while flushing in TimedFlusher", e);
+            throw new DbException("Error in DatabaseAppender.flush", e);
         }
     }
 }

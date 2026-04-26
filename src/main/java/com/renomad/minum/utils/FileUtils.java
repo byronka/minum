@@ -151,7 +151,7 @@ public final class FileUtils {
      * This method is to provide assurance that the file specified by the path
      * parameter is within the directory specified by directoryPath.  Use this
      * for any code that reads from files where the user provides untrusted input.
-     * @throws InvariantException if the file is not within the directory
+     * @throws ForbiddenUseException if the file is not within the directory
      * @throws UtilsException as a wrapper around any IOException thrown
      */
     public void checkFileIsWithinDirectory(String path, String directoryPath) {

@@ -281,13 +281,13 @@ final class BodyProcessor implements IBodyProcessor {
                     String s;
                     s = inputStreamUtils.readLine(inputStream);
                     if (s == null) {
-                        throw new WebServerException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+                        throw new BadRequestException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
                     }
                     countBytesRead.incrementBy(s.length() + 2);
                     hasReadFirstPartition = true;
 
                     if (!s.contains(boundaryValue)) {
-                        throw new WebServerException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
+                        throw new BadRequestException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
                     }
                 }
                 List<String> allHeaders = null;

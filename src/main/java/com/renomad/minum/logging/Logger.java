@@ -72,7 +72,7 @@ public class Logger implements ILogger {
             activeLogLevels.put(t, enabledLoggingLevels.contains(t));
         }
         // these are set specially - they must always be output, no matter what
-        // the user prefers, owing to their critical importance.
+        // the user prefers, because of their critical importance.
         activeLogLevels.put(LoggingLevel.ASYNC_ERROR, true);
         activeLogLevels.put(LoggingLevel.WARN, true);
         return activeLogLevels;

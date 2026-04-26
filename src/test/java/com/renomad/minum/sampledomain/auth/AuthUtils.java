@@ -39,7 +39,6 @@ public class AuthUtils {
     private final String registerPageTemplate;
     private final Constants constants;
     private final SessionId emptySessionId;
-    private final CryptoUtils cryptoUtils;
     private static final int MOST_COOKIES_WE_WILL_LOOK_THROUGH = 5;
 
     public AuthUtils(Db<SessionId> sessionDiskData,
@@ -51,7 +50,6 @@ public class AuthUtils {
         emptySessionId = SessionId.EMPTY;
         this.logger = context.getLogger();
         FileUtils fileUtils = new FileUtils(logger, constants);
-        this.cryptoUtils = new CryptoUtils();
 
         loginPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/login_page_template.html");
         registerPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/register_page_template.html");

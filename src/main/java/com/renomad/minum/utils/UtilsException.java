@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import java.io.IOException;
 import java.io.Serial;
 
 public class UtilsException extends RuntimeException{
@@ -18,4 +19,7 @@ public class UtilsException extends RuntimeException{
         super(msg);
     }
 
+    public UtilsException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }

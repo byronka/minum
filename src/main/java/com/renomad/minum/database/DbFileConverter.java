@@ -103,7 +103,7 @@ final class DbFileConverter {
 
             // at this point, after all the ordinary files have been removed, kill the index file
             Files.delete(dbDirectory.resolve("index.ddps"));
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new DbException("Error in DbFileConverter.walkFilesAndConvertDbToDbEngine2", e);
         }
     }
@@ -120,7 +120,7 @@ final class DbFileConverter {
                         dbDirectory.resolve("currentAppendLog"),
                         "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
             } catch (IOException e) {
-                throw new DbException(e);
+                throw new DbException("Error in DbFileConverter.extractDataAndAppend while writing string", e);
             }
         }
         return fileToAnalyze;
@@ -158,7 +158,7 @@ final class DbFileConverter {
         try {
             fileContents = Files.readString(p);
         } catch (IOException e) {
-            throw new DbException(e);
+            throw new DbException("Error in DbFileConverter.checkFileDetailsAreValid while reading string", e);
         }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");

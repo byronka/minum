@@ -3,8 +3,6 @@ package com.renomad.minum.utils;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 
 /**
@@ -12,7 +10,9 @@ import java.security.spec.KeySpec;
  */
 public final class CryptoUtils {
 
-    public CryptoUtils() {}
+    private CryptoUtils() {
+        // cannot construct
+    }
 
     /**
      * Converts an array of bytes to their corresponding hex string
@@ -38,20 +38,20 @@ public final class CryptoUtils {
      * </p>
      */
     public static String createPasswordHash(String password, String salt) {
-        try {
-            return createPasswordHash(password, salt, "PBKDF2WithHmacSHA1");
-        } catch (Exception e) {
-            throw new UtilsException(e);
-        }
+        return createPasswordHash(password, salt, "PBKDF2WithHmacSHA1");
     }
 
-    static String createPasswordHash(String password, String salt, String algorithm) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    static String createPasswordHash(String password, String salt, String algorithm) {
         final KeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 128);
         final SecretKeyFactory factory;
 
-        factory = SecretKeyFactory.getInstance(algorithm);
-        final byte[] hashed = factory.generateSecret(spec).getEncoded();
-        return bytesToHex(hashed);
+        try {
+            factory = SecretKeyFactory.getInstance(algorithm);
+            final byte[] hashed = factory.generateSecret(spec).getEncoded();
+            return bytesToHex(hashed);
+        } catch (Exception e) {
+            throw new UtilsException(e);
+        }
     }
 
 }

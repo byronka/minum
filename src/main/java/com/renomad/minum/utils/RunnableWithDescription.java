@@ -26,7 +26,11 @@ public final class RunnableWithDescription implements ThrowingRunnable {
     }
 
     @Override
-    public void run() throws Exception {
-        r.run();
+    public void run() {
+        try {
+            r.run();
+        } catch (Exception e) {
+            throw new UtilsException(e);
+        }
     }
 }

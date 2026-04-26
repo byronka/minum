@@ -296,7 +296,7 @@ public class RequestTests {
         IRequest request = makeRequest(List.of("content-length: " + bytes.length, "content-type: multipart/form-data; boundary=foo_foo"), socketWrapper);
         Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
         Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
-        var ex = assertThrows(WebServerException.class, () -> iterator.next());
+        var ex = assertThrows(BadRequestException.class, () -> iterator.next());
         assertEquals(ex.getMessage(), "Error: First line must contain the expected boundary value. Expected to find: foo_foo in: --i_am_a_boundary");
     }
 
@@ -503,7 +503,7 @@ public class RequestTests {
         IRequest request = makeRequest(List.of("content-length: " + contentLength, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
         Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
         Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
-        var ex = assertThrows(WebServerException.class, () -> iterator.next());
+        var ex = assertThrows(BadRequestException.class, () -> iterator.next());
         assertEquals(ex.getMessage(), "Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
     }
 
@@ -520,8 +520,8 @@ public class RequestTests {
         IRequest request = makeRequest(List.of("content-length: " + contentLength, "content-type: multipart/form-data; boundary=i_am_a_boundary"), socketWrapper);
         Iterable<StreamingMultipartPartition> multipartIterable = request.getMultipartIterable();
         Iterator<StreamingMultipartPartition> iterator = multipartIterable.iterator();
-        var ex = assertThrows(WebServerException.class, () -> iterator.next());
-        assertTrue(ex.getMessage().contains("Error: First line must contain the expected boundary value. Expected to find: i_am_a_boundary in:"));
+        var ex = assertThrows(BadRequestException.class, () -> iterator.next());
+        assertTrue(ex.getMessage().contains("Error: First line must contain the expected boundary value. Expected to find: i_am_a_boundary in:"), "message was " + ex.getMessage());
     }
 
     /**

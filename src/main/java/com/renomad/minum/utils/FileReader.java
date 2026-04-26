@@ -77,7 +77,7 @@ public final class FileReader implements IFileReader {
                 return bytes;
             }
         } catch (IOException e) {
-            throw new UtilsException(e);
+            throw new UtilsException("Error in FileReader.readTheFile", e);
         }
     }
 

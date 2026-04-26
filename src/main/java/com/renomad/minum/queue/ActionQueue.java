@@ -37,6 +37,10 @@ public final class ActionQueue implements AbstractActionQueue {
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private final ILogger logger;
+    /**
+     * Set as volatile so that multiple threads may see the update
+     * as soon as it occurs.
+     */
     private volatile boolean stop = false;
     private Thread queueThread;
     private boolean isStoppedStatus;

@@ -60,7 +60,8 @@ public class InputStreamUtilsTests {
 
             var exception = assertThrows(WebServerException.class, () -> inputStreamUtils.read(2, inputStream));
 
-            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+            assertEquals(exception.getMessage(), "Error in InputStreamUtils.read while reading from stream");
+            assertEquals(exception.getCause().getMessage(), "test exception only, no worries");
         }
     }
 

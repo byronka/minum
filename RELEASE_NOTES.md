@@ -28,6 +28,9 @@ Practical breaking changes: Exception handling has been changed.  Some methods h
 changed from static to instance methods, and some parameters have been changed to methods.
 
 * Breaking changes
+  * In several spots, the system became a bit stricter than before, and will throw
+    a new exception, `BadRequestException`, if it receives something invalid.  See
+    further notes below.
   * The number of places where IOException is thrown has dropped.  Now these
     are often wrapped in other RuntimeException-descendants tailored to the situation,
     such as `DbException` or `WebServerException`

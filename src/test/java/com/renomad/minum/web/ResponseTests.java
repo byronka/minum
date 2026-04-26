@@ -90,7 +90,8 @@ public class ResponseTests {
             @Override public void flush() {}
         };
         var ex = assertThrows(WebServerException.class, () ->  response.sendBody(mockSocketWrapper));
-        assertEquals(ex.getMessage(), "This is just a test");
+        assertEquals(ex.getMessage(), "Error in Response.sendBody");
+        assertEquals(ex.getCause().getMessage(), "This is just a test");
     }
 
     /**

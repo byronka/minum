@@ -130,7 +130,7 @@ final class DatabaseConsolidator {
             // delete the file
             Files.delete(fullPathToFile);
         } catch (IOException e) {
-            throw new DbException(e);
+            throw new DbException("Error in DatabaseConsolidator.processAppendLogFile", e);
         }
     }
 
@@ -184,7 +184,7 @@ final class DatabaseConsolidator {
         try {
             data = Files.readAllLines(fullPathToConsolidatedFile);
         } catch (IOException e) {
-            throw new DbException(e);
+            throw new DbException("Error in DatabaseConsolidator.readConsolidatedFileWithChecksum", e);
         }
 
         compareWithChecksum(fullPathToConsolidatedFile, data);

@@ -15,8 +15,7 @@ public interface ILogger {
 
     /**
      * Logs information regarding system integrity, such as overloaded
-     * or failing disks, operating system failurs, or other essential
-     * foundational failures.
+     * or failing disks or operating system failures.
      */
     void logWarn(ThrowingSupplier<String, Exception> msg);
 

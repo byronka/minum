@@ -385,7 +385,7 @@ public final class Response implements IResponse {
         try {
             outputGenerator.accept(sw);
         } catch (Exception ex) {
-            throw new WebServerException(ex.getMessage(), ex);
+            throw new WebServerException("Error in Response.sendBody", ex);
         }
     }
 
@@ -415,12 +415,12 @@ public final class Response implements IResponse {
                 countBytesLeftToSend -= countBytesRead;
             }
         } catch (IOException e) {
-            throw new WebServerException("Error in Response.sendFileChannelRespons", e);
+            throw new WebServerException("Error in Response.sendFileChannelResponse", e);
         } finally {
             try {
                 fileChannel.close();
             } catch (IOException e) {
-                throw new WebServerException("Error in finally block of Response.sendFileChannelResponse", e);
+                throw new WebServerException("Error in finally block of Response.sendFileChannelResponse while closing", e);
             }
         }
     }
@@ -440,7 +440,7 @@ public final class Response implements IResponse {
      * This operates by getting the body field from this instance of {@link Response} and
      * creating a new Response with the compressed data.
      */
-    Response compressBody() {
+    IResponse compressBody() {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (var gos = new GZIPOutputStream(out)) {
@@ -449,7 +449,7 @@ public final class Response implements IResponse {
         } catch (IOException e) {
             throw new WebServerException("Error in Response.compressBody", e);
         }
-        return (Response) Response.buildResponse(
+        return Response.buildResponse(
                 statusCode,
                 extraHeaders,
                 out.toByteArray()

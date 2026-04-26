@@ -79,7 +79,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
                 String trim = s.trim();
                 indexValue = Long.parseLong(trim);
             } catch (IOException e) {
-                throw new DbException("Error while reading index file", e);
+                throw new DbException("Error while reading index file in Db constructor", e);
             }
 
             this.index = new AtomicLong(indexValue);
@@ -241,7 +241,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         try {
             fileContents = Files.readString(p);
         } catch (IOException e) {
-            throw new DbException(e);
+            throw new DbException("Error in Db.readAndDeserialize while reading file contents", e);
         }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");

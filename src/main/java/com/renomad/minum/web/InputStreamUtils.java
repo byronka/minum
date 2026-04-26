@@ -38,7 +38,7 @@ final class InputStreamUtils implements IInputStreamUtils {
             try {
                 a = inputStream.read();
             } catch (IOException e) {
-                throw new WebServerException(e);
+                throw new WebServerException("Error in InputStreamUtils.readLine while reading from stream", e);
             }
             if (a == -1) {
                 if (bytesRead > 0) {
@@ -74,7 +74,7 @@ final class InputStreamUtils implements IInputStreamUtils {
             try {
                 if (!((read = inputStream.read(buf)) >= 0)) break;
             } catch (IOException e) {
-                throw new WebServerException(e);
+                throw new WebServerException("Error in InputStreamUtils.read while reading from stream", e);
             }
             totalRead += read;
             if (totalRead < lengthToRead) {

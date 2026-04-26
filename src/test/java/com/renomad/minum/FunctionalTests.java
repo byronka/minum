@@ -328,6 +328,8 @@ public class FunctionalTests {
                 byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
                 assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
                 assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
+            } catch (Exception e) {
+                assertTrue(e.getCause() instanceof SocketException);
             }
         }
 
