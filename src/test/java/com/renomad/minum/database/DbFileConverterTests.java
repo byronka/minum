@@ -158,6 +158,25 @@ public class DbFileConverterTests {
     }
 
     /**
+     * If while walking the files we encounter an unusual file, like for example a directory,
+     * then an exception should be thrown.
+     */
+    @Test
+    public void test_checkFileDetailsAreValid_EdgeCase_NonRegularFile() throws IOException {
+        // arrange
+        Path path = Path.of("out/dbconvertertests/test_checkFileDetailsAreValid_EdgeCase_NonRegularFile");
+        fileUtils.deleteDirectoryRecursivelyIfExists(path);
+        var dbFileConverter = new DbFileConverter(context, path);
+        fileUtils.deleteDirectoryRecursivelyIfExists(path);
+        Files.createDirectory(path);
+
+        // act
+        TestLogger logger = (TestLogger)context.getLogger();
+        var ex = assertThrows(DbException.class, () -> dbFileConverter.checkFileDetailsAreValid(path, logger));
+        assertTrue(ex.getMessage().contains("test_checkFileDetailsAreValid_EdgeCase_NonRegularFile is not a regular file"), "message was " + ex.getMessage());
+    }
+
+    /**
      * If we are listing the files in walkFilesAndConvertDbEngine2ToDbClassic and
      * an exception is thrown, it should be handled properly.
      */

@@ -25,6 +25,10 @@ public class FileUtilsTests {
     private static TestLogger logger;
     private static Context context;
 
+    /**
+     * A directory in which we can work for this test suite
+     */
+    private static Path overallTestDirectory;
 
     @BeforeClass
     public static void init() {
@@ -32,11 +36,15 @@ public class FileUtilsTests {
         logger = (TestLogger) context.getLogger();
         Constants constants = context.getConstants();
         fileUtils = new FileUtils(logger, constants);
+        overallTestDirectory = Path.of("out/test_directory/");
+        fileUtils.deleteDirectoryRecursivelyIfExists(overallTestDirectory);
+        fileUtils.innerCreateDirectory(overallTestDirectory);
     }
 
     @AfterClass
     public static void cleanup() {
         shutdownTestingContext(context);
+        fileUtils.deleteDirectoryRecursivelyIfExists(overallTestDirectory);
     }
 
     @Test
@@ -216,10 +224,7 @@ public class FileUtilsTests {
      */
     @Test
     public void test_innerCreateDirectory_IOException() throws IOException {
-        Path outerPath = Path.of("out/test_directory/");
-        Path innerPath = outerPath.resolve("test_innerCreateDirectory_IOException");
-        fileUtils.deleteDirectoryRecursivelyIfExists(outerPath);
-        fileUtils.innerCreateDirectory(outerPath);
+        Path innerPath = overallTestDirectory.resolve("test_innerCreateDirectory_IOException");
         Files.createFile(innerPath);
         var ex = assertThrows(UtilsException.class, () -> fileUtils.innerCreateDirectory(innerPath));
         assertTrue(ex.getCause() instanceof FileAlreadyExistsException);
@@ -235,5 +240,22 @@ public class FileUtilsTests {
         fileUtils.safeResolve("src/test", "resources/kitty.jpg");
         assertThrows(ForbiddenUseException.class, () -> fileUtils.safeResolve("src/test", "/"));
         assertThrows(ForbiddenUseException.class, () -> fileUtils.safeResolve("src/test", "../../docs"));
+    }
+
+    /**
+     * Just getting a handle on the delete method
+     */
+    @Test
+    public void test_delete() throws IOException {
+        Path innerPath = overallTestDirectory.resolve("testing_delete");
+        Files.createFile(innerPath);
+        fileUtils.delete(innerPath);
+
+        // poof! It should be gone
+        assertFalse(Files.exists(innerPath));
+
+        // now let's try to delete it again (should throw exception)
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.delete(innerPath));
+        assertTrue(ex.getCause() instanceof  NoSuchFileException);
     }
 }
