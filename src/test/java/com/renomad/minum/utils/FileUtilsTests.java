@@ -12,6 +12,7 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -40,8 +41,14 @@ public class FileUtilsTests {
 
     @Test
     public void test_WriteString_EmptyPath() {
-        fileUtils.writeString(Path.of(""), "bar");
-        assertTrue(logger.doesMessageExist("an empty path was provided to writeString"));
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.writeString(Path.of(""), "bar"));
+        assertEquals(ex.getMessage(), "an empty path was provided to writeString");
+    }
+
+    @Test
+    public void test_ReadString_EmptyPath() {
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.readString(Path.of("")));
+        assertEquals(ex.getMessage(), "an empty path was provided to readString");
     }
 
     /**
@@ -51,6 +58,16 @@ public class FileUtilsTests {
     @Test
     public void test_WriteString_IOException() {
         var ex = assertThrows(UtilsException.class, () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
+        assertTrue(ex.getMessage().contains("NoSuchFileException"));
+    }
+
+    /**
+     * This will fail because we don't have a directory of
+     * target/foo/bar
+     */
+    @Test
+    public void test_ReadString_IOException() {
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.readString(Path.of("target/foo/bar")));
         assertTrue(ex.getMessage().contains("NoSuchFileException"));
     }
 
@@ -187,10 +204,25 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_innerCreateDirectory() {
+    public void test_innerCreateDirectory_disallowedNull() {
         assertThrows(IllegalArgumentException.class,
                 "directory parameter is disallowed to be null when creating a directory",
                 () -> fileUtils.innerCreateDirectory(null));
+    }
+
+    /**
+     * An {@link IOException} will be thrown by Files.createDirectories
+     * if we ask it to write a directory over an existing one.
+     */
+    @Test
+    public void test_innerCreateDirectory_IOException() throws IOException {
+        Path outerPath = Path.of("out/test_directory/");
+        Path innerPath = outerPath.resolve("test_innerCreateDirectory_IOException");
+        fileUtils.deleteDirectoryRecursivelyIfExists(outerPath);
+        fileUtils.innerCreateDirectory(outerPath);
+        Files.createFile(innerPath);
+        var ex = assertThrows(UtilsException.class, () -> fileUtils.innerCreateDirectory(innerPath));
+        assertTrue(ex.getCause() instanceof FileAlreadyExistsException);
     }
 
     /**

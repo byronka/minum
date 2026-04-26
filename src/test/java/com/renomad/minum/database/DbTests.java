@@ -390,7 +390,8 @@ public class DbTests {
         // this file should not be empty, but we are making it empty
         Files.writeString(pathToIndex,"");
         var ex = assertThrows(DbException.class, () -> new Db<>(dbPathForTest, context, INSTANCE));
-        assertTrue(ex.getMessage().contains("index.ddps returned null when reading a line from it"), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Error in Db constructor"), "Message was: " + ex.getMessage());
+        assertTrue(ex.getCause().getMessage().contains("For input string: \"\""), "Message was: " + ex.getCause().getMessage());
         MyThread.sleep(FINISH_TIME);
 
         TestFramework.shutdownTestingContext(contextWithRegularLogger);

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
@@ -38,7 +39,7 @@ public final class FileUtils {
     }
 
     /**
-     * Write a string to a path on disk.
+     * A wrapper around {@link Files#writeString(Path, CharSequence, OpenOption...)}
      * <br>
      * <p>
      *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
@@ -46,13 +47,29 @@ public final class FileUtils {
      * </p>
      * @throws UtilsException as a wrapper around any IOException thrown
      */
-    public void writeString(Path path, String content) {
+    public void writeString(Path path, String content, OpenOption... options) {
         if (path.toString().isEmpty()) {
-            logger.logDebug(() -> "an empty path was provided to writeString");
-            return;
+            throw new UtilsException("an empty path was provided to writeString");
         }
         try {
-            Files.writeString(path, content);
+            Files.writeString(path, content, options);
+        } catch (IOException e) {
+            throw new UtilsException(e);
+        }
+    }
+
+    /**
+     * A wrapper around {@link Files#readString(Path)}
+     * @return the value of the file at the path parameter, as
+     * a string, presuming UTF-8 encoding
+     * @throws UtilsException as a wrapper around any IOException thrown
+     */
+    public String readString(Path path) {
+        if (path.toString().isEmpty()) {
+            throw new UtilsException("an empty path was provided to readString");
+        }
+        try {
+            return Files.readString(path);
         } catch (IOException e) {
             throw new UtilsException(e);
         }
@@ -104,9 +121,9 @@ public final class FileUtils {
     public void makeDirectory(Path directory) {
         logger.logDebug(() -> "Creating a directory " + directory);
         boolean directoryExists = Files.exists(directory);
-        logger.logDebug(() -> "Directory: " + directory + ". Already exists: " + directory);
-        if (!directoryExists) {
-            logger.logDebug(() -> "Creating directory, since it does not already exist: " + directory);
+        if (directoryExists) {
+            logger.logDebug(() -> "Directory: (" + directory + ") Already exists. Returning.");
+        } else {
             innerCreateDirectory(directory);
             logger.logDebug(() -> "Directory: " + directory + " created");
         }
@@ -222,6 +239,14 @@ public final class FileUtils {
         checkForBadFilePatterns(path);
         checkFileIsWithinDirectory(path, parentDirectory);
         return Path.of(parentDirectory).resolve(path);
+    }
+
+    public void delete(Path path) {
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            throw new UtilsException(e);
+        }
     }
 
 }

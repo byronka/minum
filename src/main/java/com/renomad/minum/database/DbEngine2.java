@@ -287,7 +287,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         }
 
         fileUtils.makeDirectory(dbDirectory);
-        // if there are any remnant items in the current append-only file, move them
+        // if there are any remaining items in the current append-only file, move them
         // to a new file
         databaseAppender.saveOffCurrentDataToReadyFolder();
         databaseAppender.flush();

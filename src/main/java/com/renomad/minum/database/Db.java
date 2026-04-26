@@ -69,20 +69,14 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         this.actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
 
         if (Files.exists(fullPathForIndexFile)) {
-            long indexValue;
-            try (
-                    var fileReader = new FileReader(fullPathForIndexFile.toFile(), StandardCharsets.UTF_8);
-                    BufferedReader br = new BufferedReader(fileReader)) {
-                String s = br.readLine();
-                if (s == null) throw new DbException("index file at " + fullPathForIndexFile + " returned null when reading a line from it");
-                mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
-                String trim = s.trim();
-                indexValue = Long.parseLong(trim);
-            } catch (IOException e) {
-                throw new DbException("Error while reading index file in Db constructor", e);
+            try {
+                long indexValue;
+                String indexValueString = fileUtils.readString(fullPathForIndexFile);
+                indexValue = Long.parseLong(indexValueString);
+                this.index = new AtomicLong(indexValue);
+            } catch (Exception ex) {
+                throw new DbException("Error in Db constructor", ex);
             }
-
-            this.index = new AtomicLong(indexValue);
 
         } else {
             this.index = new AtomicLong(1);
@@ -238,11 +232,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
         String fileContents = null;
-        try {
-            fileContents = Files.readString(p);
-        } catch (IOException e) {
-            throw new DbException("Error in Db.readAndDeserialize while reading file contents", e);
-        }
+        fileContents = fileUtils.readString(p);
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
         } else {

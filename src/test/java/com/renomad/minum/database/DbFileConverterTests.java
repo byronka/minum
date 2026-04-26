@@ -108,10 +108,12 @@ public class DbFileConverterTests {
         // arrange
         Path path = Path.of("out/sample_file_for_test_gggfff");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
+        var dbFileConverter = new DbFileConverter(context, path);
+        fileUtils.deleteDirectoryRecursivelyIfExists(path);
         Files.writeString(path, "hello world", StandardOpenOption.CREATE);
 
         // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbToDbEngine2(path, context.getLogger()));
+        var ex = assertThrows(DbException.class, () -> dbFileConverter.walkFilesAndConvertDbToDbEngine2(path, context.getLogger()));
 
         // assert
         assertEquals(ex.getMessage(), "Failed during the listing of files during conversion of db to db engine2");
@@ -127,12 +129,13 @@ public class DbFileConverterTests {
         Path path = Path.of("out/sample_file_for_test_def456");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         fileUtils.makeDirectory(path);
+        var dbFileConverter = new DbFileConverter(context, path);
 
         Files.writeString(path.resolve("1.ddps"), "", StandardOpenOption.CREATE);
 
         // act
         TestLogger logger = (TestLogger)context.getLogger();
-        DbFileConverter.extractDataAndAppend(path, logger, path.resolve("1.ddps"));
+        dbFileConverter.extractDataAndAppend(path, logger, path.resolve("1.ddps"));
 
         // assert
         assertTrue(logger.doesMessageExist("1.ddps file exists but empty, skipping"));
@@ -143,26 +146,15 @@ public class DbFileConverterTests {
         // arrange
         Path path = Path.of("out/sample_file_for_test_lllllkkkk");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
+        var dbFileConverter = new DbFileConverter(context, path);
+        fileUtils.deleteDirectoryRecursivelyIfExists(path);
         Files.writeString(path, "", StandardOpenOption.CREATE);
 
         // act
         TestLogger logger = (TestLogger)context.getLogger();
-        DbFileConverter.checkFileDetailsAreValid(path, logger);
+        dbFileConverter.checkFileDetailsAreValid(path, logger);
 
         assertTrue(logger.doesMessageExist("file exists but empty, skipping"));
-    }
-
-    @Test
-    public void test_checkFileDetailsAreValid_EdgeCase_EmptyPath() {
-        // arrange
-        Path path = Path.of(".");
-        TestLogger logger = (TestLogger)context.getLogger();
-
-        // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.checkFileDetailsAreValid(path, logger));
-
-        // assert
-        assertEquals(ex.getMessage(), "At checkFileDetailsAreValid, path . is not a regular file");
     }
 
     /**

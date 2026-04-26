@@ -2,6 +2,7 @@ package com.renomad.minum.database;
 
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -27,6 +28,7 @@ final class DbFileConverter {
     private final ILogger logger;
     private final DatabaseAppender databaseAppender;
     private final DatabaseConsolidator databaseConsolidator;
+    private final FileUtils fileUtils;
 
     /**
      * Construct a converter instance
@@ -39,6 +41,7 @@ final class DbFileConverter {
         this.logger = context.getLogger();
         this.databaseAppender = new DatabaseAppender(dbDirectory, context);
         this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
+        this.fileUtils = new FileUtils(logger, context.getConstants());
     }
 
     /**
@@ -86,42 +89,34 @@ final class DbFileConverter {
      * walk through all the files in this directory, collecting
      * all regular files (non-subdirectories) except for index.ddps
      */
-    static void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger) {
+    void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger) {
         List<Path> listOfFiles = getListOfFiles(dbDirectory);
 
         // convert each file to the new database schema by appending it
         // to the append log, and then delete it
-        try {
-            for (int i = 0; i < listOfFiles.size(); i++) {
-                int percentCompletion = listOfFiles.size() / 100;
-                if (i == percentCompletion) {
-                    logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
-                }
-                Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
-                Files.delete(p);
+        for (int i = 0; i < listOfFiles.size(); i++) {
+            int percentCompletion = listOfFiles.size() / 100;
+            if (i == percentCompletion) {
+                logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
             }
-
-            // at this point, after all the ordinary files have been removed, kill the index file
-            Files.delete(dbDirectory.resolve("index.ddps"));
-        } catch (IOException e) {
-            throw new DbException("Error in DbFileConverter.walkFilesAndConvertDbToDbEngine2", e);
+            Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
+            fileUtils.delete(p);
         }
+
+        // at this point, after all the ordinary files have been removed, kill the index file
+        fileUtils.delete(dbDirectory.resolve("index.ddps"));
     }
 
     /**
      * This method digs into the Db Classic file, checks everything is kosher, and
      * if so, appends it to the append-only log file which is part of DbEngine2
      */
-    static Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze) {
+    Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze) {
         String fileContents = checkFileDetailsAreValid(fileToAnalyze, logger);
         if (!fileContents.isBlank()) {
-            try {
-                Files.writeString(
-                        dbDirectory.resolve("currentAppendLog"),
-                        "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
-            } catch (IOException e) {
-                throw new DbException("Error in DbFileConverter.extractDataAndAppend while writing string", e);
-            }
+        fileUtils.writeString(
+                dbDirectory.resolve("currentAppendLog"),
+                "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
         }
         return fileToAnalyze;
     }
@@ -148,18 +143,14 @@ final class DbFileConverter {
      * and returns the data. This method is called as part of
      * convert Db Classic to DbEngine2
      */
-    static String checkFileDetailsAreValid(Path p, ILogger logger) {
+    String checkFileDetailsAreValid(Path p, ILogger logger) {
         if (!Files.isRegularFile(p)) {
             throw new DbException("At checkFileDetailsAreValid, path " + p + " is not a regular file");
         }
         String fileName = p.getFileName().toString();
         int startOfSuffixIndex = fileName.indexOf('.');
         String fileContents = null;
-        try {
-            fileContents = Files.readString(p);
-        } catch (IOException e) {
-            throw new DbException("Error in DbFileConverter.checkFileDetailsAreValid while reading string", e);
-        }
+        fileContents = fileUtils.readString(p);
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
             return "";
