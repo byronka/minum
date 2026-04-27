@@ -41,10 +41,14 @@ public class SampleDomain {
         this.db = db;
         this.auth = auth;
         FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
-        String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
-        nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
-        authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
-        unauthHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/unauth_homepage.html");
+        try {
+            String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
+            nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
+            authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
+            unauthHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/unauth_homepage.html");
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in SampleDomain constructor", ex);
+        }
     }
 
     public IResponse formEntry(IRequest r) {

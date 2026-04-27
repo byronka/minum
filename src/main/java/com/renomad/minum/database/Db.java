@@ -137,10 +137,15 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         mustBeFalse(serializedData == null || serializedData.isBlank(),
                 "the serialized form of data must not be blank. " +
                         "Is the serialization code written properly? Our datatype: " + emptyInstance);
-        fileUtils.writeString(fullPath, serializedData);
-        if (maxIndexOnDisk < index.get()) {
-            maxIndexOnDisk = index.get();
-            fileUtils.writeString(fullPathForIndexFile, String.valueOf(maxIndexOnDisk));
+        try {
+            fileUtils.writeString(fullPath, serializedData);
+
+            if (maxIndexOnDisk < index.get()) {
+                maxIndexOnDisk = index.get();
+                fileUtils.writeString(fullPathForIndexFile, String.valueOf(maxIndexOnDisk));
+            }
+        } catch (IOException e) {
+            throw new DbException("Error in Db.writeToDisk", e);
         }
     }
 
@@ -232,7 +237,11 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
         String fileContents = null;
-        fileContents = fileUtils.readString(p);
+        try {
+            fileContents = fileUtils.readString(p);
+        } catch (IOException e) {
+            throw new DbException("Error at Db.readAndDeserialize", e);
+        }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
         } else {

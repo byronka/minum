@@ -40,7 +40,7 @@ public class FunctionalTests {
     private FullSystem fullSystem;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         context = buildTestingContext("_integration_test");
         logger = (TestLogger) context.getLogger();
         var fileUtils = new FileUtils(logger, context.getConstants());

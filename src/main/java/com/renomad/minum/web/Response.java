@@ -274,7 +274,12 @@ public final class Response implements IResponse {
      *                        allows the developer to use directories anywhere in the system.
      */
     public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, FileUtils fileUtils) {
-        Path path = fileUtils.safeResolve(parentDirectory, filePath);
+        Path path = null;
+        try {
+            path = fileUtils.safeResolve(parentDirectory, filePath);
+        } catch (IOException e) {
+            throw new WebServerException("Error at Response.buildLargeFileResponse", e);
+        }
         return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
     }
 

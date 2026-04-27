@@ -60,7 +60,7 @@ public class DbEngine2Tests {
      * what happens if we try deleting a file that doesn't exist?
      */
     @Test
-    public void test_Edge_DeleteFileDoesNotExist() {
+    public void test_Edge_DeleteFileDoesNotExist() throws IOException {
         logger.test("Running test_Edge_DeleteFileDoesNotExist");
 
         // clear out the directory to start
@@ -95,7 +95,7 @@ public class DbEngine2Tests {
      * </p>
      */
     @Test
-    public void test_Db_Write_and_Read() {
+    public void test_Db_Write_and_Read() throws IOException {
         logger.test("Running test_Db_Write_and_Read");
 
         // in this test, we're stopping and starting our database
@@ -181,7 +181,7 @@ public class DbEngine2Tests {
      * not exist, it should throw an exception
      */
     @Test
-    public void test_Db_Delete_EdgeCase_DoesNotExist() {
+    public void test_Db_Delete_EdgeCase_DoesNotExist() throws IOException {
         logger.test("Running test_Db_Delete_EdgeCase_DoesNotExist");
 
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"));
@@ -197,7 +197,7 @@ public class DbEngine2Tests {
      * an exception will be thrown
      */
     @Test
-    public void test_Db_Delete_EdgeCase_NullValue() {
+    public void test_Db_Delete_EdgeCase_NullValue() throws IOException {
         logger.test("Running test_Db_Delete_EdgeCase_NullValue");
 
         Path dbPathForTest = foosDirectory.resolve("test_Db_Delete_EdgeCase_NullValue");
@@ -262,7 +262,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testWriteDeserializationComplaints() {
+    public void testWriteDeserializationComplaints() throws IOException {
         logger.test("Running testWriteDeserializationComplaints");
 
         Path dbPathForTest = fubarDirectory.resolve("testWriteDeserializationComplaints");
@@ -275,7 +275,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testWriteDeserializationComplaints2() {
+    public void testWriteDeserializationComplaints2() throws IOException {
         logger.test("Running testWriteDeserializationComplaints2");
 
         Path dbPathForTest = fubarDirectory.resolve("testWriteDeserializationComplaints2");
@@ -299,7 +299,7 @@ public class DbEngine2Tests {
      * </p>
      */
     @Test
-    public void testWrite_PositiveIndexNotExisting() {
+    public void testWrite_PositiveIndexNotExisting() throws IOException {
         logger.test("Running testWrite_PositiveIndexNotExisting");
 
         Path dbPathForTest = foosDirectory.resolve("testWrite_PositiveIndexNotExisting");
@@ -317,7 +317,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testWrite_NegativeIndex() {
+    public void testWrite_NegativeIndex() throws IOException {
         logger.test("Running testWrite_NegativeIndex");
 
         Path dbPathForTest = foosDirectory.resolve("testWrite_NegativeIndex");
@@ -338,7 +338,7 @@ public class DbEngine2Tests {
      * information without scanning the entire book.
      */
     @Test
-    public void testCreateIndexes() {
+    public void testCreateIndexes() throws IOException {
         logger.test("Running testCreateIndexes");
 
         Path dbPathForTest = foosDirectory.resolve("testCreateIndexes");
@@ -382,7 +382,7 @@ public class DbEngine2Tests {
      * In this case we'll partition by number.
      */
     @Test
-    public void testIndexesOnPartitionedData() {
+    public void testIndexesOnPartitionedData() throws IOException {
         logger.test("Running testIndexesOnPartitionedData");
 
         Path dbPathForTest = foosDirectory.resolve("testIndexesOnPartitionedData");
@@ -424,7 +424,7 @@ public class DbEngine2Tests {
      * the index.
      */
      @Test
-    public void testIndexSpeedDifference() {
+    public void testIndexSpeedDifference() throws IOException {
          logger.test("Running testIndexSpeedDifference");
 
         Path path = Path.of("out/simple_db/bar");
@@ -477,7 +477,7 @@ public class DbEngine2Tests {
      * in the error message to include the registered indexes.
      */
     @Test
-    public void testIndex_NegativeCase_RequestingWithNoIndexRegistered() {
+    public void testIndex_NegativeCase_RequestingWithNoIndexRegistered() throws IOException {
         logger.test("Running testIndex_NegativeCase_RequestingWithNoIndexRegistered");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_RequestingWithNoIndexRegistered");
@@ -494,7 +494,7 @@ public class DbEngine2Tests {
      * throw an exception.  There's never a need to do that and it makes things confusing.
      */
     @Test
-    public void testIndex_NegativeCase_RegisteringSameIndexTwice() {
+    public void testIndex_NegativeCase_RegisteringSameIndexTwice() throws IOException {
         logger.test("Running testIndex_NegativeCase_RegisteringSameIndexTwice");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_RegisteringSameIndexTwice");
@@ -511,7 +511,7 @@ public class DbEngine2Tests {
      * it's all good.
      */
     @Test
-    public void testIndex_EdgeCase_MultipleIndexes() {
+    public void testIndex_EdgeCase_MultipleIndexes() throws IOException {
         logger.test("Running testIndex_EdgeCase_MultipleIndexes");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_EdgeCase_MultipleIndexes");
@@ -526,7 +526,7 @@ public class DbEngine2Tests {
      * maybe useful for debugging
      */
     @Test
-    public void testIndex_GetListOfIndexes() {
+    public void testIndex_GetListOfIndexes() throws IOException {
         logger.test("Running testIndex_GetListOfIndexes");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_GetListOfIndexes");
@@ -542,7 +542,7 @@ public class DbEngine2Tests {
      * If the user tries registering an index with a null value, complain
      */
     @Test
-    public void testIndex_NegativeCase_IndexNameNull() {
+    public void testIndex_NegativeCase_IndexNameNull() throws IOException {
         logger.test("Running testIndex_NegativeCase_IndexNameNull");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_IndexNameNull");
@@ -556,7 +556,7 @@ public class DbEngine2Tests {
      * If a user tries to register an index with an empty string, complain
      */
     @Test
-    public void testIndex_NegativeCase_IndexNameEmptyString() {
+    public void testIndex_NegativeCase_IndexNameEmptyString() throws IOException {
         logger.test("Running testIndex_NegativeCase_IndexNameEmptyString");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_IndexNameEmptyString");
@@ -570,7 +570,7 @@ public class DbEngine2Tests {
      * A partitioning / indexing algorithm must be provided
      */
     @Test
-    public void testIndex_NegativeCase_PartitioningAlgorithmNull() {
+    public void testIndex_NegativeCase_PartitioningAlgorithmNull() throws IOException {
         logger.test("Running testIndex_NegativeCase_PartitioningAlgorithmNull");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_PartitioningAlgorithmNull");
@@ -585,7 +585,7 @@ public class DbEngine2Tests {
      * clear to the user.
      */
     @Test
-    public void testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm() {
+    public void testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm() throws IOException {
         logger.test("Running testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm");
@@ -598,7 +598,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testSearchUtils_ShouldAccommodateUsingIndexes() {
+    public void testSearchUtils_ShouldAccommodateUsingIndexes() throws IOException {
         logger.test("Running testSearchUtils_ShouldAccommodateUsingIndexes");
 
         Path dbPathForTest = foosDirectory.resolve("testSearchUtils_ShouldAccommodateUsingIndexes");
@@ -611,7 +611,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testSearchUtils_SearchFindsNothing() {
+    public void testSearchUtils_SearchFindsNothing() throws IOException {
         logger.test("Running testSearchUtils_SearchFindsNothing");
 
         Path dbPathForTest = foosDirectory.resolve("testSearchUtils_SearchFindsNothing");
@@ -628,7 +628,7 @@ public class DbEngine2Tests {
      * that the indexes work as expected
      */
     @Test
-    public void testIndex_Update() {
+    public void testIndex_Update() throws IOException {
         logger.test("Running testIndex_Update");
 
         Path dbPathForTest = foosDirectory.resolve("testIndex_Update");
@@ -656,7 +656,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void test_NegativeCase_NoIndex() {
+    public void test_NegativeCase_NoIndex() throws IOException {
         logger.test("Running test_NegativeCase_NoIndex");
 
         Path dbPathForTest = foosDirectory.resolve("test_NegativeCase_NoIndex");
@@ -669,7 +669,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testSearchUtility() {
+    public void testSearchUtility() throws IOException {
         logger.test("Running testSearchUtility");
 
         Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
@@ -711,7 +711,7 @@ public class DbEngine2Tests {
      * the first thing causing a load to happen.
      */
     @Test
-    public void test_firstActionIsRequestingDataByIndex() {
+    public void test_firstActionIsRequestingDataByIndex() throws IOException {
         logger.test("Running test_firstActionIsRequestingDataByIndex");
 
         Path dbPathForTest = foosDirectory.resolve("dbengine2_test_firstActionIsRequestingDataByIndex");
@@ -735,7 +735,7 @@ public class DbEngine2Tests {
      * the first thing causing a load to happen.
      */
     @Test
-    public void test_firstActionIsFindExactlyOne() {
+    public void test_firstActionIsFindExactlyOne() throws IOException {
         logger.test("Running test_firstActionIsFindExactlyOne");
 
         Path dbPathForTest = foosDirectory.resolve("dbengine2_test_firstActionIsFindExactlyOne");
@@ -753,7 +753,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void test_Performance() {
+    public void test_Performance() throws IOException {
         logger.test("Running test_Performance");
 
         int originalFooCount = 10;
@@ -823,7 +823,7 @@ public class DbEngine2Tests {
      * Notes: 50,000 writes in 43 milliseconds is 220,264 writes per second. Not bad.
      */
     @Test
-    public void testGettingStarted() {
+    public void testGettingStarted() throws IOException {
         logger.test("Running testGettingStarted");
 
         int loopCount = 50;
@@ -873,7 +873,7 @@ public class DbEngine2Tests {
      * Wide-ranging capabilities of the database
      */
     @Test
-    public void test_GeneralCapability() {
+    public void test_GeneralCapability() throws IOException {
         logger.test("Running test_GeneralCapability");
 
         // build a context with customized values to make testing easier.
@@ -1022,7 +1022,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void test_EdgeCase_RegisteringIndexTooLate() {
+    public void test_EdgeCase_RegisteringIndexTooLate() throws IOException {
         logger.test("Running test_EdgeCase_RegisteringIndexTooLate");
 
         Path dbPathForTest = foosDirectory.resolve("test_EdgeCase_RegisteringIndexTooLate");
@@ -1130,7 +1130,7 @@ public class DbEngine2Tests {
      * If the data doesn't properly deserialize, an exception is thrown
      */
     @Test
-    public void test_readAndDeserialize_NegativeCase() {
+    public void test_readAndDeserialize_NegativeCase() throws IOException {
         logger.test("Running test_readAndDeserialize_NegativeCase");
 
         // instantiate a database, give it data, then shutdown the database
@@ -1150,7 +1150,7 @@ public class DbEngine2Tests {
      * exception must be thrown.
      */
     @Test
-    public void test_readAndDeserialize_NegativeCase_LackingSerializer() {
+    public void test_readAndDeserialize_NegativeCase_LackingSerializer() throws IOException {
         logger.test("Running test_readAndDeserialize_NegativeCase_LackingSerializer");
 
         // instantiate a database, give it data, then shutdown the database
@@ -1170,7 +1170,7 @@ public class DbEngine2Tests {
      * database to load its data.
      */
     @Test
-    public void test_Initialize_readAndDeserialize_NegativeCase() {
+    public void test_Initialize_readAndDeserialize_NegativeCase() throws IOException {
         logger.test("Running test_Initialize_readAndDeserialize_NegativeCase");
 
         // instantiate a database, give it data, then shutdown the database
@@ -1198,7 +1198,7 @@ public class DbEngine2Tests {
      * that log statement, it means we skipped loadDataFromDisk() successfully.
      */
     @Test
-    public void test_LoadData_NoNeed() {
+    public void test_LoadData_NoNeed() throws IOException {
         logger.test("Running test_LoadData_NoNeed");
 
         Path dbPathForTest = foosDirectory.resolve("test_LoadData_NoNeed");
@@ -1271,7 +1271,7 @@ public class DbEngine2Tests {
      * be thrown.
      */
     @Test
-    public void test_FailureDuringInstantiation() {
+    public void test_FailureDuringInstantiation() throws IOException {
         logger.test("Running test_FailureDuringInstantiation");
 
         // instantiate a database, give it data, then shutdown the database
@@ -1304,7 +1304,7 @@ public class DbEngine2Tests {
      * great outcome - it means the memory change will exist but not the disk change.
      */
     @Test
-    public void test_FailureDuringDelete() {
+    public void test_FailureDuringDelete() throws IOException {
         logger.test("Running test_FailureDuringDelete");
 
         Path dbPathForTest = foosDirectory.resolve("test_FailureDuringDelete");
@@ -1325,7 +1325,7 @@ public class DbEngine2Tests {
      * great outcome - it means the memory change will exist but not the disk change.
      */
     @Test
-    public void test_FailureDuringWrite() {
+    public void test_FailureDuringWrite() throws IOException {
         logger.test("Running test_FailureDuringWrite");
 
         Path dbPathForTest = foosDirectory.resolve("test_FailureDuringWrite");
@@ -1346,7 +1346,7 @@ public class DbEngine2Tests {
      * will remain unchanged after this method returns.
      */
     @Test
-    public void test_ConsolidateInnerCode() {
+    public void test_ConsolidateInnerCode() throws IOException {
         logger.test("Running test_ConsolidateInnerCode");
 
         Path dbPathForTest = foosDirectory.resolve("test_ConsolidateInnerCode");
@@ -1407,7 +1407,7 @@ public class DbEngine2Tests {
      * will remain unchanged after this method returns.
      */
     @Test
-    public void test_ConsolidateIfNecessary() {
+    public void test_ConsolidateIfNecessary() throws IOException {
         logger.test("Running test_ConsolidateIfNecessary");
 
         Path dbPathForTest = foosDirectory.resolve("test_ConsolidateIfNecessary");
@@ -1449,7 +1449,7 @@ public class DbEngine2Tests {
      * able to be deserialized.
      */
     @Test
-    public void test_WalkAndLoad_NegativeCase() {
+    public void test_WalkAndLoad_NegativeCase() throws IOException {
         logger.test("Running test_WalkAndLoad_NegativeCase");
 
         Path dbPathForTest = foosDirectory.resolve("test_WalkAndLoad_NegativeCase");
@@ -1867,7 +1867,7 @@ public class DbEngine2Tests {
      * or almost 3 minutes.
      */
     @Ignore("This is a lab, not a test")
-    public void test_LargeDatabasePerformance() {
+    public void test_LargeDatabasePerformance() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_large_database");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);

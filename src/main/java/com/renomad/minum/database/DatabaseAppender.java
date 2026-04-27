@@ -90,7 +90,11 @@ final class DatabaseAppender {
         Constants constants = context.getConstants();
         FileUtils fileUtils = new FileUtils(logger, constants);
         this.maxAppendCount = constants.maxAppendCount;
-        fileUtils.makeDirectory(this.appendLogDirectory);
+        try {
+            fileUtils.makeDirectory(this.appendLogDirectory);
+        } catch (IOException e) {
+            throw new DbException("Error at DatabaseAppender constructor", e);
+        }
         moveFileLock = new ReentrantLock();
         createNewAppendFile();
     }

@@ -56,7 +56,11 @@ final class DatabaseConsolidator {
         var constants = context.getConstants();
         this.logger = context.getLogger();
         FileUtils fileUtils = new FileUtils(logger, constants);
-        fileUtils.makeDirectory(this.consolidatedDataDirectory);
+        try {
+            fileUtils.makeDirectory(this.consolidatedDataDirectory);
+        } catch (IOException e) {
+            throw new DbException("Error at DatabaseConsolidator constructor", e);
+        }
         this.maxLinesPerFile = constants.maxLinesPerConsolidatedDatabaseFile;
     }
 

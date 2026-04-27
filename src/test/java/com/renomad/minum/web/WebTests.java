@@ -101,7 +101,7 @@ public class WebTests {
 
 
     @AfterClass
-    public static void tearDownClass() {
+    public static void tearDownClass() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         shutdownTestingContext(context);
     }

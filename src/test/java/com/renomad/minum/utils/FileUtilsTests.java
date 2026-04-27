@@ -31,7 +31,7 @@ public class FileUtilsTests {
     private static Path overallTestDirectory;
 
     @BeforeClass
-    public static void init() {
+    public static void init() throws IOException {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger) context.getLogger();
         Constants constants = context.getConstants();
@@ -42,7 +42,7 @@ public class FileUtilsTests {
     }
 
     @AfterClass
-    public static void cleanup() {
+    public static void cleanup() throws IOException {
         shutdownTestingContext(context);
         fileUtils.deleteDirectoryRecursivelyIfExists(overallTestDirectory);
     }
@@ -65,8 +65,7 @@ public class FileUtilsTests {
      */
     @Test
     public void test_WriteString_IOException() {
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
-        assertTrue(ex.getMessage().contains("NoSuchFileException"));
+        assertThrows(NoSuchFileException.class, () -> fileUtils.writeString(Path.of("target/foo/bar"), "baz"));
     }
 
     /**
@@ -75,8 +74,7 @@ public class FileUtilsTests {
      */
     @Test
     public void test_ReadString_IOException() {
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.readString(Path.of("target/foo/bar")));
-        assertTrue(ex.getMessage().contains("NoSuchFileException"));
+        assertThrows(NoSuchFileException.class, () -> fileUtils.readString(Path.of("target/foo/bar")));
     }
 
     @Test
@@ -128,19 +126,18 @@ public class FileUtilsTests {
     }
 
     @Test
-    public void test_WithinDirectory() {
+    public void test_WithinDirectory() throws IOException {
         fileUtils.checkFileIsWithinDirectory("resources/gettysburg_address.txt", "src/test");
         assertTrue(true, "should get here without an exception thrown");
 
         var result = assertThrows(ForbiddenUseException.class, () -> fileUtils.checkFileIsWithinDirectory("/", "src/test"));
         assertEquals(result.getMessage(), "path (/) was not within directory (src/test)");
 
-        var result3 = assertThrows(UtilsException.class, () -> fileUtils.checkFileIsWithinDirectory("foobaz/foo", "src/test"));
-        assertTrue(result3.getMessage().contains("NoSuchFileException"));
+        assertThrows(NoSuchFileException.class, () -> fileUtils.checkFileIsWithinDirectory("foobaz/foo", "src/test"));
     }
 
     @Test
-    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() {
+    public void test_deleteDirectoryRecursivelyIfExists_EdgeCase_DirectoryNotExists() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of("target/foo"));
         assertTrue(logger.doesMessageExist("system was requested to delete directory"));
     }
@@ -165,7 +162,7 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadBinaryFile_FileMissing() {
-        assertThrows(UtilsException.class, () -> fileUtils.readBinaryFile("target/does_not_exist.txt"));
+        assertThrows(FileNotFoundException.class, () -> fileUtils.readBinaryFile("target/does_not_exist.txt"));
     }
 
     @Test
@@ -187,7 +184,7 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadTextFile_FileMissing() {
-        assertThrows(UtilsException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
+        assertThrows(FileNotFoundException.class, () -> fileUtils.readTextFile("target/does_not_exist.txt"));
     }
 
     @Test
@@ -207,8 +204,7 @@ public class FileUtilsTests {
     @Test
     public void test_walkPathDeleting() {
         FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
-        assertTrue(ex.getMessage().contains("NoSuchFileException"));
+        assertThrows(NoSuchFileException.class, () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
     }
 
     @Test
@@ -226,8 +222,7 @@ public class FileUtilsTests {
     public void test_innerCreateDirectory_IOException() throws IOException {
         Path innerPath = overallTestDirectory.resolve("test_innerCreateDirectory_IOException");
         Files.createFile(innerPath);
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.innerCreateDirectory(innerPath));
-        assertTrue(ex.getCause() instanceof FileAlreadyExistsException);
+        assertThrows(FileAlreadyExistsException.class, () -> fileUtils.innerCreateDirectory(innerPath));
     }
 
     /**
@@ -235,7 +230,7 @@ public class FileUtilsTests {
      * being requested is influenced by a user, and therefore untrusted.
      */
     @Test
-    public void test_SafeResolve() {
+    public void test_SafeResolve() throws IOException {
         fileUtils.safeResolve("src/test", "java");
         fileUtils.safeResolve("src/test", "resources/kitty.jpg");
         assertThrows(ForbiddenUseException.class, () -> fileUtils.safeResolve("src/test", "/"));
@@ -255,7 +250,6 @@ public class FileUtilsTests {
         assertFalse(Files.exists(innerPath));
 
         // now let's try to delete it again (should throw exception)
-        var ex = assertThrows(UtilsException.class, () -> fileUtils.delete(innerPath));
-        assertTrue(ex.getCause() instanceof  NoSuchFileException);
+        assertThrows(NoSuchFileException.class, () -> fileUtils.delete(innerPath));
     }
 }

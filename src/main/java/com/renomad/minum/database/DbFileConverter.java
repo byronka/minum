@@ -92,19 +92,23 @@ final class DbFileConverter {
     void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger) {
         List<Path> listOfFiles = getListOfFiles(dbDirectory);
 
-        // convert each file to the new database schema by appending it
-        // to the append log, and then delete it
-        for (int i = 0; i < listOfFiles.size(); i++) {
-            int percentCompletion = listOfFiles.size() / 100;
-            if (i == percentCompletion) {
-                logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
+        try {
+            // convert each file to the new database schema by appending it
+            // to the append log, and then delete it
+            for (int i = 0; i < listOfFiles.size(); i++) {
+                int percentCompletion = listOfFiles.size() / 100;
+                if (i == percentCompletion) {
+                    logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
+                }
+                Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
+                fileUtils.delete(p);
             }
-            Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
-            fileUtils.delete(p);
-        }
 
-        // at this point, after all the ordinary files have been removed, kill the index file
-        fileUtils.delete(dbDirectory.resolve("index.ddps"));
+            // at this point, after all the ordinary files have been removed, kill the index file
+            fileUtils.delete(dbDirectory.resolve("index.ddps"));
+        } catch (IOException ex) {
+            throw new DbException("Error at DbFileConverter.walkFilesAndConvertDbToDbEngine2", ex);
+        }
     }
 
     /**
@@ -114,9 +118,13 @@ final class DbFileConverter {
     Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze) {
         String fileContents = checkFileDetailsAreValid(fileToAnalyze, logger);
         if (!fileContents.isBlank()) {
-        fileUtils.writeString(
-                dbDirectory.resolve("currentAppendLog"),
-                "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
+            try {
+                fileUtils.writeString(
+                        dbDirectory.resolve("currentAppendLog"),
+                        "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
+            } catch (IOException e) {
+                throw new DbException("Error in DbFileConverter.extractDataAndAppend", e);
+            }
         }
         return fileToAnalyze;
     }
@@ -150,7 +158,11 @@ final class DbFileConverter {
         String fileName = p.getFileName().toString();
         int startOfSuffixIndex = fileName.indexOf('.');
         String fileContents = null;
-        fileContents = fileUtils.readString(p);
+        try {
+            fileContents = fileUtils.readString(p);
+        } catch (IOException e) {
+            throw new DbException("Error at DbFileConverter.checkFileDetailsAreValid", e);
+        }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
             return "";

@@ -41,8 +41,12 @@ public class ListPhotos {
         FileUtils fileUtils = new FileUtils(logger, constants);
         this.dbDir = Path.of(constants.dbDirectory);
         this.staticFileCacheTime = constants.staticFileCacheTime;
-        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/list_photos_template.html"));
-        videoHtmlTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/video_element_template.html"));
+        try {
+            listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/list_photos_template.html"));
+            videoHtmlTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/video_element_template.html"));
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in ListPhotos constructor", ex);
+        }
         this.up = up;
         this.auth = auth;
         this.fileReader = new FileReader(LRUCache.getLruCache(), true, logger);
@@ -181,9 +185,8 @@ public class ListPhotos {
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
 
-        fileUtils.checkFileIsWithinDirectory(path, ".");
-
         try {
+            fileUtils.checkFileIsWithinDirectory(path, ".");
             // convert from a string to a path object for some valuable methods
             Path staticFilePath = Path.of(path);
             if (!Files.isRegularFile(staticFilePath)) {
@@ -236,7 +239,12 @@ public class ListPhotos {
      */
     private IResponse createOkResponseForStaticFiles(Path staticFilePath, String mimeType) {
         // this mild-looking method, "readFile", will cache the file contents.
-        var fileContents = fileReader.readFile(staticFilePath.toString());
+        byte[] fileContents = null;
+        try {
+            fileContents = fileReader.readFile(staticFilePath.toString());
+        } catch (IOException e) {
+            throw new RuntimeException("Error in ListPhotos.createOkResponseForStaticFiles", e);
+        }
         var headers = Map.of(
                 "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);

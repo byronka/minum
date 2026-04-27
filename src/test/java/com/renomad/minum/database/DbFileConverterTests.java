@@ -44,7 +44,7 @@ public class DbFileConverterTests {
      * which should cause it to throw an exception.
      */
     @Test
-    public void testConvertClassicFolderStructureToDbEngine2Form_EdgeCase_FileMissing() {
+    public void testConvertClassicFolderStructureToDbEngine2Form_EdgeCase_FileMissing() throws IOException {
         // arrange
         Path dbDirectory = Path.of("out/simple_db/db_file_converter_tests/classic_to_dbe2_file_missing");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbDirectory);

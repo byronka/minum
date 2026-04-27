@@ -1,5 +1,7 @@
 package com.renomad.minum.utils;
 
+import java.io.IOException;
+
 public interface IFileReader {
 
     /**
@@ -8,5 +10,5 @@ public interface IFileReader {
      * mainly ones to escape from the intended directories (like ".." or "/", etc)
      * @throws UtilsException as a wrapper around any IOException thrown
      */
-    byte[] readFile(String path);
+    byte[] readFile(String path) throws IOException;
 }

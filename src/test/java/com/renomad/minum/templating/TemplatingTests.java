@@ -210,7 +210,7 @@ public class TemplatingTests {
      *
      */
     @Test
-    public void test_Templating_LargeComplex_Performance() {
+    public void test_Templating_LargeComplex_Performance() throws IOException {
         int warmupIterations = 5;
         int mainIterations = 5;
 

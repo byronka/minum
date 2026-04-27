@@ -35,7 +35,7 @@ public class DatabaseAppenderTests {
      * current date-time stamp.
      */
     @Test
-    public void test_SavingOffToNewFile() {
+    public void test_SavingOffToNewFile() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory.resolve("test_SavingOffToNewFile"));
         fileUtils.makeDirectory(foosDirectory.resolve("test_SavingOffToNewFile"));
         var da = new DatabaseAppender(foosDirectory.resolve("test_SavingOffToNewFile"), context);

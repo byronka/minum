@@ -48,8 +48,12 @@ public class UploadPhoto {
         this.logger = context.getLogger();
         FileUtils fileUtils = new FileUtils(logger, constants);
         this.dbDir = Path.of(constants.dbDirectory);
-        uploadPhotoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_photo_template.html");
-        uploadVideoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_video_template.html");
+        try {
+            uploadPhotoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_photo_template.html");
+            uploadVideoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_video_template.html");
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in UploadPhoto constructor", ex);
+        }
         this.db = db;
         this.videoDb = videoDb;
     }

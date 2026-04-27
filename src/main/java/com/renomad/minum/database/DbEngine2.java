@@ -3,6 +3,7 @@ package com.renomad.minum.database;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.CryptoUtils;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -286,7 +287,11 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             new DbFileConverter(context, dbDirectory).convertClassicFolderStructureToDbEngine2Form();
         }
 
-        fileUtils.makeDirectory(dbDirectory);
+        try {
+            fileUtils.makeDirectory(dbDirectory);
+        } catch (IOException e) {
+            throw new DbException("Error at Db.loadDataFromDisk", e);
+        }
         // if there are any remaining items in the current append-only file, move them
         // to a new file
         databaseAppender.saveOffCurrentDataToReadyFolder();

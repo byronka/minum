@@ -41,7 +41,7 @@ public class TheBrigTests {
      * a time and after it has paid its dues, be released.
      */
     @Test
-    public void test_TheBrig_Basic() {
+    public void test_TheBrig_Basic() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -114,7 +114,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_TheBrig_RegularStop() {
+    public void test_TheBrig_RegularStop() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -142,7 +142,7 @@ public class TheBrigTests {
      * of the new transgression.
      */
     @Test
-    public void test_TheBrig_ExistingInmate() {
+    public void test_TheBrig_ExistingInmate() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();

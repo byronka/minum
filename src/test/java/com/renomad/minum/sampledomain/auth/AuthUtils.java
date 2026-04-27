@@ -51,8 +51,12 @@ public class AuthUtils {
         this.logger = context.getLogger();
         FileUtils fileUtils = new FileUtils(logger, constants);
 
-        loginPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/login_page_template.html");
-        registerPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/register_page_template.html");
+        try {
+            loginPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/login_page_template.html");
+            registerPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/register_page_template.html");
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in AuthUtils constructor", ex);
+        }
     }
 
     public static final String cookieKey = "sessionid";

@@ -55,7 +55,7 @@ public class FileReaderTests {
     }
 
     @Test
-    public void test_ReadFile_InCache() {
+    public void test_ReadFile_InCache() throws IOException {
         byte[] value = {1, 2, 3};
         lruCache.put("testingreadfile.txt", value);
         var fileReader = new FileReader(lruCache, true, logger);
@@ -86,7 +86,7 @@ public class FileReaderTests {
     @Test
     public void test_readTheFile_NoFileFound() {
         var fileReader = new FileReader(lruCache, false, logger);
-        assertThrows(UtilsException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
+        assertThrows(FileNotFoundException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
     }
 
 }

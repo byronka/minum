@@ -29,7 +29,7 @@ public final class FileReader implements IFileReader {
     }
 
     @Override
-    public byte[] readFile(String path) {
+    public byte[] readFile(String path) throws IOException {
         if (useCacheForStaticFiles && lruCache.containsKey(path)) {
             cacheLock.lock();
             try {
@@ -42,7 +42,7 @@ public final class FileReader implements IFileReader {
         return readTheFile(path, logger, useCacheForStaticFiles, lruCache);
     }
 
-    byte[] readTheFile(String path, ILogger logger, boolean useCacheForStaticFiles, Map<String, byte[]> lruCache) {
+    byte[] readTheFile(String path, ILogger logger, boolean useCacheForStaticFiles, Map<String, byte[]> lruCache) throws IOException {
         try (RandomAccessFile reader = new RandomAccessFile(path, "r");
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             FileChannel channel = reader.getChannel();
@@ -76,8 +76,6 @@ public final class FileReader implements IFileReader {
                 }
                 return bytes;
             }
-        } catch (IOException e) {
-            throw new UtilsException("Error in FileReader.readTheFile", e);
         }
     }
 
