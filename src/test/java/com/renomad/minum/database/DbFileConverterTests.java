@@ -5,11 +5,11 @@ import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +21,7 @@ import static com.renomad.minum.testing.TestFramework.*;
 public class DbFileConverterTests {
 
     private Context context;
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
 
     @Before
     public void init() {

@@ -1,14 +1,13 @@
 package com.renomad.minum.database;
 
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.queue.ActionQueue;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +40,7 @@ public class IndexRaceBugTest {
 
     private Context context;
     private TestLogger logger;
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
     static Path testDirectory = Path.of("out/index_race_bug_test/foos");
 
     @Before

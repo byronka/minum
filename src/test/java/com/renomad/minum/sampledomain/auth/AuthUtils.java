@@ -4,10 +4,7 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
-import com.renomad.minum.utils.CryptoUtils;
-import com.renomad.minum.utils.FileUtils;
-import com.renomad.minum.utils.InvariantException;
-import com.renomad.minum.utils.StringUtils;
+import com.renomad.minum.utils.*;
 import com.renomad.minum.web.IRequest;
 import com.renomad.minum.web.IResponse;
 import com.renomad.minum.web.Response;
@@ -49,7 +46,7 @@ public class AuthUtils {
         this.sessionDiskData = sessionDiskData;
         emptySessionId = SessionId.EMPTY;
         this.logger = context.getLogger();
-        FileUtils fileUtils = new FileUtils(logger, constants);
+        IFileUtils fileUtils = new FileUtils(logger, constants);
 
         try {
             loginPageTemplate = fileUtils.readTextFile("src/test/webapp/templates/auth/login_page_template.html");

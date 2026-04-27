@@ -6,6 +6,7 @@ import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.StringUtils;
 import com.renomad.minum.web.*;
 
@@ -40,7 +41,7 @@ public class SampleDomain {
     public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) {
         this.db = db;
         this.auth = auth;
-        FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        IFileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
         try {
             String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
             nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);

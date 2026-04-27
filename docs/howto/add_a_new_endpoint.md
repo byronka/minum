@@ -40,6 +40,7 @@ Quick summary:
 package minum.sampledomain;
 
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 public class SampleDomain {
 
@@ -87,7 +88,7 @@ public class SampleDomain {
     public SampleDomain(Db<PersonName> db, AuthUtils auth, Context context) {
         this.db = db;
         this.auth = auth;
-        FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        IFileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
         String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
         nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
         authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
@@ -105,7 +106,7 @@ public class SampleDomain {
 
     public Response formEntry(Request r) {
         final var authResult = auth.processAuth(r);
-        if (! authResult.isAuthenticated()) {
+        if (!authResult.isAuthenticated()) {
             return new Response(CODE_401_UNAUTHORIZED);
         }
         final String names = db
@@ -118,7 +119,7 @@ public class SampleDomain {
 
     public Response testform(Request r) {
         final var authResult = auth.processAuth(r);
-        if (! authResult.isAuthenticated()) {
+        if (!authResult.isAuthenticated()) {
             return new Response(CODE_401_UNAUTHORIZED);
         }
 
@@ -126,7 +127,7 @@ public class SampleDomain {
 
         final var newPersonName = new PersonName(0L, nameEntry);
         db.write(newPersonName);
-        return new Response(CODE_303_SEE_OTHER, Map.of("Location","formentry"));
+        return new Response(CODE_303_SEE_OTHER, Map.of("Location", "formentry"));
     }
 
     /**
@@ -136,7 +137,7 @@ public class SampleDomain {
      */
     public Response sampleDomainIndex(Request request) {
         final var authResult = auth.processAuth(request);
-        if (! authResult.isAuthenticated()) {
+        if (!authResult.isAuthenticated()) {
             return Response.htmlOk(unauthHomepage);
         } else {
             return Response.htmlOk(authHomepage);

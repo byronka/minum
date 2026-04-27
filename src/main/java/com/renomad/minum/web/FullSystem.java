@@ -29,7 +29,7 @@ public final class FullSystem {
 
     final ILogger logger;
     private final Constants constants;
-    private final FileUtils fileUtils;
+    private final IFileUtils fileUtils;
     private IServer server;
     private WebFramework webFramework;
     private IServer sslServer;

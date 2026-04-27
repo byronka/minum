@@ -3,6 +3,7 @@ package com.renomad.minum.database;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,7 +17,7 @@ import static com.renomad.minum.testing.TestFramework.assertThrows;
 
 public class DatabaseConsolidatorTests {
 
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
     private Context context;
 
     @Before

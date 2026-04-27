@@ -31,14 +31,14 @@ public class ListPhotos {
     private final UploadPhoto up;
     private final AuthUtils auth;
     private final FileReader fileReader;
-    private final FileUtils fileUtils;
+    private final IFileUtils fileUtils;
     private final long staticFileCacheTime;
 
 
     public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
         this.logger = context.getLogger();
         Constants constants = context.getConstants();
-        FileUtils fileUtils = new FileUtils(logger, constants);
+        IFileUtils fileUtils = new FileUtils(logger, constants);
         this.dbDir = Path.of(constants.dbDirectory);
         this.staticFileCacheTime = constants.staticFileCacheTime;
         try {

@@ -4,6 +4,7 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -14,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 import static com.renomad.minum.templating.TemplateProcessor.buildProcessor;
@@ -22,7 +22,7 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class TemplatingTests {
 
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
     private static Context context;
     private static TestLogger logger;
 

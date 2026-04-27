@@ -3,6 +3,7 @@ package com.renomad.minum.database;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +43,7 @@ final class DatabaseConsolidator {
     private final ILogger logger;
 
     private final int maxLinesPerFile;
+    private final FileUtils fileUtils;
 
     /**
      * This represents an instruction for how to change the overall consolidated
@@ -55,7 +57,7 @@ final class DatabaseConsolidator {
         this.consolidatedDataDirectory = persistenceDirectory.resolve("consolidated_data");
         var constants = context.getConstants();
         this.logger = context.getLogger();
-        FileUtils fileUtils = new FileUtils(logger, constants);
+        this.fileUtils = new FileUtils(logger, constants);
         try {
             fileUtils.makeDirectory(this.consolidatedDataDirectory);
         } catch (IOException e) {
@@ -106,7 +108,7 @@ final class DatabaseConsolidator {
         Path fullPathToFile = this.appendLogDirectory.resolve(filename);
         List<String> lines;
         try {
-            lines = Files.readAllLines(fullPathToFile);
+            lines = fileUtils.readAllLines(fullPathToFile);
 
             Map<Long, DatabaseChangeInstruction> resultingInstructions = new HashMap<>();
 
@@ -132,7 +134,7 @@ final class DatabaseConsolidator {
             rewriteFiles(groupedInstructions);
 
             // delete the file
-            Files.delete(fullPathToFile);
+            fileUtils.delete(fullPathToFile);
         } catch (IOException e) {
             throw new DbException("Error in DatabaseConsolidator.processAppendLogFile", e);
         }
@@ -167,12 +169,12 @@ final class DatabaseConsolidator {
 
             try {
                 // write the data to disk
-                Files.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
+                fileUtils.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
 
                 // write a hash of the data to use as a checksum.  This value will be checked
                 // when reading the data later on, to confirm nothing has changed since writing.
                 Path fullPathToChecksumFile = this.consolidatedDataDirectory.resolve(filename + ".checksum");
-                Files.writeString(fullPathToChecksumFile, checksumString);
+                fileUtils.writeString(fullPathToChecksumFile, checksumString);
             } catch (Exception ex) {
                 throw new DbException("Error in DatabaseConsolidator.rewriteFiles", ex);
             }
@@ -182,11 +184,11 @@ final class DatabaseConsolidator {
     /**
      * Reads data from consolidated file, confirming the checksum in the process.
      */
-    private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) {
+    private List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) {
         // get all the data from the consolidated file
         List<String> data;
         try {
-            data = Files.readAllLines(fullPathToConsolidatedFile);
+            data = fileUtils.readAllLines(fullPathToConsolidatedFile);
         } catch (IOException e) {
             throw new DbException("Error in DatabaseConsolidator.readConsolidatedFileWithChecksum", e);
         }

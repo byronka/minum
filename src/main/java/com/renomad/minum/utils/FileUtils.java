@@ -5,18 +5,16 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
 
 /**
  * Helper functions for working with files.
  */
-public final class FileUtils {
+public final class FileUtils implements IFileUtils {
 
     private final ILogger logger;
     private final IFileReader fileReader;
@@ -38,15 +36,7 @@ public final class FileUtils {
         this.fileReader = fileReader;
     }
 
-    /**
-     * A wrapper around {@link Files#writeString(Path, CharSequence, OpenOption...)}
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     * @throws UtilsException if an empty path is provided
-     */
+    @Override
     public void writeString(Path path, String content, OpenOption... options) throws IOException {
         if (path.toString().isEmpty()) {
             throw new UtilsException("an empty path was provided to writeString");
@@ -54,12 +44,13 @@ public final class FileUtils {
         Files.writeString(path, content, options);
     }
 
-    /**
-     * A wrapper around {@link Files#readString(Path)}
-     * @return the value of the file at the path parameter, as
-     * a string, presuming UTF-8 encoding
-     * @throws UtilsException if an empty path is provided
-     */
+    @Override
+    public Path write(Path path, Iterable<? extends CharSequence> lines,
+                      Charset cs, OpenOption... options) throws IOException {
+        return Files.write(path, lines, cs, options);
+    }
+
+    @Override
     public String readString(Path path) throws IOException {
         if (path.toString().isEmpty()) {
             throw new UtilsException("an empty path was provided to readString");
@@ -67,16 +58,7 @@ public final class FileUtils {
         return Files.readString(path);
     }
 
-    /**
-     * Deletes a directory, deleting everything inside it
-     * recursively afterwards.  A more dangerous method than
-     * many others, take care.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     */
+    @Override
     public void deleteDirectoryRecursivelyIfExists(Path myPath) throws IOException {
         if (!Files.exists(myPath)) {
             logger.logDebug(() -> "system was requested to delete directory: "+myPath+", but it did not exist");
@@ -98,14 +80,7 @@ public final class FileUtils {
         }
     }
 
-    /**
-     * Creates a directory if it doesn't already exist.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     */
+    @Override
     public void makeDirectory(Path directory) throws IOException {
         logger.logDebug(() -> "Creating a directory " + directory);
         boolean directoryExists = Files.exists(directory);
@@ -122,38 +97,22 @@ public final class FileUtils {
         Files.createDirectories(directory);
     }
 
-    /**
-     * Read a binary file, return as a byte array
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     * @throws UtilsException as a wrapper around any IOException thrown
-     */
+    @Override
     public byte[] readBinaryFile(String path) throws IOException {
         return fileReader.readFile(path);
     }
 
-    /**
-     * Read a text file from the given path, return as a string.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     * @throws UtilsException as a wrapper around any IOException thrown
-     */
+    @Override
+    public List<String> readAllLines(Path path) throws IOException {
+        return Files.readAllLines(path);
+    }
+
+    @Override
     public String readTextFile(String path) throws IOException {
         return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
     }
 
-    /**
-     * This method is to provide assurance that the file specified by the path
-     * parameter is within the directory specified by directoryPath.  Use this
-     * for any code that reads from files where the user provides untrusted input.
-     * @throws ForbiddenUseException if the file is not within the directory
-     */
+    @Override
     public void checkFileIsWithinDirectory(String path, String directoryPath) throws IOException {
         Path directoryRealPath;
         Path fullRealPath;
@@ -209,19 +168,21 @@ public final class FileUtils {
         }
     }
 
-    /**
-     * This helper method will ensure that the requested path is
-     * within the parent directory and using safe characters
-     * @throws UtilsException as a wrapper around any IOException thrown
-     */
+    @Override
     public Path safeResolve(String parentDirectory, String path) throws IOException {
         checkForBadFilePatterns(path);
         checkFileIsWithinDirectory(path, parentDirectory);
         return Path.of(parentDirectory).resolve(path);
     }
 
+    @Override
     public void delete(Path path) throws IOException {
         Files.delete(path);
+    }
+
+    @Override
+    public void move(Path source, Path target, CopyOption... options) throws IOException {
+        Files.move(source, target, options);
     }
 
 }

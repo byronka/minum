@@ -3,6 +3,7 @@ package com.renomad.minum.database;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -46,7 +47,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
     /**
      * Used for handling some file utilities in the database like creating directories
      */
-    protected final FileUtils fileUtils;
+    protected final IFileUtils fileUtils;
 
     /**
      * Holds some system-wide information that is beneficial for components of the database

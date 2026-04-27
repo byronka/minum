@@ -81,7 +81,7 @@ public class WebTests {
      * next server bind occurs.
      */
     static int SERVER_CLOSE_WAIT_TIME = 30;
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
 
     @BeforeClass
     public static void setUpClass() throws IOException {

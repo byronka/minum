@@ -3,6 +3,7 @@ package com.renomad.minum.security;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.web.FullSystem;
 import org.junit.AfterClass;
@@ -19,7 +20,7 @@ public class TheBrigTests {
 
     private static Context context;
     private static TestLogger logger;
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
 
     @BeforeClass
     public static void init() {

@@ -3,6 +3,7 @@ package com.renomad.minum.database;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -28,7 +29,7 @@ final class DbFileConverter {
     private final ILogger logger;
     private final DatabaseAppender databaseAppender;
     private final DatabaseConsolidator databaseConsolidator;
-    private final FileUtils fileUtils;
+    private final IFileUtils fileUtils;
 
     /**
      * Construct a converter instance

@@ -19,7 +19,4 @@ public class UtilsException extends RuntimeException{
         super(msg);
     }
 
-    public UtilsException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
 }

@@ -34,7 +34,7 @@ import static java.util.stream.IntStream.range;
 public class DbEngine2Tests {
     private Context context;
     private TestLogger logger;
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_engine2_tests/engine2/foos");
     static Path fubarDirectory = Path.of("out/simple_db_for_engine2_tests/engine2/fubar");
 

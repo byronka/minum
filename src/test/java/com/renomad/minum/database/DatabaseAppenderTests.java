@@ -4,6 +4,7 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,7 +19,7 @@ public class DatabaseAppenderTests {
 
     private Context context;
     private TestLogger logger;
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_engine2_tests/engine2/foos");
 
     @Before

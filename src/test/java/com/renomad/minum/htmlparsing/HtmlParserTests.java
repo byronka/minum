@@ -4,6 +4,7 @@ import com.renomad.minum.SearchHelpers;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,7 +17,7 @@ import static com.renomad.minum.htmlparsing.HtmlParser.MAX_HTML_SIZE;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class HtmlParserTests {
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
     private static Context context;
 
     @BeforeClass

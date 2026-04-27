@@ -4,7 +4,6 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.testing.RegexUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -167,7 +166,7 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadBinaryFile_IOException() {
-        FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
+        IFileUtils fileUtils = new FileUtils(logger, throwingFileReader);
         var ex = assertThrows(UtilsException.class, () -> fileUtils.readBinaryFile("foo"));
         assertEquals(ex.getMessage(), "Testing");
     }
@@ -189,7 +188,7 @@ public class FileUtilsTests {
 
     @Test
     public void test_ReadTextFile_IOException() {
-        FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
+        IFileUtils fileUtils = new FileUtils(logger, throwingFileReader);
         var ex = assertThrows(UtilsException.class, () -> fileUtils.readTextFile("foo"));
         assertEquals(ex.getMessage(), "Testing");
     }
@@ -203,8 +202,8 @@ public class FileUtilsTests {
 
     @Test
     public void test_walkPathDeleting() {
-        FileUtils fileUtils = new FileUtils(logger, throwingFileReader);
-        assertThrows(NoSuchFileException.class, () -> fileUtils.walkPathDeleting(Path.of("foofoo")));
+        IFileUtils fileUtils = new FileUtils(logger, throwingFileReader);
+        assertThrows(NoSuchFileException.class, () -> ((FileUtils)fileUtils).walkPathDeleting(Path.of("foofoo")));
     }
 
     @Test

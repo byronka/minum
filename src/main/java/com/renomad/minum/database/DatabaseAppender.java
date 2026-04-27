@@ -5,6 +5,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 
 import java.io.BufferedWriter;
@@ -33,6 +34,7 @@ final class DatabaseAppender {
     static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS");
 
     private final Path persistenceDirectory;
+    private final FileUtils fileUtils;
 
     Writer bufferedWriter;
 
@@ -88,7 +90,7 @@ final class DatabaseAppender {
         this.executorService = context.getExecutorService();
         this.logger = context.getLogger();
         Constants constants = context.getConstants();
-        FileUtils fileUtils = new FileUtils(logger, constants);
+        this.fileUtils = new FileUtils(logger, constants);
         this.maxAppendCount = constants.maxAppendCount;
         try {
             fileUtils.makeDirectory(this.appendLogDirectory);
@@ -113,7 +115,7 @@ final class DatabaseAppender {
             // until we can store it off elsewhere. For that reason, it's not a performance
             // concern to read all the existing lines, just to get the count of current lines.
             if (Files.exists(currentAppendFile)) {
-                List<String> lines = Files.readAllLines(currentAppendFile);
+                List<String> lines = fileUtils.readAllLines(currentAppendFile);
                 appendCount = lines.size();
             } else {
                 // reset the count to zero, we're starting a new file.
@@ -217,7 +219,7 @@ final class DatabaseAppender {
     private String moveToReadyFolder() {
         String appendFile = simpleDateFormat.format(new java.util.Date());
         try {
-            Files.move(persistenceDirectory.resolve("currentAppendLog"), this.appendLogDirectory.resolve(appendFile));
+            fileUtils.move(persistenceDirectory.resolve("currentAppendLog"), this.appendLogDirectory.resolve(appendFile));
         } catch (IOException e) {
             throw new DbException("Error while moving file in DatabaseAppender.moveToReadyFolder", e);
         }

@@ -45,7 +45,7 @@ public final class WebFramework {
     private final RequestLine emptyRequestLine;
     private final RequestLine validRequestLine;
     private final ITheBrig theBrig;
-    private final FileUtils fileUtils;
+    private final IFileUtils fileUtils;
 
     public Map<String,String> getSuffixToMimeMappings() {
         return new HashMap<>(fileSuffixToMime);
@@ -701,7 +701,7 @@ public final class WebFramework {
      * @param fileUtils when we want to provide an instance for better control during testing. Providing
      *                  null here will cause a FileUtils to be instantiated in the constructor.
      */
-    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader, FileUtils fileUtils) {
+    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader, IFileUtils fileUtils) {
         this.fs = context.getFullSystem();
         this.theBrig = this.fs != null ? this.fs.getTheBrig() : null;
         this.logger = context.getLogger();

@@ -9,6 +9,7 @@ import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.SearchUtils;
 import org.junit.After;
@@ -37,7 +38,7 @@ import static java.util.stream.IntStream.range;
 public class DbTests {
     private Context context;
     private TestLogger logger;
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_db_tests/foos");
     static Path fubarDirectory = Path.of("out/simple_db_for_db_tests/fubar");
 
