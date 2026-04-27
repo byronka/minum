@@ -14,7 +14,7 @@ public final class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final String hostName;
-    private final BufferedOutputStream writer;
+    private final BufferedOutputStream bufferedOutputStream;
     private final ILogger logger;
     private final IServer server;
     private final BufferedInputStream bufferedInputStream;
@@ -26,16 +26,35 @@ public final class SocketWrapper implements ISocketWrapper {
      * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
      */
     public SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) {
+        this(socket, server, logger, timeoutMillis, hostName, false, null, null);
+    }
+
+    /**
+     * This constructor has extra parameters used for testing
+     * @param ignoreSocket if true, the socket won't be inspected at all.  This is useful for test
+     *                     scenarios, if we want to set the input/output for testing this class.
+     */
+    SocketWrapper(Socket socket, IServer server, ILogger logger,
+                  int timeoutMillis, String hostName, boolean ignoreSocket,
+                  BufferedOutputStream testOutputStream, BufferedInputStream testInputStream) {
         this.socket = socket;
         this.hostName = hostName;
         logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));
-        try {
-            this.socket.setSoTimeout(timeoutMillis);
-            this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-            writer = new BufferedOutputStream(socket.getOutputStream());
-        } catch (Exception ex) {
-            throw new WebServerException("Error in SocketWrapper constructor", ex);
+
+        // if we ignore the socket, then this is a test SocketWrapper
+        if (!ignoreSocket) {
+            try {
+                this.socket.setSoTimeout(timeoutMillis);
+                this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
+                this.bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
+            } catch (Exception ex) {
+                throw new WebServerException("Error in SocketWrapper constructor", ex);
+            }
+        } else {
+            this.bufferedInputStream = testInputStream;
+            this.bufferedOutputStream = testOutputStream;
         }
+
         this.logger = logger;
         this.server = server;
     }
@@ -43,7 +62,7 @@ public final class SocketWrapper implements ISocketWrapper {
     @Override
     public void send(String msg) {
         try {
-            writer.write(msg.getBytes(Charset.defaultCharset()));
+            bufferedOutputStream.write(msg.getBytes(Charset.defaultCharset()));
         } catch (IOException e) {
             throw new WebServerException(e);
         }
@@ -52,7 +71,7 @@ public final class SocketWrapper implements ISocketWrapper {
     @Override
     public void send(byte[] bodyContents) {
         try {
-            writer.write(bodyContents);
+            bufferedOutputStream.write(bodyContents);
         } catch (IOException e) {
             throw new WebServerException(e);
         }
@@ -61,7 +80,7 @@ public final class SocketWrapper implements ISocketWrapper {
     @Override
     public void send(byte[] bodyContents, int off, int len) {
         try {
-            writer.write(bodyContents, off, len);
+            bufferedOutputStream.write(bodyContents, off, len);
         } catch (IOException e) {
             throw new WebServerException(e);
         }
@@ -70,7 +89,7 @@ public final class SocketWrapper implements ISocketWrapper {
     @Override
     public void send(int b) {
         try {
-            writer.write(b);
+            bufferedOutputStream.write(b);
         } catch (IOException e) {
             throw new WebServerException(e);
         }
@@ -136,7 +155,7 @@ public final class SocketWrapper implements ISocketWrapper {
     @Override
     public void flush() {
         try {
-            this.writer.flush();
+            this.bufferedOutputStream.flush();
         } catch (IOException e) {
             throw new WebServerException(e);
         }
