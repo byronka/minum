@@ -51,86 +51,8 @@ public class SocketWrapperTests {
      */
     @Test
     public void test_ConstructorException() {
-        var ex = assertThrows(WebServerException.class, () -> new SocketWrapper(new Socket(), null, logger, -1, ""));
-        assertTrue(ex.getCause() instanceof IllegalArgumentException);
-        assertEquals(ex.getCause().getMessage(), "timeout can't be negative");
-    }
-
-    /**
-     * Just asserting what happens when an exception occurs
-     */
-    @Test
-    public void test_SendString_Exception() {
-        BufferedOutputStream fakeBufferedOutputStream = createExceptionThrowingBufferedOutputStream();
-        SocketWrapper socketWrapper = new SocketWrapper(
-                new Socket(), null, logger, 0, "", true, fakeBufferedOutputStream, null);
-
-        var ex = assertThrows(WebServerException.class, () -> socketWrapper.send("DOES_NOT_MATTER"));
-
-        assertTrue(ex.getCause() instanceof IOException);
-        assertEquals(ex.getCause().getMessage(), "This is a test IOException");
-    }
-
-
-    /**
-     * Just asserting what happens when an exception occurs
-     */
-    @Test
-    public void test_SendMultiBytes_Exception() {
-        BufferedOutputStream fakeBufferedOutputStream = createExceptionThrowingBufferedOutputStream();
-        SocketWrapper socketWrapper = new SocketWrapper(
-                new Socket(), null, logger, 0, "", true, fakeBufferedOutputStream, null);
-
-        var ex = assertThrows(WebServerException.class, () -> socketWrapper.send("DOES_NOT_MATTER".getBytes(StandardCharsets.UTF_8)));
-
-        assertTrue(ex.getCause() instanceof IOException);
-        assertEquals(ex.getCause().getMessage(), "This is a test IOException");
-    }
-
-    /**
-     * Just asserting what happens when an exception occurs
-     */
-    @Test
-    public void test_SendMultiBytesWithOffsetAndLength_Exception() {
-        BufferedOutputStream fakeBufferedOutputStream = createExceptionThrowingBufferedOutputStream();
-        SocketWrapper socketWrapper = new SocketWrapper(
-                new Socket(), null, logger, 0, "", true, fakeBufferedOutputStream, null);
-
-        var ex = assertThrows(WebServerException.class, () -> socketWrapper.send("DOES_NOT_MATTER".getBytes(StandardCharsets.UTF_8), 0, 5));
-
-        assertTrue(ex.getCause() instanceof IOException);
-        assertEquals(ex.getCause().getMessage(), "This is a test IOException");
-    }
-
-    /**
-     * Just asserting what happens when an exception occurs
-     */
-    @Test
-    public void test_SendInteger_Exception() {
-        BufferedOutputStream fakeBufferedOutputStream = createExceptionThrowingBufferedOutputStream();
-        SocketWrapper socketWrapper = new SocketWrapper(
-                new Socket(), null, logger, 0, "", true, fakeBufferedOutputStream, null);
-
-        var ex = assertThrows(WebServerException.class, () -> socketWrapper.send(1));
-
-        assertTrue(ex.getCause() instanceof IOException);
-        assertEquals(ex.getCause().getMessage(), "This is a test IOException");
-    }
-
-    /**
-     * Just asserting what happens when an exception occurs
-     */
-    @Test
-    public void test_SendInteger_ExceptionOnFlush() {
-        BufferedOutputStream fakeBufferedOutputStream = createExceptionThrowingBufferedOutputStreamOnFlush();
-        SocketWrapper socketWrapper = new SocketWrapper(
-                new Socket(), null, logger, 0, "", true, fakeBufferedOutputStream, null);
-
-        socketWrapper.send(1);
-        var ex = assertThrows(WebServerException.class, () -> socketWrapper.flush());
-
-        assertTrue(ex.getCause() instanceof IOException);
-        assertEquals(ex.getCause().getMessage(), "This is a test IOException");
+        var ex = assertThrows(IllegalArgumentException.class, () -> new SocketWrapper(new Socket(), null, logger, -1, ""));
+        assertEquals(ex.getMessage(), "timeout can't be negative");
     }
 
     private static class FakeBufferedOutputStream extends BufferedOutputStream {

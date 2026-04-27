@@ -9,6 +9,7 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StacktraceUtils;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -185,15 +186,19 @@ public final class FunctionalTesting {
 
         InputStream is = client.getInputStream();
 
-        client.sendHttpLine(method + " /" + path + " HTTP/1.1");
-        client.sendHttpLine(String.format("Host: %s:%d", host, port));
-        client.sendHttpLine("Content-Length: " + payload.length);
-        for (String header : extraHeaders) {
-            client.sendHttpLine(header);
+        try {
+            client.sendHttpLine(method + " /" + path + " HTTP/1.1");
+            client.sendHttpLine(String.format("Host: %s:%d", host, port));
+            client.sendHttpLine("Content-Length: " + payload.length);
+            for (String header : extraHeaders) {
+                client.sendHttpLine(header);
+            }
+            client.sendHttpLine("");
+            client.send(payload);
+            client.flush();
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
         }
-        client.sendHttpLine("");
-        client.send(payload);
-        client.flush();
 
         StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
         List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);

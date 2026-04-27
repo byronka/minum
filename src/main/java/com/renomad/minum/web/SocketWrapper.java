@@ -5,6 +5,7 @@ import com.renomad.minum.logging.ILogger;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.charset.Charset;
 
 /**
@@ -25,78 +26,41 @@ public final class SocketWrapper implements ISocketWrapper {
      * @param logger not much more to say on this param
      * @param timeoutMillis we'll configure the socket to timeout after this many milliseconds.
      */
-    public SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) {
-        this(socket, server, logger, timeoutMillis, hostName, false, null, null);
-    }
-
-    /**
-     * This constructor has extra parameters used for testing
-     * @param ignoreSocket if true, the socket won't be inspected at all.  This is useful for test
-     *                     scenarios, if we want to set the input/output for testing this class.
-     */
-    SocketWrapper(Socket socket, IServer server, ILogger logger,
-                  int timeoutMillis, String hostName, boolean ignoreSocket,
-                  BufferedOutputStream testOutputStream, BufferedInputStream testInputStream) {
+    public SocketWrapper(Socket socket, IServer server, ILogger logger, int timeoutMillis, String hostName) throws IOException {
         this.socket = socket;
         this.hostName = hostName;
         logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));
 
-        // if we ignore the socket, then this is a test SocketWrapper
-        if (!ignoreSocket) {
-            try {
-                this.socket.setSoTimeout(timeoutMillis);
-                this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-                this.bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
-            } catch (Exception ex) {
-                throw new WebServerException("Error in SocketWrapper constructor", ex);
-            }
-        } else {
-            this.bufferedInputStream = testInputStream;
-            this.bufferedOutputStream = testOutputStream;
-        }
+        this.socket.setSoTimeout(timeoutMillis);
+        this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
+        this.bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
 
         this.logger = logger;
         this.server = server;
     }
 
     @Override
-    public void send(String msg) {
-        try {
-            bufferedOutputStream.write(msg.getBytes(Charset.defaultCharset()));
-        } catch (IOException e) {
-            throw new WebServerException(e);
-        }
+    public void send(String msg) throws IOException {
+        bufferedOutputStream.write(msg.getBytes(Charset.defaultCharset()));
     }
 
     @Override
-    public void send(byte[] bodyContents) {
-        try {
-            bufferedOutputStream.write(bodyContents);
-        } catch (IOException e) {
-            throw new WebServerException(e);
-        }
+    public void send(byte[] bodyContents) throws IOException {
+        bufferedOutputStream.write(bodyContents);
     }
 
     @Override
-    public void send(byte[] bodyContents, int off, int len) {
-        try {
-            bufferedOutputStream.write(bodyContents, off, len);
-        } catch (IOException e) {
-            throw new WebServerException(e);
-        }
+    public void send(byte[] bodyContents, int off, int len) throws IOException {
+        bufferedOutputStream.write(bodyContents, off, len);
     }
 
     @Override
-    public void send(int b) {
-        try {
-            bufferedOutputStream.write(b);
-        } catch (IOException e) {
-            throw new WebServerException(e);
-        }
+    public void send(int b) throws IOException {
+        bufferedOutputStream.write(b);
     }
 
     @Override
-    public void sendHttpLine(String msg) {
+    public void sendHttpLine(String msg) throws IOException {
         logger.logTrace(() -> String.format("%s sending: \"%s\"", this, msg));
         send(msg + WebEngine.HTTP_CRLF);
     }
@@ -122,13 +86,9 @@ public final class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         logger.logTrace(() -> "close called on " + this);
-        try {
-            socket.close();
-        } catch (IOException e) {
-            throw new WebServerException(e);
-        }
+        socket.close();
         if (server != null) server.removeMyRecord(this);
     }
 
@@ -153,11 +113,7 @@ public final class SocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public void flush() {
-        try {
-            this.bufferedOutputStream.flush();
-        } catch (IOException e) {
-            throw new WebServerException(e);
-        }
+    public void flush() throws IOException {
+        this.bufferedOutputStream.flush();
     }
 }

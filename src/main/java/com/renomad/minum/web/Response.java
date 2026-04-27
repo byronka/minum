@@ -431,7 +431,11 @@ public final class Response implements IResponse {
     }
 
     private static void sendByteArrayResponse(ISocketWrapper sw, byte[] body) {
-        sw.send(body);
+        try {
+            sw.send(body);
+        } catch (IOException e) {
+            throw new WebServerException("Error in Response.sendByteArrayResponse", e);
+        }
     }
 
     @Override

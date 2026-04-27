@@ -3,6 +3,7 @@ package com.renomad.minum.web;
 import com.renomad.minum.state.Constants;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
 
@@ -17,22 +18,22 @@ public interface ISocketWrapper extends Closeable {
      * Convert the provided string value into bytes
      * using the default charset, and send on the socket.
      */
-    void send(String msg);
+    void send(String msg) throws IOException;
 
     /**
      * Simply send the bytes on the socket, simple as that.
      */
-    void send(byte[] bodyContents);
+    void send(byte[] bodyContents) throws IOException;
 
-    void send(byte[] bodyContents, int off, int len);
+    void send(byte[] bodyContents, int off, int len) throws IOException;
 
-    void send(int b);
+    void send(int b) throws IOException;
 
     /**
      * Sends a line of text, with carriage-return and line-feed
      * appended to the end, required for the HTTP protocol.
      */
-    void sendHttpLine(String msg);
+    void sendHttpLine(String msg) throws IOException;
 
     /**
      * Get the port of the server
@@ -52,9 +53,6 @@ public interface ISocketWrapper extends Closeable {
 
     HttpServerType getServerType();
 
-    @Override
-    void close();
-
     /**
      * Returns this socket's input stream for more granular access
      */
@@ -69,5 +67,5 @@ public interface ISocketWrapper extends Closeable {
     /**
      * Send the data in the outgoing buffer into the socket.
      */
-    void flush();
+    void flush() throws IOException;
 }

@@ -1733,7 +1733,7 @@ public class WebTests {
     }
 
 
-    private static ISocketWrapper getClient(Socket socket) {
+    private static ISocketWrapper getClient(Socket socket) throws IOException {
         return new SocketWrapper(socket, null, logger, constants.socketTimeoutMillis, constants.hostName);
     }
 

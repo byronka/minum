@@ -206,7 +206,7 @@ public class WebPerformanceTests {
         }
     }
 
-    private MyResponse clientSend (ISocketWrapper socketWrapper) {
+    private MyResponse clientSend (ISocketWrapper socketWrapper) throws IOException {
 
         socketWrapper.send("""
                             GET /hello?name=byron HTTP/1.1\r
