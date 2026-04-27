@@ -24,9 +24,6 @@ Bug fixes found through AI analysis of the codebase.  Results of the analysis we
 used to build tests proving the bugs, which were then corrected by hand in the ordinary
 manner.
 
-Practical breaking changes: Exception handling has been changed.  Some methods have been 
-changed from static to instance methods, and some parameters have been changed to methods.
-
 * Breaking changes
   * In several spots, the system became a bit stricter than before, and will throw
     a new exception, `BadRequestException`, if it receives something invalid.  See
@@ -61,8 +58,7 @@ changed from static to instance methods, and some parameters have been changed t
   * Removing two `synchronized` blocks in the `abstractDb` class.  Using
     `synchronized` causes thread pinning with virtual threads in Java 21 to 23.
   * Documenting that LRUCache is not thread-safe, and adjusting calls to
-    it from the web framework to use locking. Also, documented that
-    the cache is non-thread-safe.
+    it from the web framework to use locking.
   * Corrected a performance bug in the database code when looking for
     existing entries. It was previously using a linear scan to find existing
     data, which was unnecessary, the data being in a map collection already.
