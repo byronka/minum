@@ -75,7 +75,11 @@ final class BodyProcessor implements IBodyProcessor {
         } else {
             logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning the raw bytes for the body.  Content-Type was: " + contentType);
             // we can return the whole byte array here because we never read from it
-            return new Body(Map.of(), inputStreamUtils.read(contentLength, is), List.of(), BodyType.UNRECOGNIZED);
+            try {
+                return new Body(Map.of(), inputStreamUtils.read(contentLength, is), List.of(), BodyType.UNRECOGNIZED);
+            } catch (IOException e) {
+                throw new WebServerException("Error in BodyProcessor.extractBodyFromInputStream", e);
+            }
         }
     }
 
@@ -272,57 +276,61 @@ final class BodyProcessor implements IBodyProcessor {
 
             @Override
             public StreamingMultipartPartition next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                // confirm that the boundary value is as expected, as a sanity check,
-                // and avoid including the boundary value in the first set of headers
-                if (! hasReadFirstPartition) {
-                    String s;
-                    s = inputStreamUtils.readLine(inputStream);
-                    if (s == null) {
-                        throw new BadRequestException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+                try {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
                     }
-                    countBytesRead.incrementBy(s.length() + 2);
-                    hasReadFirstPartition = true;
+                    // confirm that the boundary value is as expected, as a sanity check,
+                    // and avoid including the boundary value in the first set of headers
+                    if (!hasReadFirstPartition) {
+                        String s;
+                        s = inputStreamUtils.readLine(inputStream);
+                        if (s == null) {
+                            throw new BadRequestException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
+                        }
+                        countBytesRead.incrementBy(s.length() + 2);
+                        hasReadFirstPartition = true;
 
-                    if (!s.contains(boundaryValue)) {
-                        throw new BadRequestException("Error: First line must contain the expected boundary value. Expected to find: "+ boundaryValue + " in: " + s);
+                        if (!s.contains(boundaryValue)) {
+                            throw new BadRequestException("Error: First line must contain the expected boundary value. Expected to find: " + boundaryValue + " in: " + s);
+                        }
                     }
+                    List<String> allHeaders = null;
+                    allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
+                    int lengthOfHeaders = allHeaders.stream().map(String::length).reduce(0, Integer::sum);
+                    // each line has a CR + LF (that's two bytes) and the headers end with a second pair of CR+LF.
+                    int extraCrLfs = (2 * allHeaders.size()) + 2;
+                    countBytesRead.incrementBy(lengthOfHeaders + extraCrLfs);
+
+                    Headers headers = new Headers(allHeaders);
+
+                    List<String> cds = headers.valueByKey("Content-Disposition");
+                    if (cds == null) {
+                        throw new WebServerException("Error: no Content-Disposition header on partition in Multipart/form data");
+                    }
+                    String contentDisposition = String.join(";", cds);
+
+                    Matcher nameMatcher = multiformNameRegex.matcher(contentDisposition);
+                    Matcher filenameMatcher = multiformFilenameRegex.matcher(contentDisposition);
+
+                    String name = "";
+                    if (nameMatcher.find()) {
+                        name = nameMatcher.group("namevalue");
+                    } else {
+                        throw new WebServerException("Error: No name value set on multipart partition");
+                    }
+                    String filename = "";
+                    if (filenameMatcher.find()) {
+                        filename = filenameMatcher.group("namevalue");
+                    }
+
+                    // at this point our inputstream pointer is at the beginning of the
+                    // body data.  From here until the end it's pure data.
+
+                    return new StreamingMultipartPartition(headers, inputStream, new ContentDisposition(name, filename), boundaryValue, countBytesRead, contentLength);
+                } catch (IOException ex) {
+                    throw new WebServerException("Error in BodyProcessor.getMultiPartIterable.next", ex);
                 }
-                List<String> allHeaders = null;
-                allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
-                int lengthOfHeaders = allHeaders.stream().map(String::length).reduce(0, Integer::sum);
-                // each line has a CR + LF (that's two bytes) and the headers end with a second pair of CR+LF.
-                int extraCrLfs = (2 * allHeaders.size()) + 2;
-                countBytesRead.incrementBy(lengthOfHeaders + extraCrLfs);
-
-                Headers headers = new Headers(allHeaders);
-
-                List<String> cds = headers.valueByKey("Content-Disposition");
-                if (cds == null) {
-                    throw new WebServerException("Error: no Content-Disposition header on partition in Multipart/form data");
-                }
-                String contentDisposition = String.join(";", cds);
-
-                Matcher nameMatcher = multiformNameRegex.matcher(contentDisposition);
-                Matcher filenameMatcher = multiformFilenameRegex.matcher(contentDisposition);
-
-                String name = "";
-                if (nameMatcher.find()) {
-                    name = nameMatcher.group("namevalue");
-                } else {
-                    throw new WebServerException("Error: No name value set on multipart partition");
-                }
-                String filename = "";
-                if (filenameMatcher.find()) {
-                    filename = filenameMatcher.group("namevalue");
-                }
-
-                // at this point our inputstream pointer is at the beginning of the
-                // body data.  From here until the end it's pure data.
-
-                return new StreamingMultipartPartition(headers, inputStream, new ContentDisposition(name, filename), boundaryValue, countBytesRead, contentLength);
             }
 
 

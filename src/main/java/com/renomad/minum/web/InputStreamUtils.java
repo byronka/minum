@@ -19,7 +19,7 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public String readLine(InputStream inputStream) {
+    public String readLine(InputStream inputStream) throws IOException {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
@@ -34,12 +34,7 @@ final class InputStreamUtils implements IInputStreamUtils {
                 }
                 throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
             }
-            int a = 0;
-            try {
-                a = inputStream.read();
-            } catch (IOException e) {
-                throw new WebServerException("Error in InputStreamUtils.readLine while reading from stream", e);
-            }
+            int a = inputStream.read();
             if (a == -1) {
                 if (bytesRead > 0) {
                     return result.toString(StandardCharsets.UTF_8);
@@ -63,7 +58,7 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public byte[] read(int lengthToRead, InputStream inputStream) {
+    public byte[] read(int lengthToRead, InputStream inputStream) throws IOException{
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.
         byte[] data;
@@ -71,11 +66,7 @@ final class InputStreamUtils implements IInputStreamUtils {
         int read;
         int totalRead = 0;
         while (true) {
-            try {
-                if (!((read = inputStream.read(buf)) >= 0)) break;
-            } catch (IOException e) {
-                throw new WebServerException("Error in InputStreamUtils.read while reading from stream", e);
-            }
+            if (!((read = inputStream.read(buf)) >= 0)) break;
             totalRead += read;
             if (totalRead < lengthToRead) {
                 // if we haven't gotten everything we wanted, write this to the output and loop again

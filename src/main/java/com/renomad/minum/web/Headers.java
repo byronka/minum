@@ -2,6 +2,7 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.security.ForbiddenUseException;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
@@ -152,7 +153,11 @@ public final class Headers {
                 throw new ForbiddenUseException("User tried sending too many headers.  max: " + MAX_HEADERS_COUNT);
             }
             String value;
-            value = inputStreamUtils.readLine(is);
+            try {
+                value = inputStreamUtils.readLine(is);
+            } catch (IOException e) {
+                throw new WebServerException("Error in Headers.getAllHeaders", e);
+            }
             if (value != null && value.isBlank()) {
                 break;
             } else if (value == null) {

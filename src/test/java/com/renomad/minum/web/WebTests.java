@@ -1483,7 +1483,7 @@ public class WebTests {
         }
     }
 
-    private String readBody(InputStream is, int length) {
+    private String readBody(InputStream is, int length) throws IOException {
         byte[] read = inputStreamUtils.read(length, is);
         return StringUtils.byteArrayToString(read);
     }

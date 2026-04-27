@@ -38,7 +38,7 @@ public class InputStreamUtilsTests {
      * see the method in question for "typicalBufferSize"
      */
     @Test
-    public void testReadingLarge() {
+    public void testReadingLarge() throws IOException {
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
@@ -58,10 +58,9 @@ public class InputStreamUtilsTests {
             }
         }) {
 
-            var exception = assertThrows(WebServerException.class, () -> inputStreamUtils.read(2, inputStream));
+            var exception = assertThrows(IOException.class, () -> inputStreamUtils.read(2, inputStream));
 
-            assertEquals(exception.getMessage(), "Error in InputStreamUtils.read while reading from stream");
-            assertEquals(exception.getCause().getMessage(), "test exception only, no worries");
+            assertEquals(exception.getMessage(), "test exception only, no worries");
         }
     }
 
@@ -102,7 +101,7 @@ public class InputStreamUtilsTests {
     }
 
     @Test
-    public void testWeGetNullIndicatingFinish() {
+    public void testWeGetNullIndicatingFinish() throws IOException {
         String threeNewlines = "\n\n";
         InputStream inputStream = new ByteArrayInputStream(threeNewlines.getBytes(StandardCharsets.UTF_8));
         assertEquals(inputStreamUtils.readLine(inputStream), "");
@@ -152,7 +151,11 @@ public class InputStreamUtilsTests {
             InputStream inputStream = new ByteArrayInputStream(headers.getBytes(StandardCharsets.UTF_8));
             String foo = "";
             do {
-                foo = inputStreamUtils.readLine(inputStream);
+                try {
+                    foo = inputStreamUtils.readLine(inputStream);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             } while (foo != null);
         });
         long l = stopwatchUtils.stopTimer();
