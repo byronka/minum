@@ -26,9 +26,6 @@ manner.
   * In several spots, the system became a bit stricter than before, and will throw
     a new exception, `BadRequestException`, if it receives something invalid.  See
     further notes below.
-  * The number of places where `IOException` is thrown has dropped.  Now these
-    are often wrapped in other `RuntimeException`-descendants tailored to the situation,
-    such as `DbException` or `WebServerException`
   * Some exceptional situations switched to `ForbiddenUseException`.
     There were several scenarios with paths that were wrapped in `InvariantException`, but if
     the system gets a request for a path that is meant to escape the directory,
