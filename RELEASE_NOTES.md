@@ -1,10 +1,8 @@
 Release notes
 =============
 
-* This is a list of the major versions, which are those requiring the developer to adjust
-  their code.  From August 2023 to August 2024, there were 8 major versions. Version 8 has
-  remained stable.
-  * 9: Fix race condition in templates
+* Major versions:
+  * 9: Fix race condition in templates, _March 2026_
   * 8: Streaming videos, _August 2024_
   * 7: Read bodies more efficiently, _August 2024_
   * 6: Streaming responses, _July 2024_
@@ -28,17 +26,17 @@ manner.
   * In several spots, the system became a bit stricter than before, and will throw
     a new exception, `BadRequestException`, if it receives something invalid.  See
     further notes below.
-  * The number of places where IOException is thrown has dropped.  Now these
-    are often wrapped in other RuntimeException-descendants tailored to the situation,
+  * The number of places where `IOException` is thrown has dropped.  Now these
+    are often wrapped in other `RuntimeException`-descendants tailored to the situation,
     such as `DbException` or `WebServerException`
-  * Some exceptional situations switched to ForbiddenUseException.
-    There were several scenarios with paths that were wrapped in InvariantException, but if
+  * Some exceptional situations switched to `ForbiddenUseException`.
+    There were several scenarios with paths that were wrapped in `InvariantException`, but if
     the system gets a request for a path that is meant to escape the directory,
     that is considered a forbidden situation, and should be tagged as such, allowing
     the programmer to use any desired mechanisms to handle it (such as the Brig).
   * New exception, `BadRequestException` will be thrown if we receive certain invalid
     data in requests, specifically:
-    * Receiving a request using chunked transfer-encoding (Minum does not handle that type)
+    * Receiving a request using chunked transfer-encoding (Minum does not handle that)
     * Lacking a properly-formed boundary value in a multipart form, or otherwise failing
       to follow protocol for that form.
     * Duplicate keys in a url-encoded form
@@ -51,8 +49,9 @@ manner.
     * Empty request line
     * Invalid request line
 
-* Index race condition - a concurrent add/remove was able to cause incorrect
-  data in the database index sets.
+* Bugs
+  * Index race condition - a concurrent add/remove was able to cause incorrect
+    data in the database index sets.
 
 * Performance related
   * Removing two `synchronized` blocks in the `abstractDb` class.  Using
