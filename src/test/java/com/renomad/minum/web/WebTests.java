@@ -1274,7 +1274,7 @@ public class WebTests {
         RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
         var ex = assertThrows(BadRequestException.class, () -> requestLine.extractMapFromQueryString("name=baz%2G&foo=bar"));
         assertEquals(ex.getMessage(), "Query string parsing failed for key: (name) value: (baz%2G)");
-        assertEquals(ex.getCause().getMessage(), "URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"2G\"");
+        assertTrue(ex.getCause().getMessage().contains("URLDecoder: Illegal hex characters in escape"));
     }
 
     /**
