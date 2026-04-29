@@ -5,6 +5,7 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
 import org.junit.Test;
 
@@ -102,7 +103,8 @@ public class FullSystemTests {
     public void test_CloseCore() {
         Context context = buildTestingContext("Testing the closing core");
         TestLogger logger = (TestLogger)context.getLogger();
-        assertThrows(WebServerException.class, "java.lang.RuntimeException: Just testing", () -> FullSystem.closeCore(logger, context, throwingServer, throwingServer, "my test system"));
+        var fileUtils = new FileUtils(logger, context.getConstants());
+        assertThrows(WebServerException.class, "java.lang.RuntimeException: Just testing", () -> FullSystem.closeCore(logger, context, throwingServer, throwingServer, "my test system", fileUtils));
 
         TestFramework.shutdownTestingContext(context);
     }
@@ -119,7 +121,8 @@ public class FullSystemTests {
     public void test_CloseCore_NullServers() {
         Context context = buildTestingContext("Testing the closing core with null servers");
         TestLogger logger = (TestLogger) context.getLogger();
-        FullSystem.closeCore(logger, context, null, null, "Born to fly");
+        FileUtils fileUtils = new FileUtils(logger, context.getConstants());
+        FullSystem.closeCore(logger, context, null, null, "Born to fly", fileUtils);
 
         // should find that our server has said it is closed
         assertTrue(logger.doesMessageExist("Born to fly says: Goodbye world!"));

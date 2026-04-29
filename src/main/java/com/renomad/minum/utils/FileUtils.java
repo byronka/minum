@@ -4,6 +4,8 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -183,6 +185,51 @@ public final class FileUtils implements IFileUtils {
     @Override
     public void move(Path source, Path target, CopyOption... options) throws IOException {
         Files.move(source, target, options);
+    }
+
+    @Override
+    public boolean exists(Path path, LinkOption... options) {
+        return Files.exists(path, options);
+    }
+
+    @Override
+    public BufferedWriter newBufferedWriter(Path path, Charset cs, OpenOption... options) throws IOException {
+        return Files.newBufferedWriter(path, cs, options);
+    }
+
+    @Override
+    public BufferedReader newBufferedReader(Path path, Charset cs) throws IOException {
+        return Files.newBufferedReader(path, cs);
+    }
+
+    @Override
+    public Stream<Path> walk(Path start, FileVisitOption... options) throws IOException {
+        return Files.walk(start, options);
+    }
+
+    @Override
+    public boolean isRegularFile(Path path, LinkOption... options) {
+        return Files.isRegularFile(path, options);
+    }
+
+    @Override
+    public Stream<String> lines(Path path, Charset cs) throws IOException {
+        return Files.lines(path, cs);
+    }
+
+    @Override
+    public boolean deleteIfExists(Path path) throws IOException {
+        return Files.deleteIfExists(path);
+    }
+
+    @Override
+    public long size(Path path) throws IOException {
+        return Files.size(path);
+    }
+
+    @Override
+    public Stream<Path> list(Path dir) throws IOException {
+        return Files.list(dir);
     }
 
 }

@@ -213,7 +213,7 @@ public final class FullSystem {
 
         if (!hasShutdown) {
             logger.logTrace(() -> "close called on " + this);
-            closeCore(logger, context, server, sslServer, this.toString());
+            closeCore(logger, context, server, sslServer, this.toString(), fileUtils);
             hasShutdown = true;
         }
     }
@@ -222,7 +222,7 @@ public final class FullSystem {
      * The core code for closing resources
      * @param fullSystemName the name of this FullSystem, in cases where several are running concurrently
      */
-    static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName) {
+    static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName, IFileUtils fileUtils) {
         try {
             logger.logDebug(() -> "Received shutdown command");
 
@@ -242,7 +242,7 @@ public final class FullSystem {
             logger.logDebug(() -> String.format(
                     "%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), fullSystemName));
 
-            Files.deleteIfExists(Path.of("SYSTEM_RUNNING"));
+            fileUtils.deleteIfExists(Path.of("SYSTEM_RUNNING"));
         } catch (Exception e) {
             throw new WebServerException(e);
         }

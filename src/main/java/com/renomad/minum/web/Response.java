@@ -214,8 +214,8 @@ public final class Response implements IResponse {
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders) {
-        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, requestHeaders);
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders, IFileUtils fileUtils) {
+        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, requestHeaders, fileUtils);
     }
 
     /**
@@ -228,11 +228,11 @@ public final class Response implements IResponse {
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders) {
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders, IFileUtils fileUtils) {
         Headers adjustedHeaders = extraHeaders;
         long fileSize = 0;
         try {
-            fileSize = Files.size(Path.of(filePath));
+            fileSize = fileUtils.size(Path.of(filePath));
         } catch (IOException e) {
             throw new WebServerException("Error in Response.buildLargeFileResponse", e);
         }
@@ -280,7 +280,7 @@ public final class Response implements IResponse {
         } catch (IOException e) {
             throw new WebServerException("Error at Response.buildLargeFileResponse", e);
         }
-        return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
+        return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders, fileUtils);
     }
 
     /**

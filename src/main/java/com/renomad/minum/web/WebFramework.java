@@ -581,7 +581,7 @@ public final class WebFramework {
 
         try {
             Path staticFilePath = Path.of(constants.staticFilesDirectory).resolve(path);
-            if (!Files.isRegularFile(staticFilePath)) {
+            if (!fileUtils.isRegularFile(staticFilePath)) {
                 logger.logDebug(() -> String.format("No readable regular file found at %s", path));
                 return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
@@ -601,7 +601,7 @@ public final class WebFramework {
                 mimeType = "application/octet-stream";
             }
 
-            if (Files.size(staticFilePath) < 100_000) {
+            if (fileUtils.size(staticFilePath) < 100_000) {
                 var fileContents = fileReader.readFile(staticFilePath.toString());
                 return createOkResponseForStaticFiles(fileContents, mimeType);
             } else {
@@ -641,7 +641,8 @@ public final class WebFramework {
         return Response.buildLargeFileResponse(
                 headers,
                 filePath.toString(),
-                requestHeaders
+                requestHeaders,
+                fileUtils
                 );
     }
 

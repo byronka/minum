@@ -283,7 +283,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         // if we find the "index.ddps" file, it means we are looking at an old
         // version of the database.  Update it to the new version, and then afterwards
         // remove the old version files.
-        if (Files.exists(dbDirectory.resolve("index.ddps"))) {
+        if (fileUtils.exists(dbDirectory.resolve("index.ddps"))) {
             new DbFileConverter(context, dbDirectory).convertClassicFolderStructureToDbEngine2Form();
         }
 
@@ -340,7 +340,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             // build a hash for this data
             MessageDigest messageDigestSha256 = getMessageDigest("SHA-256");
 
-            try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
+            try(Stream<String> fileStream = fileUtils.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
 
                 fileStream.forEach(line -> {
                     messageDigestSha256.update(line.getBytes(StandardCharsets.US_ASCII));
@@ -348,8 +348,8 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
                 });
 
                 // check against the checksum for what we read, if applicable
-                if (Files.exists(checksumFilename)) {
-                    String checksum = Files.readString(checksumFilename);
+                if (fileUtils.exists(checksumFilename)) {
+                    String checksum = fileUtils.readString(checksumFilename);
                     byte[] hashBytes = messageDigestSha256.digest();
                     String hashString = CryptoUtils.bytesToHex(hashBytes);
                     if (!hashString.equals(checksum)) {

@@ -2,13 +2,13 @@ package com.renomad.minum.utils;
 
 import com.renomad.minum.security.ForbiddenUseException;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * This interface allows us to mock out many of the I/O methods
@@ -117,4 +117,49 @@ public interface IFileUtils {
      * A wrapper around {@link Files#move(Path, Path, CopyOption...)}
      */
     void move(Path source, Path target, CopyOption... options) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#exists(Path, LinkOption...)}
+     */
+    boolean exists(Path path, LinkOption... options);
+
+    /**
+     * A wrapper around {@link Files#newBufferedWriter(Path, Charset, OpenOption...)}
+     */
+    BufferedWriter newBufferedWriter(Path path, Charset cs, OpenOption... options) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#newBufferedReader(Path, Charset)}
+     */
+    BufferedReader newBufferedReader(Path path, Charset cs) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#walk(Path, FileVisitOption...)}
+     */
+    Stream<Path> walk(Path start, FileVisitOption... options) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#isRegularFile(Path, LinkOption...)}
+     */
+    boolean isRegularFile(Path path, LinkOption... options);
+
+    /**
+     * A wrapper around {@link Files#lines(Path, Charset)}
+     */
+    Stream<String> lines(Path path, Charset cs) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#deleteIfExists(Path)}
+     */
+    boolean deleteIfExists(Path path) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#size(Path)}
+     */
+    long size(Path path) throws IOException;
+
+    /**
+     * A wrapper around {@link Files#list(Path)}
+     */
+    Stream<Path> list(Path dbDirectory) throws IOException;
 }

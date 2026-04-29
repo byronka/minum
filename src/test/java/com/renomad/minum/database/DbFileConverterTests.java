@@ -188,7 +188,7 @@ public class DbFileConverterTests {
         Files.writeString(path, "hello world", StandardOpenOption.CREATE);
 
         // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger(), fileUtils));
 
         // assert
         assertEquals(ex.getMessage(), "Failed during the listing of files during conversion of db engine2 to db classic");
@@ -209,7 +209,7 @@ public class DbFileConverterTests {
         Files.writeString(path.resolve("consolidated_data").resolve("foofoo2"), "hello world", StandardOpenOption.CREATE);
 
         // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger(), fileUtils));
 
         assertEquals(ex.getMessage(), "Error: Failed to find first underscore in filename: foofoo2");
     }
@@ -228,7 +228,7 @@ public class DbFileConverterTests {
         Files.writeString(path.resolve("consolidated_data").resolve("c_to_d"), "hello world", StandardOpenOption.CREATE);
 
         // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger(), fileUtils));
 
         assertTrue(ex.getMessage().contains("Failed to convert first part of filename to a number: "), "Message was: " + ex.getMessage());
     }
@@ -247,7 +247,7 @@ public class DbFileConverterTests {
         Files.writeString(path.resolve("consolidated_data").resolve("6_to_10"), "hello world", StandardOpenOption.CREATE);
 
         // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger(), fileUtils));
 
         String adjustedMessage = ex.getCause().getMessage().replace('/', '.').replace('\\', '.');
         assertEquals(adjustedMessage, "Unable to convert a line - check for corruption.  File: out.simple_db_for_engine2_tests.engine2.conversiontest3.consolidated_data.1_to_5 Data: hello world");
@@ -267,7 +267,7 @@ public class DbFileConverterTests {
         Files.writeString(path.resolve("consolidated_data").resolve("6_to_10"), "a|b|c|d", StandardOpenOption.CREATE);
 
         // act
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger()));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.walkFilesAndConvertDbEngine2ToDbClassic(path, context.getLogger(), fileUtils));
 
         String adjustedMessage = ex.getCause().getMessage().replace('/', '.').replace('\\', '.');
         assertEquals(adjustedMessage, "Unable to convert a line - check for corruption.  File: out.simple_db_for_engine2_tests.engine2.conversiontest4.consolidated_data.1_to_5 Data: a|b|c|d");
@@ -306,7 +306,7 @@ public class DbFileConverterTests {
         fileUtils.makeDirectory(path);
         Files.writeString(path.resolve("bar"), "Testing");
 
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.deleteEmptyDbEngine2Directories(Path.of("out/dbconvertertests/testing_edgecase1")));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.deleteEmptyDbEngine2Directories(Path.of("out/dbconvertertests/testing_edgecase1"), fileUtils));
 
         assertEquals(ex.getMessage(), "Failed to delete one of the DbEngine2 files");
     }
@@ -325,7 +325,7 @@ public class DbFileConverterTests {
 
         Files.writeString(path.resolve("index.ddps"), "Testing");
 
-        var ex = assertThrows(DbException.class, () -> DbFileConverter.createNewIndexFile(path, 42));
+        var ex = assertThrows(DbException.class, () -> DbFileConverter.createNewIndexFile(path, 42, fileUtils));
         assertEquals(ex.getMessage(), "Failed to create an index.ddps file");
     }
 
@@ -366,9 +366,9 @@ public class DbFileConverterTests {
         Files.writeString(checksumFile, "bar");
 
 
-        assertTrue(DbFileConverter.isDataFile(dataFile));
-        assertFalse(DbFileConverter.isDataFile(checksumFile));
-        assertFalse(DbFileConverter.isDataFile(myPath.resolve("baz")));
-        assertFalse(DbFileConverter.isDataFile(myPath.resolve("baz.checksum")));
+        assertTrue(DbFileConverter.isDataFile(dataFile, fileUtils));
+        assertFalse(DbFileConverter.isDataFile(checksumFile, fileUtils));
+        assertFalse(DbFileConverter.isDataFile(myPath.resolve("baz"), fileUtils));
+        assertFalse(DbFileConverter.isDataFile(myPath.resolve("baz.checksum"), fileUtils));
     }
 }

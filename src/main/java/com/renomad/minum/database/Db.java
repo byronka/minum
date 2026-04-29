@@ -68,7 +68,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         this.fullPathForIndexFile = dbDirectory.resolve("index" + DATABASE_FILE_SUFFIX);
         this.actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
 
-        if (Files.exists(fullPathForIndexFile)) {
+        if (fileUtils.exists(fullPathForIndexFile)) {
             try {
                 long indexValue;
                 String indexValueString = fileUtils.readString(fullPathForIndexFile);
@@ -176,7 +176,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             if (!fullPath.toFile().exists()) {
                 throw new DbException(fullPath + " must already exist before deletion");
             }
-            Files.delete(fullPath);
+            fileUtils.delete(fullPath);
             if (maxIndexOnDisk > index.get()) {
                 maxIndexOnDisk = index.get();
                 fileUtils.writeString(fullPathForIndexFile, String.valueOf(maxIndexOnDisk));
@@ -196,11 +196,11 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
 
         // check if the folder has content for a DbEngine2 database, meaning we
         // need to convert it back to the classic DB file structure.
-        if (Files.exists(dbDirectory.resolve("currentAppendLog"))) {
+        if (fileUtils.exists(dbDirectory.resolve("currentAppendLog"))) {
             new DbFileConverter(context, dbDirectory).convertFolderStructureToDbClassic();
         }
 
-        if (! Files.exists(dbDirectory)) {
+        if (! fileUtils.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, adding nothing to the data list");
             return;
         }
@@ -211,9 +211,9 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
     void walkAndLoad(Path dbDirectory) {
         // walk through all the files in this directory, collecting
         // all regular files (non-subdirectories) except for index.ddps
-        try (final var pathStream = Files.walk(dbDirectory)) {
+        try (final var pathStream = fileUtils.walk(dbDirectory)) {
             final var listOfFiles = pathStream.filter(path ->
-                        Files.isRegularFile(path) &&
+                        fileUtils.isRegularFile(path) &&
                         !path.getFileName().toString().startsWith("index")
             ).toList();
             for (Path p : listOfFiles) {

@@ -156,7 +156,7 @@ final class DatabaseConsolidator {
             // if the file doesn't exist, we'll just start with an empty list. If it
             // does exist, read its lines into a List data structure.
             Path fullPathToConsolidatedFile = this.consolidatedDataDirectory.resolve(filename);
-            if (!Files.exists(fullPathToConsolidatedFile)) {
+            if (!fileUtils.exists(fullPathToConsolidatedFile)) {
                 data = new ArrayList<>();
             } else {
                 data = readConsolidatedFileWithChecksum(fullPathToConsolidatedFile);
@@ -193,7 +193,7 @@ final class DatabaseConsolidator {
             throw new DbException("Error in DatabaseConsolidator.readConsolidatedFileWithChecksum", e);
         }
 
-        compareWithChecksum(fullPathToConsolidatedFile, data);
+        compareWithChecksum(fullPathToConsolidatedFile, data, fileUtils);
 
         return data;
     }

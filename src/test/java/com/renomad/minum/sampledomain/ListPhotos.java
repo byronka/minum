@@ -230,7 +230,8 @@ public class ListPhotos {
         return Response.buildLargeFileResponse(
                 extraHeaders,
                 staticFilePath.toString(),
-                requestHeaders);
+                requestHeaders,
+                fileUtils);
     }
 
     /**

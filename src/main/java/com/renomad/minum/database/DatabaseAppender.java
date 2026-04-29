@@ -114,7 +114,7 @@ final class DatabaseAppender {
             // never very large - it's mostly a temporary place to store incoming data
             // until we can store it off elsewhere. For that reason, it's not a performance
             // concern to read all the existing lines, just to get the count of current lines.
-            if (Files.exists(currentAppendFile)) {
+            if (fileUtils.exists(currentAppendFile)) {
                 List<String> lines = fileUtils.readAllLines(currentAppendFile);
                 appendCount = lines.size();
             } else {
@@ -124,7 +124,7 @@ final class DatabaseAppender {
                 appendBytes = 0;
             }
 
-            bufferedWriter = Files.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            bufferedWriter = fileUtils.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (Exception ex) {
             throw new DbException("Error in DatabaseAppender.createNewAppendFile", ex);
         }

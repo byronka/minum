@@ -63,7 +63,7 @@ public class ChecksumUtilityTests {
         fileUtils.makeDirectory(directory);
         fileUtils.makeDirectory(directory.resolve("1_to_100.checksum"));
 
-        assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("1_to_100"), List.of()));
+        assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("1_to_100"), List.of(), fileUtils));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ChecksumUtilityTests {
         fileUtils.makeDirectory(directory);
         Files.writeString(directory.resolve("101_to_200.checksum"), "foo");
 
-        var ex = assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("101_to_200"), List.of("a")));
+        var ex = assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("101_to_200"), List.of("a"), fileUtils));
         assertTrue(ex.getMessage().contains("checksum"), "message was: " + ex.getMessage());
     }
 
@@ -98,6 +98,6 @@ public class ChecksumUtilityTests {
         // when our code tries reading from it, thus testing a negative case.
         fileUtils.makeDirectory(directory);
 
-        assertTrue(compareWithChecksum(directory.resolve("101_to_200"), List.of("a")));
+        assertTrue(compareWithChecksum(directory.resolve("101_to_200"), List.of("a"), fileUtils));
     }
 }
