@@ -1,7 +1,14 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.sampledomain.auth.User;
+import com.renomad.minum.state.Context;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +17,27 @@ import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.SearchUtils.findExactlyOne;
 
 public class SearchUtilsTests {
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("SearchUtilsTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * It's a common situation to search a collection and expect to either

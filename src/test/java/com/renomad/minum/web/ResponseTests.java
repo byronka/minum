@@ -1,13 +1,14 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.InvariantException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,25 +19,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.renomad.minum.testing.TestFramework.assertEquals;
-import static com.renomad.minum.testing.TestFramework.assertThrows;
+import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.testing.TestFramework.shutdownTestingContext;
 import static com.renomad.minum.web.Response.buildStreamingResponse;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 
 public class ResponseTests {
 
-    private Context context;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = TestFramework.buildTestingContext("ResponseTests");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("ResponseTests");
+        logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
-        TestFramework.shutdownTestingContext(context);
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
     /**
      * If we use two different {@link Response} as keys in a
      * map, they will be treated as the same if they have

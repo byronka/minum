@@ -7,7 +7,10 @@ import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,7 +31,7 @@ public class TemplatingTests {
 
     @BeforeClass
     public static void setUpClass() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("TemplatingTests");
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
     }
@@ -37,6 +40,13 @@ public class TemplatingTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * testing out a template rendering machine

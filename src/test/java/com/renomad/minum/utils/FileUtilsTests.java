@@ -6,7 +6,10 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -45,6 +48,13 @@ public class FileUtilsTests {
         shutdownTestingContext(context);
         fileUtils.deleteDirectoryRecursivelyIfExists(overallTestDirectory);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_WriteString_EmptyPath() {

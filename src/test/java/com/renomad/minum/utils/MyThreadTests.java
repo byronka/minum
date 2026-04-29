@@ -1,12 +1,40 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
-import static com.renomad.minum.testing.TestFramework.assertFalse;
-import static com.renomad.minum.testing.TestFramework.assertTrue;
+import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.testing.TestFramework.shutdownTestingContext;
 
 public class MyThreadTests {
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("MythreadTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void testMyThread() {

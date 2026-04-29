@@ -1,13 +1,18 @@
 package com.renomad.minum.htmlparsing;
 
 import com.renomad.minum.SearchHelpers;
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,20 +22,29 @@ import static com.renomad.minum.htmlparsing.HtmlParser.MAX_HTML_SIZE;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class HtmlParserTests {
-    private static IFileUtils fileUtils;
-    private static Context context;
+
+    static private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = TestFramework.buildTestingContext("HtmlParserTests");
         fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
 
     @AfterClass
     public static void cleanup() {
-        shutdownTestingContext(context);
+        TestFramework.shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
     /**
      * An experimental TDD-style test to better understand behavior of
      * the method being developed.

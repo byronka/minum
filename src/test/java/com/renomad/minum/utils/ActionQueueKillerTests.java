@@ -7,9 +7,9 @@ import com.renomad.minum.queue.ActionQueueKiller;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
@@ -21,19 +21,26 @@ import static com.renomad.minum.testing.TestFramework.*;
  */
 public class ActionQueueKillerTests {
 
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("ActionQueueKillerTests");
         logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_KillAllQueues_WithDebug() {

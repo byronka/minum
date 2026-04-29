@@ -7,10 +7,12 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.Inmate;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.IFileReader;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.time.Month;
@@ -27,21 +29,36 @@ public class WebFrameworkTests {
 
     private WebFramework webFramework;
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
     /**
      * Just a boring empty Headers instance for some of the methods that
      * need it but where we aren't doing anything with it.
      */
     private final Headers defaultHeaders = new Headers(List.of());
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         context = buildTestingContext("webframework_tests");
-        webFramework = new WebFramework(context, default_zdt);
         logger = (TestLogger)context.getLogger();
     }
 
+    @Before
+    public void init() {
+        webFramework = new WebFramework(context, default_zdt);
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_readStaticFile_CSS() {

@@ -7,7 +7,10 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -18,7 +21,7 @@ public class ActionQueueTests {
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("ActionQueueTests");
         logger = (TestLogger)context.getLogger();
     }
 
@@ -26,6 +29,13 @@ public class ActionQueueTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /*
      One major concern is that actions that are handled within ActionQueue

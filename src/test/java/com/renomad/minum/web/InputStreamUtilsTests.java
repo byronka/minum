@@ -1,12 +1,13 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -18,19 +19,28 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class InputStreamUtilsTests {
 
-    private IInputStreamUtils inputStreamUtils;
-    private Context context;
+    static private IInputStreamUtils inputStreamUtils;
+    static private Context context;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("input stream utils tests");
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * For the {@link InputStreamUtils#read(int, InputStream)}, if more bytes are sent than

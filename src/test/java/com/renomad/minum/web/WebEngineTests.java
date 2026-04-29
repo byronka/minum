@@ -5,7 +5,10 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -28,11 +31,17 @@ public class WebEngineTests {
         logger = (TestLogger)context.getLogger();
     }
 
-
     @AfterClass
     public static void tearDownClass() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * This odd little test just examines what takes place when we

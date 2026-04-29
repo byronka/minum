@@ -2,8 +2,9 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -17,13 +18,26 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class SocketWrapperTests {
 
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        Context context = buildTestingContext("testing socket wrapper");
-        this.logger = (TestLogger)context.getLogger();
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("SocketWrapperTests");
+        logger = (TestLogger) context.getLogger();
     }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void testSendingSingleByte() throws IOException {

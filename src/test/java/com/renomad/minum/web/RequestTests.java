@@ -7,9 +7,9 @@ import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.UtilsException;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -24,26 +24,33 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class RequestTests {
 
-    private Context context;
-    private RequestLine defaultRequestLine;
-    private TestLogger logger;
+    private static Context context;
+    private static RequestLine defaultRequestLine;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = buildTestingContext("Request tests");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("Request tests");
         defaultRequestLine = new RequestLine(
                 RequestLine.Method.GET,
                 new PathDetails("bar", "biz", Map.of("aaa", "bbb")),
                 HttpVersion.ONE_DOT_ONE,
                 "",
-                this.context.getLogger());
-        this.logger = (TestLogger)this.context.getLogger();
+                context.getLogger());
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         TestFramework.shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void equalsTest() {

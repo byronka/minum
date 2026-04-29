@@ -1,6 +1,13 @@
 package com.renomad.minum.testing;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.util.List;
@@ -8,6 +15,27 @@ import java.util.List;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class TestFrameworkTests {
+
+    static private Context context;
+    static private TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("TestFrameworkTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /*
     If the inner method doesn't throw an exception, assertThrows should throw one.

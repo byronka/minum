@@ -5,7 +5,10 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +28,7 @@ public class BodyProcessorTests {
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("BodyProcessorTests");
         logger = (TestLogger) context.getLogger();
     }
 
@@ -33,6 +36,13 @@ public class BodyProcessorTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * Edge case - if a multipart form body is missing a valid name value in its headers, ah

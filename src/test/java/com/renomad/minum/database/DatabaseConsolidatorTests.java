@@ -1,12 +1,13 @@
 package com.renomad.minum.database;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -17,19 +18,28 @@ import static com.renomad.minum.testing.TestFramework.assertThrows;
 
 public class DatabaseConsolidatorTests {
 
-    private IFileUtils fileUtils;
-    private Context context;
+    static private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = TestFramework.buildTestingContext("DatabaseConsolidatorTests");
-        this.fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("DatabaseConsolidatorTests");
+        fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         TestFramework.shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * An exception should be thrown if the program cannot parse a line

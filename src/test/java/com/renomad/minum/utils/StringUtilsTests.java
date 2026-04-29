@@ -1,16 +1,44 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.renomad.minum.testing.TestFramework.assertEquals;
-import static com.renomad.minum.testing.TestFramework.assertTrue;
+import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.testing.TestFramework.shutdownTestingContext;
 
 public class StringUtilsTests {
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("StringUtilsTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * See that our code to clean html does its work

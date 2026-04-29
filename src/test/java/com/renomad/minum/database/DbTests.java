@@ -12,10 +12,9 @@ import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.SearchUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,9 +35,9 @@ import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
 import static java.util.stream.IntStream.range;
 
 public class DbTests {
-    private Context context;
-    private TestLogger logger;
-    private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
+    static private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_db_tests/foos");
     static Path fubarDirectory = Path.of("out/simple_db_for_db_tests/fubar");
 
@@ -48,17 +47,24 @@ public class DbTests {
      */
     static private final int FINISH_TIME = 50;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * For any given collection of data, we will need to serialize that to disk.

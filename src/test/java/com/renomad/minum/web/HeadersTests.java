@@ -5,6 +5,8 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ThrowingSupplier;
 import com.renomad.minum.state.Context;
 import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -19,19 +21,26 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class HeadersTests {
 
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = buildTestingContext("header tests");
-        this.logger = (TestLogger) context.getLogger();
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("HeadersTests");
+        logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_GetAllHeaders_EdgeCase_TooMany() {

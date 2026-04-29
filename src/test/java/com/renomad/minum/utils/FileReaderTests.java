@@ -4,9 +4,9 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -20,16 +20,23 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class FileReaderTests {
     private static TestLogger logger;
-    private Map<String, byte[]> lruCache;
-    private Context context;
+    private static Map<String, byte[]> lruCache;
+    private static Context context;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger) context.getLogger();
         Constants constants = context.getConstants();
         lruCache = LRUCache.getLruCache(constants.maxElementsLruCacheStaticFiles);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @After
     public void cleanup() {

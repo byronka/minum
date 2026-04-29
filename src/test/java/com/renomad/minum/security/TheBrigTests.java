@@ -8,7 +8,10 @@ import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.web.FullSystem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -36,6 +39,13 @@ public class TheBrigTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * A user should be able to put a particular address in jail for

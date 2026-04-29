@@ -3,9 +3,9 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,27 +21,34 @@ import static com.renomad.minum.web.RequestLine.Method.NONE;
 
 public class RequestLineTests {
 
-    private Context context;
-    private RequestLine emptyRequestLine;
-    private TestLogger testLogger;
+    private static Context context;
+    private static RequestLine emptyRequestLine;
+    private static TestLogger testLogger;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("RequestLine tests");
-        this.emptyRequestLine = new RequestLine(
+        emptyRequestLine = new RequestLine(
                 NONE,
                 PathDetails.empty,
                 HttpVersion.NONE,
                 "",
                 context.getLogger());
-        this.testLogger = (TestLogger)context.getLogger();
+        testLogger = (TestLogger)context.getLogger();
+
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            testLogger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_GetRawValue() {

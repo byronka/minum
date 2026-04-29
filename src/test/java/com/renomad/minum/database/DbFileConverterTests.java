@@ -6,9 +6,9 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,24 +20,33 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class DbFileConverterTests {
 
-    private Context context;
-    private IFileUtils fileUtils;
+    static private Context context;
+    static private IFileUtils fileUtils;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         var properties = new Properties();
         properties.setProperty("MAX_DATABASE_APPEND_COUNT", "5");
         properties.setProperty("MAX_DATABASE_CONSOLIDATED_FILE_LINES", "5");
         properties.setProperty("DB_DIRECTORY","out/simple_db_for_db_tests");
         properties.setProperty("LOG_LEVELS","DEBUG,ASYNC_ERROR,AUDIT");
-        this.context = TestFramework.buildTestingContext("DbFileConverterTests", properties);
-        this.fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        context = TestFramework.buildTestingContext("DbFileConverterTests", properties);
+        fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
-        TestFramework.shutdownTestingContext(this.context);
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * This test, we'll have our code read from a missing index.ddps file,

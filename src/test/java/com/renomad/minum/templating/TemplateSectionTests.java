@@ -1,8 +1,16 @@
 package com.renomad.minum.templating;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.InvariantException;
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -10,6 +18,27 @@ import java.util.Map;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class TemplateSectionTests {
+
+    static private Context context;
+    static private TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("TemplateSectionTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_MissingKeyAndSubstring_WithStaticText() {

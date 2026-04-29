@@ -6,8 +6,9 @@ import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -17,17 +18,29 @@ import static com.renomad.minum.testing.TestFramework.assertTrue;
 
 public class DatabaseAppenderTests {
 
-    private Context context;
-    private TestLogger logger;
-    private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
+    static private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_engine2_tests/engine2/foos");
 
-    @Before
-    public void init() {
-        this.context = TestFramework.buildTestingContext("DatabaseAppenderTests");
-        this.logger = (TestLogger)context.getLogger();
-        this.fileUtils = new FileUtils(logger, context.getConstants());
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("DatabaseAppenderTests");
+        logger = (TestLogger)context.getLogger();
+        fileUtils = new FileUtils(logger, context.getConstants());
     }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * When the appender puts more lines into the currentAppendLog

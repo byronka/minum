@@ -10,7 +10,10 @@ import com.renomad.minum.testing.TestFailureException;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.*;
 import java.net.Socket;
@@ -99,12 +102,18 @@ public class WebTests {
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
     }
 
-
     @AfterClass
     public static void tearDownClass() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * What happens if we throw an exception in a thread?

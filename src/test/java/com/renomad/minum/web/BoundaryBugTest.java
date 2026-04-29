@@ -2,9 +2,9 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,19 +22,26 @@ import static com.renomad.minum.testing.TestFramework.*;
  */
 public class BoundaryBugTest {
 
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        context = buildTestingContext("BoundaryBugTest");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("BoundaryBugTests");
         logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * A multipart request where the Content-Type header has an extra
