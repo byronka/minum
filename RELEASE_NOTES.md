@@ -33,7 +33,7 @@ manner.
     that is considered a forbidden situation, and should be tagged as such, allowing
     the programmer to use any desired mechanisms to handle it (such as the Brig).
   * New exception, `BadRequestException` will be thrown if we receive certain invalid
-    data in requests, specifically:
+    data in requests, and will return a 400 to the client. It will be thrown in these situations:
     * Receiving a request using chunked transfer-encoding (Minum does not handle that)
     * Lacking a properly-formed boundary value in a multipart form, or otherwise failing
       to follow protocol for that form.
