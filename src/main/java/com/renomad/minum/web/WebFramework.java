@@ -113,8 +113,8 @@ public final class WebFramework {
             while (true) {
                 // we'll store the status line and headers in this
                 StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
-                                                                            // are not usually too large - even if the user added a bunch, there is a good
-                                                                            // chance it would be far under 600.  If that turns out to be wrong, adjust/redesign
+                // are not usually too large - even if the user added a bunch, there is a good
+                // chance it would be far under 600.  If that turns out to be wrong, adjust/redesign
 
                 // set some basic variables we'll need access to throughout
                 long startMillis = System.currentTimeMillis();
@@ -204,7 +204,9 @@ public final class WebFramework {
                 }
 
             }
-        }catch (ForbiddenUseException ex) {
+        } catch (SocketException | SocketTimeoutException ex) {
+            handleReadTimedOut(sw, ex, logger);
+        } catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
         } catch (Exception ex) {
             finalExceptionHandler(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
@@ -216,9 +218,7 @@ public final class WebFramework {
      * Last-chance handler for any exceptions originating in WebFramework.httpProcessing
      */
     static void finalExceptionHandler(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
-        if (ex.getCause() instanceof SocketException || ex.getCause() instanceof SocketTimeoutException) {
-            handleReadTimedOut(sw, ex.getCause(), logger);
-        } else if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
+        if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
             logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
         } else {
