@@ -2,6 +2,7 @@ Release notes
 =============
 
 * Major versions:
+  * 10: Killing more bugs, better exception handling, _May 2026_
   * 9: Fix race condition in templates, _March 2026_
   * 8: Streaming videos, _August 2024_
   * 7: Read bodies more efficiently, _August 2024_
