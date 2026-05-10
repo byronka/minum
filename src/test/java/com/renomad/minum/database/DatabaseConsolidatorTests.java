@@ -1,33 +1,51 @@
 package com.renomad.minum.database;
 
+import com.renomad.minum.logging.ILogger;
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import com.renomad.minum.utils.IFileUtils;
+import com.renomad.minum.utils.ThrowingFileUtils;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
-import java.nio.file.Path;
+import java.io.IOException;
+import java.nio.file.*;
+import java.text.ParseException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.renomad.minum.testing.TestFramework.assertEquals;
 import static com.renomad.minum.testing.TestFramework.assertThrows;
 
 public class DatabaseConsolidatorTests {
 
-    private FileUtils fileUtils;
-    private Context context;
+    static private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = TestFramework.buildTestingContext("DatabaseConsolidatorTests");
-        this.fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("DatabaseConsolidatorTests");
+        fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         TestFramework.shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * An exception should be thrown if the program cannot parse a line
@@ -66,8 +84,8 @@ public class DatabaseConsolidatorTests {
      */
     @Test
     public void testParsingAppendLogs_EdgeCase_InvalidFilename() {
-        var ex = assertThrows(DbException.class, () -> DatabaseConsolidator.convertFileListToDateList(new String[]{"NOT_A_DATE"}));
-        assertEquals(ex.getMessage(), "java.text.ParseException: Unparseable date: \"NOT_A_DATE\"");
+        var ex = assertThrows(ParseException.class, () -> DatabaseConsolidator.convertFileListToDateList(new String[]{"NOT_A_DATE"}));
+        assertEquals(ex.getMessage(), "Unparseable date: \"NOT_A_DATE\"");
     }
 
     /**
@@ -75,9 +93,40 @@ public class DatabaseConsolidatorTests {
      * the program will return an empty list.
      */
     @Test
-    public void testGetAppendFiles_EdgeCase_NoFiles() {
+    public void testGetAppendFiles_EdgeCase_NoFiles() throws IOException, ParseException {
         Path path = Path.of("out/DOES_NOT_EXIST");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         assertEquals(List.of(), DatabaseConsolidator.getSortedAppendLogs(path));
     }
+
+    @Test
+    public void testConstructorHavingException() {
+        var throwingFileUtils = new ThrowingFileUtils();
+
+        assertThrows(IOException.class, () -> new DatabaseConsolidator(Path.of(""), context, throwingFileUtils));
+    }
+
+    @Test
+    public void testProcessAppendLogFile_Throws() {
+        var throwingFileUtils = new ThrowingFileUtils();
+
+        assertThrows(IOException.class, () -> DatabaseConsolidator.processAppendLogFile("", Path.of(""), throwingFileUtils, 100, logger, Path.of("")));
+    }
+
+    @Test
+    public void testRewriteFiles_Throws() {
+        var throwingFileUtils = new ThrowingFileUtils();
+        Map<Long, Collection<DatabaseConsolidator.DatabaseChangeInstruction>> groupedInstructions = new HashMap<>();
+        groupedInstructions.put(1L, List.of());
+
+        assertThrows(IOException.class, () -> DatabaseConsolidator.rewriteFiles(groupedInstructions, throwingFileUtils, 100, logger, Path.of("")));
+    }
+
+    @Test
+    public void testReadConsolidatedFileWithChecksum_Throws() {
+        var throwingFileUtils = new ThrowingFileUtils();
+
+        assertThrows(IOException.class, () -> DatabaseConsolidator.readConsolidatedFileWithChecksum(Path.of(""), throwingFileUtils));
+    }
+
 }

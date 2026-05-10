@@ -2,9 +2,12 @@ package com.renomad.minum.logging;
 
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.Map;
 import java.util.Properties;
@@ -12,20 +15,27 @@ import java.util.Properties;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class LoggerTests {
-    private Context context;
-    private TestLogger logger;
 
-    @Before
-    public void init() {
-        context = buildTestingContext("TestLogger tests");
-        logger = (TestLogger) context.getLogger();
+    static private Context context;
+    static private TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("LoggerTests");
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
-        shutdownTestingContext(context);
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
     /**
      * This does print to output, but skips normal channels - just
      * uses a System.out.printf at the end.  We can't track it.

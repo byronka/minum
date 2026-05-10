@@ -1,13 +1,20 @@
 package com.renomad.minum.htmlparsing;
 
 import com.renomad.minum.SearchHelpers;
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -15,20 +22,29 @@ import static com.renomad.minum.htmlparsing.HtmlParser.MAX_HTML_SIZE;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class HtmlParserTests {
-    private static FileUtils fileUtils;
-    private static Context context;
+
+    static private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = TestFramework.buildTestingContext("HtmlParserTests");
         fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
 
     @AfterClass
     public static void cleanup() {
-        shutdownTestingContext(context);
+        TestFramework.shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
     /**
      * An experimental TDD-style test to better understand behavior of
      * the method being developed.
@@ -208,7 +224,7 @@ public class HtmlParserTests {
     }
 
     @Test
-    public void test_HtmlParser_Edge_LargerFile() {
+    public void test_HtmlParser_Edge_LargerFile() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
@@ -220,7 +236,7 @@ public class HtmlParserTests {
     }
 
     @Test
-    public void test_fuzzer() {
+    public void test_fuzzer() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
         List<HtmlParseNode> parsedNodes = new HtmlParser().parse(htmlText);
         HtmlParseNode firstPara = SearchHelpers.search(parsedNodes, TagName.P, Map.of("id", "testing-target")).getFirst();
@@ -236,7 +252,7 @@ public class HtmlParserTests {
      * @see #test_HtmlParser_Edge_LargerFile
      */
     @Test
-    public void test_HtmlParser_Edge_LargerFile_DEPRECATED() {
+    public void test_HtmlParser_Edge_LargerFile_DEPRECATED() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/webapp/templates/templatebenchmarks/expected_stock_output.html");
 
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
@@ -254,7 +270,7 @@ public class HtmlParserTests {
      * @see #test_fuzzer()
      */
     @Test
-    public void test_fuzzer_DEPRECATED() {
+    public void test_fuzzer_DEPRECATED() throws IOException {
         String htmlText = fileUtils.readTextFile("src/test/resources/html_fuzzer.html");
         List<HtmlParseNode> htmlRoots = new HtmlParser().parse(htmlText);
         String firstParagraph = htmlRoots.get(1).search(TagName.P, Map.of()).getFirst().innerText();

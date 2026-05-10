@@ -21,14 +21,12 @@ interface IInputStreamUtils {
      * @return     A String containing the contents of the line, not including
      *             any line-termination characters, or null if the end of the
      *             stream has been reached without reading any characters
-     *
-     * @throws     IOException  If an I/O error occurs
      */
     String readLine(InputStream inputStream) throws IOException;
 
     /**
      * Reads "lengthToRead" bytes from the input stream
      */
-    byte[] read(int lengthToRead, InputStream inputStream);
+    byte[] read(int lengthToRead, InputStream inputStream) throws IOException;
 
 }

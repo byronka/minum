@@ -11,9 +11,9 @@ import com.renomad.minum.sampledomain.photo.Photograph;
 import com.renomad.minum.sampledomain.photo.Video;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.web.*;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,7 @@ public class TheRegister {
     private final Context context;
     private final WebFramework webFramework;
     private final ILogger logger;
-    private final FileUtils fileUtils;
+    private final IFileUtils fileUtils;
 
     public TheRegister(Context context, WebFramework wf) {
         this.context = context;

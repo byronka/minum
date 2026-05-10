@@ -1,7 +1,14 @@
 package com.renomad.minum.state;
 
 import com.renomad.minum.logging.LoggingLevel;
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.testing.TestFramework;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.List;
 import java.util.Properties;
@@ -20,6 +27,28 @@ import static com.renomad.minum.testing.TestFramework.*;
  * everything an instantiable class.
  */
 public class ConstantsTests {
+
+
+    static private Context context;
+    static private TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("ConstantsTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * There are a few "getProps" methods in the

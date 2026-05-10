@@ -7,19 +7,21 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
+import javax.net.ssl.SSLException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
+import java.util.zip.GZIPOutputStream;
 
-import static com.renomad.minum.utils.FileUtils.checkFileIsWithinDirectory;
 import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
 import static com.renomad.minum.web.WebEngine.HTTP_CRLF;
@@ -43,9 +45,9 @@ public final class WebFramework {
      * will also be put in the logs, to make finding it easier.
      */
     private final Random randomErrorCorrelationId;
-    private final RequestLine emptyRequestLine;
     private final RequestLine validRequestLine;
     private final ITheBrig theBrig;
+    private final IFileUtils fileUtils;
 
     public Map<String,String> getSuffixToMimeMappings() {
         return new HashMap<>(fileSuffixToMime);
@@ -103,7 +105,7 @@ public final class WebFramework {
      */
     private static final int MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS = 2048;
 
-    void httpProcessing(ISocketWrapper sw) throws Exception {
+    void httpProcessing(ISocketWrapper sw) {
         try (sw) {
             dumpIfAttacker(sw, fs);
             final var is = sw.getInputStream();
@@ -111,68 +113,92 @@ public final class WebFramework {
             // By default, browsers expect the server to run in keep-alive mode.
             // We'll break out later if we find that the browser doesn't do keep-alive
             while (true) {
-                final String rawStartLine = inputStreamUtils.readLine(is);
+                // we'll store the status line and headers in this
+                StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
+                // are not usually too large - even if the user added a bunch, there is a good
+                // chance it would be far under 600.  If that turns out to be wrong, adjust/redesign
+
+                // set some basic variables we'll need access to throughout
                 long startMillis = System.currentTimeMillis();
-                if (rawStartLine == null || rawStartLine.isEmpty()) {
-                    // here, the client connected, sent nothing, and closed.
-                    // nothing to do but return.
-                    logger.logTrace(() -> "rawStartLine was empty.  Returning.");
-                    break;
+                RequestLine requestLine = RequestLine.EMPTY;
+                IRequest request;
+                Headers headers = Headers.EMPTY;
+                IResponse response;
+                boolean isKeepAlive = false;
+                IResponse adjustedResponse;
+                boolean isHeadRequest = false;
+
+                final String rawStartLine = inputStreamUtils.readLine(is);
+
+                try {
+                    if (rawStartLine == null || rawStartLine.isEmpty()) {
+                        // here, the client connected, sent nothing, and closed.
+                        // nothing to do but return.
+                        logger.logTrace(() -> "rawStartLine was empty.  Returning.");
+                        break;
+                    }
+                    requestLine = getProcessedRequestLine(sw, rawStartLine);
+
+                    // check if the user is seeming to attack us.
+                    checkIfSuspiciousPath(sw, requestLine);
+
+                    // React to what the user requested, generate a result
+                    headers = getHeaders(sw);
+                    request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+                    response = processRequest(request, sw, requestLine, headers);
+
+                    // check that the response is non-null.  If it is null, that suggests
+                    // the developer made a mistake.
+                    if (response == null) {
+                        throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
+                    }
+
+                    isKeepAlive = determineIfKeepAlive(request, logger, request.hasAccessedBody());
+
+                    // calculate proper headers for the response
+                    addDefaultHeaders(response, headerStringBuilder);
+                    response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
+                    addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
+
+                    // inspect the response being sent, see whether we can compress the data.
+                    adjustedResponse = potentiallyCompress(headers, response, headerStringBuilder);
+                    applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
+                    confirmBodyHasContentType(request, response);
+
+                    // if the user sent a HEAD request, we send everything back except the body.
+                    // even though we skip the body, this requires full processing to get the
+                    // numbers right, like content-length.
+                    if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
+                        logger.logDebug(() -> "client " + request.getRemoteRequester() +
+                                " is requesting HEAD for " + request.getRequestLine().getPathDetails().getIsolatedPath() +
+                                ".  Excluding body from response");
+                        isHeadRequest = true;
+                    }
+
+                } catch (BadRequestException ex) {
+                    // this catch block needs to be down below the scope where
+                    // the request variable is needed.
+                    headerStringBuilder.setLength(0); // clear the contents
+                    adjustedResponse = handleBadRequestException(ex);
+                    addDefaultHeaders(adjustedResponse, headerStringBuilder);
+                    isKeepAlive = false;
+                    headerStringBuilder.append("Content-Length: ").append(adjustedResponse.getBodyLength()).append(HTTP_CRLF);
                 }
-                final RequestLine requestLine = getProcessedRequestLine(sw, rawStartLine);
-
-                if (requestLine.equals(emptyRequestLine)) {
-                    // here, the client sent something we cannot parse.
-                    // nothing to do but return.
-                    logger.logTrace(() -> "RequestLine was unparseable.  Returning.");
-                    break;
-                }
-                // check if the user is seeming to attack us.
-                checkIfSuspiciousPath(sw, requestLine);
-
-                // React to what the user requested, generate a result
-                Headers headers = getHeaders(sw);
-                IRequest request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
-                IResponse response = processRequest(request, sw, requestLine, headers);
-
-                // check that the response is non-null.  If it is null, that suggests
-                // the developer made a mistake.
-                if (response == null) {
-                    throw new WebServerException("The returned value for the endpoint \"%s\" was null.".formatted(request.getRequestLine().getPathDetails().getIsolatedPath()));
-                }
-
-                boolean isKeepAlive = determineIfKeepAlive(request, logger, request.hasAccessedBody());
-
-                // calculate proper headers for the response
-                StringBuilder headerStringBuilder = addDefaultHeaders(response);
-                response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
-                addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
-
-                // inspect the response being sent, see whether we can compress the data.
-                IResponse adjustedResponse = potentiallyCompress(request.getHeaders(), response, headerStringBuilder);
-                applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
-                confirmBodyHasContentType(request, response);
 
                 // send the headers
                 sw.send(headerStringBuilder.append(HTTP_CRLF).toString().getBytes(StandardCharsets.US_ASCII));
 
-                // if the user sent a HEAD request, we send everything back except the body.
-                // even though we skip the body, this requires full processing to get the
-                // numbers right, like content-length.
-                if (request.getRequestLine().getMethod().equals(RequestLine.Method.HEAD)) {
-                    logger.logDebug(() -> "client " + request.getRemoteRequester() +
-                            " is requesting HEAD for " + request.getRequestLine().getPathDetails().getIsolatedPath() +
-                            ".  Excluding body from response");
-                } else {
+                if (!isHeadRequest) {
                     // send the body
                     adjustedResponse.sendBody(sw);
                 }
 
+                // ship it out
                 sw.flush();
 
                 // print how long this processing took
                 long endMillis = System.currentTimeMillis();
-                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, requestLine, endMillis - startMillis));
+                logger.logTrace(() -> String.format("full processing (including communication time) of %s %s took %d millis", sw, rawStartLine, endMillis - startMillis));
 
                 if (!isKeepAlive) {
                     logger.logTrace(() -> "We will not keep-alive this connection - exiting loop and closing socket");
@@ -180,22 +206,36 @@ public final class WebFramework {
                 }
 
             }
-        } catch (SocketException | SocketTimeoutException ex) {
-            handleReadTimedOut(sw, ex, logger);
         } catch (ForbiddenUseException ex) {
             handleForbiddenUse(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration);
-        } catch (IOException ex) {
-            handleIOException(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
+        } catch (Exception ex) {
+            finalExceptionHandler(sw, ex, logger, theBrig, constants.vulnSeekingJailDuration, constants.suspiciousErrors);
         }
     }
 
 
-    static void handleIOException(ISocketWrapper sw, IOException ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
-        logger.logDebug(() -> ex.getMessage() + " (at Server.start)");
-
-        if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
+    /**
+     * Last-chance handler for any exceptions originating in WebFramework.httpProcessing
+     */
+    static void finalExceptionHandler(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig,
+                                      int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
+        // This first section catches a lot when clients make eager connections in anticipation of
+        // parallel requests, but then let them time out.
+        if (ex instanceof SocketException || ex instanceof SocketTimeoutException) {
+            if (ex.getMessage().equals("Read timed out")) {
+                logger.logTrace(() -> "Read timed out - remote address: " + sw.getRemoteAddrWithPort());
+            } else {
+                logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
+            }
+        } else if (suspiciousErrors.contains(ex.getMessage()) && theBrig != null) {
             logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
+        } else if (ex instanceof SSLException) {
+            // at this point we just want to catch some of the common garbage exceptions that bubble up
+            // as a result of clients force-closing their SSl connections
+            logger.logTrace(() -> ex.getMessage() + "for remote address: " + sw.getRemoteAddrWithPort());
+        } else {
+            logger.logWarn(() -> "Exception caught in WebFramework.finalExceptionHandler: " + StacktraceUtils.stackTraceToString(ex));
         }
     }
 
@@ -208,19 +248,17 @@ public final class WebFramework {
         }
     }
 
-    static void handleReadTimedOut(ISocketWrapper sw, IOException ex, ILogger logger) {
-        /*
-        if we close the application on the server side, there's a good
-        likelihood a SocketException will come bubbling through here.
-        NOTE:
-          it seems that Socket closed is what we get when the client closes the connection in non-SSL, and conversely,
-          if we are operating in secure (i.e. SSL/TLS) mode, we get "an established connection..."
-        */
-        if (ex.getMessage().equals("Read timed out")) {
-            logger.logTrace(() -> "Read timed out - remote address: " + sw.getRemoteAddrWithPort());
-        } else {
-            logger.logDebug(() -> ex.getMessage() + " - remote address: " + sw.getRemoteAddrWithPort());
-        }
+    /**
+     * if an error happens in parsing a request, and it's not considered an attack (which
+     * would instead use ForbiddenUseException), this is the
+     * last-chance handling of that error where we return a 400 Bad Request response and a
+     * random code to the client, so a developer can find the detailed
+     * information in the logs, which have that same value.
+     */
+    IResponse handleBadRequestException(BadRequestException ex) {
+        int randomNumber = randomErrorCorrelationId.nextInt();
+        logger.logDebug(() -> "Bad data in request. Code: " + randomNumber + " Error: " + ex.getMessage() + (ex.getCause() == null ? "" : " Cause: " + ex.getCause().getMessage()));
+        return Response.buildResponse(CODE_400_BAD_REQUEST, new Headers(List.of("Content-Type: text/plain;charset=UTF-8")), "Bad request from user (HTTP 400) error: " + randomNumber);
     }
 
     /**
@@ -258,8 +296,6 @@ public final class WebFramework {
             logger.logTrace(() -> String.format("handler processing of %s %s took %d millis", sw, requestLine, millisAtEnd - millisAtStart));
         }
 
-        // if the user has chosen to customize the response based on status code, that will
-        // be applied now, and it will override the previous response.
         if (lastMinuteHandler != null) {
             response = lastMinuteHandler.apply(new LastMinuteHandlerInputs(clientRequest, response));
         }
@@ -267,7 +303,7 @@ public final class WebFramework {
         return response;
     }
 
-    private Headers getHeaders(ISocketWrapper sw) {
+    private Headers getHeaders(ISocketWrapper sw) throws IOException {
     /*
        next we will read the headers (e.g. Content-Type: foo/bar) one-by-one.
 
@@ -279,7 +315,7 @@ public final class WebFramework {
        the content-type will include the boundary string.
     */
         List<String> allHeaders = Headers.getAllHeaders(sw.getInputStream(), inputStreamUtils);
-        Headers hi = new Headers(allHeaders, logger);
+        Headers hi = new Headers(allHeaders);
         logger.logTrace(() -> "The headers are: " + hi.getHeaderStrings());
         return hi;
     }
@@ -319,7 +355,7 @@ public final class WebFramework {
             // if there was a body and the user has not read it by this point, we will log the
             // discrepancy and close the socket.
             logger.logDebug(() -> ("A body sized %d bytes was included in the request, but the endpoint (%s) did not access the body. " +
-                    "Closing socket after request is finished").formatted(request.getHeaders().contentLength(), request.getRequestLine()));
+                    "Closing socket after request is finished").formatted(request.getHeaders().contentLength(), request.getRequestLine().getPathDetails().getIsolatedPath()));
             isKeepAlive = false;
         }
 
@@ -375,15 +411,9 @@ public final class WebFramework {
      * Prepare some of the basic server response headers, like the status code, the
      * date-time stamp, the server name.
      */
-    private StringBuilder addDefaultHeaders(IResponse response) {
-
+    private StringBuilder addDefaultHeaders(IResponse response, StringBuilder headerStringBuilder) {
         String date = Objects.requireNonNullElseGet(overrideForDateTime,
                 () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
-
-        // we'll store the status line and headers in this
-        StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
-                                                                    // are not usually too large - even if the user added a bunch, there is a good
-                                                                    // chance it would be far under 600.  If that turns out to be wrong, adjust/redesign
 
         // add the status line
         headerStringBuilder.append("HTTP/1.1 ").append(response.getStatusCode().code).append(" ").append(response.getStatusCode().shortDescription).append(HTTP_CRLF);
@@ -438,7 +468,7 @@ public final class WebFramework {
      * This method will examine the request headers and response content-type, and
      * compress the outgoing data if necessary.
      */
-    static IResponse potentiallyCompress(Headers requestHeaders, IResponse response, StringBuilder headerStringBuilder) throws IOException {
+    static IResponse potentiallyCompress(Headers requestHeaders, IResponse response, StringBuilder headerStringBuilder) {
         // we may make modifications to the response body at this point, specifically
         // we may compress the data, if the client requested it.
         // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
@@ -464,14 +494,37 @@ public final class WebFramework {
      *                       if we successfully compress data as gzip.
      * @param minNumberBytes number of bytes must be larger than this to compress.
      */
-    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) throws IOException {
+    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
         if (response.getBodyLength() >= minNumberBytes && allContentEncodingHeaders.contains("gzip")) {
             stringBuilder.append("Content-Encoding: gzip").append(HTTP_CRLF);
             stringBuilder.append("Vary: accept-encoding").append(HTTP_CRLF);
-            return ((Response)response).compressBody();
+            var out = new ByteArrayOutputStream();
+            compressBody(out, response.getBody());
+            return Response.buildResponse(
+                    response.getStatusCode(),
+                    response.getExtraHeaders(),
+                    out.toByteArray()
+            );
         }
         return response;
+    }
+
+    /**
+     * Compress the data in this body using gzip.
+     * <br>
+     * This operates by getting the body field from this instance of {@link Response} and
+     * creating a new Response with the compressed data.
+     * @param out this is provided as a parameter for better control during testing
+     */
+    static GZIPOutputStream compressBody(OutputStream out, byte[] body) {
+        try (var gos = new GZIPOutputStream(out)) {
+            gos.write(body);
+            gos.finish();
+            return gos;
+        } catch (IOException e) {
+            throw new WebServerException("Error in Response.compressBody", e);
+        }
     }
 
     /**
@@ -541,7 +594,7 @@ public final class WebFramework {
         String mimeType = null;
 
         try {
-            checkFileIsWithinDirectory(path, constants.staticFilesDirectory);
+            fileUtils.checkFileIsWithinDirectory(path, constants.staticFilesDirectory);
         } catch (Exception ex) {
             logger.logDebug(() -> String.format("Unable to find %s in allowed directories", path));
             return Response.buildLeanResponse(CODE_404_NOT_FOUND);
@@ -549,7 +602,7 @@ public final class WebFramework {
 
         try {
             Path staticFilePath = Path.of(constants.staticFilesDirectory).resolve(path);
-            if (!Files.isRegularFile(staticFilePath)) {
+            if (!fileUtils.isRegularFile(staticFilePath)) {
                 logger.logDebug(() -> String.format("No readable regular file found at %s", path));
                 return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
@@ -569,7 +622,7 @@ public final class WebFramework {
                 mimeType = "application/octet-stream";
             }
 
-            if (Files.size(staticFilePath) < 100_000) {
+            if (fileUtils.size(staticFilePath) < 100_000) {
                 var fileContents = fileReader.readFile(staticFilePath.toString());
                 return createOkResponseForStaticFiles(fileContents, mimeType);
             } else {
@@ -599,7 +652,7 @@ public final class WebFramework {
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
-    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) {
         var headers = new Headers(List.of(
                 "Cache-Control: max-age=" + constants.staticFileCacheTime,
                 "Content-Type: " + mimeType,
@@ -609,7 +662,8 @@ public final class WebFramework {
         return Response.buildLargeFileResponse(
                 headers,
                 filePath.toString(),
-                requestHeaders
+                requestHeaders,
+                fileUtils
                 );
     }
 
@@ -649,19 +703,27 @@ public final class WebFramework {
      * This constructor is used for the real production system
      */
     WebFramework(Context context) {
-        this(context, null, null);
-    }
-
-    WebFramework(Context context, ZonedDateTime overrideForDateTime) {
-        this(context, overrideForDateTime, null);
+        this(context, null, null, null);
     }
 
     /**
-     * This provides the ZonedDateTime as a parameter so we
-     * can set the current date (for testing purposes)
-     * @param overrideForDateTime for those test cases where we need to control the time
+     * This constructor is mainly used for testing
      */
-    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader) {
+    WebFramework(Context context, ZonedDateTime overrideForDateTime) {
+        this(context, overrideForDateTime, null, null);
+    }
+
+    /**
+     * A constructor with slots available for testing
+     * @param overrideForDateTime for those test cases where we need to control the time. Providing null
+     *                            for this parameter will cause code to use ZonedDateTime.now() instead,
+     *                            which is the expected behavior during ordinary system use.
+     * @param fileReader when we want to provide an instance for better control during testing. Providing
+     *                   null here will cause a FileReader to be instantiated in the constructor.
+     * @param fileUtils when we want to provide an instance for better control during testing. Providing
+     *                  null here will cause a FileUtils to be instantiated in the constructor.
+     */
+    WebFramework(Context context, ZonedDateTime overrideForDateTime, IFileReader fileReader, IFileUtils fileUtils) {
         this.fs = context.getFullSystem();
         this.theBrig = this.fs != null ? this.fs.getTheBrig() : null;
         this.logger = context.getLogger();
@@ -671,6 +733,11 @@ public final class WebFramework {
         this.registeredPathFunctions = new EnumMap<>(RequestLine.Method.class);
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
+        if (fileUtils != null) {
+            this.fileUtils = fileUtils;
+        } else {
+            this.fileUtils = new FileUtils(logger, constants);
+        }
 
         // This random value is purely to help provide correlation between
         // error messages in the UI and error logs.  There are no security concerns.
@@ -680,7 +747,6 @@ public final class WebFramework {
                 PathDetails.empty,
                 HttpVersion.NONE,
                 "", logger);
-        this.emptyRequestLine = RequestLine.EMPTY;
 
         // this allows us to inject a IFileReader for deeper testing
         if (fileReader != null) {

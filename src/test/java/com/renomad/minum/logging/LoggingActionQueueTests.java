@@ -1,11 +1,14 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.utils.RunnableWithDescription;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -18,18 +21,26 @@ import static com.renomad.minum.testing.TestFramework.*;
  */
 public class LoggingActionQueueTests {
 
-    private Context context;
+    static private Context context;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
-        context = buildTestingContext("TestLogger tests");
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("LoggingActionQueueTests");
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
-        shutdownTestingContext(context);
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
     @Test
     public void testGetQueueThread() {
         var testQueue = new LoggingActionQueue("my test queue", context.getExecutorService(), context.getConstants());

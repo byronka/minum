@@ -37,9 +37,13 @@ public final class ActionQueue implements AbstractActionQueue {
     private final ExecutorService queueExecutor;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private final ILogger logger;
-    private boolean stop = false;
+    /**
+     * Set as volatile so that multiple threads may see the update
+     * as soon as it occurs.
+     */
+    private volatile boolean stop = false;
     private Thread queueThread;
-    private boolean isStoppedStatus;
+    private volatile boolean isStoppedStatus;
 
     /**
      * See the {@link ActionQueue} description for more detail. This
@@ -84,18 +88,8 @@ public final class ActionQueue implements AbstractActionQueue {
 
     static void runAction(ILogger logger, LinkedBlockingQueue<RunnableWithDescription> queue) throws InterruptedException {
         RunnableWithDescription action = queue.take();
-        try {
-            action.run();
-        } catch (Throwable e) {
-            /*
-             This needs to be a Throwable and not an Exception, for important reasons.
-
-             Sometimes, the command being run will encounter Errors, rather than
-             Exceptions. For example, OutOfMemoryError.  We must catch it, log the
-             issue, and move on to avoid killing the thread needlessly
-             */
-            logger.logAsyncError(() -> StacktraceUtils.stackTraceToString(e));
-        }
+        logger.logTrace(() -> "in ActionQueue.runAction, running this: " + action);
+        ThrowingRunnable.throwingRunnableWrapper(action, logger).run();
     }
 
     /**
@@ -114,7 +108,7 @@ public final class ActionQueue implements AbstractActionQueue {
         if (! stop) {
             queue.add(new RunnableWithDescription(action, description));
         } else {
-            throw new UtilsException(String.format("failed to enqueue %s - ActionQueue \"%s\" is stopped", description, this.name));
+            throw new QueueException(String.format("failed to enqueue %s - ActionQueue \"%s\" is stopped", description, this.name));
         }
     }
 

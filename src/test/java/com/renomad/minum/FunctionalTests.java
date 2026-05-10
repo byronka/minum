@@ -56,12 +56,12 @@ public class FunctionalTests {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws IOException {
         // delay a sec so our system has time to finish before we start deleting files
-        MyThread.sleep(500);
         fullSystem.shutdown();
         context.getLogger().stop();
         context.getExecutorService().shutdownNow();
+        MyThread.sleep(500);
     }
 
     @Test
@@ -318,20 +318,18 @@ public class FunctionalTests {
         FunctionalTesting myFt = new FunctionalTesting(context, "localhost", 8080);
 
         try (Socket socket = new Socket("localhost", 8080)) {
-            try {
-                logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
-                try (ISocketWrapper client = new SocketWrapper(socket, null, logger, context.getConstants().socketTimeoutMillis, context.getConstants().hostName)) {
+            logger.logDebug(() -> String.format("Just created new client socket: %s", socket));
+            try (ISocketWrapper client = new SocketWrapper(socket, null, logger, context.getConstants().socketTimeoutMillis, context.getConstants().hostName)) {
 
-                    // now we have an open connection to the web server.  If we send a POST to an endpoint that doesn't
-                    // do anything with the body, it goes through fine.  However, because our endpoint ignores the body,
-                    // the server will close the connection (this is fine, it just means the client needs to
-                    // open a new socket to talk with it.)
-                    byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
-                    assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
-                    assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
-                }
-            } catch (SocketException e) {
-                logger.logDebug(() -> "If you see this, we arrived in the exception handler because in fact the socket was closed, but that's alright and expected");
+                // now we have an open connection to the web server.  If we send a POST to an endpoint that doesn't
+                // do anything with the body, it goes through fine.  However, because our endpoint ignores the body,
+                // the server will close the connection (this is fine, it just means the client needs to
+                // open a new socket to talk with it.)
+                byte[] testMessageBytes = "this is a test".getBytes(StandardCharsets.UTF_8);
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), CODE_200_OK);
+                assertEquals(myFt.innerClientSend(client, RequestLine.Method.POST, "unusualpost", testMessageBytes, List.of()).statusLine().status(), NULL);
+            } catch (Exception e) {
+                // expected.  Ignore.
             }
         }
 
@@ -371,4 +369,23 @@ public class FunctionalTests {
         assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/abc").statusLine().status());
         assertEquals(CODE_404_NOT_FOUND, ft.get("patternpath/range/1-6a").statusLine().status());
     }
+
+    /**
+     * If bad data is sent to the server, like a malformed request line, headers,
+     * or body, then it will cause a HTTP 400 BAD REQUEST message response.
+     */
+    @Test
+    public void test_EdgeCase_BadRequest() {
+        TestResponse response = ft.get("foo?bar");
+        assertEquals(response.statusLine().status().toString(), "CODE_400_BAD_REQUEST");
+        assertEquals(response.body().asString(), "");
+    }
+
+    @Test
+    public void test_EdgeCase_BadRequest2() {
+        TestResponse response = ft.get("foo?name=baz%2&foo=bar");
+        assertEquals(response.statusLine().status().toString(), "CODE_400_BAD_REQUEST");
+        assertEquals(response.body().asString(), "");
+    }
+
 }

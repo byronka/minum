@@ -1,11 +1,12 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -13,21 +14,29 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class FileReaderTests {
     private static TestLogger logger;
-    private Map<String, byte[]> lruCache;
-    private Context context;
+    private static Map<String, byte[]> lruCache;
+    private static Context context;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger) context.getLogger();
         Constants constants = context.getConstants();
         lruCache = LRUCache.getLruCache(constants.maxElementsLruCacheStaticFiles);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @After
     public void cleanup() {
@@ -46,11 +55,10 @@ public class FileReaderTests {
     }
 
     @Test
-    public void test_ReadFile_BadPath() throws IOException {
+    public void test_ReadFile_BadPath() {
         var fileReader = new FileReader(lruCache, true, logger);
-        byte[] bytes = fileReader.readFile("../testingreadfile.txt");
-        assertEqualByteArray(bytes, new byte[0]);
-        assertTrue(logger.doesMessageExist("Bad path requested at readFile: ../testingreadfile.txt"));
+        var ex = assertThrows(ForbiddenUseException.class, () -> fileReader.readFile("../testingreadfile.txt"));
+        assertEquals(ex.getMessage(), "filename (../testingreadfile.txt) contained invalid characters");
     }
 
     @Test
@@ -59,7 +67,16 @@ public class FileReaderTests {
         lruCache.put("testingreadfile.txt", value);
         var fileReader = new FileReader(lruCache, true, logger);
         byte[] bytes = fileReader.readFile("testingreadfile.txt");
+        ReentrantLock cacheLock = fileReader.getCacheLock();
+        cacheLock.lock();
+        byte[] result;
+        try {
+            result = lruCache.get("testingreadfile.txt");
+        } finally {
+            cacheLock.unlock();
+        }
         assertEqualByteArray(bytes, value);
+        assertEqualByteArray(bytes, result);
     }
 
     @Test
@@ -75,7 +92,8 @@ public class FileReaderTests {
 
     @Test
     public void test_readTheFile_NoFileFound() {
-        assertThrows(FileNotFoundException.class, () -> FileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
+        var fileReader = new FileReader(lruCache, false, logger);
+        assertThrows(FileNotFoundException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
     }
 
 }

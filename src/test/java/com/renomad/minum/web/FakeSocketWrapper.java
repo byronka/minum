@@ -27,23 +27,39 @@ public class FakeSocketWrapper implements ISocketWrapper {
     }
 
     @Override
-    public void send(String msg) throws IOException {
-        os.write(msg.getBytes(StandardCharsets.UTF_8));
+    public void send(String msg) {
+        try {
+            os.write(msg.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void send(byte[] bodyContents) throws IOException {
-        os.write(bodyContents);
+    public void send(byte[] bodyContents) {
+        try {
+            os.write(bodyContents);
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void send(byte[] bodyContents, int off, int len) throws IOException {
-        os.write(bodyContents, off, len);
+    public void send(byte[] bodyContents, int off, int len) {
+        try {
+            os.write(bodyContents, off, len);
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override
-    public void send(int b) throws IOException {
-        os.write(b);
+    public void send(int b) {
+        try {
+            os.write(b);
+        } catch (IOException e) {
+            throw new WebServerException(e);
+        }
     }
 
     @Override

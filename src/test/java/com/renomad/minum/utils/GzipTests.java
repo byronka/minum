@@ -1,6 +1,13 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,10 +18,31 @@ import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import static com.renomad.minum.testing.TestFramework.assertEqualByteArray;
-import static com.renomad.minum.testing.TestFramework.assertEquals;
+import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.testing.TestFramework.shutdownTestingContext;
 
 public class GzipTests {
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("GzipTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void testGzipCompression() throws IOException {

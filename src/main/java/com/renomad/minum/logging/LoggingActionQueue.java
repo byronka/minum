@@ -23,7 +23,11 @@ final class LoggingActionQueue implements AbstractActionQueue {
     private final ExecutorService executorService;
     private final LinkedBlockingQueue<RunnableWithDescription> queue;
     private Thread queueThread;
-    private boolean stop = false;
+    /**
+     * Set as volatile so that multiple threads may see the update
+     * as soon as it occurs.
+     */
+    private volatile boolean stop = false;
     private boolean isStoppedStatus = false;
     private final Map<LoggingLevel, Boolean> enabledLogLevels;
 

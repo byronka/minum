@@ -6,6 +6,7 @@ import com.renomad.minum.sampledomain.auth.AuthUtils;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.templating.TemplateProcessor;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.StringUtils;
 import com.renomad.minum.web.*;
 
@@ -40,11 +41,15 @@ public class SampleDomain {
     public SampleDomain(AbstractDb<PersonName> db, AuthUtils auth, Context context) {
         this.db = db;
         this.auth = auth;
-        FileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
-        String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
-        nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
-        authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
-        unauthHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/unauth_homepage.html");
+        IFileUtils fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        try {
+            String nameEntryTemplateString = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/name_entry.html");
+            nameEntryTemplate = TemplateProcessor.buildProcessor(nameEntryTemplateString);
+            authHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/auth_homepage.html");
+            unauthHomepage = fileUtils.readTextFile("src/test/webapp/templates/sampledomain/unauth_homepage.html");
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in SampleDomain constructor", ex);
+        }
     }
 
     public IResponse formEntry(IRequest r) {
@@ -60,7 +65,7 @@ public class SampleDomain {
         return Response.htmlOk(nameEntryTemplate.renderTemplate(Map.of("names", names)));
     }
 
-    public IResponse testform(IRequest r) throws IOException {
+    public IResponse testform(IRequest r) {
         final var authResult = auth.processAuth(r);
         if (! authResult.isAuthenticated()) {
             return Response.buildLeanResponse(CODE_401_UNAUTHORIZED);

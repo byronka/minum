@@ -2,12 +2,13 @@ package com.renomad.minum.database;
 
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -27,6 +28,7 @@ final class DbFileConverter {
     private final ILogger logger;
     private final DatabaseAppender databaseAppender;
     private final DatabaseConsolidator databaseConsolidator;
+    private final IFileUtils fileUtils;
 
     /**
      * Construct a converter instance
@@ -34,11 +36,17 @@ final class DbFileConverter {
      * @param dbDirectory this is the specific directory for this database,
      *                    for example, the full path to the "users" database directory.
      */
-    DbFileConverter(Context context, Path dbDirectory) throws IOException {
+    DbFileConverter(Context context, Path dbDirectory, IFileUtils fileUtils) {
         this.dbDirectory = dbDirectory;
         this.logger = context.getLogger();
-        this.databaseAppender = new DatabaseAppender(dbDirectory, context);
-        this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
+        this.fileUtils = fileUtils;
+        try {
+            this.databaseAppender = new DatabaseAppender(dbDirectory, context, fileUtils);
+            this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context, fileUtils);
+        } catch (IOException ex) {
+            throw new DbException("Error in DbFileConverter constructor", ex);
+        }
+
     }
 
     /**
@@ -48,15 +56,15 @@ final class DbFileConverter {
      */
     void convertClassicFolderStructureToDbEngine2Form() throws IOException {
         displayWarningConvertingClassicToDbEngine2();
-        try (var fileReader = new FileReader(dbDirectory.resolve("index.ddps").toFile(), US_ASCII)) {
-            try (BufferedReader br = new BufferedReader(fileReader)) {
-                String s = br.readLine();
-                if (s == null) throw new DbException("index file for " + dbDirectory + " returned null when reading a line from it");
-                mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
-            }
+        try (var fileReader = new FileReader(dbDirectory.resolve("index.ddps").toFile(), US_ASCII);
+             BufferedReader br = new BufferedReader(fileReader)) {
+            String s = br.readLine();
+            if (s == null)
+                throw new DbException("index file for " + dbDirectory + " returned null when reading a line from it");
+            mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
         }
 
-        walkFilesAndConvertDbToDbEngine2(this.dbDirectory, this.logger);
+        walkFilesAndConvertDbToDbEngine2(this.dbDirectory, this.logger, fileUtils);
     }
 
 
@@ -85,9 +93,8 @@ final class DbFileConverter {
      * walk through all the files in this directory, collecting
      * all regular files (non-subdirectories) except for index.ddps
      */
-    static void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger) throws IOException {
-        List<Path> listOfFiles = getListOfFiles(dbDirectory);
-
+    static void walkFilesAndConvertDbToDbEngine2(Path dbDirectory, ILogger logger, IFileUtils fileUtils) throws IOException {
+        List<Path> listOfFiles = getListOfFiles(dbDirectory, fileUtils);
         // convert each file to the new database schema by appending it
         // to the append log, and then delete it
         for (int i = 0; i < listOfFiles.size(); i++) {
@@ -95,24 +102,24 @@ final class DbFileConverter {
             if (i == percentCompletion) {
                 logger.logDebug(() -> "File converting is %d percent complete".formatted(percentCompletion));
             }
-            Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i));
-            Files.delete(p);
+            Path p = extractDataAndAppend(dbDirectory, logger, listOfFiles.get(i), fileUtils);
+            fileUtils.delete(p);
         }
 
         // at this point, after all the ordinary files have been removed, kill the index file
-        Files.delete(dbDirectory.resolve("index.ddps"));
+        fileUtils.delete(dbDirectory.resolve("index.ddps"));
     }
 
     /**
      * This method digs into the Db Classic file, checks everything is kosher, and
      * if so, appends it to the append-only log file which is part of DbEngine2
      */
-    static Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze) throws IOException {
-        String fileContents = checkFileDetailsAreValid(fileToAnalyze, logger);
+    static Path extractDataAndAppend(Path dbDirectory, ILogger logger, Path fileToAnalyze, IFileUtils fileUtils) throws IOException {
+        String fileContents = checkFileDetailsAreValid(fileToAnalyze, logger, fileUtils);
         if (!fileContents.isBlank()) {
-            Files.writeString(
-                    dbDirectory.resolve("currentAppendLog"),
-                    "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
+            fileUtils.writeString(
+                dbDirectory.resolve("currentAppendLog"),
+                "UPDATE %s\n".formatted(fileContents), APPEND, CREATE);
         }
         return fileToAnalyze;
     }
@@ -120,16 +127,14 @@ final class DbFileConverter {
     /**
      * Get the files that make up the file schema of Db Classic
      */
-    private static List<Path> getListOfFiles(Path dbDirectory) {
+    private static List<Path> getListOfFiles(Path dbDirectory, IFileUtils fileUtils) throws IOException {
         List<Path> listOfFiles;
-        try (Stream<Path> fileStream = Files.list(dbDirectory)) {
+        try (Stream<Path> fileStream = fileUtils.list(dbDirectory)) {
             listOfFiles = fileStream.filter(path ->
-                            Files.isRegularFile(path) &&
+                            fileUtils.isRegularFile(path) &&
                                     path.getFileName().toString().endsWith(".ddps") &&
                                     !path.getFileName().toString().startsWith("index"))
                     .toList();
-        } catch (IOException ex) {
-            throw new DbException("Failed during the listing of files during conversion of db to db engine2", ex);
         }
         return listOfFiles;
     }
@@ -139,13 +144,13 @@ final class DbFileConverter {
      * and returns the data. This method is called as part of
      * convert Db Classic to DbEngine2
      */
-    static String checkFileDetailsAreValid(Path p, ILogger logger) throws IOException {
-        if (!Files.isRegularFile(p)) {
+    static String checkFileDetailsAreValid(Path p, ILogger logger, IFileUtils fileUtils) throws IOException {
+        if (!fileUtils.isRegularFile(p)) {
             throw new DbException("At checkFileDetailsAreValid, path " + p + " is not a regular file");
         }
         String fileName = p.getFileName().toString();
         int startOfSuffixIndex = fileName.indexOf('.');
-        String fileContents = Files.readString(p);
+        String fileContents = fileUtils.readString(p);
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
             return "";
@@ -173,7 +178,7 @@ final class DbFileConverter {
     /**
      * Convert the folder/file structure.  From DbEngine2 format to Db classic.
      */
-    void convertFolderStructureToDbClassic() throws IOException {
+    void convertFolderStructureToDbClassic() throws IOException, ParseException {
         displayWarningConvertingDbEngine2ToClassic();
 
         // if there are any remnant items in the current append-only file, move them
@@ -186,7 +191,7 @@ final class DbFileConverter {
         // at this point, all the data is consolidated, in order, so we can step
         // through the data, creating new files, and finish up with an index.ddps
         // set to the proper value (i.e. one greater than the max index in the database)
-        walkFilesAndConvertDbEngine2ToDbClassic(this.dbDirectory, this.logger);
+        walkFilesAndConvertDbEngine2ToDbClassic(this.dbDirectory, this.logger, fileUtils);
     }
 
     /**
@@ -195,13 +200,11 @@ final class DbFileConverter {
      * multiple files and deleting files when finished, and closing file handles
      * appropriately when done with a file, and doing it in the proper order.
      */
-    static void walkFilesAndConvertDbEngine2ToDbClassic(Path dbDirectory, ILogger logger) throws IOException {
+    static void walkFilesAndConvertDbEngine2ToDbClassic(Path dbDirectory, ILogger logger, IFileUtils fileUtils) throws IOException {
         // get the list of consolidated data files
         List<Path> listOfFiles;
-        try (Stream<Path> fileStream = Files.list(dbDirectory.resolve("consolidated_data"))) {
-            listOfFiles = new ArrayList<>(fileStream.filter(DbFileConverter::isDataFile).toList());
-        } catch (IOException ex) {
-            throw new DbException("Failed during the listing of files during conversion of db engine2 to db classic", ex);
+        try (Stream<Path> fileStream = fileUtils.list(dbDirectory.resolve("consolidated_data"))) {
+            listOfFiles = new ArrayList<>(fileStream.filter(x -> DbFileConverter.isDataFile(x, fileUtils)).toList());
         }
 
         // sort the data in ascending order.  Files like "1_to_10" will come before "11_to_20"
@@ -227,7 +230,7 @@ final class DbFileConverter {
 
         // convert each line of each file to its own file, per the needs of Db Classic
         for (Path filePath : listOfFiles) {
-            try (BufferedReader reader = Files.newBufferedReader(filePath.toFile().toPath(), US_ASCII)) {
+            try (BufferedReader reader = fileUtils.newBufferedReader(filePath.toFile().toPath(), US_ASCII)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     int i = line.indexOf('|');
@@ -246,54 +249,36 @@ final class DbFileConverter {
                     }
                     String dbFilename = indexNumber + ".ddps";
                     Path dbFullPath = dbDirectory.resolve(dbFilename);
-                    Files.writeString(dbFullPath, line, CREATE, WRITE);
+                    fileUtils.writeString(dbFullPath, line, CREATE, WRITE);
                     countConvertedFiles += 1;
                     logAlongConversion(logger, countConvertedFiles, 1000);
                 }
+                // now we've converted everything from this file, delete it and its checksum (if available)
+                fileUtils.delete(filePath);
+                Path checksumPath = filePath.resolveSibling(filePath.getFileName() + ".checksum");
+                fileUtils.deleteIfExists(checksumPath);
             }
-            // now we've converted everything from this file, delete it and its checksum (if available)
-            Files.delete(filePath);
-            Path checksumPath = filePath.resolveSibling(filePath.getFileName() + ".checksum");
-            Files.deleteIfExists(checksumPath);
         }
 
-        deleteEmptyDbEngine2Directories(dbDirectory);
-        createNewIndexFile(dbDirectory, currentMaxIndexValue);
+        deleteEmptyDbEngine2Directories(dbDirectory, fileUtils);
+        fileUtils.writeString(dbDirectory.resolve("index.ddps"), String.valueOf(currentMaxIndexValue + 1), CREATE_NEW);
     }
 
     /**
      * A predicate used to filter for just regular database files, not checksum files
      */
-    static boolean isDataFile(Path path) {
-        return Files.isRegularFile(path) && !path.toString().contains("checksum");
-    }
-
-    /**
-     * This small helper method will create an `index.ddps` file with the correct value
-     * for use with Db classic.  It determines the correct value by having calculated the
-     * maximum-value-seen throughout the conversion process.
-     */
-    static void createNewIndexFile(Path dbDirectory, long currentMaxIndexValue) {
-        // create an index.ddps with a value set to the current max, plus one
-        try {
-            Files.writeString(dbDirectory.resolve("index.ddps"), String.valueOf(currentMaxIndexValue + 1), CREATE_NEW);
-        } catch (IOException ex) {
-            throw new DbException("Failed to create an index.ddps file", ex);
-        }
+    static boolean isDataFile(Path path, IFileUtils fileUtils) {
+        return fileUtils.isRegularFile(path) && !path.toString().contains("checksum");
     }
 
     /**
      * This method is called after conversion to Db classic, at which point these directories
      * will be empty.
      */
-    static void deleteEmptyDbEngine2Directories(Path dbDirectory) {
-        try {
-            Files.deleteIfExists(dbDirectory.resolve("consolidated_data"));
-            Files.deleteIfExists(dbDirectory.resolve("currentAppendLog"));
-            Files.deleteIfExists(dbDirectory.resolve("append_logs"));
-        } catch (IOException ex) {
-            throw new DbException("Failed to delete one of the DbEngine2 files", ex);
-        }
+    static void deleteEmptyDbEngine2Directories(Path dbDirectory, IFileUtils fileUtils) throws IOException {
+        fileUtils.deleteIfExists(dbDirectory.resolve("consolidated_data"));
+        fileUtils.deleteIfExists(dbDirectory.resolve("currentAppendLog"));
+        fileUtils.deleteIfExists(dbDirectory.resolve("append_logs"));
     }
 
     /**

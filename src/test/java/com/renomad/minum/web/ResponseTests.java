@@ -1,7 +1,16 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.InvariantException;
-import org.junit.Test;
+import com.renomad.minum.utils.ThrowingFileUtils;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,12 +21,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.renomad.minum.testing.TestFramework.assertEquals;
-import static com.renomad.minum.testing.TestFramework.assertThrows;
+import static com.renomad.minum.testing.TestFramework.*;
+import static com.renomad.minum.testing.TestFramework.shutdownTestingContext;
+import static com.renomad.minum.web.Response.buildLargeFileResponse;
 import static com.renomad.minum.web.Response.buildStreamingResponse;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 
 public class ResponseTests {
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("ResponseTests");
+        logger = (TestLogger) context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * If we use two different {@link Response} as keys in a
@@ -58,7 +89,7 @@ public class ResponseTests {
         // This is just used to force an IOException to be thrown when running sendBody
         ISocketWrapper mockSocketWrapper = new ISocketWrapper() {
             @Override public void send(String msg) {}
-            @Override public void send(byte[] bodyContents) throws IOException {throw new IOException("This is just a test");}
+            @Override public void send(byte[] bodyContents) {throw new WebServerException("This is just a test");}
             @Override public void send(byte[] bodyContents, int off, int len) {}
             @Override public void send(int b) {}
             @Override public void sendHttpLine(String msg) {}
@@ -71,7 +102,7 @@ public class ResponseTests {
             @Override public String getHostName() {return null;}
             @Override public void flush() {}
         };
-        var ex = assertThrows(IOException.class, () ->  response.sendBody(mockSocketWrapper));
+        var ex = assertThrows(WebServerException.class, () ->  response.sendBody(mockSocketWrapper));
         assertEquals(ex.getMessage(), "This is just a test");
     }
 
@@ -80,15 +111,16 @@ public class ResponseTests {
      * that could be used to escape the directory, an exception will be thrown.
      */
     @Test
-    public void testResponse_EdgeCase_BadPathRequested() throws IOException {
-        assertThrows(InvariantException.class, "filename (../foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of())));
-        assertThrows(InvariantException.class, "filename (c:/foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> Response.buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of())));
-        assertThrows(InvariantException.class, "filename (//foo) contained invalid characters", () -> Response.buildLargeFileResponse(Map.of(), "//foo", ".", new Headers(List.of())));
-        Response.buildLargeFileResponse(Map.of(), "src/test/resources/kitty.jpg", ".", new Headers(List.of()));
+    public void testResponse_EdgeCase_BadPathRequested() {
+        var fileUtils = new FileUtils(this.context.getLogger(), this.context.getConstants());
+        assertThrows(ForbiddenUseException.class, "filename (../foo) contained invalid characters", () -> buildLargeFileResponse(Map.of(), "../foo", ".", new Headers(List.of()), fileUtils));
+        assertThrows(ForbiddenUseException.class, "filename (c:/foo) contained invalid characters (:).  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash", () -> buildLargeFileResponse(Map.of(), "c:/foo", ".", new Headers(List.of()), fileUtils));
+        assertThrows(ForbiddenUseException.class, "filename (//foo) contained invalid characters", () -> buildLargeFileResponse(Map.of(), "//foo", ".", new Headers(List.of()), fileUtils));
+        buildLargeFileResponse(Map.of(), "src/test/resources/kitty.jpg", ".", new Headers(List.of()), fileUtils);
     }
 
     @Test
-    public void testResponse_Streaming() throws IOException {
+    public void testResponse_Streaming() throws Exception {
         FakeSocketWrapper fakeSocketWrapper = new FakeSocketWrapper();
         Response response = (Response)buildStreamingResponse(CODE_200_OK, Map.of(), sw -> sw.send("hello"));
         response.sendBody(fakeSocketWrapper);
@@ -130,6 +162,108 @@ public class ResponseTests {
     public void testNullStatusCode() {
         var ex1 = assertThrows(IllegalArgumentException.class, () -> new Response(null, Headers.EMPTY, new byte[0], (x) -> {}, 0L, false));
         assertEquals(ex1.getMessage(), "Status code must not be null");
+    }
+
+    /**
+     * a test to go through some variations of the {@link Response#buildLargeFileResponse(Headers, String, String, Headers, IFileUtils)}
+     * method, to get a handle on its behavior.
+     */
+    @Test
+    public void testBuildLargeFileResponse() {
+        var fileUtils = new FileUtils(this.context.getLogger(), this.context.getConstants());
+        String filePath = "src/test/resources/kitty.jpg";
+
+        {
+            Map<String,String> extraHeaders = Map.of();
+            Headers requestHeaders = new Headers(List.of());
+            IResponse response = buildLargeFileResponse(extraHeaders, filePath, requestHeaders, fileUtils);
+            assertEquals(response.getStatusCode(), CODE_200_OK);
+        }
+        {
+            Headers requestHeaders = new Headers(List.of());
+            Headers extraHeaders = new Headers(List.of());
+            IResponse response = buildLargeFileResponse(extraHeaders, filePath, requestHeaders, fileUtils);
+            assertEquals(response.getStatusCode(), CODE_200_OK);
+        }
+        {
+            Headers extraHeaders = new Headers(List.of());
+            Headers requestHeaders = new Headers(List.of());
+            String parentDirectory = "./";
+            IResponse response = buildLargeFileResponse(extraHeaders, filePath, parentDirectory, requestHeaders, fileUtils);
+            assertEquals(response.getStatusCode(), CODE_200_OK);
+        }
+        {
+            Map<String,String> extraHeaders = Map.of();
+            Headers requestHeaders = new Headers(List.of());
+            String parentDirectory = "./";
+            IResponse response = buildLargeFileResponse(extraHeaders, filePath, parentDirectory, requestHeaders, fileUtils);
+            assertEquals(response.getStatusCode(), CODE_200_OK);
+        }
+
+    }
+
+    /**
+     * In this test, the {@link Response#buildLargeFileResponse(Headers, String, Headers, IFileUtils)}
+     * handles an {@link IOException} thrown when we look for a file's size.
+     */
+    @Test
+    public void test_buildLargeFileResponse_NegativeCase_ExceptionThrown() {
+        var fileUtils = new ThrowingFileUtils();
+        String filePath = "src/test/resources/kitty.jpg";
+        Headers requestHeaders = new Headers(List.of());
+        Headers extraHeaders = new Headers(List.of());
+
+        var ex = assertThrows(WebServerException.class, () -> buildLargeFileResponse(extraHeaders, filePath, requestHeaders, fileUtils));
+
+        assertEquals(ex.getMessage(), "Error in Response.buildLargeFileResponse");
+        assertEquals(ex.getCause().getMessage(), "THIS IS JUST THROWN FOR TESTING");
+    }
+
+    /**
+     * In this test, the {@link Response#buildLargeFileResponse(Headers, String, String, Headers, IFileUtils)}
+     * handles an {@link IOException} thrown when we look for a file's size.
+     */
+    @Test
+    public void test_buildLargeFileResponse_NegativeCase_ExceptionThrown_Overload1() {
+        var fileUtils = new ThrowingFileUtils();
+        String filePath = "src/test/resources/kitty.jpg";
+        Headers extraHeaders = new Headers(List.of());
+        Headers requestHeaders = new Headers(List.of());
+        String parentDirectory = "./";
+
+        var ex = assertThrows(WebServerException.class, () -> buildLargeFileResponse(extraHeaders, filePath, parentDirectory, requestHeaders, fileUtils));
+
+        assertEquals(ex.getMessage(), "Error at Response.buildLargeFileResponse");
+        assertEquals(ex.getCause().getMessage(), "THIS IS JUST THROWN FOR TESTING");
+    }
+
+    /**
+     * If the {@link java.net.Socket} throws an exception in this method,
+     * it gets wrapped.
+     */
+    @Test
+    public void test_sendByteArrayResponse_NegativeCase_ExceptionThrown() {
+        var sw = new ISocketWrapper() {
+            @Override public void send(String msg) throws IOException {}
+            @Override public void send(byte[] bodyContents) throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+            @Override public void send(byte[] bodyContents, int off, int len) throws IOException {}
+            @Override public void send(int b) throws IOException {}
+            @Override public void sendHttpLine(String msg) throws IOException {}
+            @Override public int getLocalPort() {return 0;}
+            @Override public SocketAddress getRemoteAddrWithPort() {return null;}
+            @Override public String getRemoteAddr() {return "";}
+            @Override public HttpServerType getServerType() {return null;}
+            @Override public InputStream getInputStream() {return null;}
+            @Override public String getHostName() {return "";}
+            @Override public void flush() throws IOException {}
+            @Override public void close() throws IOException {}
+        };
+
+        var ex = assertThrows(IOException.class, () -> Response.sendByteArrayResponse(sw, new byte[0]));
+
+        assertEquals(ex.getMessage(), "JUST A TEST");
     }
 
 }

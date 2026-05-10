@@ -1,10 +1,11 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,25 +21,34 @@ import static com.renomad.minum.web.RequestLine.Method.NONE;
 
 public class RequestLineTests {
 
-    private Context context;
-    private RequestLine emptyRequestLine;
+    private static Context context;
+    private static RequestLine emptyRequestLine;
+    private static TestLogger testLogger;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("RequestLine tests");
-        this.emptyRequestLine = new RequestLine(
+        emptyRequestLine = new RequestLine(
                 NONE,
                 PathDetails.empty,
                 HttpVersion.NONE,
                 "",
                 context.getLogger());
+        testLogger = (TestLogger)context.getLogger();
+
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            testLogger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_GetRawValue() {
@@ -63,6 +73,25 @@ public class RequestLineTests {
         RequestLine requestLine = emptyRequestLine.extractRequestLine("GET /?foo=bar HTTP/1.1");
 
         assertEquals(requestLine.getPathDetails().toString(), "PathDetails{isolatedPath='', rawQueryString='foo=bar', queryString={foo=bar}}");
+    }
+
+    /**
+     * If we get a malformed query string, return an empty map, in order
+     * to better illuminate the issue to programmers.
+     */
+    @Test
+    public void test_QueryString_MalformedPairShouldEmptyMap() {
+        RequestLine template = new RequestLine(
+                RequestLine.Method.NONE,
+                PathDetails.empty,
+                HttpVersion.NONE,
+                "",
+                testLogger);
+
+        // Parse a full request line with a query string containing a malformed pair.
+        // "foo=bar" is valid, "bad" has no '=', "baz=qux" is valid.
+        var ex = assertThrows(BadRequestException.class, () -> template.extractRequestLine("GET /path?foo=bar&bad&baz=qux HTTP/1.1"));
+        assertEquals(ex.getMessage(), "Discovered invalid key-value pair in query string for key (\"bad\").  Full query string: foo=bar&bad&baz=qux");
     }
 
     /**

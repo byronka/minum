@@ -14,7 +14,7 @@ public final class SocketWrapper implements ISocketWrapper {
 
     private final Socket socket;
     private final String hostName;
-    private final BufferedOutputStream writer;
+    private final BufferedOutputStream bufferedOutputStream;
     private final ILogger logger;
     private final IServer server;
     private final BufferedInputStream bufferedInputStream;
@@ -29,31 +29,33 @@ public final class SocketWrapper implements ISocketWrapper {
         this.socket = socket;
         this.hostName = hostName;
         logger.logTrace(() -> String.format("Setting timeout of %d milliseconds on socket %s", timeoutMillis, socket));
+
         this.socket.setSoTimeout(timeoutMillis);
         this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-        writer = new BufferedOutputStream(socket.getOutputStream());
+        this.bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
+
         this.logger = logger;
         this.server = server;
     }
 
     @Override
     public void send(String msg) throws IOException {
-        writer.write(msg.getBytes(Charset.defaultCharset()));
+        bufferedOutputStream.write(msg.getBytes(Charset.defaultCharset()));
     }
 
     @Override
     public void send(byte[] bodyContents) throws IOException {
-        writer.write(bodyContents);
+        bufferedOutputStream.write(bodyContents);
     }
 
     @Override
     public void send(byte[] bodyContents, int off, int len) throws IOException {
-        writer.write(bodyContents, off, len);
+        bufferedOutputStream.write(bodyContents, off, len);
     }
 
     @Override
     public void send(int b) throws IOException {
-        writer.write(b);
+        bufferedOutputStream.write(b);
     }
 
     @Override
@@ -111,6 +113,6 @@ public final class SocketWrapper implements ISocketWrapper {
 
     @Override
     public void flush() throws IOException {
-        this.writer.flush();
+        this.bufferedOutputStream.flush();
     }
 }

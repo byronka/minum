@@ -9,8 +9,9 @@ import com.renomad.minum.security.TheBrig;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.*;
 
-import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.concurrent.CancellationException;
@@ -28,7 +29,7 @@ public final class FullSystem {
 
     final ILogger logger;
     private final Constants constants;
-    private final FileUtils fileUtils;
+    private final IFileUtils fileUtils;
     private IServer server;
     private WebFramework webFramework;
     private IServer sslServer;
@@ -111,8 +112,7 @@ public final class FullSystem {
      * @see #initialize()
      */
     public FullSystem start() {
-        // create a file in our current working directory to indicate we are running
-        if (constants.enableSystemRunningMarker) createSystemRunningMarker();
+        createSystemRunningFile(constants.enableSystemRunningMarker, logger, fileUtils);
 
         // set up an action to take place if the user shuts us down
         addShutdownHook();
@@ -123,7 +123,7 @@ public final class FullSystem {
         } else {
             theBrig = null;
         }
-        
+
         // the web framework handles the HTTP communications
         webFramework = new WebFramework(context);
 
@@ -137,8 +137,24 @@ public final class FullSystem {
         var nowMillis = now.toInstant().toEpochMilli();
         var startupTime = nowMillis - constants.startTime;
         logger.logDebug(() -> " *** Minum has finished primary startup after " + startupTime + " milliseconds ***");
-
         return this;
+    }
+
+    static void createSystemRunningFile(boolean enableSystemRunningMarker, ILogger logger, IFileUtils fileUtils) {
+        // create a file in our current working directory to indicate we are running
+        if (enableSystemRunningMarker) {
+            try {
+                logger.logDebug(() -> "Writing a file to disk, SYSTEM_RUNNING, as a record that Minum is currently running");
+                if (fileUtils.exists(Path.of("SYSTEM_RUNNING"))) {
+                    logger.logWarn(() -> "the SYSTEM_RUNNING file existed when we started Minum. This should not happen unless Minum was crash-closed before.");
+                } else {
+                    fileUtils.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n", StandardOpenOption.CREATE_NEW);
+                }
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     /**
@@ -150,15 +166,6 @@ public final class FullSystem {
     private void addShutdownHook() {
         shutdownHook = new Thread(ThrowingRunnable.throwingRunnableWrapper(this::shutdown, logger));
         Runtime.getRuntime().addShutdownHook(shutdownHook);
-    }
-
-    /**
-     * this saves a file to the home directory, SYSTEM_RUNNING,
-     * that will indicate the system is active.  It can be disabled
-     * by configuring ENABLE_SYSTEM_RUNNING_MARKER to false.
-     */
-    private void createSystemRunningMarker() {
-        fileUtils.writeString(Path.of("SYSTEM_RUNNING"), "This file serves as a marker to indicate the system is running.\n");
     }
 
     /**
@@ -204,11 +211,11 @@ public final class FullSystem {
     /**
      * Shut down the system, set up to be run by a hook during initialization
      */
-    public void shutdown() {
+    public void shutdown() throws IOException {
 
         if (!hasShutdown) {
             logger.logTrace(() -> "close called on " + this);
-            closeCore(logger, context, server, sslServer, this.toString());
+            closeCore(logger, context, server, sslServer, this.toString(), fileUtils);
             hasShutdown = true;
         }
     }
@@ -217,30 +224,27 @@ public final class FullSystem {
      * The core code for closing resources
      * @param fullSystemName the name of this FullSystem, in cases where several are running concurrently
      */
-    static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName) {
-        try {
-            logger.logDebug(() -> "Received shutdown command");
+    static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName, IFileUtils fileUtils) throws IOException {
+        logger.logDebug(() -> "Received shutdown command");
 
-            if (server != null) {
-                logger.logDebug(() -> " Stopping the server: " + server);
-                server.close();
-            }
-
-            if (sslServer != null) {
-                logger.logDebug(() -> " Stopping the SSL server: " + server);
-                sslServer.close();
-            }
-
-            logger.logDebug(() -> "Killing all the action queues: " + context.getActionQueueState().aqQueueAsString());
-            new ActionQueueKiller(context).killAllQueues();
-
-            logger.logDebug(() -> String.format(
-                    "%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), fullSystemName));
-
-            Files.deleteIfExists(Path.of("SYSTEM_RUNNING"));
-        } catch (Exception e) {
-            throw new WebServerException(e);
+        if (server != null) {
+            logger.logDebug(() -> " Stopping the server: " + server);
+            server.close();
         }
+
+        if (sslServer != null) {
+            logger.logDebug(() -> " Stopping the SSL server: " + server);
+            sslServer.close();
+        }
+
+        logger.logDebug(() -> "Killing all the action queues: " + context.getActionQueueState().aqQueueAsString());
+        new ActionQueueKiller(context).killAllQueues();
+
+        logger.logDebug(() -> "Deleting SYSTEM_RUNNING file, indicating Minum is no longer running");
+        fileUtils.deleteIfExists(Path.of("SYSTEM_RUNNING"));
+
+        logger.logDebug(() -> String.format(
+                "%s %s says: Goodbye world!%n", TimeUtils.getTimestampIsoInstant(), fullSystemName));
     }
 
     /**

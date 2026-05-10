@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -18,7 +19,7 @@ public final class TestLogger extends Logger {
     private final Queue<String> recentLogLines;
     public static final int MAX_CACHE_SIZE = 30;
     private final ReentrantLock loggingLock;
-    private int testCount = 0;
+    private final AtomicInteger testCount = new AtomicInteger(0);
 
     /**
      * See {@link TestLogger}
@@ -60,6 +61,17 @@ public final class TestLogger extends Logger {
         try {
             addToCache(msg);
             super.logDebug(msg);
+        } finally {
+            loggingLock.unlock();
+        }
+    }
+
+    @Override
+    public void logWarn(ThrowingSupplier<String, Exception> msg) {
+        loggingLock.lock();
+        try {
+            addToCache(msg);
+            super.logWarn(msg);
         } finally {
             loggingLock.unlock();
         }
@@ -202,9 +214,9 @@ public final class TestLogger extends Logger {
             final var baseLength = 11;
             final var dashes = "-".repeat(msg.length() + baseLength);
 
+            final int currentCount = testCount.incrementAndGet();
             loggingActionQueue.enqueue("Testlogger#test("+msg+")", () -> {
-                testCount += 1;
-                System.out.printf("%n+%s+%n| TEST %d: %s |%n+%s+%n%n", dashes, testCount, msg, dashes);
+                System.out.printf("%n+%s+%n| TEST %d: %s |%n+%s+%n%n", dashes, currentCount, msg, dashes);
                 recentLogLines.add(msg);
             });
         } finally {
@@ -213,7 +225,7 @@ public final class TestLogger extends Logger {
     }
 
     public int getTestCount() {
-        return testCount;
+        return testCount.get();
     }
 
     @Override

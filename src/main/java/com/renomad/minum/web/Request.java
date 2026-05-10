@@ -121,9 +121,6 @@ public final class Request implements IRequest {
     @Override
     public Iterable<StreamingMultipartPartition> getMultipartIterable() {
         checkForExistingBody();
-        if (!headers.contentType().contains("multipart/form-data")) {
-            throw new WebServerException("This request was not sent with a content type of multipart/form-data.  The content type was: " + headers.contentType());
-        }
         String boundaryKey = "boundary=";
         String contentType = getHeaders().contentType();
         int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
@@ -132,13 +129,11 @@ public final class Request implements IRequest {
             // grab all the text after the key to obtain the boundary value
             boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
         } else {
-            String parsingError = "Did not find a valid boundary value for the multipart input. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
-            throw new WebServerException(parsingError);
+            throw new BadRequestException("Did not find a valid boundary value for the multipart input. Header was: " + contentType);
         }
 
         if (boundaryValue.isBlank()) {
-            String parsingError = "Boundary value was blank. Returning an empty map and the raw bytes for the body. Header was: " + contentType;
-            throw new WebServerException(parsingError);
+            throw new BadRequestException("Boundary value was blank. Header was: " + contentType);
         }
 
         return bodyProcessor.getMultiPartIterable(getSocketWrapper().getInputStream(), boundaryValue, getHeaders().contentLength());

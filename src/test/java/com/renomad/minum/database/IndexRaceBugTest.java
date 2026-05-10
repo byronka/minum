@@ -3,11 +3,11 @@ package com.renomad.minum.database;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,7 +40,7 @@ public class IndexRaceBugTest {
 
     private Context context;
     private TestLogger logger;
-    private FileUtils fileUtils;
+    private IFileUtils fileUtils;
     static Path testDirectory = Path.of("out/index_race_bug_test/foos");
 
     @Before
@@ -65,7 +65,7 @@ public class IndexRaceBugTest {
      * iterating the indexed data concurrently (which detects CME).
      *
      * Expected: all items are present in the index after concurrent writes.
-     * Actual: ConcurrentModificationException, missing items, or corruption.
+     * Bug, now fixed, was: ConcurrentModificationException, missing items, or corruption.
      */
     @Test
     public void test_ConcurrentWritesSameIndexKey_ShouldNotCorrupt() throws Exception {
@@ -130,7 +130,7 @@ public class IndexRaceBugTest {
         int expectedCount = writerThreads * writesPerThread;
 
         if (!errors.isEmpty()) {
-            db.stop();
+            db.stop(10,200);
             throw new AssertionError(
                     "Concurrent writes caused " + errors.size() + " error(s). " +
                     "First error: " + errors.getFirst().getClass().getSimpleName() +
@@ -141,7 +141,7 @@ public class IndexRaceBugTest {
         // If no exception, verify data integrity — missing items prove the race
         assertEquals(indexed.size(), expectedCount);
 
-        db.stop();
+        db.stop(10, 200);
     }
 
     /**

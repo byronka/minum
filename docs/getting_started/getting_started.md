@@ -50,7 +50,7 @@ Contents:
       <dependency>
           <groupId>com.renomad</groupId>
           <artifactId>minum</artifactId>
-          <version>9.0.0</version>
+          <version>10.0.0</version>
       </dependency>
     </dependencies>
 
@@ -90,7 +90,7 @@ Put the following into `src/main/java/org/example/myproject/Main.java`:
 package org.example.myproject;
 
 import com.renomad.minum.web.*;
-                                                                                                                       
+
 public class Main {
 
     public static void main(String[] args) {

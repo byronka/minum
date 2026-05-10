@@ -1,8 +1,6 @@
 package com.renomad.minum.web;
 
 import com.renomad.minum.security.ForbiddenUseException;
-import com.renomad.minum.utils.UtilsException;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,13 +19,13 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public String readLine(InputStream inputStream) throws IOException  {
+    public String readLine(InputStream inputStream) throws IOException {
         final int NEWLINE_DECIMAL = 10;
         final int CARRIAGE_RETURN_DECIMAL = 13;
 
         final var result = new ByteArrayOutputStream(maxReadLineSizeBytes / 3);
         int bytesRead = 0;
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             if (i >= maxReadLineSizeBytes) {
                 inputStream.close();
                 throw new ForbiddenUseException("client sent more bytes than allowed for a single line.  max: " + maxReadLineSizeBytes);
@@ -37,13 +35,13 @@ final class InputStreamUtils implements IInputStreamUtils {
                 if (bytesRead > 0) {
                     return result.toString(StandardCharsets.UTF_8);
                 } else {
-                    /*
-                    it could be unclear whether we read a line that's an empty string, or we
-                    reached the end of stream.  With this code, if we get an empty string,
-                    that means the line we read is just an empty string, and if we get a null,
-                    that means we didn't have any characters read into our ByteArrayOutputStream,
-                    and tried reading at the end of stream.
-                    */
+                /*
+                it could be unclear whether we read a line that's an empty string, or we
+                reached the end of stream.  With this code, if we get an empty string,
+                that means the line we read is just an empty string, and if we get a null,
+                that means we didn't have any characters read into our ByteArrayOutputStream,
+                and tried reading at the end of stream.
+                */
                     return null;
                 }
             }
@@ -56,26 +54,23 @@ final class InputStreamUtils implements IInputStreamUtils {
     }
 
     @Override
-    public byte[] read(int lengthToRead, InputStream inputStream) {
+    public byte[] read(int lengthToRead, InputStream inputStream) throws IOException{
         final int typicalBufferSize = 1024 * 8;
         byte[] buf = new byte[Math.min(lengthToRead, typicalBufferSize)]; // 8k buffer is my understanding of a decent size.  Fast, doesn't waste too much space.
         byte[] data;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         int read;
         int totalRead = 0;
-        try {
-            while ((read = inputStream.read(buf)) >= 0) {
-                totalRead += read;
-                if (totalRead < lengthToRead) {
-                    // if we haven't gotten everything we wanted, write this to the output and loop again
-                    baos.write(buf, 0, read);
-                } else {
-                    baos.write(buf, 0, read - (totalRead - lengthToRead));
-                    break;
-                }
+        while (true) {
+            if (!((read = inputStream.read(buf)) >= 0)) break;
+            totalRead += read;
+            if (totalRead < lengthToRead) {
+                // if we haven't gotten everything we wanted, write this to the output and loop again
+                baos.write(buf, 0, read);
+            } else {
+                baos.write(buf, 0, read - (totalRead - lengthToRead));
+                break;
             }
-        } catch (IOException ex) {
-            throw new UtilsException(ex);
         }
         data = baos.toByteArray();
 

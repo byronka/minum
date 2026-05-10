@@ -5,7 +5,10 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +28,7 @@ public class BodyProcessorTests {
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("BodyProcessorTests");
         logger = (TestLogger) context.getLogger();
     }
 
@@ -33,6 +36,13 @@ public class BodyProcessorTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * Edge case - if a multipart form body is missing a valid name value in its headers, ah
@@ -52,11 +62,12 @@ public class BodyProcessorTests {
                 """.stripLeading();
         var bodyProcessor = new BodyProcessor(context);
 
-        bodyProcessor.extractBodyFromInputStream(
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: multipart/form-data; boundary=i_am_a_boundary",
-                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: Error: No name value set on multipart partition"));
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII))));
+        assertEquals(ex.getMessage(), "Unable to parse the body as a multipart/form-data content-type");
+        assertEquals(ex.getCause().getMessage(), "Error: No name value set on multipart partition");
     }
 
     /**
@@ -94,13 +105,11 @@ public class BodyProcessorTests {
         String body = "Foo";
         var bodyProcessor = new BodyProcessor(context);
 
-        Body bodyResult = bodyProcessor.extractBodyFromInputStream(
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-
-        assertTrue(logger.doesMessageExist("Unable to parse this body. no key found during parsing"));
-        assertEquals(bodyResult.getBodyType(), BodyType.UNRECOGNIZED);
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII))));
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
     }
 
     /**
@@ -112,15 +121,12 @@ public class BodyProcessorTests {
         String body = "a".repeat(BodyProcessor.MAX_SIZE_DATA_RETURNED_IN_EXCEPTION + 1);
         var bodyProcessor = new BodyProcessor(context);
 
-        var bodyResult = bodyProcessor.extractBodyFromInputStream(
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(
                 body.length(),
                 "content-type: application/x-www-form-urlencoded",
-                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
-
-        String unableToParseThisBody = logger.findFirstMessageThatContains("Unable to parse this body", 1);
-        assertEquals(unableToParseThisBody, "Unable to parse this body. returning what we have so far.  Exception message: Maximum size for name attribute is 50 ascii characters");
-        assertEquals(bodyResult.getKeys(), Set.of());
-        assertEquals(bodyResult.toString(), "Body{bodyMap={}, bodyType=UNRECOGNIZED}");
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII))));
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Maximum size for name attribute is 50 ascii characters");
     }
 
     /**
@@ -252,10 +258,66 @@ public class BodyProcessorTests {
 
         // the content type should be multipart form data and also mention the boundary value -
         // we are not including it, leading to this edge case branch being invoked.
-        Body result = bodyProcessor.extractBodyFromInputStream(25, "multipart/form-data", new ByteArrayInputStream(new byte[0]));
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(25, "multipart/form-data", new ByteArrayInputStream(new byte[0])));
+        assertEquals(ex.getMessage(), "The boundary value was blank for the multipart input");
+    }
 
-        assertTrue(logger.doesMessageExist("The boundary value was blank for the multipart input. Returning an empty map"));
-        assertEquals(result, new Body(Map.of(), new byte[0], List.of(), BodyType.UNRECOGNIZED));
+    /**
+     * When the multipart partition is filling up with data, it is pulling
+     * bytes off the inputstream.  If that stream throws an exception, it
+     * gets wrapped and thrown.
+     */
+    @Test
+    public void test_MultiPart_NegativeCase_ExceptionDuringFillBuffer() {
+        var inputStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+        };
+        var partition = new StreamingMultipartPartition(null, inputStream, null, "", new CountBytesRead(), 0);
+
+        var ex = assertThrows(WebServerException.class, () -> partition.fillBuffer());
+
+        assertEquals(ex.getMessage(), "Error in StreamingMultipartPartition.fillBuffer");
+        assertEquals(ex.getCause().getMessage(), "JUST A TEST");
+    }
+
+    @Test
+    public void testUrlEncodedDataIterable_NegativeCase_ExceptionThrown() {
+        var inputStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+        };
+        var bodyProcessor = new BodyProcessor(context);
+        Iterable<UrlEncodedKeyValue> urlEncodedDataIterable = bodyProcessor.getUrlEncodedDataIterable(inputStream, 10);
+
+        var ex = assertThrows(WebServerException.class, () -> urlEncodedDataIterable.iterator().next());
+
+        assertEquals(ex.getMessage(), "Error in getUrlEncodedDataIterable.next");
+        assertEquals(ex.getCause().getMessage(), "JUST A TEST");
+    }
+
+    @Test
+    public void testMultipartIterable_NegativeCase_ExceptionThrown() {
+        var inputStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+        };
+        var bodyProcessor = new BodyProcessor(context);
+        Iterable<StreamingMultipartPartition> urlEncodedDataIterable = bodyProcessor.getMultiPartIterable(inputStream, "foo", 10);
+
+        var ex = assertThrows(WebServerException.class, () -> urlEncodedDataIterable.iterator().next());
+
+        assertEquals(ex.getMessage(), "Error in BodyProcessor.getMultiPartIterable.next");
+        assertEquals(ex.getCause().getMessage(), "JUST A TEST");
     }
 
     @Test
@@ -323,9 +385,8 @@ public class BodyProcessorTests {
         var inputStream = new ByteArrayInputStream("2\r\nab\r\n0\r\n\r\n".getBytes(StandardCharsets.UTF_8));
         Headers headers = new Headers(List.of("Transfer-Encoding: chunked"));
 
-        Body body = bodyProcessor.extractData(inputStream, headers);
-        assertEquals(body.asString(), "");
-        assertTrue(logger.doesMessageExist("client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type."));
+        var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractData(inputStream, headers));
+        assertEquals(ex.getMessage(), "client sent chunked transfer-encoding.  Minum does not automatically read bodies of this type.");
     }
 
     /**
@@ -396,6 +457,30 @@ public class BodyProcessorTests {
             assertEquals(bodyResult.asString("b"), "123");
             assertEquals(bodyResult.getBodyType(), BodyType.FORM_URL_ENCODED);
         }
+    }
+
+    /**
+     * It is possible for an {@link IOException} to be thrown when running
+     * {@link BodyProcessor#extractBodyFromInputStream(int, String, InputStream)}.
+     * Let's see that happen.
+     */
+    @Test
+    public void test_extractBodyFromInputStream_NegativeCase_ExceptionThrown() {
+        var bodyProcessor = new BodyProcessor(context);
+        InputStream inputStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+        };
+
+        // the content type should be multipart form data and also mention the boundary value -
+        // we are not including it, leading to this edge case branch being invoked.
+        var ex = assertThrows(WebServerException.class,
+                () -> bodyProcessor.extractBodyFromInputStream(25, "foo", inputStream));
+        assertEquals(ex.getMessage(), "Error in BodyProcessor.extractBodyFromInputStream");
+        assertEquals(ex.getCause().getMessage(), "JUST A TEST");
     }
 
 

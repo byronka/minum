@@ -1,20 +1,22 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.ILogger;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
 
 /**
  * Helper functions for working with files.
  */
-public final class FileUtils {
+public final class FileUtils implements IFileUtils {
 
     private final ILogger logger;
     private final IFileReader fileReader;
@@ -36,37 +38,30 @@ public final class FileUtils {
         this.fileReader = fileReader;
     }
 
-    /**
-     * Write a string to a path on disk.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     */
-    public void writeString(Path path, String content) {
+    @Override
+    public void writeString(Path path, String content, OpenOption... options) throws IOException {
         if (path.toString().isEmpty()) {
-            logger.logDebug(() -> "an empty path was provided to writeString");
-            return;
+            throw new UtilsException("an empty path was provided to writeString");
         }
-        try {
-            Files.writeString(path, content);
-        } catch (IOException e) {
-            throw new UtilsException(e);
-        }
+        Files.writeString(path, content, options);
     }
 
-    /**
-     * Deletes a directory, deleting everything inside it
-     * recursively afterwards.  A more dangerous method than
-     * many others, take care.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     */
-    public void deleteDirectoryRecursivelyIfExists(Path myPath) {
+    @Override
+    public Path write(Path path, Iterable<? extends CharSequence> lines,
+                      Charset cs, OpenOption... options) throws IOException {
+        return Files.write(path, lines, cs, options);
+    }
+
+    @Override
+    public String readString(Path path) throws IOException {
+        if (path.toString().isEmpty()) {
+            throw new UtilsException("an empty path was provided to readString");
+        }
+        return Files.readString(path);
+    }
+
+    @Override
+    public void deleteDirectoryRecursivelyIfExists(Path myPath) throws IOException {
         if (!Files.exists(myPath)) {
             logger.logDebug(() -> "system was requested to delete directory: "+myPath+", but it did not exist");
         } else {
@@ -74,128 +69,78 @@ public final class FileUtils {
         }
     }
 
-    void walkPathDeleting(Path myPath) {
+    void walkPathDeleting(Path myPath) throws IOException {
         try (Stream<Path> walk = Files.walk(myPath)) {
 
             final var files = walk.sorted(Comparator.reverseOrder())
                     .map(Path::toFile).toList();
 
-            for(var file: files) {
+            for (var file : files) {
                 logger.logTrace(() -> "deleting " + file);
                 Files.delete(file.toPath());
             }
-        } catch (IOException ex) {
-            throw new UtilsException("Error during deleteDirectoryRecursivelyIfExists: " + ex);
         }
     }
 
-    /**
-     * Creates a directory if it doesn't already exist.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     * <p>
-     * If the directory does exist, the program will simply skip
-     * building it, and mention it in the logs.
-     * </p>
-     */
-    public void makeDirectory(Path directory) {
+    @Override
+    public void makeDirectory(Path directory) throws IOException {
         logger.logDebug(() -> "Creating a directory " + directory);
         boolean directoryExists = Files.exists(directory);
-        logger.logDebug(() -> "Directory: " + directory + ". Already exists: " + directory);
-        if (!directoryExists) {
-            logger.logDebug(() -> "Creating directory, since it does not already exist: " + directory);
+        if (directoryExists) {
+            logger.logDebug(() -> "Directory: (" + directory + ") Already exists. Returning.");
+        } else {
             innerCreateDirectory(directory);
             logger.logDebug(() -> "Directory: " + directory + " created");
         }
     }
 
-    static void innerCreateDirectory(Path directory) {
-        try {
-            Files.createDirectories(directory);
-        } catch (Exception e) {
-            throw new UtilsException(e);
-        }
+    void innerCreateDirectory(Path directory) throws IOException {
+        if (directory == null) throw new IllegalArgumentException("directory parameter is disallowed to be null when creating a directory");
+        Files.createDirectories(directory);
     }
 
-    /**
-     * Read a binary file, return as a byte array
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     * <p>
-     *     If there is an error, this will return an empty byte array.
-     * </p>
-     */
-    public byte[] readBinaryFile(String path) {
-        try {
-            return fileReader.readFile(path);
-        } catch (IOException e) {
-            logger.logDebug(() -> String.format("Error while reading file %s, returning empty byte array. %s", path, e));
-            return new byte[0];
-        }
+    @Override
+    public byte[] readBinaryFile(String path) throws IOException {
+        return fileReader.readFile(path);
     }
 
-    /**
-     * Read a text file from the given path, return as a string.
-     * <br>
-     * <p>
-     *  <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
-     *  the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
-     * </p>
-     * <p>
-     *     If there is an error, this will return an empty string.
-     * </p>
-     */
-    public String readTextFile(String path) {
-        try {
-            return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            logger.logDebug(() -> String.format("Error while reading file %s, returning empty string. %s", path, e));
-            return "";
-        }
+    @Override
+    public List<String> readAllLines(Path path) throws IOException {
+        return Files.readAllLines(path);
     }
 
-    /**
-     * This method is to provide assurance that the file specified by the path
-     * parameter is within the directory specified by directoryPath.  Use this
-     * for any code that reads from files where the user provides untrusted input.
-     * @throws InvariantException if the file is not within the directory
-     */
-    public static void checkFileIsWithinDirectory(String path, String directoryPath) {
+    @Override
+    public String readTextFile(String path) throws IOException {
+        return new String(fileReader.readFile(path), StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void checkFileIsWithinDirectory(String path, String directoryPath) throws IOException {
         Path directoryRealPath;
         Path fullRealPath;
-        try {
-            directoryRealPath = Path.of(directoryPath).toRealPath(LinkOption.NOFOLLOW_LINKS);
-            fullRealPath = directoryRealPath.resolve(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
-        } catch (IOException ex) {
-            throw new InvariantException(ex.toString());
-        }
+        directoryRealPath = Path.of(directoryPath).toRealPath(LinkOption.NOFOLLOW_LINKS);
+        fullRealPath = directoryRealPath.resolve(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
         if (! fullRealPath.startsWith(directoryRealPath)) {
-            throw new InvariantException(String.format("path (%s) was not within directory (%s)", path, directoryPath));
+            throw new ForbiddenUseException(String.format("path (%s) was not within directory (%s)", path, directoryPath));
         }
     }
 
     /**
      * Checks that the path string avoids bad patterns and meets our
      * whitelist for acceptable characters.
-     * @throws InvariantException if there are any issues with the path string, such
-     *                            as being an empty string, containing known bad patterns
-     *                            or including characters other than the set of characters we will allow for filenames.
+     * @throws IllegalArgumentException if the input is blank
+     * @throws ForbiddenUseException if the path parameter contains known bad patterns
+     *                            or includes characters other than the set of characters we will allow for filenames.
      *                            It is a small set of ascii characters - alphanumerics, underscore, dash, period,
      *                            forward and backward slash.
      */
     public static void checkForBadFilePatterns(String path) {
         if (path.isBlank()) {
-            throw new InvariantException("filename was empty");
+            throw new IllegalArgumentException("path was blank");
         }
         char firstChar = path.charAt(0);
         if (firstChar == '\\' || firstChar == '/') {
-            throw new InvariantException("filename ("+path+") contained invalid characters");
+            throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
         }
         boolean isPreviousCharDot = false;
         boolean isPreviousCharSlash = false;
@@ -204,11 +149,11 @@ public final class FileUtils {
             boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
                     c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
             if (!isWhitelistedChar) {
-                throw new InvariantException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
+                throw new ForbiddenUseException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
             }
             if (c == '.') {
                 if (isPreviousCharDot) {
-                    throw new InvariantException("filename ("+path+") contained invalid characters");
+                    throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
                 }
                 isPreviousCharDot = true;
             } else {
@@ -216,7 +161,7 @@ public final class FileUtils {
             }
             if (c == '/') {
                 if (isPreviousCharSlash) {
-                    throw new InvariantException("filename ("+path+") contained invalid characters");
+                    throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
                 }
                 isPreviousCharSlash = true;
             } else {
@@ -225,14 +170,66 @@ public final class FileUtils {
         }
     }
 
-    /**
-     * This helper method will ensure that the requested path is
-     * within the parent directory and using safe characters
-     */
-    public static Path safeResolve(String parentDirectory, String path) {
+    @Override
+    public Path safeResolve(String parentDirectory, String path) throws IOException {
         checkForBadFilePatterns(path);
         checkFileIsWithinDirectory(path, parentDirectory);
         return Path.of(parentDirectory).resolve(path);
+    }
+
+    @Override
+    public void delete(Path path) throws IOException {
+        Files.delete(path);
+    }
+
+    @Override
+    public void move(Path source, Path target, CopyOption... options) throws IOException {
+        Files.move(source, target, options);
+    }
+
+    @Override
+    public boolean exists(Path path, LinkOption... options) {
+        return Files.exists(path, options);
+    }
+
+    @Override
+    public BufferedWriter newBufferedWriter(Path path, Charset cs, OpenOption... options) throws IOException {
+        return Files.newBufferedWriter(path, cs, options);
+    }
+
+    @Override
+    public BufferedReader newBufferedReader(Path path, Charset cs) throws IOException {
+        return Files.newBufferedReader(path, cs);
+    }
+
+    @Override
+    public Stream<Path> walk(Path start, FileVisitOption... options) throws IOException {
+        return Files.walk(start, options);
+    }
+
+    @Override
+    public boolean isRegularFile(Path path, LinkOption... options) {
+        return Files.isRegularFile(path, options);
+    }
+
+    @Override
+    public Stream<String> lines(Path path, Charset cs) throws IOException {
+        return Files.lines(path, cs);
+    }
+
+    @Override
+    public boolean deleteIfExists(Path path) throws IOException {
+        return Files.deleteIfExists(path);
+    }
+
+    @Override
+    public long size(Path path) throws IOException {
+        return Files.size(path);
+    }
+
+    @Override
+    public Stream<Path> list(Path dir) throws IOException {
+        return Files.list(dir);
     }
 
 }

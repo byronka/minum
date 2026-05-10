@@ -2,11 +2,10 @@ package com.renomad.minum.database;
 
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.*;
@@ -42,20 +41,21 @@ final class DatabaseConsolidator {
     private final ILogger logger;
 
     private final int maxLinesPerFile;
+    private final IFileUtils fileUtils;
 
     /**
      * This represents an instruction for how to change the overall consolidated
      * database files on disk.  Instructions are either to UPDATE or DELETE. This
      * also encapsulates the data we're updating.
      */
-    private record DatabaseChangeInstruction(DatabaseChangeAction action, long dataIndex, String data) {}
+    record DatabaseChangeInstruction(DatabaseChangeAction action, long dataIndex, String data) {}
 
-    DatabaseConsolidator(Path persistenceDirectory, Context context) {
+    DatabaseConsolidator(Path persistenceDirectory, Context context, IFileUtils fileUtils) throws IOException {
+        this.fileUtils = fileUtils;
         this.appendLogDirectory = persistenceDirectory.resolve("append_logs");
         this.consolidatedDataDirectory = persistenceDirectory.resolve("consolidated_data");
         var constants = context.getConstants();
         this.logger = context.getLogger();
-        FileUtils fileUtils = new FileUtils(logger, constants);
         fileUtils.makeDirectory(this.consolidatedDataDirectory);
         this.maxLinesPerFile = constants.maxLinesPerConsolidatedDatabaseFile;
     }
@@ -63,7 +63,7 @@ final class DatabaseConsolidator {
     /**
      * Loop through all the append-only files
      */
-    void consolidate() throws IOException {
+    void consolidate() throws IOException, ParseException {
         logger.logDebug(() -> "Starting database consolidator");
         List<Date> sortedList = getSortedAppendLogs(appendLogDirectory);
         if (sortedList.isEmpty()) {
@@ -83,7 +83,7 @@ final class DatabaseConsolidator {
         for (Date date : sortedList) {
             String filename = simpleDateFormat.format(date);
             logger.logDebug(() -> "consolidator processing file " + filename + " in " + appendLogDirectory);
-            processAppendLogFile(filename);
+            processAppendLogFile(filename, appendLogDirectory, fileUtils, maxLinesPerFile, logger, consolidatedDataDirectory);
             logger.logDebug(() -> "consolidator finished with file " + filename + " in " + appendLogDirectory);
         }
         logger.logDebug(() -> "Database consolidation finished");
@@ -98,9 +98,11 @@ final class DatabaseConsolidator {
      * <br>
      * Build a data structure holding instructions for the next step.
      */
-    private void processAppendLogFile(String filename) throws IOException {
-        Path fullPathToFile = this.appendLogDirectory.resolve(filename);
-        List<String> lines = Files.readAllLines(fullPathToFile);
+    static void processAppendLogFile(String filename, Path appendLogDirectory, IFileUtils fileUtils,
+                                     int maxLinesPerFile, ILogger logger, Path consolidatedDataDirectory) throws IOException {
+        Path fullPathToFile = appendLogDirectory.resolve(filename);
+        List<String> lines = fileUtils.readAllLines(fullPathToFile);
+
         Map<Long, DatabaseChangeInstruction> resultingInstructions = new HashMap<>();
 
         // process each line from the file
@@ -120,12 +122,12 @@ final class DatabaseConsolidator {
         // and then efficiently update the files (a bad outcome, in contrast, would be updating
         // the files multiple times each).
 
-        Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions = groupInstructionsByPartition(resultingInstructions);
+        Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions = groupInstructionsByPartition(resultingInstructions, maxLinesPerFile);
 
-        rewriteFiles(groupedInstructions);
+        rewriteFiles(groupedInstructions, fileUtils, maxLinesPerFile, logger, consolidatedDataDirectory);
 
         // delete the file
-        Files.delete(fullPathToFile);
+        fileUtils.delete(fullPathToFile);
     }
 
     /**
@@ -136,18 +138,19 @@ final class DatabaseConsolidator {
      * we want to merge our incoming data with what is already there.  Otherwise, we are just
      * creating a new file.
      */
-    private void rewriteFiles(Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions) throws IOException {
+    static void rewriteFiles(Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions,
+                             IFileUtils fileUtils, int maxLinesPerFile, ILogger logger, Path consolidatedDataDirectory) throws IOException {
         for (Map.Entry<Long, Collection<DatabaseChangeInstruction>> instructions : groupedInstructions.entrySet()) {
             String filename = String.format("%d_to_%d", instructions.getKey(), instructions.getKey() + (maxLinesPerFile - 1));
             logger.logTrace(() -> "Writing consolidated data to " + filename);
             List<String> data;
             // if the file doesn't exist, we'll just start with an empty list. If it
             // does exist, read its lines into a List data structure.
-            Path fullPathToConsolidatedFile = this.consolidatedDataDirectory.resolve(filename);
-            if (!Files.exists(fullPathToConsolidatedFile)) {
+            Path fullPathToConsolidatedFile = consolidatedDataDirectory.resolve(filename);
+            if (!fileUtils.exists(fullPathToConsolidatedFile)) {
                 data = new ArrayList<>();
             } else {
-                data = readConsolidatedFileWithChecksum(fullPathToConsolidatedFile);
+                data = readConsolidatedFileWithChecksum(fullPathToConsolidatedFile, fileUtils);
             }
 
             // update the data in memory per the instructions
@@ -156,23 +159,23 @@ final class DatabaseConsolidator {
             String checksumString = buildChecksum(updatedData);
 
             // write the data to disk
-            Files.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
+            fileUtils.write(fullPathToConsolidatedFile, updatedData, StandardCharsets.US_ASCII);
 
             // write a hash of the data to use as a checksum.  This value will be checked
             // when reading the data later on, to confirm nothing has changed since writing.
-            Path fullPathToChecksumFile = this.consolidatedDataDirectory.resolve(filename + ".checksum");
-            Files.writeString(fullPathToChecksumFile, checksumString);
+            Path fullPathToChecksumFile = consolidatedDataDirectory.resolve(filename + ".checksum");
+            fileUtils.writeString(fullPathToChecksumFile, checksumString);
         }
     }
 
     /**
      * Reads data from consolidated file, confirming the checksum in the process.
      */
-    private static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile) throws IOException {
+    static List<String> readConsolidatedFileWithChecksum(Path fullPathToConsolidatedFile, IFileUtils fileUtils) throws IOException {
         // get all the data from the consolidated file
-        List<String> data = Files.readAllLines(fullPathToConsolidatedFile);
+        List<String> data = fileUtils.readAllLines(fullPathToConsolidatedFile);
 
-        compareWithChecksum(fullPathToConsolidatedFile, data);
+        compareWithChecksum(fullPathToConsolidatedFile, data, fileUtils);
 
         return data;
     }
@@ -229,8 +232,8 @@ final class DatabaseConsolidator {
      * @return a map consisting of keys representing the target file for the data, and
      * a collection of DatabaseChangeInstruction data to place in that file.
      */
-    private Map<Long, Collection<DatabaseChangeInstruction>> groupInstructionsByPartition(
-            Map<Long, DatabaseChangeInstruction> databaseChangeInstructionMap) {
+    static Map<Long, Collection<DatabaseChangeInstruction>> groupInstructionsByPartition(
+            Map<Long, DatabaseChangeInstruction> databaseChangeInstructionMap, int maxLinesPerFile) {
 
         // initialize a data structure to store our results
         Map<Long, Collection<DatabaseChangeInstruction>> instructionsGroupedByPartition = new HashMap<>();
@@ -287,7 +290,7 @@ final class DatabaseConsolidator {
      * list of dates.
      * @return a sorted list of dates, or an empty list if nothing found
      */
-    static List<Date> getSortedAppendLogs(Path appendLogDirectory) {
+    static List<Date> getSortedAppendLogs(Path appendLogDirectory) throws ParseException {
         // get the list of file names, which are date-time stamps
         String[] fileList = appendLogDirectory.toFile().list();
 
@@ -305,18 +308,13 @@ final class DatabaseConsolidator {
     /**
      * Convert a list of filenames to a list of dates
      */
-    static List<Date> convertFileListToDateList(String[] listOfFiles) {
+    static List<Date> convertFileListToDateList(String[] listOfFiles) throws ParseException {
         // initialize a list which will hold the dates associated with each file name
         List<Date> appendLogDates = new ArrayList<>();
 
         // convert the names to dates
         for (String file : listOfFiles) {
-            Date date;
-            try {
-                date = simpleDateFormat.parse(file);
-            } catch (ParseException e) {
-                throw new DbException(e);
-            }
+            Date date = simpleDateFormat.parse(file);
             appendLogDates.add(date);
         }
 

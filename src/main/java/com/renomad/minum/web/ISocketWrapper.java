@@ -53,9 +53,6 @@ public interface ISocketWrapper extends Closeable {
 
     HttpServerType getServerType();
 
-    @Override
-    void close() throws IOException;
-
     /**
      * Returns this socket's input stream for more granular access
      */

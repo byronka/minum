@@ -1,13 +1,13 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
-import com.renomad.minum.utils.UtilsException;
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -19,19 +19,28 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class InputStreamUtilsTests {
 
-    private IInputStreamUtils inputStreamUtils;
-    private Context context;
+    static private IInputStreamUtils inputStreamUtils;
+    static private Context context;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("input stream utils tests");
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * For the {@link InputStreamUtils#read(int, InputStream)}, if more bytes are sent than
@@ -39,7 +48,7 @@ public class InputStreamUtilsTests {
      * see the method in question for "typicalBufferSize"
      */
     @Test
-    public void testReadingLarge() {
+    public void testReadingLarge() throws IOException {
         inputStreamUtils = new InputStreamUtils(context.getConstants().maxReadLineSizeBytes);
 
         ByteArrayInputStream inputStream = new ByteArrayInputStream("a".repeat(10_000).getBytes(StandardCharsets.UTF_8));
@@ -59,9 +68,9 @@ public class InputStreamUtilsTests {
             }
         }) {
 
-            var exception = assertThrows(UtilsException.class, () -> inputStreamUtils.read(2, inputStream));
+            var exception = assertThrows(IOException.class, () -> inputStreamUtils.read(2, inputStream));
 
-            assertEquals(exception.getMessage(), "java.io.IOException: test exception only, no worries");
+            assertEquals(exception.getMessage(), "test exception only, no worries");
         }
     }
 
@@ -75,7 +84,7 @@ public class InputStreamUtilsTests {
      * </p>
      */
     @Test
-    public void testReading_EdgeCase_DifferentCount() throws IOException {
+    public void testReading_EdgeCase_DifferentCount() {
         try (InputStream inputStream = new InputStream() {
 
             private final byte[] sampleData = new byte[] {123};
@@ -96,6 +105,8 @@ public class InputStreamUtilsTests {
             var exception = assertThrows(ForbiddenUseException.class, () -> inputStreamUtils.read(2, inputStream));
 
             assertEquals(exception.getMessage(), "length of bytes read (1) must be what we expected (2)");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -182,5 +193,24 @@ public class InputStreamUtilsTests {
                 sec-ch-ua-platform: "Windows"\r
                 \r
                 """;
+    }
+
+    /**
+     * Taking a look at what happens when an {@link IOException} is
+     * thrown during {@link IInputStreamUtils#readLine(InputStream)}
+     */
+    @Test
+    public void testReadLine_NegativeCase_ExceptionThrown() {
+        var inputStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+        };
+
+        var ex = assertThrows(IOException.class, () -> inputStreamUtils.readLine(inputStream));
+
+        assertEquals(ex.getMessage(), "JUST A TEST");
     }
 }

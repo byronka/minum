@@ -28,7 +28,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,486 | 148,744 | 1,085,405   |
+| 6,659 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -48,7 +48,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2,769 | 163,000 | 242,000 |
+| 2,818 | 163,000 | 242,000 |
 
 
 Templating
@@ -75,7 +75,7 @@ to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 1133  | 1,300,000  | 1,500,000 | 116,000 |
+| 1,153 | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -88,7 +88,7 @@ the performance is more than acceptable in most cases.
 
 | Minum | log4j  | slf4j |
 |-------|--------|-------|
-| 383   | 70,000 | 3,400 |
+| 402   | 70,000 | 3,400 |
 
 
 HTML Parser
@@ -98,9 +98,9 @@ This is a parser for the common case in web application development -
 parsing one's own HTML code, for such reasons as extracting data or
 testing.
 
-| Minum | JSoup  |
-|-------|--------|
-| 577   | 14,337 |
+| Minum  | JSoup  |
+|--------|--------|
+| 579    | 14,337 |
 
 
 Testing
@@ -112,7 +112,7 @@ types - assertTrue and assertEquals works for most cases.
 
 | Minum | JUnit4 |
 |-------|--------|
-| 188   | 10,834 |
+| 187   | 10,834 |
 
 
 Background task processing
@@ -123,7 +123,7 @@ development_handbook in the docs.
 
 | Minum | Jobrunr |
 |-------|---------|
-| 151   | 22,581  |
+| 154   | 22,581  |
 
 
 Various helpful utilities
@@ -136,7 +136,7 @@ basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 675   | 18,045            |
+| 754   | 18,045            |
 
 
 Security
@@ -154,7 +154,7 @@ in the minum.config.
 
 | Minum | OWASP AppSensor | Spring Security |
 |-------|-----------------|-----------------|
-| 208   | 24,668          | 100,544         |
+| 210   | 24,668          | 100,544         |
 
 
 Javascript utilities

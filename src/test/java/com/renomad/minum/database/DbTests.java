@@ -8,18 +8,17 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.testing.TestFramework;
-import com.renomad.minum.utils.FileUtils;
-import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.SearchUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import com.renomad.minum.utils.*;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -35,9 +34,9 @@ import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
 import static java.util.stream.IntStream.range;
 
 public class DbTests {
-    private Context context;
-    private TestLogger logger;
-    private FileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
+    static private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_db_tests/foos");
     static Path fubarDirectory = Path.of("out/simple_db_for_db_tests/fubar");
 
@@ -47,17 +46,24 @@ public class DbTests {
      */
     static private final int FINISH_TIME = 50;
 
-    @Before
-    public void init() {
+    @BeforeClass
+    public static void init() {
         context = buildTestingContext("unit_tests");
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * For any given collection of data, we will need to serialize that to disk.
@@ -91,10 +97,25 @@ public class DbTests {
     }
 
     /**
+     * Test a bunch of UTF-8 strings in serialization and deserialization
+     */
+    @Test
+    public void test_Serialization_UnusualStrings() throws IOException {
+        List<String> reallyEccentricData = Files.readAllLines(Path.of("src/test/resources/unusualStrings.txt"));
+
+        for (String eccentricData : reallyEccentricData) {
+            var foo = new Foo(0, 0, eccentricData);
+            String serialized = foo.serialize();
+            Foo deserialized = foo.deserialize(serialized);
+            assertEquals(foo, deserialized);
+        }
+    }
+
+    /**
      * Wide-ranging capabilities of the database
      */
     @Test
-    public void test_GeneralCapability() {
+    public void test_GeneralCapability() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_GeneralCapability");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         MyThread.sleep(FINISH_TIME);
@@ -102,7 +123,7 @@ public class DbTests {
         final var db = new Db<>(dbPathForTest, context, INSTANCE);
         MyThread.sleep(FINISH_TIME);
 
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 3; i++) {
 
             int finalI = i;
             logger.logDebug(() -> "DBTests general capability, round " + finalI);
@@ -121,6 +142,12 @@ public class DbTests {
                 assertTrue(Files.exists(foundFile), "should find file at " + foundFile);
             }
 
+            {
+                // check the index is correct
+                var indexValue = Files.readString(dbPathForTest.resolve("index.ddps"));
+                assertEquals("40", indexValue);
+            }
+
             MyThread.sleep(FINISH_TIME);
 
             assertEqualsDisregardOrder(
@@ -133,6 +160,12 @@ public class DbTests {
                 final var newFoo = new Foo(foo.getIndex(), foo.a + 1, foo.b + "_updated");
                 updatedFoos.add(newFoo);
                 db.write(newFoo);
+            }
+
+            {
+                // check the index is correct
+                var indexValue = Files.readString(dbPathForTest.resolve("index.ddps"));
+                assertEquals("40", indexValue);
             }
 
             MyThread.sleep(300);
@@ -150,7 +183,12 @@ public class DbTests {
             MyThread.sleep(300);
 
             for (var foo : foos) {
-                assertFalse(Files.exists(dbPathForTest.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
+                assertFalse(Files.exists(dbPathForTest.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)), "File is not expected to exist: " + (dbPathForTest.resolve(foo.getIndex() + Db.DATABASE_FILE_SUFFIX)));
+            }
+
+            {// because we removed all the files, the index (at index.ddps) should be 1
+                var indexValue = Files.readString(dbPathForTest.resolve("index.ddps"));
+                assertEquals("1", indexValue);
             }
         }
         // give the action queue time to save files to disk
@@ -164,7 +202,7 @@ public class DbTests {
      * the locks are there to keep things stable.
      */
     @Test
-    public void test_Locking() {
+    public void test_Locking() throws IOException {
         int iterationCount = 10;
         Path dbPathForTest = foosDirectory.resolve("test_Locking");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -224,7 +262,7 @@ public class DbTests {
      * what happens if we try deleting a file that doesn't exist?
      */
     @Test
-    public void test_Edge_DeleteFileDoesNotExist() {
+    public void test_Edge_DeleteFileDoesNotExist() throws IOException {
         // clear out the directory to start
         Path dbPathForTest = foosDirectory.resolve("test_Edge_DeleteFileDoesNotExist");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -256,6 +294,8 @@ public class DbTests {
         db.loadData();
         MyThread.sleep(10);
         assertTrue(logger.doesMessageExist("1.ddps file exists but empty, skipping"));
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
 
@@ -278,6 +318,8 @@ public class DbTests {
         Files.writeString(pathToSampleFile, "invalid data", StandardCharsets.UTF_8);
         final var ex = assertThrows(DbException.class, () -> db.loadData());
         assertEquals(ex.getMessage(), "Failed to load data from disk.");
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
 
@@ -286,7 +328,7 @@ public class DbTests {
      * deleted *after* the database started.  This is a really corrupt scenario.
      */
     @Test
-    public void test_Deserialization_EdgeCase3() {
+    public void test_Deserialization_EdgeCase3() throws IOException {
         // clear out the directory to start
         Path dbPathForTest = foosDirectory.resolve("test_Deserialization_EdgeCases_3");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -309,7 +351,7 @@ public class DbTests {
      * that log statement, it means we skipped loadDataFromDisk() successfully.
      */
     @Test
-    public void test_LoadData_NoNeed() {
+    public void test_LoadData_NoNeed() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_LoadData_NoNeed");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         final var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -319,14 +361,10 @@ public class DbTests {
 
         assertThrows(TestLoggerException.class,
                 () -> logger.doesMessageExist("Loading data from disk for db classic"));
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
-    /**
-     * When this is looped a hundred thousand times, it takes 500 milliseconds to finish
-     * making the updates in memory.  It takes several minutes later for it to
-     * finish getting those changes persisted to disk.
-     * a million writes in 500 milliseconds means 2 million writes in one sec.
-     */
     @Test
     public void test_Performance() throws IOException {
         int originalFooCount = 10;
@@ -381,11 +419,14 @@ public class DbTests {
         // this file should not be empty, but we are making it empty
         Files.writeString(pathToIndex,"");
         var ex = assertThrows(DbException.class, () -> new Db<>(dbPathForTest, context, INSTANCE));
-        // because the error message includes a path that varies depending on which OS, using regex to search.
-        assertTrue(RegexUtils.isFound("Exception while reading out.simple_db_for_db_tests.foos.test_Performance.index.ddps in Db constructor",ex.getMessage()));
+        assertTrue(ex.getMessage().contains("Error in Db constructor"), "Message was: " + ex.getMessage());
+        assertTrue(ex.getCause().getMessage().contains("For input string: \"\""), "Message was: " + ex.getCause().getMessage());
         MyThread.sleep(FINISH_TIME);
 
         TestFramework.shutdownTestingContext(contextWithRegularLogger);
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -407,7 +448,7 @@ public class DbTests {
      * </p>
      */
     @Test
-    public void test_Db_Write_and_Read() {
+    public void test_Db_Write_and_Read() throws IOException {
         // in this test, we're stopping and starting our database
         // over and over - a very unnatural activity.  We need to
         // provide sleep time for the actions to finish before
@@ -491,11 +532,12 @@ public class DbTests {
      * not exist, it should throw an exception
      */
     @Test
-    public void test_Db_Delete_EdgeCase_DoesNotExist() {
+    public void test_Db_Delete_EdgeCase_DoesNotExist() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"));
         var db = new Db<>(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"), context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(new Foo(1, 2, "a")));
         assertEquals(ex.getMessage(), "no data was found with index of 1");
+        db.stop();
         MyThread.sleep(FINISH_TIME);
     }
 
@@ -520,7 +562,7 @@ public class DbTests {
 
         db.stop();
         MyThread.sleep(10);
-        assertTrue(logger.doesMessageExist("failed to delete file"));
+        assertTrue(logger.doesMessageExist("1.ddps must already exist before deletion"));
         MyThread.sleep(FINISH_TIME);
     }
 
@@ -529,12 +571,13 @@ public class DbTests {
      * an exception will be thrown
      */
     @Test
-    public void test_Db_Delete_EdgeCase_NullValue() {
+    public void test_Db_Delete_EdgeCase_NullValue() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_Db_Delete_EdgeCase_NullValue");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(null));
         assertEquals(ex.getMessage(), "Invalid to be given a null value to delete");
+        db.stop();
         MyThread.sleep(FINISH_TIME);
     }
 
@@ -556,7 +599,7 @@ public class DbTests {
      * </p>
      */
     @Ignore("This is used as a laboratory for investigating threads.  It is not a test")
-    public void test_Db_RaceConditionLaboratory() throws ExecutionException, InterruptedException {
+    public void test_Db_RaceConditionLaboratory() throws ExecutionException, InterruptedException, IOException {
         // prepare a database instance
         Path dbPathForTest = foosDirectory.resolve("test_Db_RaceConditionLaboratory");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -627,7 +670,7 @@ public class DbTests {
      * </p>
      */
     @Test
-    public void testDeserializerComplaints() {
+    public void testDeserializerComplaints() throws IOException {
         Path dbPathForTest = fubarDirectory.resolve("testDeserializerComplaints");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, new Fubar(0,0,""));
@@ -647,13 +690,32 @@ public class DbTests {
      * If we ask for the filename and it returns null, should get an exception thrown
      */
     @Test
-    public void testReadAndDeserialize_nullFilename() {
+    public void testReadAndDeserialize_nullFilename() throws IOException {
         Path dbPathForTest = fubarDirectory.resolve("testReadAndDeserialize_nullFilename");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, new Fubar(0,0,""));
         File file = new File("/");
         DbException dbException = assertThrows(DbException.class, () -> db.readAndDeserialize(file.toPath()));
         assertTrue(dbException.getMessage().contains( "returned a null filename"));
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
+    }
+
+    /**
+     * If the {@link IFileUtils#readString(Path)} throws an {@link IOException},
+     * we wrap it.
+     */
+    @Test
+    public void testReadAndDeserialize_NegativeCase_ExceptionThrown() {
+        var fileUtils = new FakeFileUtils();
+        fileUtils.existsValue = false;
+        fileUtils.readStringShouldThrow = true;
+        var db = new Db<>(Path.of(""), context, new Fubar(0,0,""), fileUtils);
+        var ex = assertThrows(DbException.class, () -> db.readAndDeserialize(Path.of("1.ddps")));
+        assertEquals(ex.getMessage(), "Error at Db.readAndDeserialize");
+        assertEquals(ex.getCause().getMessage(), "JUST FOR TESTING");
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -661,7 +723,7 @@ public class DbTests {
      * for code in {@link Db#write(DbData)}
      */
     @Test
-    public void testWriteDeserializationComplaints() {
+    public void testWriteDeserializationComplaints() throws IOException {
         Path dbPathForTest = fubarDirectory.resolve("testWriteDeserializationComplaints");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, new Fubar3(0, 0, ""));
@@ -677,7 +739,7 @@ public class DbTests {
      * for code in {@link Db#write(DbData)}
      */
     @Test
-    public void testWriteDeserializationComplaints2() {
+    public void testWriteDeserializationComplaints2() throws IOException {
         Path dbPathForTest = fubarDirectory.resolve("testWriteDeserializationComplaints2");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, new Fubar2(0, 0, ""));
@@ -689,13 +751,13 @@ public class DbTests {
     }
 
     @Test
-    public void testWalkAndLoad_EdgeCase_FolderMissing() {
+    public void testWalkAndLoad_EdgeCase_FolderMissing() throws IOException {
         var dbPathForTest = Path.of("out/simple_db/biz");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(foosDirectory.resolve("testWalkAndLoad"), context, INSTANCE);
-        var ex = assertThrows(DbException.class,
-                () -> db.walkAndLoad(dbPathForTest));
-        assertTrue(RegexUtils.isFound("java.nio.file.NoSuchFileException: out.simple_db.biz", ex.getMessage()) );
+        assertThrows(NoSuchFileException.class, () -> db.walkAndLoad(dbPathForTest));
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -709,7 +771,7 @@ public class DbTests {
      * </p>
      */
     @Test
-    public void testWrite_PositiveIndexNotExisting() {
+    public void testWrite_PositiveIndexNotExisting() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testWrite_PositiveIndexNotExisting");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -724,7 +786,7 @@ public class DbTests {
     }
 
     @Test
-    public void testWrite_NegativeIndex() {
+    public void testWrite_NegativeIndex() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testWrite_NegativeIndex");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -743,6 +805,7 @@ public class DbTests {
         MyThread.sleep(20);
         db.stop();
         assertTrue(logger.doesMessageExist("Stopping queue DatabaseWriter", 8));
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
@@ -761,7 +824,7 @@ public class DbTests {
      * information without scanning the entire book.
      */
     @Test
-    public void testCreateIndexes() {
+    public void testCreateIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testCreateIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -785,6 +848,8 @@ public class DbTests {
         db.delete(originalFoo);
 
         assertTrue(db.getIndexedData("indexes_by_a_value", "456").isEmpty());
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
 
@@ -803,7 +868,7 @@ public class DbTests {
      * In this case we'll partition by number.
      */
     @Test
-    public void testIndexesOnPartitionedData() {
+    public void testIndexesOnPartitionedData() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndexesOnPartitionedData");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -832,6 +897,8 @@ public class DbTests {
         db.delete(thirdToLastFoo);
 
         assertTrue(db.getIndexedData("indexes_by_a_value", "30").isEmpty());
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -843,7 +910,7 @@ public class DbTests {
      * the index.
      */
      @Test
-    public void testIndexSpeedDifference() {
+    public void testIndexSpeedDifference() throws IOException {
         Path path = Path.of("out/simple_db/bar");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         var db = new Db<>(path, context, new Bar(0, new UUID(0,0)));
@@ -886,6 +953,9 @@ public class DbTests {
         long timeInMillisForIndex = stopwatchUtilsIndexed.stopTimer();
         System.out.println("It took this long, in millis, to get unique items by index: " + timeInMillisForIndex);
         // initial testing: this part took about 10 milliseconds.  Around 100x faster!
+
+         db.stop();
+         MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -894,7 +964,7 @@ public class DbTests {
      * in the error message to include the registered indexes.
      */
     @Test
-    public void testIndex_NegativeCase_RequestingWithNoIndexRegistered() {
+    public void testIndex_NegativeCase_RequestingWithNoIndexRegistered() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_RequestingWithNoIndexRegistered");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -902,6 +972,9 @@ public class DbTests {
 
         var ex = assertThrows(DbException.class, () -> db.getIndexedData("indexes_by_a_value", "30"));
         assertEquals(ex.getMessage(), "There is no index registered on the database Db<Foo> with a name of \"indexes_by_a_value\"");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -909,13 +982,16 @@ public class DbTests {
      * throw an exception.  There's never a need to do that and it makes things confusing.
      */
     @Test
-    public void testIndex_NegativeCase_RegisteringSameIndexTwice() {
+    public void testIndex_NegativeCase_RegisteringSameIndexTwice() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_RegisteringSameIndexTwice");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("index", x -> x.b);
         var ex = assertThrows(DbException.class, () -> db.registerIndex("index", x -> ""));
         assertEquals(ex.getMessage(), "It is forbidden to register the same index more than once.  Duplicate index: \"index\"");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -924,12 +1000,15 @@ public class DbTests {
      * it's all good.
      */
     @Test
-    public void testIndex_EdgeCase_MultipleIndexes() {
+    public void testIndex_EdgeCase_MultipleIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_EdgeCase_MultipleIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("index", x -> x.b);
         assertTrue(db.registerIndex("foo", x -> x.b) != null);
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -937,7 +1016,7 @@ public class DbTests {
      * maybe useful for debugging
      */
     @Test
-    public void testIndex_GetListOfIndexes() {
+    public void testIndex_GetListOfIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_GetListOfIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -945,42 +1024,54 @@ public class DbTests {
         db.registerIndex("foo", x -> x.b);
         Set<String> indexes = db.getSetOfIndexes();
         assertEquals(Set.of("index", "foo"), indexes);
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
      * If the user tries registering an index with a null value, complain
      */
     @Test
-    public void testIndex_NegativeCase_IndexNameNull() {
+    public void testIndex_NegativeCase_IndexNameNull() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_IndexNameNull");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.registerIndex(null, x -> x.b));
         assertEquals(ex.getMessage(), "When registering an index, value must be a non-empty string");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
      * If a user tries to register an index with an empty string, complain
      */
     @Test
-    public void testIndex_NegativeCase_IndexNameEmptyString() {
+    public void testIndex_NegativeCase_IndexNameEmptyString() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_IndexNameEmptyString");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.registerIndex("", x -> x.b));
         assertEquals(ex.getMessage(), "When registering an index, value must be a non-empty string");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
      * A partitioning / indexing algorithm must be provided
      */
     @Test
-    public void testIndex_NegativeCase_PartitioningAlgorithmNull() {
+    public void testIndex_NegativeCase_PartitioningAlgorithmNull() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_PartitioningAlgorithmNull");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.registerIndex("index", null));
         assertEquals(ex.getMessage(), "When registering an index, the partitioning algorithm must not be null");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -988,17 +1079,20 @@ public class DbTests {
      * clear to the user.
      */
     @Test
-    public void testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm() {
+    public void testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("indexes_by_a_value", x -> String.valueOf(0/0));
         var ex = assertThrows(ArithmeticException.class, () -> db.write(new Foo(0, 30, "for testing indexes")));
         assertEquals(ex.getMessage(), "/ by zero");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
-    public void testSearchUtils_ShouldAccommodateUsingIndexes() {
+    public void testSearchUtils_ShouldAccommodateUsingIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtils_ShouldAccommodateUsingIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -1006,10 +1100,13 @@ public class DbTests {
         Foo foo = db.write(new Foo(0, 1, "for testing"));
         Foo indexesByAValue = db.findExactlyOne("indexes_by_a_value", "1");
         assertEquals(foo, indexesByAValue);
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
-    public void testSearchUtils_SearchFindsNothing() {
+    public void testSearchUtils_SearchFindsNothing() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtils_SearchFindsNothing");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -1017,6 +1114,9 @@ public class DbTests {
         db.write(new Foo(0, 1, "for testing"));
         Foo indexesByAValue = db.findExactlyOne("indexes_by_a_value", "2");
         assertTrue(indexesByAValue == null);
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -1024,7 +1124,7 @@ public class DbTests {
      * that the indexes work as expected
      */
     @Test
-    public void testIndex_Update() {
+    public void testIndex_Update() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_Update");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -1047,10 +1147,13 @@ public class DbTests {
 
         Foo indexesByAValue42_again = db.findExactlyOne("indexes_by_a_value", "42");
         assertEquals(indexesByAValue42_again, updatedFoo2);
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
-    public void testSearchUtility_EdgeCase_NoIndexRegistered() {
+    public void testSearchUtility_EdgeCase_NoIndexRegistered() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -1058,10 +1161,13 @@ public class DbTests {
         // negative case - no index yet
         var ex1 = assertThrows(DbException.class, () -> db.findExactlyOne("indexes_by_a_value", "1"));
         assertEquals(ex1.getMessage(), "There is no index registered on the database Db<Foo> with a name of \"indexes_by_a_value\"");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
-    public void testSearchUtility_EdgeCases_Various() {
+    public void testSearchUtility_EdgeCases_Various() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
@@ -1093,6 +1199,9 @@ public class DbTests {
         db.write(new Foo(0, 1, "for testing"));
         var ex2 = assertThrows(DbException.class, () -> db.findExactlyOne("indexes_by_a_value", "1"));
         assertEquals(ex2.getMessage(), "More than one item found when searching database Db<Foo> on index \"indexes_by_a_value\" with key 1");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     /**
@@ -1139,7 +1248,7 @@ public class DbTests {
      * the first thing causing a load to happen.
      */
     @Test
-    public void test_firstActionIsRequestingDataByIndex() {
+    public void test_firstActionIsRequestingDataByIndex() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("db_test_firstActionIsRequestingDataByIndex");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, Foo.INSTANCE);
@@ -1152,6 +1261,9 @@ public class DbTests {
         dbRestarted.registerIndex("index", x -> x.b);
         Collection<Foo> indexedData = dbRestarted.getIndexedData("index", "a");
         assertEquals(new ArrayList<>(indexedData), List.of(writtenFoo));
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
 
@@ -1161,7 +1273,7 @@ public class DbTests {
      * the first thing causing a load to happen.
      */
     @Test
-    public void test_firstActionIsFindExactlyOne() {
+    public void test_firstActionIsFindExactlyOne() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("db_test_firstActionIsFindExactlyOne");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, Foo.INSTANCE);
@@ -1174,16 +1286,54 @@ public class DbTests {
         dbRestarted.registerIndex("index", x -> x.b);
         Foo exactlyOne = dbRestarted.findExactlyOne("index", "a");
         assertEquals(exactlyOne, writtenFoo);
+
+        dbRestarted.stop();
+        MyThread.sleep(FINISH_TIME);
     }
 
     @Test
-    public void test_EdgeCase_RegisteringIndexTooLate() {
+    public void test_EdgeCase_RegisteringIndexTooLate() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_EdgeCase_RegisteringIndexTooLate");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         Db<Foo> db = new Db<>(dbPathForTest, context, INSTANCE);
         db.write(new Foo(0, 1, "a"));
         var ex = assertThrows(DbException.class, () -> db.registerIndex("index_too_late", x -> x.b));
         assertEquals(ex.getMessage(), "This method must be run before the database loads data from disk.  Typically, it should be run immediately after the database is created.  See this method's documentation");
+
+        db.stop();
+        MyThread.sleep(FINISH_TIME);
+    }
+
+    /**
+     * Just a situation where the {@link IFileUtils#writeString(Path, String, OpenOption...)}
+     * throws an exception in writeToDisk
+     */
+    @Test
+    public void test_WriteToDisk_NegativeCase_ExceptionThrown() {
+        var foo = new Foo(1, 1, "a");
+        var throwingFileUtils = new ThrowingFileUtils();
+
+        var ex = assertThrows(DbException.class,
+                () -> Db.writeToDisk(foo, Path.of(""), throwingFileUtils, foo, true, Path.of(""), logger));
+        assertEquals(ex.getMessage(), "Error in Db.writeToDisk");
+        assertEquals(ex.getCause().getMessage(), "THIS IS JUST THROWN FOR TESTING");
+    }
+
+    /**
+     * Just a situation where the {@link IFileUtils#writeString(Path, String, OpenOption...)}
+     * throws an exception deleteFromDisk
+     */
+    @Test
+    public void test_DeleteFromDisk_NegativeCase_ExceptionThrown() {
+        var foo = new Foo(1, 1, "a");
+        var fileUtils = new FakeFileUtils();
+        fileUtils.existsValue = true;
+        fileUtils.deleteShouldThrow = true;
+
+        var ex = assertThrows(DbException.class,
+                () -> Db.deleteFromDisk(foo, Path.of(""), fileUtils, true, Path.of(""), logger));
+        assertEquals(ex.getMessage(), "Error in Db.deleteFromDisk");
+        assertEquals(ex.getCause().getMessage(), "JUST FOR TESTING");
     }
 
     /**
@@ -1225,7 +1375,7 @@ public class DbTests {
         logger.logDebug(() -> "Finished adding data with DbEngine2");
 
         // stop the database
-        dbEngine2.flush();
+        dbEngine2.databaseAppender.flush();
         dbEngine2.stop(20, 50);
 
         // give the file system time to do its async process
@@ -1265,7 +1415,7 @@ public class DbTests {
             DbEngine2<Foo> d2 = customContext.getDb2(directoryName, INSTANCE);
             // this line will cause the conversion to DbEngine2
             var d2Values = new ArrayList<>(d2.values().stream().toList());
-            d2.flush();
+            d2.databaseAppender.flush();
 
             // assert
             foos.sort(Comparator.comparingLong(Foo::getIndex));

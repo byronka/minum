@@ -3,27 +3,34 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.ConcurrentSet;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class SetOfSwsTests {
 
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        context = buildTestingContext("testing SetOfSws");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("SetOfSwsTests");
         logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_SetOfSws() {

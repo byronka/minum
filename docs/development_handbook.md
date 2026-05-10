@@ -37,6 +37,7 @@ Table of contents
 - [ActionQueue](#actionqueue)
 - [Dependency Injections](#dependency-injection)
 - [Sending larger and streaming data](#sending-larger-and-streaming-data)
+- [Exception data flow](#exception-data-flow)
 
 
 Features:
@@ -359,6 +360,12 @@ The Logger class has a constructor which is specialized to enable creation of de
 share a `LoggingActionQueue`, enabling smooth output with customized logging.  See LoggerTests.testUsingDescendantLogger
 to see an example of this.
 
+If an ASYNC_ERROR is seen in the logs, it means a developer error, so check your code.
+If WARN is seen in the logs, it means something important and unrecoverable has happened 
+in the hardware, operating system, or Java virtual machine.  See also [Exceptions](#exception-data-flow)
+
+It is not possible to disable the WARN or ASYNC_ERROR logging.
+
 Threads
 -------
 
@@ -676,6 +683,12 @@ See the [parable of two programmers](parable_two_programmers.md)
 > 
 >  -- Dwayne Richard Hipp
 
+> When implementing the ideal solution, writing the code has always been relatively 
+> cheap. Figuring out the ideal approach that makes the code trivial and obvious is
+> hard. A large part of my programming time is spent walking and thinking.
+>
+> -- Ori Bernstein
+
 >Keep it simple, stupid
 >
 > -- _Kelly Johnson, Lockheed Skunk Works_
@@ -769,3 +782,21 @@ There are a few ways to do this:
    expecting a file path.  Using this will send the file's data as a stream, and
    is thread safe.  See `Response.buildLargeFileResponse`
 3) There is also a factory method for sending a custom stream.  See `Response.buildStreamingResponse`
+
+
+Exception Data Flow
+-------------------
+
+Java provides _Exceptions_ as a way to handle unexpected situations, mainly errors.
+When a developer _throws_ an exception, it will bubble up the call stack towards
+the top.
+
+Exceptions in Minum will typically bubble through the WebFramework code. If it originated
+in the endpoint code, it will pass through the `WebFramework.processRequest` method, where 
+any unhandled `Exception` will be caught and a HTTP 500 response will be issued to the client.
+
+Any requests that cause an exception outside the endpoint code will hit the code in
+the catch clauses at the end of WebFramework.httpProcessing and may be logged or thrown
+depending on circumstances.
+
+See also [logging](#logging)

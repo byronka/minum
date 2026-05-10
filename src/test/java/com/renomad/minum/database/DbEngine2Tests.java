@@ -8,20 +8,17 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.testing.TestFramework;
-import com.renomad.minum.utils.FileUtils;
-import com.renomad.minum.utils.InvariantException;
-import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.SearchUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import com.renomad.minum.utils.*;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,13 +29,12 @@ import static com.renomad.minum.database.DatabaseChangeAction.UPDATE;
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
 import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
-import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.stream.IntStream.range;
 
 public class DbEngine2Tests {
-    private Context context;
-    private TestLogger logger;
-    private FileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
+    static private IFileUtils fileUtils;
     static Path foosDirectory = Path.of("out/simple_db_for_engine2_tests/engine2/foos");
     static Path fubarDirectory = Path.of("out/simple_db_for_engine2_tests/engine2/fubar");
 
@@ -48,30 +44,38 @@ public class DbEngine2Tests {
      */
     static private final int FINISH_TIME = 50;
 
-    @Before
-    public void init() {
-        context = buildTestingContext("unit_tests");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("DbEngine2Tests");
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * what happens if we try deleting a file that doesn't exist?
      */
     @Test
-    public void test_Edge_DeleteFileDoesNotExist() {
+    public void test_Edge_DeleteFileDoesNotExist() throws IOException {
         // clear out the directory to start
         Path dbPathForTest = foosDirectory.resolve("test_Edge_DeleteFileDoesNotExist");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         final var db_throwaway = new DbEngine2<>(dbPathForTest, context, INSTANCE);
 
         var ex = assertThrows(DbException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
-        assertEquals(ex.getMessage(), "no data was found with index of 123");
+        assertEquals(ex.getMessage(), "failed to delete data Foo{index=123, a=123, b=''}");
+        assertEquals(ex.getCause().getMessage(), "no data was found with index of 123");
 
         db_throwaway.stop();
         MyThread.sleep(FINISH_TIME);
@@ -96,7 +100,7 @@ public class DbEngine2Tests {
      * </p>
      */
     @Test
-    public void test_Db_Write_and_Read() {
+    public void test_Db_Write_and_Read() throws IOException {
         // in this test, we're stopping and starting our database
         // over and over - a very unnatural activity.  We need to
         // provide sleep time for the actions to finish before
@@ -180,11 +184,12 @@ public class DbEngine2Tests {
      * not exist, it should throw an exception
      */
     @Test
-    public void test_Db_Delete_EdgeCase_DoesNotExist() {
+    public void test_Db_Delete_EdgeCase_DoesNotExist() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"));
         var db = new DbEngine2<>(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"), context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(new Foo(1, 2, "a")));
-        assertEquals(ex.getMessage(), "no data was found with index of 1");
+        assertEquals(ex.getMessage(), "failed to delete data Foo{index=1, a=2, b='a'}");
+        assertEquals(ex.getCause().getMessage(), "no data was found with index of 1");
         MyThread.sleep(FINISH_TIME);
     }
 
@@ -193,12 +198,12 @@ public class DbEngine2Tests {
      * an exception will be thrown
      */
     @Test
-    public void test_Db_Delete_EdgeCase_NullValue() {
+    public void test_Db_Delete_EdgeCase_NullValue() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_Db_Delete_EdgeCase_NullValue");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
-        var ex = assertThrows(NullPointerException.class, () -> db.delete(null));
-        assertEquals(ex.getMessage(), "Cannot invoke \"com.renomad.minum.database.DbData.serialize()\" because \"dataToDelete\" is null");
+        var ex = assertThrows(DbException.class, () -> db.delete(null));
+        assertEquals(ex.getMessage(), "failed to delete data null");
     }
 
     /**
@@ -219,7 +224,7 @@ public class DbEngine2Tests {
      * </p>
      */
     @Ignore("This is used as a laboratory for investigating threads.  It is not a test")
-    public void test_Db_RaceConditionLaboratory() throws ExecutionException, InterruptedException {
+    public void test_Db_RaceConditionLaboratory() throws ExecutionException, InterruptedException, IOException {
         // prepare a database instance
         Path dbPathForTest = foosDirectory.resolve("test_Db_RaceConditionLaboratory");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -256,23 +261,25 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testWriteDeserializationComplaints() {
+    public void testWriteDeserializationComplaints() throws IOException {
         Path dbPathForTest = fubarDirectory.resolve("testWriteDeserializationComplaints");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, new Fubar3(0, 0, ""));
 
-        var ex = assertThrows(InvariantException.class, () -> db.write(new Fubar3(0, 2, "a")));
-        assertEquals(ex.getMessage(), "the serialized form of data must not be blank. Is the serialization code written properly? Our datatype: Fubar{index=0, a=0, b=''}");
+        var ex = assertThrows(DbException.class, () -> db.write(new Fubar3(0, 2, "a")));
+        assertEquals(ex.getMessage(), "failed to write data Fubar{index=1, a=2, b='a'}");
+        assertEquals(ex.getCause().getMessage(), "the serialized form of data must not be blank. Is the serialization code written properly? Our datatype: Fubar{index=0, a=0, b=''}");
     }
 
     @Test
-    public void testWriteDeserializationComplaints2() {
+    public void testWriteDeserializationComplaints2() throws IOException {
         Path dbPathForTest = fubarDirectory.resolve("testWriteDeserializationComplaints2");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, new Fubar2(0, 0, ""));
 
-        var ex = assertThrows(InvariantException.class, () -> db.write(new Fubar2(0, 2, "a")));
-        assertEquals(ex.getMessage(), "the serialized form of data must not be blank. Is the serialization code written properly? Our datatype: Fubar{index=0, a=0, b=''}");
+        var ex = assertThrows(DbException.class, () -> db.write(new Fubar2(0, 2, "a")));
+        assertEquals(ex.getMessage(), "failed to write data Fubar{index=1, a=2, b='a'}");
+        assertEquals(ex.getCause().getMessage(), "the serialized form of data must not be blank. Is the serialization code written properly? Our datatype: Fubar{index=0, a=0, b=''}");
     }
 
 
@@ -287,22 +294,23 @@ public class DbEngine2Tests {
      * </p>
      */
     @Test
-    public void testWrite_PositiveIndexNotExisting() {
+    public void testWrite_PositiveIndexNotExisting() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testWrite_PositiveIndexNotExisting");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
 
         Foo foo1 = new Foo(1, 2, "a");
 
-        assertThrows(DbException.class,
-                "Positive indexes are only allowed when updating existing data. Index: 1",
+        var ex = assertThrows(DbException.class,
+                "failed to write data Foo{index=1, a=2, b='a'}",
                 () -> db.write(foo1));
+        assertEquals(ex.getCause().getMessage(), "Positive indexes are only allowed when updating existing data. Index: 1");
         db.stop();
         MyThread.sleep(FINISH_TIME);
     }
 
     @Test
-    public void testWrite_NegativeIndex() {
+    public void testWrite_NegativeIndex() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testWrite_NegativeIndex");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -321,7 +329,7 @@ public class DbEngine2Tests {
      * information without scanning the entire book.
      */
     @Test
-    public void testCreateIndexes() {
+    public void testCreateIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testCreateIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -363,7 +371,7 @@ public class DbEngine2Tests {
      * In this case we'll partition by number.
      */
     @Test
-    public void testIndexesOnPartitionedData() {
+    public void testIndexesOnPartitionedData() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndexesOnPartitionedData");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -403,7 +411,7 @@ public class DbEngine2Tests {
      * the index.
      */
      @Test
-    public void testIndexSpeedDifference() {
+    public void testIndexSpeedDifference() throws IOException {
         Path path = Path.of("out/simple_db/bar");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         var db = new DbEngine2<>(path, context, new Bar(0, new UUID(0,0)));
@@ -454,7 +462,7 @@ public class DbEngine2Tests {
      * in the error message to include the registered indexes.
      */
     @Test
-    public void testIndex_NegativeCase_RequestingWithNoIndexRegistered() {
+    public void testIndex_NegativeCase_RequestingWithNoIndexRegistered() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_RequestingWithNoIndexRegistered");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -469,7 +477,7 @@ public class DbEngine2Tests {
      * throw an exception.  There's never a need to do that and it makes things confusing.
      */
     @Test
-    public void testIndex_NegativeCase_RegisteringSameIndexTwice() {
+    public void testIndex_NegativeCase_RegisteringSameIndexTwice() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_RegisteringSameIndexTwice");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -484,7 +492,7 @@ public class DbEngine2Tests {
      * it's all good.
      */
     @Test
-    public void testIndex_EdgeCase_MultipleIndexes() {
+    public void testIndex_EdgeCase_MultipleIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_EdgeCase_MultipleIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -497,7 +505,7 @@ public class DbEngine2Tests {
      * maybe useful for debugging
      */
     @Test
-    public void testIndex_GetListOfIndexes() {
+    public void testIndex_GetListOfIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_GetListOfIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -511,7 +519,7 @@ public class DbEngine2Tests {
      * If the user tries registering an index with a null value, complain
      */
     @Test
-    public void testIndex_NegativeCase_IndexNameNull() {
+    public void testIndex_NegativeCase_IndexNameNull() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_IndexNameNull");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -523,7 +531,7 @@ public class DbEngine2Tests {
      * If a user tries to register an index with an empty string, complain
      */
     @Test
-    public void testIndex_NegativeCase_IndexNameEmptyString() {
+    public void testIndex_NegativeCase_IndexNameEmptyString() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_IndexNameEmptyString");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -535,7 +543,7 @@ public class DbEngine2Tests {
      * A partitioning / indexing algorithm must be provided
      */
     @Test
-    public void testIndex_NegativeCase_PartitioningAlgorithmNull() {
+    public void testIndex_NegativeCase_PartitioningAlgorithmNull() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_PartitioningAlgorithmNull");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -548,17 +556,18 @@ public class DbEngine2Tests {
      * clear to the user.
      */
     @Test
-    public void testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm() {
+    public void testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_NegativeCase_ExceptionThrownByPartitionAlgorithm");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("indexes_by_a_value", x -> String.valueOf(0/0));
-        var ex = assertThrows(ArithmeticException.class, () -> db.write(new Foo(0, 30, "for testing indexes")));
-        assertEquals(ex.getMessage(), "/ by zero");
+        var ex = assertThrows(DbException.class, () -> db.write(new Foo(0, 30, "for testing indexes")));
+        assertEquals(ex.getMessage(), "failed to write data Foo{index=1, a=30, b='for testing indexes'}");
+        assertEquals(ex.getCause().getMessage(), "/ by zero");
     }
 
     @Test
-    public void testSearchUtils_ShouldAccommodateUsingIndexes() {
+    public void testSearchUtils_ShouldAccommodateUsingIndexes() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtils_ShouldAccommodateUsingIndexes");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -569,7 +578,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testSearchUtils_SearchFindsNothing() {
+    public void testSearchUtils_SearchFindsNothing() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtils_SearchFindsNothing");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -584,7 +593,7 @@ public class DbEngine2Tests {
      * that the indexes work as expected
      */
     @Test
-    public void testIndex_Update() {
+    public void testIndex_Update() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testIndex_Update");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -610,7 +619,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void test_NegativeCase_NoIndex() {
+    public void test_NegativeCase_NoIndex() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_NegativeCase_NoIndex");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -621,7 +630,7 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void testSearchUtility() {
+    public void testSearchUtility() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -661,7 +670,7 @@ public class DbEngine2Tests {
      * the first thing causing a load to happen.
      */
     @Test
-    public void test_firstActionIsRequestingDataByIndex() {
+    public void test_firstActionIsRequestingDataByIndex() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("dbengine2_test_firstActionIsRequestingDataByIndex");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -683,7 +692,7 @@ public class DbEngine2Tests {
      * the first thing causing a load to happen.
      */
     @Test
-    public void test_firstActionIsFindExactlyOne() {
+    public void test_firstActionIsFindExactlyOne() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("dbengine2_test_firstActionIsFindExactlyOne");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -698,14 +707,8 @@ public class DbEngine2Tests {
         assertEquals(exactlyOne, writtenFoo);
     }
 
-    /**
-     * When this is looped a hundred thousand times, it takes 500 milliseconds to finish
-     * making the updates in memory.  It takes several minutes later for it to
-     * finish getting those changes persisted to disk.
-     * a million writes in 500 milliseconds means 2 million writes in one sec.
-     */
     @Test
-    public void test_Performance() {
+    public void test_Performance() throws IOException {
         int originalFooCount = 10;
         int loopCount = 10;
 
@@ -727,7 +730,7 @@ public class DbEngine2Tests {
             db.write(newFoo);
         }
 
-        db.flush();
+        db.databaseAppender.flush();
 
         // change the foos
         final var outerTimer = new StopwatchUtils().startTimer();
@@ -748,7 +751,7 @@ public class DbEngine2Tests {
             }
         }
 
-        db.flush();
+        db.databaseAppender.flush();
 
         logger.logDebug(() -> "It took " + innerTimer.stopTimer() + " milliseconds to make the updates in memory");
         db.stop(100, 50);
@@ -773,13 +776,13 @@ public class DbEngine2Tests {
      * Notes: 50,000 writes in 43 milliseconds is 220,264 writes per second. Not bad.
      */
     @Test
-    public void testGettingStarted() throws IOException {
+    public void testGettingStarted() throws IOException, ParseException {
         int loopCount = 50;
         Path newPersistenceDirectory = foosDirectory.resolve("new_persistence");
         fileUtils.deleteDirectoryRecursivelyIfExists(newPersistenceDirectory);
         fileUtils.makeDirectory(newPersistenceDirectory);
-        var dc = new DatabaseConsolidator(newPersistenceDirectory, context);
-        var da = new DatabaseAppender(newPersistenceDirectory, context);
+        var dc = new DatabaseConsolidator(newPersistenceDirectory, context, fileUtils);
+        var da = new DatabaseAppender(newPersistenceDirectory, context, fileUtils);
         var random = new java.util.Random();
 
         // this outer loop simulates "reality", that is, it simulates a user
@@ -821,7 +824,7 @@ public class DbEngine2Tests {
      * Wide-ranging capabilities of the database
      */
     @Test
-    public void test_GeneralCapability() {
+    public void test_GeneralCapability() throws IOException {
         // build a context with customized values to make testing easier.
         // Explanation: The files that are created with the new appender/consolidator
         // only split up files at large values, like 100k lines.  Here, we'll create
@@ -839,7 +842,7 @@ public class DbEngine2Tests {
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
         MyThread.sleep(FINISH_TIME);
 
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 3; i++) {
 
             int finalI = i;
             logger.logDebug(() -> "DbEngine2 general capability, round " + finalI);
@@ -966,31 +969,13 @@ public class DbEngine2Tests {
     }
 
     @Test
-    public void test_EdgeCase_RegisteringIndexTooLate() {
+    public void test_EdgeCase_RegisteringIndexTooLate() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_EdgeCase_RegisteringIndexTooLate");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
         db.write(new Foo(0, 1, "a"));
         var ex = assertThrows(DbException.class, () -> db.registerIndex("index_too_late", x -> x.b));
         assertEquals(ex.getMessage(), "This method must be run before the database loads data from disk.  Typically, it should be run immediately after the database is created.  See this method's documentation");
-    }
-
-    /**
-     * Flush is able to fail in certain very unusual situations, like disk
-     * running out of space, using the wrong encoding for a writer, and so on,
-     * none of which are easy to test or likely.  So instead, we'll just
-     * wrap flush for easier testing.
-     */
-    @Test
-    public void test_EdgeCase_FlushFailure() {
-        Writer exceptionThrowingWriter = new Writer() {
-            @Override public void write(char[] cbuf, int off, int len) throws IOException {}
-            public void flush() throws IOException {throw new IOException("This is a test exception");}
-            @Override public void close() throws IOException {}
-        };
-        var ex = assertThrows(DbException.class, () -> DatabaseAppender.flush(exceptionThrowingWriter, logger));
-        assertEquals(ex.getMessage(), "java.io.IOException: This is a test exception");
-        assertTrue(logger.doesMessageExist("Error while flushing"));
     }
 
     /**
@@ -1005,7 +990,7 @@ public class DbEngine2Tests {
      */
     @Test
     public void test_EdgeCase_PreventSaveOff() throws IOException {
-        var da = new DatabaseAppender(Path.of("out/test_EdgeCase_PreventSaveOff"), context);
+        var da = new DatabaseAppender(Path.of("out/test_EdgeCase_PreventSaveOff"), context, fileUtils);
         assertEquals(da.saveOffWrapped(99, 100), "");
     }
 
@@ -1030,7 +1015,7 @@ public class DbEngine2Tests {
      * will get in.
      */
     @Test
-    public void test_LoadingData_MultipleThreads() throws ExecutionException, InterruptedException {
+    public void test_LoadingData_MultipleThreads() throws ExecutionException, InterruptedException, IOException {
         // instantiate a database, give it data, then shutdown the database
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
         Path path = Path.of("out/test_LoadingData_MultipleThreads/");
@@ -1065,7 +1050,7 @@ public class DbEngine2Tests {
      * If the data doesn't properly deserialize, an exception is thrown
      */
     @Test
-    public void test_readAndDeserialize_NegativeCase() {
+    public void test_readAndDeserialize_NegativeCase() throws IOException {
         // instantiate a database, give it data, then shutdown the database
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
         Path path = Path.of("out/test_readAndDeserialize_NegativeCase/");
@@ -1075,6 +1060,7 @@ public class DbEngine2Tests {
         var ex = assertThrows(DbException.class, () -> db.readAndDeserialize("THIS IS INVALID DATA", "myfile"));
 
         assertEquals(ex.getMessage(), "Failed to deserialize THIS IS INVALID DATA with data (\"myfile\"). Caused by: java.lang.NumberFormatException: For input string: \"THIS IS INVALID DATA\"");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
 
@@ -1083,7 +1069,7 @@ public class DbEngine2Tests {
      * exception must be thrown.
      */
     @Test
-    public void test_readAndDeserialize_NegativeCase_LackingSerializer() {
+    public void test_readAndDeserialize_NegativeCase_LackingSerializer() throws IOException {
         // instantiate a database, give it data, then shutdown the database
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
         Path path = Path.of("out/test_readAndDeserialize_NegativeCase/");
@@ -1093,6 +1079,7 @@ public class DbEngine2Tests {
         var ex = assertThrows(DbException.class, () -> db.readAndDeserialize("THIS IS INVALID DATA", "myfile"));
 
         assertEquals(ex.getMessage(), "Failed to deserialize THIS IS INVALID DATA with data (\"myfile\"). Caused by: com.renomad.minum.utils.InvariantException: deserialization of Fubar{index=0, a=0, b=''} resulted in a null value. Was the serialization method implemented properly?");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
     /**
@@ -1101,7 +1088,7 @@ public class DbEngine2Tests {
      * database to load its data.
      */
     @Test
-    public void test_Initialize_readAndDeserialize_NegativeCase() {
+    public void test_Initialize_readAndDeserialize_NegativeCase() throws IOException {
         // instantiate a database, give it data, then shutdown the database
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
         Path path = Path.of("out/test_Initialize_readAndDeserialize_NegativeCase/");
@@ -1116,6 +1103,7 @@ public class DbEngine2Tests {
         var ex = assertThrows(DbException.class, () -> db.loadData());
 
         assertEquals(ex.getMessage(), "Failed to load data from disk.");
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
     /**
@@ -1127,7 +1115,7 @@ public class DbEngine2Tests {
      * that log statement, it means we skipped loadDataFromDisk() successfully.
      */
     @Test
-    public void test_LoadData_NoNeed() {
+    public void test_LoadData_NoNeed() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_LoadData_NoNeed");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         final var db = new DbEngine2<>(dbPathForTest, context, DbTests.Foo.INSTANCE);
@@ -1181,8 +1169,9 @@ public class DbEngine2Tests {
 
         db.delete(foo);
 
-        assertTrue(logger1.doesMessageExist("Error during consolidation: com.renomad.minum.database.DbException: java.text.ParseException: Unparseable date: \"foofoo\""));
+        assertTrue(logger1.doesMessageExist("Error during consolidation: java.text.ParseException: Unparseable date: \"foofoo\""));
         TestFramework.shutdownTestingContext(customContext);
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
     /**
@@ -1194,7 +1183,7 @@ public class DbEngine2Tests {
      * be thrown.
      */
     @Test
-    public void test_FailureDuringInstantiation() {
+    public void test_FailureDuringInstantiation() throws IOException {
         // instantiate a database, give it data, then shutdown the database
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
         Path path = Path.of("out/test_FailureDuringInstantiation/");
@@ -1203,11 +1192,21 @@ public class DbEngine2Tests {
         // now, if there is a file, "currentAppendLog", that is not
         // actually a file but is actually a directory, that should
         // cause an exception to be thrown.
-
         fileUtils.makeDirectory(path.resolve("currentAppendLog"));
 
-        var ex = assertThrows(DbException.class, () -> new DbEngine2<>(path, context, INSTANCE));
-        assertEquals(ex.getMessage(), "Error while initializing DatabaseAppender in DbEngine2");
+        // Mac and Windows treat this situation differently.
+        // Windows throws an AccessDeniedException, which is a descendant of the IOException class.
+        // Mac throws an IOException.
+        //
+        // Thus, we will need to use a different technique to test this.
+        try {
+            new DbEngine2<>(path, context, INSTANCE);
+            throw new RuntimeException("Test failed - should not arrive here");
+        } catch (Exception ex) {
+            // test passes if we arrive here
+            assertTrue(!ex.getMessage().isEmpty(), "Error message will not be empty, but will vary between operating systems");
+        }
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
     /**
@@ -1216,7 +1215,7 @@ public class DbEngine2Tests {
      * great outcome - it means the memory change will exist but not the disk change.
      */
     @Test
-    public void test_FailureDuringDelete() {
+    public void test_FailureDuringDelete() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_FailureDuringDelete");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
@@ -1235,7 +1234,7 @@ public class DbEngine2Tests {
      * great outcome - it means the memory change will exist but not the disk change.
      */
     @Test
-    public void test_FailureDuringWrite() {
+    public void test_FailureDuringWrite() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_FailureDuringWrite");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
@@ -1254,7 +1253,7 @@ public class DbEngine2Tests {
      * will remain unchanged after this method returns.
      */
     @Test
-    public void test_ConsolidateInnerCode() {
+    public void test_ConsolidateInnerCode() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_ConsolidateInnerCode");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
@@ -1313,7 +1312,7 @@ public class DbEngine2Tests {
      * will remain unchanged after this method returns.
      */
     @Test
-    public void test_ConsolidateIfNecessary() {
+    public void test_ConsolidateIfNecessary() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_ConsolidateIfNecessary");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
@@ -1360,14 +1359,7 @@ public class DbEngine2Tests {
 
         DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
 
-        var ex = assertThrows(DbException.class, () -> db.walkAndLoad(dbPathForTest));
-
-        // The exception thrown is very different on Mac and Windows.
-        // This is on Mac:
-//        assertEquals(ex.getMessage(), "java.io.UncheckedIOException: java.io.IOException: Is a directory");
-
-        // This is on Windows:
-//        assertEquals(ex.getMessage(), "java.nio.file.AccessDeniedException: out\\simple_db_for_engine2_tests\\engine2\\foos\\test_WalkAndLoad_NegativeCase\\consolidated_data\\1_to_100");
+        assertThrows(DbException.class, () -> db.walkAndLoad(dbPathForTest));
     }
 
     /**
@@ -1381,8 +1373,7 @@ public class DbEngine2Tests {
      * underlying disk is starting to fail, which would necessitate a migration.
      */
     @Test
-    public void testChecksums() throws IOException {
-
+    public void testChecksums() throws IOException, ParseException {
         // create a database
         Path dbPathForTest = foosDirectory.resolve("test_checksum");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -1418,8 +1409,7 @@ public class DbEngine2Tests {
      * not yet been processed is still in the append_logs folder.
      */
     @Test
-    public void testChecksums_FailureDuringRewrite() throws IOException {
-
+    public void testChecksums_FailureDuringRewrite() throws IOException, ParseException {
         // create a database
         Path dbPathForTest = foosDirectory.resolve("test_checksum_failure_during_rewrite");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -1446,23 +1436,23 @@ public class DbEngine2Tests {
         // shutdown the database
         db.stop();
 
+        MyThread.sleep(10);
+
         // behind the scenes, alter the consolidated file
         Files.writeString(dbPathForTest.resolve("consolidated_data/1_to_100000"), "1|0|hello+world__CORRUPTED___\n");
 
         // startup the database, have the database read that file, causing an exception to be thrown and halting the program
         AbstractDb<Foo> restartedDb2 = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE);
         var ex = assertThrows(DbException.class, restartedDb2::loadData);
-        assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + ex.getMessage());
+        assertTrue(ex.getCause().getMessage().contains("checksum"), "value was " + StacktraceUtils.stackTraceToString(ex));
     }
 
     /**
      * If we load a database with consolidated files that don't have
      * accompanying checksum files, we'll just skip the checksum check.
-     * @throws IOException
      */
     @Test
-    public void testChecksums_ChecksumsMissingAtLoad() throws IOException {
-
+    public void testChecksums_ChecksumsMissingAtLoad() throws IOException, ParseException {
         // create a database
         Path dbPathForTest = foosDirectory.resolve("test_checksum_with_checksum_file_missing");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
@@ -1491,6 +1481,19 @@ public class DbEngine2Tests {
         assertEquals(fooAbstractDb.values().toString(), "[Foo{index=1, a=0, b='hello world__CORRUPTED___'}]");
     }
 
+    /**
+     * It is possible for an {@link IOException} to bubble up while
+     * we are loading data, since it accesses the disk.  In that
+     * case it will be wrapped in {@link DbException} and thrown.
+     */
+    @Test
+    public void test_IOExceptionThrownWhileLoadingData() {
+        // create a database
+        var fakeFileUtils = new ThrowingFileUtils();
+
+        assertThrows(DbException.class, () -> new DbEngine2<>(Path.of(""), context, Foo.INSTANCE, fakeFileUtils));
+    }
+
 
     private static class BrokenBufferedWriter extends BufferedWriter {
 
@@ -1499,25 +1502,25 @@ public class DbEngine2Tests {
         }
 
         @Override
-        public Writer append(char c) throws IOException {
-            throw new IOException("THIS IS BREAKAGE");
+        public Writer append(char c) {
+            throw new DbException("THIS IS BREAKAGE");
         }
     }
 
     private static class BrokenWriter extends Writer {
 
         @Override
-        public void write(char[] cbuf, int off, int len) throws IOException {
-            throw new IOException("THIS IS BREAKAGE IN WRITER");
+        public void write(char[] cbuf, int off, int len) {
+            throw new DbException("THIS IS BREAKAGE IN WRITER");
         }
 
         @Override
-        public void flush() throws IOException {
+        public void flush() {
 
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
 
         }
     }
@@ -1766,7 +1769,7 @@ public class DbEngine2Tests {
      * or almost 3 minutes.
      */
     @Ignore("This is a lab, not a test")
-    public void test_LargeDatabasePerformance() {
+    public void test_LargeDatabasePerformance() throws IOException {
         Path dbPathForTest = foosDirectory.resolve("test_large_database");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);

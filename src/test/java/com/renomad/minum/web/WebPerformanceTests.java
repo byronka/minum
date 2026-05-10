@@ -50,7 +50,7 @@ public class WebPerformanceTests {
     AtomicInteger testLoopCounter;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         var constants = new Constants();
         var executorService = Executors.newVirtualThreadPerTaskExecutor();
         logger = new Logger(constants, executorService, "WebPerformanceTestLogger");
@@ -72,7 +72,7 @@ public class WebPerformanceTests {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws IOException {
         // delay a sec so our system has time to finish before we start deleting files
         MyThread.sleep(500);
         fullSystem.shutdown();

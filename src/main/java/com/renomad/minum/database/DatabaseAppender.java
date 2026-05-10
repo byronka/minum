@@ -4,15 +4,14 @@ package com.renomad.minum.database;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
-import com.renomad.minum.utils.StacktraceUtils;
+import com.renomad.minum.utils.ThrowingRunnable;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
@@ -34,6 +33,7 @@ final class DatabaseAppender {
     static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS");
 
     private final Path persistenceDirectory;
+    private final IFileUtils fileUtils;
 
     Writer bufferedWriter;
 
@@ -83,13 +83,13 @@ final class DatabaseAppender {
      */
     private long appendBytes;
 
-    DatabaseAppender(Path persistenceDirectory, Context context) throws IOException {
+    DatabaseAppender(Path persistenceDirectory, Context context, IFileUtils fileUtils) throws IOException {
+        this.fileUtils = fileUtils;
         this.persistenceDirectory = persistenceDirectory;
         this.appendLogDirectory = persistenceDirectory.resolve("append_logs");
         this.executorService = context.getExecutorService();
         this.logger = context.getLogger();
         Constants constants = context.getConstants();
-        FileUtils fileUtils = new FileUtils(logger, constants);
         this.maxAppendCount = constants.maxAppendCount;
         fileUtils.makeDirectory(this.appendLogDirectory);
         moveFileLock = new ReentrantLock();
@@ -108,8 +108,8 @@ final class DatabaseAppender {
         // never very large - it's mostly a temporary place to store incoming data
         // until we can store it off elsewhere. For that reason, it's not a performance
         // concern to read all the existing lines, just to get the count of current lines.
-        if (Files.exists(currentAppendFile)) {
-            List<String> lines = Files.readAllLines(currentAppendFile);
+        if (fileUtils.exists(currentAppendFile)) {
+            List<String> lines = fileUtils.readAllLines(currentAppendFile);
             appendCount = lines.size();
         } else {
             // reset the count to zero, we're starting a new file.
@@ -118,7 +118,7 @@ final class DatabaseAppender {
             appendBytes = 0;
         }
 
-        bufferedWriter = Files.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        bufferedWriter = fileUtils.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
     /**
@@ -157,7 +157,7 @@ final class DatabaseAppender {
      * no more data, it will end.
      */
     private void initializeTimedFlusher() {
-        Runnable timedFlusherLoop = () -> {
+        ThrowingRunnable timedFlusherLoop = () -> {
             flushLoopRunning = true;
             Thread.currentThread().setName("database_timed_flusher");
             while (bufferedWriterHasUnwrittenData) {
@@ -170,7 +170,7 @@ final class DatabaseAppender {
             }
             flushLoopRunning = false;
         };
-        executorService.submit(timedFlusherLoop);
+        executorService.submit(ThrowingRunnable.throwingRunnableWrapper(timedFlusherLoop, logger));
     }
 
     /**
@@ -193,7 +193,7 @@ final class DatabaseAppender {
      */
     String saveOffCurrentDataToReadyFolder() throws IOException {
         flush();
-        String newFileName = moveToReadyFolder();
+        String newFileName = moveToReadyFolder(fileUtils, persistenceDirectory, appendLogDirectory);
         createNewAppendFile();
         return newFileName;
     }
@@ -203,23 +203,14 @@ final class DatabaseAppender {
      * folder named by the date + time + millis.
      * @return the name of the new file
      */
-    private String moveToReadyFolder() throws IOException {
+    static String moveToReadyFolder(IFileUtils fileUtils, Path persistenceDirectory, Path appendLogDirectory) throws IOException {
         String appendFile = simpleDateFormat.format(new java.util.Date());
-        Files.move(persistenceDirectory.resolve("currentAppendLog"), this.appendLogDirectory.resolve(appendFile));
+        fileUtils.move(persistenceDirectory.resolve("currentAppendLog"), appendLogDirectory.resolve(appendFile));
         return appendFile;
     }
 
-    void flush() {
-        flush(this.bufferedWriter, this.logger);
+    void flush() throws IOException {
+        this.bufferedWriter.flush();
         this.bufferedWriterHasUnwrittenData = false;
-    }
-
-    static void flush(Writer writer, ILogger logger) {
-        try {
-            writer.flush();
-        } catch (IOException e) {
-            logger.logAsyncError(() -> "Error while flushing in TimedFlusher: " + StacktraceUtils.stackTraceToString(e));
-            throw new DbException(e);
-        }
     }
 }

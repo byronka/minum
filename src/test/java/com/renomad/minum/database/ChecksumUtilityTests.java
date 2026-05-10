@@ -1,11 +1,13 @@
 package com.renomad.minum.database;
 
+import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import com.renomad.minum.utils.IFileUtils;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,19 +22,28 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class ChecksumUtilityTests {
 
-    private FileUtils fileUtils;
-    private Context context;
+    static private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = TestFramework.buildTestingContext("ChecksumUtilityTests");
-        this.fileUtils = new FileUtils(this.context.getLogger(), this.context.getConstants());
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("ChecksumUtilityTests");
+        fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         TestFramework.shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * We have a helper utility in {@link ChecksumUtility} to build {@link MessageDigest}
@@ -51,7 +62,7 @@ public class ChecksumUtilityTests {
      * becomes time, an exception should be thrown.
      */
     @Test
-    public void testCompareWithChecksum_NegativeCase_ChecksumMissing() {
+    public void testCompareWithChecksum_NegativeCase_ChecksumMissing() throws IOException {
         Path directory = Path.of("out/simple_db_for_engine2_tests/engine2/checksum/missing");
 
         // delete existing directory
@@ -62,7 +73,7 @@ public class ChecksumUtilityTests {
         fileUtils.makeDirectory(directory);
         fileUtils.makeDirectory(directory.resolve("1_to_100.checksum"));
 
-        assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("1_to_100"), List.of()));
+        assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("1_to_100"), List.of(), fileUtils));
     }
 
     @Test
@@ -77,7 +88,7 @@ public class ChecksumUtilityTests {
         fileUtils.makeDirectory(directory);
         Files.writeString(directory.resolve("101_to_200.checksum"), "foo");
 
-        var ex = assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("101_to_200"), List.of("a")));
+        var ex = assertThrows(DbChecksumException.class, () -> compareWithChecksum(directory.resolve("101_to_200"), List.of("a"), fileUtils));
         assertTrue(ex.getMessage().contains("checksum"), "message was: " + ex.getMessage());
     }
 
@@ -87,7 +98,7 @@ public class ChecksumUtilityTests {
      * yet been upgraded to use checksums.
      */
     @Test
-    public void testCompareWithChecksum_NegativeCase_ChecksumDoesNotExist() {
+    public void testCompareWithChecksum_NegativeCase_ChecksumDoesNotExist() throws IOException {
         Path directory = Path.of("out/simple_db_for_engine2_tests/engine2/checksum/conflict");
 
         // delete existing directory
@@ -97,6 +108,6 @@ public class ChecksumUtilityTests {
         // when our code tries reading from it, thus testing a negative case.
         fileUtils.makeDirectory(directory);
 
-        assertTrue(compareWithChecksum(directory.resolve("101_to_200"), List.of("a")));
+        assertTrue(compareWithChecksum(directory.resolve("101_to_200"), List.of("a"), fileUtils));
     }
 }

@@ -1,23 +1,31 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.database.DbException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.Inmate;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FakeFileUtils;
 import com.renomad.minum.utils.FileReader;
 import com.renomad.minum.utils.IFileReader;
-import org.junit.Before;
-import org.junit.Test;
+import com.renomad.minum.utils.ThrowingFileUtils;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
@@ -26,21 +34,36 @@ public class WebFrameworkTests {
 
     private WebFramework webFramework;
     static final ZonedDateTime default_zdt = ZonedDateTime.of(2022, Month.JANUARY.getValue(), 4, 9, 25, 0, 0, ZoneId.of("UTC"));
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
     /**
      * Just a boring empty Headers instance for some of the methods that
      * need it but where we aren't doing anything with it.
      */
     private final Headers defaultHeaders = new Headers(List.of());
 
-    @Before
-    public void initialize() {
+    @BeforeClass
+    public static void initialize() {
         context = buildTestingContext("webframework_tests");
-        webFramework = new WebFramework(context, default_zdt);
         logger = (TestLogger)context.getLogger();
     }
 
+    @Before
+    public void init() {
+        webFramework = new WebFramework(context, default_zdt);
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_readStaticFile_CSS() {
@@ -135,10 +158,10 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_IOException() {
-        webFramework = new WebFramework(context, default_zdt, throwingFileReader);
-        IResponse response = webFramework.readStaticFile("Foo", defaultHeaders);
+        webFramework = new WebFramework(context, default_zdt, throwingFileReader, null);
 
-        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
+        var ex = assertThrows(DbException.class, () -> webFramework.readStaticFile("Foo", defaultHeaders));
+        assertEquals(ex.getMessage(), "Testing");
     }
 
     /**
@@ -151,6 +174,20 @@ public class WebFrameworkTests {
     public void test_Edge_ApplicationOctetStream() {
         var response = webFramework.readStaticFile("Foo", defaultHeaders);
         assertEquals(response.getExtraHeaders().valueByKey("content-type").toString(), "[application/octet-stream]");
+    }
+
+    /**
+     * If an {@link IOException} is thrown while reading static files, it
+     * should get logged.
+     */
+    @Test
+    public void test_readStaticFile_NegativeCase_ExceptionThrown() {
+        var fileUtils = new FakeFileUtils();
+        fileUtils.sizeShouldThrow = true;
+        fileUtils.isRegularFileValue = true;
+        var webFramework = new WebFramework(context, default_zdt, null, fileUtils);
+        webFramework.readStaticFile("Foo", defaultHeaders);
+        assertTrue(logger.doesMessageExist("Error while reading file:"));
     }
 
     /**
@@ -206,16 +243,9 @@ public class WebFrameworkTests {
      * A {@link FileReader} that always throws an IOException
      */
     IFileReader throwingFileReader = path -> {
-        throw new IOException("Testing");
+        throw new DbException("Testing");
     };
 
-
-    @Test
-    public void testReadTimedOut() {
-        var fakeSocketWrapper = new FakeSocketWrapper();
-        WebFramework.handleReadTimedOut(fakeSocketWrapper, new IOException("Read timed out"), logger);
-        assertTrue(logger.doesMessageExist("Read timed out - remote address"));
-    }
 
     /**
      * two booleans here:
@@ -238,7 +268,7 @@ public class WebFrameworkTests {
      * something suspicious, will it add a value to the brig
      */
     @Test
-    public void testHandleIoException() {
+    public void testFinalExceptionHandler() {
         var fakeSocketWrapper1 = new FakeSocketWrapper();
         fakeSocketWrapper1.getRemoteAddrAction = () -> "11.11.11.11";
         var fakeSocketWrapper2 = new FakeSocketWrapper();
@@ -249,16 +279,16 @@ public class WebFrameworkTests {
         fakeSocketWrapper4.getRemoteAddrAction = () -> "44.44.44.44";
 
         // empty, null - nothing added to brig
-        WebFramework.handleIOException(fakeSocketWrapper1, new IOException(""), logger, null, 10, context.getConstants().suspiciousErrors);
+        WebFramework.finalExceptionHandler(fakeSocketWrapper1, new IOException(""), logger, null, 10, context.getConstants().suspiciousErrors);
         assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("is looking for vulnerabilities, for this", 1));
         // notEmpty, null - nothing added to brig
-        WebFramework.handleIOException(fakeSocketWrapper2, new IOException("The client supported protocol versions"), logger, null, 10, context.getConstants().suspiciousErrors);
+        WebFramework.finalExceptionHandler(fakeSocketWrapper2, new IOException("The client supported protocol versions"), logger, null, 10, context.getConstants().suspiciousErrors);
         assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("is looking for vulnerabilities, for this", 1));
         // empty, nonNull - nothing added to brig
-        WebFramework.handleIOException(fakeSocketWrapper3, new IOException(""), logger, theBrigMock, 10, context.getConstants().suspiciousErrors);
+        WebFramework.finalExceptionHandler(fakeSocketWrapper3, new IOException(""), logger, theBrigMock, 10, context.getConstants().suspiciousErrors);
         assertThrows(TestLoggerException.class, () -> logger.findFirstMessageThatContains("is looking for vulnerabilities, for this", 1));
         // notEmpty, nonNull - added, and logged
-        WebFramework.handleIOException(fakeSocketWrapper4, new IOException("The client supported protocol versions"), logger, theBrigMock, 10, context.getConstants().suspiciousErrors);
+        WebFramework.finalExceptionHandler(fakeSocketWrapper4, new IOException("The client supported protocol versions"), logger, theBrigMock, 10, context.getConstants().suspiciousErrors);
         assertTrue(logger.doesMessageExist("is looking for vulnerabilities, for this"));
         assertTrue(theBrigMock.isInJail("44.44.44.44_vuln_seeking"));
     }
@@ -306,11 +336,40 @@ public class WebFrameworkTests {
     };
 
     @Test
-    public void test_compressIfRequested() throws IOException {
+    public void test_compressIfRequested() {
         StringBuilder stringBuilder = new StringBuilder();
         Response incomingResponse = (Response)Response.buildResponse(CODE_200_OK, Map.of("content-type", "text/plain"), "a".repeat(1000));
         IResponse compressedResponse = WebFramework.compressBodyIfRequested(incomingResponse, List.of("accept-encoding: gzip"), stringBuilder, 999);
         assertTrue(incomingResponse.getBody().length > compressedResponse.getBody().length);
+    }
+
+    @Test
+    public void test_compressBody_NegativeCase_ExceptionThrown() {
+        var response = Response.htmlOk("JUST A TEST");
+        var throwingOutputStream = new OutputStream() {
+
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("JUST A TEST");
+            }
+        };
+
+        var ex = assertThrows(WebServerException.class, () -> WebFramework.compressBody(throwingOutputStream, response.getBody()));
+
+        assertEquals(ex.getMessage(), "Error in Response.compressBody");
+        assertEquals(ex.getCause().getMessage(), "JUST A TEST");
+    }
+
+    /**
+     * When the socket times out (a pretty common thing), it will
+     * bubble up as a SocketTimeoutException.  Let's see that work.
+     */
+    @Test
+    public void test_finalExceptionHandler_ReadTimedOut() {
+        var readTimedOut = new SocketTimeoutException("Read timed out");
+        var sw = new FakeSocketWrapper();
+        WebFramework.finalExceptionHandler(sw, readTimedOut, logger, null, 0, Set.of());
+        assertTrue(logger.doesMessageExist("Read timed out - remote address"));
     }
 
 }

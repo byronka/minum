@@ -25,7 +25,7 @@ final class Range {
         } else {
             hasRangeHeader = true;
             if (rangeHeaders.size() > 1) {
-                throw new InvalidRangeException("Error: Request contained more than one Range header");
+                throw new BadRequestException("Error: Request contained more than one Range header");
             }
             // the "Range:" header provides a desired range, and can request multiple ranges.
             // this server does not currently handle multiple ranges, so if that is requested we
@@ -55,7 +55,7 @@ final class Range {
                 // 5: (invalid) either of the range values are invalid longs
                 if (rangeFirstPart != null && rangeSecondPart != null) {
                     if (rangeFirstPart > rangeSecondPart) {
-                        throw new InvalidRangeException("Error: The value of the first part of the range was larger than the second.");
+                        throw new BadRequestException("Error: The value of the first part of the range was larger than the second.");
                     } else {
                         length = (rangeSecondPart - rangeFirstPart) + 1;
                         offset = rangeFirstPart;

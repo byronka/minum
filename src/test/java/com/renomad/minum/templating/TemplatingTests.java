@@ -4,16 +4,20 @@ import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 import static com.renomad.minum.templating.TemplateProcessor.buildProcessor;
@@ -21,13 +25,13 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class TemplatingTests {
 
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
     private static Context context;
     private static TestLogger logger;
 
     @BeforeClass
     public static void setUpClass() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("TemplatingTests");
         logger = (TestLogger)context.getLogger();
         fileUtils = new FileUtils(logger, context.getConstants());
     }
@@ -36,6 +40,13 @@ public class TemplatingTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * testing out a template rendering machine
@@ -209,7 +220,7 @@ public class TemplatingTests {
      *
      */
     @Test
-    public void test_Templating_LargeComplex_Performance() {
+    public void test_Templating_LargeComplex_Performance() throws IOException {
         int warmupIterations = 5;
         int mainIterations = 5;
 

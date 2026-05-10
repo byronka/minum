@@ -5,9 +5,16 @@ import com.renomad.minum.state.Constants;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FakeFileUtils;
+import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.MyThread;
-import org.junit.Test;
+import com.renomad.minum.utils.ThrowingRunnable;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
+import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -18,13 +25,42 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class FullSystemTests {
 
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("FullSystemTests");
+        logger = (TestLogger) context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @After
+    public void finalizeAfterEachTest() {
+        // let the state from each full-system run dissipate,
+        // particularly disk-based stuff.
+        MyThread.sleep(100);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
+
     @Test
     public void testFullSystem() {
         FullSystem fs = FullSystem.initialize();
-        new Thread(() -> {
+        new Thread(ThrowingRunnable.throwingRunnableWrapper(() -> {
             MyThread.sleep(200);
             fs.shutdown();
-        }).start();
+        }, logger)).start();
         assertEquals(fs.getServer().getHost(), "0.0.0.0");
         assertEquals(fs.getServer().getPort(), 8080);
         assertEquals(fs.getSslServer().getPort(), 8443);
@@ -37,19 +73,23 @@ public class FullSystemTests {
     public void testFullSystem_WithRedirect() {
         Properties properties = Constants.getConfiguredProperties();
         properties.setProperty("REDIRECT_TO_SECURE", "true");
+        properties.setProperty("IS_THE_BRIG_ENABLED", "false");
         var context = buildTestingContext("testing redirect handler in FullSystem", properties);
         var fullSystem = new FullSystem(context);
         fullSystem.start();
-        new Thread(() -> {
-            MyThread.sleep(200);
+        new Thread(ThrowingRunnable.throwingRunnableWrapper(() -> {
+            // provide enough time for full system to finish starting up,
+            // before shutting it down.
+            MyThread.sleep(100);
             fullSystem.shutdown();
-        }).start();
+        }, logger)).start();
 
         assertEquals(fullSystem.getServer().getHost(), "0.0.0.0");
         assertEquals(fullSystem.getServer().getPort(), 8080);
         assertEquals(fullSystem.getSslServer().getPort(), 8443);
         assertEquals(fullSystem.getContext().getConstants().dbDirectory, "out/simple_db");
         assertTrue(fullSystem.getWebEngine().toString().contains("com.renomad.minum.web.WebEngine"));
+        MyThread.sleep(20);
         assertTrue(Files.exists(Path.of("SYSTEM_RUNNING")), "SYSTEM_RUNNING file must be found");
 
         fullSystem.block();
@@ -68,10 +108,10 @@ public class FullSystemTests {
         var context = buildTestingContext("testing disabled system running marker", properties);
         var fullSystem = new FullSystem(context);
         fullSystem.start();
-        new Thread(() -> {
+        new Thread(ThrowingRunnable.throwingRunnableWrapper(() -> {
             MyThread.sleep(200);
             fullSystem.shutdown();
-        }).start();
+        }, logger)).start();
         assertFalse(Files.exists(Path.of("SYSTEM_RUNNING")));
 
         fullSystem.block();
@@ -80,10 +120,55 @@ public class FullSystemTests {
     }
 
     /**
+     * If an exception manages to bubble up to the {@link FullSystem#start()}
+     * method, it means something is so seriously wrong, it makes sense to
+     * exit the program.
+     */
+    @Test
+    public void testFullSystem_NegativeCase_ExceptionThrown() {
+        Properties properties = Constants.getConfiguredProperties();
+        // disable the regular (8080) server, since we're crashing the
+        // system closed in this test and there is no clean shutdown for it,
+        // so we don't interfere with other tests.
+        properties.setProperty("SERVER_PORT", "-1");
+        properties.setProperty("KEYSTORE_PATH", "path/to/file");
+        properties.setProperty("KEYSTORE_PASSWORD", "foofoo");
+        var context = buildTestingContext("testing disabled system running marker", properties);
+        var fullSystem = new FullSystem(context);
+        assertThrows(WebServerException.class, () -> fullSystem.start());
+    }
+
+    /**
+     * If the system running file still exists when we start the application,
+     * it will fail.
+     */
+    @Test
+    public void testFullSystem_SystemRunningFileExists() {
+        var fileUtils = new FakeFileUtils();
+        fileUtils.existsValue = true;
+
+        FullSystem.createSystemRunningFile(true, logger, fileUtils);
+        assertTrue(logger.doesMessageExist("the SYSTEM_RUNNING file existed when we started Minum. This should not happen unless Minum was crash-closed before."));
+    }
+
+    /**
+     * It is possible for the createSystemRunningFile method to throw an exception.
+     * Let's see it.
+     */
+    @Test
+    public void testFullSystem_SystemRunningFileExceptionThrown() {
+        var fileUtils = new FakeFileUtils();
+        fileUtils.existsValue = false;
+        fileUtils.writeStringShouldThrow = true;
+
+        assertThrows(RuntimeException.class, () -> FullSystem.createSystemRunningFile(true, logger, fileUtils));
+    }
+
+    /**
      * Close right after start
      */
     @Test
-    public void testFullSystem_EdgeCase_InstantlyClosed() {
+    public void testFullSystem_EdgeCase_InstantlyClosed() throws IOException {
         FullSystem fs = FullSystem.initialize();
         fs.shutdown();
         assertEquals(fs.getServer().getHost(), "0.0.0.0");
@@ -101,7 +186,8 @@ public class FullSystemTests {
     public void test_CloseCore() {
         Context context = buildTestingContext("Testing the closing core");
         TestLogger logger = (TestLogger)context.getLogger();
-        assertThrows(WebServerException.class, "java.lang.RuntimeException: Just testing", () -> FullSystem.closeCore(logger, context, throwingServer, throwingServer, "my test system"));
+        var fileUtils = new FileUtils(logger, context.getConstants());
+        assertThrows(RuntimeException.class, "Just testing", () -> FullSystem.closeCore(logger, context, throwingServer, throwingServer, "my test system", fileUtils));
 
         TestFramework.shutdownTestingContext(context);
     }
@@ -115,10 +201,11 @@ public class FullSystemTests {
      * and ensure things operate as expected.
      */
     @Test
-    public void test_CloseCore_NullServers() {
+    public void test_CloseCore_NullServers() throws IOException {
         Context context = buildTestingContext("Testing the closing core with null servers");
         TestLogger logger = (TestLogger) context.getLogger();
-        FullSystem.closeCore(logger, context, null, null, "Born to fly");
+        FileUtils fileUtils = new FileUtils(logger, context.getConstants());
+        FullSystem.closeCore(logger, context, null, null, "Born to fly", fileUtils);
 
         // should find that our server has said it is closed
         assertTrue(logger.doesMessageExist("Born to fly says: Goodbye world!"));

@@ -1,10 +1,10 @@
 package com.renomad.minum.database;
 
 import com.renomad.minum.utils.CryptoUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -31,13 +31,13 @@ public class ChecksumUtility {
      * @param fullPathToConsolidatedFile the path to a consolidated database file
      * @param data the list of strings of data in a consolidated database file
      */
-    static boolean compareWithChecksum(Path fullPathToConsolidatedFile, List<String> data) {
+    static boolean compareWithChecksum(Path fullPathToConsolidatedFile, List<String> data, IFileUtils fileUtils) {
         // check against the checksum, if it exists. If it is not there or blank, just move on.
         Path checksumPath = fullPathToConsolidatedFile.resolveSibling(fullPathToConsolidatedFile.getFileName() + ".checksum");
-        if (Files.exists(checksumPath)) {
+        if (fileUtils.exists(checksumPath)) {
             String existingChecksumValue;
             try {
-                existingChecksumValue = Files.readString(checksumPath);
+                existingChecksumValue = fileUtils.readString(checksumPath);
             } catch (IOException e) {
                 throw new DbChecksumException(e);
             }
@@ -69,7 +69,7 @@ public class ChecksumUtility {
                 
                 **************************************************************************************
                 **************************************************************************************
-                WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
+                WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
                 
                 """.stripIndent().formatted(fullPathToConsolidatedFile, fullPathToConsolidatedFile);
     }

@@ -1,13 +1,41 @@
 package com.renomad.minum.web;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.List;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class RangeTests {
+
+    private static Context context;
+    private static TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("RangeTests");
+        logger = (TestLogger) context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void testEquals() {
@@ -78,7 +106,7 @@ public class RangeTests {
     public void test_DetermineLengthFromRangeHeader_EdgeCase_FirstLarger() {
         List<String> listOfHeaders = List.of("Range: bytes=2-1");
         Headers headers = new Headers(listOfHeaders);
-        var ex = assertThrows(InvalidRangeException.class, () -> new Range(headers, 1000));
+        var ex = assertThrows(BadRequestException.class, () -> new Range(headers, 1000));
         assertEquals(ex.getMessage(), "Error: The value of the first part of the range was larger than the second.");
     }
 
@@ -166,7 +194,7 @@ public class RangeTests {
     public void test_MultipleRangeHeaders() {
         List<String> listOfHeaders = List.of("Range: 1-2", "Range: 3-4");
         Headers headers = new Headers(listOfHeaders);
-        var ex = assertThrows(InvalidRangeException.class, () -> new Range(headers, 1000));
+        var ex = assertThrows(BadRequestException.class, () -> new Range(headers, 1000));
         assertEquals(ex.getMessage(), "Error: Request contained more than one Range header");
     }
 

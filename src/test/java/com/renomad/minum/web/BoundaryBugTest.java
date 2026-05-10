@@ -2,11 +2,12 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import static com.renomad.minum.testing.TestFramework.*;
@@ -21,19 +22,26 @@ import static com.renomad.minum.testing.TestFramework.*;
  */
 public class BoundaryBugTest {
 
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        context = buildTestingContext("BoundaryBugTest");
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("BoundaryBugTests");
         logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * A multipart request where the Content-Type header has an extra
@@ -43,7 +51,7 @@ public class BoundaryBugTest {
      * which won't match the markers in the body.
      *
      * Expected: parsing succeeds and returns the partition data.
-     * Actual: boundary mismatch causes empty/failed parse.
+     * Bug, now fixed, was: boundary mismatch causes empty/failed parse.
      */
     @Test
     public void test_BoundaryWithTrailingParams_ShouldStillParse() {
@@ -71,6 +79,20 @@ public class BoundaryBugTest {
         // no partitions or an UNRECOGNIZED body type.
         assertEquals(result.getBodyType(), BodyType.MULTIPART);
         assertFalse(result.getPartitionByName("text1").isEmpty(),
+                "Should find partition 'text1' but boundary mismatch causes parse failure");
+
+
+        // alternate test - if the character after the boundary value is a space.
+        Body result2 = bodyProcessor.extractBodyFromInputStream(
+                body.length(),
+                "multipart/form-data; boundary=i_am_a_boundary ; charset=utf-8",
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.US_ASCII)));
+
+        // If the boundary was correctly extracted, we'd find the partition.
+        // Instead, the mismatch causes parsing to fail — either returning
+        // no partitions or an UNRECOGNIZED body type.
+        assertEquals(result2.getBodyType(), BodyType.MULTIPART);
+        assertFalse(result2.getPartitionByName("text1").isEmpty(),
                 "Should find partition 'text1' but boundary mismatch causes parse failure");
     }
 }

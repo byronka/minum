@@ -8,6 +8,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.StacktraceUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
@@ -184,7 +185,8 @@ public final class FunctionalTesting {
         Body body = Body.EMPTY;
 
         InputStream is = client.getInputStream();
-
+        List<String> allHeaders;
+        StatusLine statusLine;
         client.sendHttpLine(method + " /" + path + " HTTP/1.1");
         client.sendHttpLine(String.format("Host: %s:%d", host, port));
         client.sendHttpLine("Content-Length: " + payload.length);
@@ -194,13 +196,13 @@ public final class FunctionalTesting {
         client.sendHttpLine("");
         client.send(payload);
         client.flush();
+        statusLine = extractStatusLine(inputStreamUtils.readLine(is));
+        allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
 
-        StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
-        List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
-        Headers headers = new Headers(allHeaders, logger);
+        Headers headers = new Headers(allHeaders);
         boolean hasBody = !headers.contentType().isBlank();
 
-        if (hasBody && method != RequestLine.Method.HEAD) {
+        if (hasBody && !method.equals(RequestLine.Method.HEAD)) {
             logger.logTrace(() -> "There is a body. Content-type is " + headers.contentType());
             body = bodyProcessor.extractData(is, headers);
         }

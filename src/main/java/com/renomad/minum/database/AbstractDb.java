@@ -2,13 +2,15 @@ package com.renomad.minum.database;
 
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 /**
@@ -45,7 +47,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
     /**
      * Used for handling some file utilities in the database like creating directories
      */
-    protected final FileUtils fileUtils;
+    protected final IFileUtils fileUtils;
 
     /**
      * Holds some system-wide information that is beneficial for components of the database
@@ -62,6 +64,12 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * of the database while it runs.
      */
     protected final Map<Long, T> data;
+
+    /**
+     * used to place locks around certain actions that need to avoid
+     * thread interleaving.
+     */
+    private final ReentrantLock dbLock;
 
     /**
      * The current index, used when creating new data items.  Each item has its own
@@ -86,7 +94,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      */
     protected final Map<String, Function<T, String>> partitioningMap;
 
-    protected AbstractDb(Path dbDirectory, Context context, T instance) {
+    protected AbstractDb(Path dbDirectory, Context context, T instance, IFileUtils fileUtils) {
         this.dbDirectory = dbDirectory;
         this.context = context;
         this.emptyInstance = instance;
@@ -94,7 +102,8 @@ public abstract class AbstractDb<T extends DbData<?>> {
         this.logger = context.getLogger();
         this.registeredIndexes = new HashMap<>();
         this.partitioningMap = new HashMap<>();
-        this.fileUtils = new FileUtils(logger, context.getConstants());
+        this.fileUtils = fileUtils;
+        this.dbLock = new ReentrantLock();
     }
 
     /**
@@ -105,7 +114,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * <br>
      * In the case of {@link DbEngine2} this will flush data to disk.
      */
-    public abstract void stop();
+    public abstract void stop() throws IOException;
 
     /**
      * Used to cleanly stop the database, with extra allowance of time
@@ -118,7 +127,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      *              and instead crash the instance closed.
      * @param sleepTime how long to wait, in milliseconds, for each iteration of the waiting loop.
      */
-    public abstract void stop(int count, int sleepTime);
+    public abstract void stop(int count, int sleepTime) throws IOException;
 
 
     /**
@@ -187,7 +196,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
         } else {
             // if the data does not exist, and a positive non-zero
             // index was provided, throw an exception.
-            boolean dataEntryExists = data.values().stream().anyMatch(x -> x.getIndex() == newData.getIndex());
+            boolean dataEntryExists = data.containsKey(newData.getIndex());
             if (!dataEntryExists) {
                 throw new DbException(
                         String.format("Positive indexes are only allowed when updating existing data. Index: %d",
@@ -225,9 +234,9 @@ public abstract class AbstractDb<T extends DbData<?>> {
         logger.logTrace(() -> String.format("in thread %s, deleting data with index %d", Thread.currentThread().getName(), finalDataIndex));
         data.remove(dataIndex);
         removeFromIndexes(dataToDelete);
+
         // if all the data was just now deleted, we need to
         // reset the index back to 1
-
         if (data.isEmpty()) {
             index.set(1);
         }
@@ -249,15 +258,18 @@ public abstract class AbstractDb<T extends DbData<?>> {
             Function<T, String> indexStringFunction = entry.getValue();
             String propertyAsString = indexStringFunction.apply(dbData);
             Map<String, Set<T>> stringIndexMap = registeredIndexes.get(entry.getKey());
-            synchronized (this) {
+            dbLock.lock();
+            try {
                 stringIndexMap.computeIfAbsent(propertyAsString, k -> new HashSet<>());
+                // if the index-key provides a 1-to-1 mapping to items, like UUIDs, then
+                // each value will have only one item in the collection.  In other cases,
+                // like when partitioning the data into multiple groups, there could easily
+                // be many items per index value.
+                Set<T> dataSet = stringIndexMap.get(propertyAsString);
+                dataSet.add(dbData);
+            } finally {
+                dbLock.unlock();
             }
-            // if the index-key provides a 1-to-1 mapping to items, like UUIDs, then
-            // each value will have only one item in the collection.  In other cases,
-            // like when partitioning the data into multiple groups, there could easily
-            // be many items per index value.
-            Set<T> dataSet = stringIndexMap.get(propertyAsString);
-            dataSet.add(dbData);
         }
     }
 
@@ -271,7 +283,8 @@ public abstract class AbstractDb<T extends DbData<?>> {
             Function<T, String> indexStringFunction = entry.getValue();
             String propertyAsString = indexStringFunction.apply(dbData);
             Map<String, Set<T>> stringIndexMap = registeredIndexes.get(entry.getKey());
-            synchronized (this) {
+            dbLock.lock();
+            try {
                 stringIndexMap.get(propertyAsString).removeIf(x -> x.getIndex() == dbData.getIndex());
 
                 // in certain cases, we're removing one of the items that is indexed but
@@ -279,6 +292,8 @@ public abstract class AbstractDb<T extends DbData<?>> {
                 if (stringIndexMap.get(propertyAsString).isEmpty()) {
                     stringIndexMap.remove(propertyAsString);
                 }
+            } finally {
+                dbLock.unlock();
             }
         }
     }
@@ -382,9 +397,17 @@ public abstract class AbstractDb<T extends DbData<?>> {
         if (!registeredIndexes.containsKey(indexName)) {
             throw new DbException("There is no index registered on the database Db<"+this.emptyInstance.getClass().getSimpleName()+"> with a name of \""+indexName+"\"");
         }
-        Set<T> values = registeredIndexes.get(indexName).get(key);
-        // return an empty set rather than null
-        return Objects.requireNonNullElseGet(values, Set::of);
+        dbLock.lock();
+        try {
+            Set<T> ts = registeredIndexes.get(indexName).get(key);
+            if (ts != null) {
+                return new HashSet<>(ts);
+            } else {
+                return Set.of();
+            }
+        } finally {
+            dbLock.unlock();
+        }
     }
 
     /**
@@ -416,10 +439,11 @@ public abstract class AbstractDb<T extends DbData<?>> {
     }
 
     /**
-     * Find one item, with an alternate value if null
+     * Find one item, with an alternate value if nothing was found
      * <br>
      * This utility will search the indexes for a particular data by
-     * indexName and indexKey.  If not found, it will return null. If
+     * indexName and indexKey.  If not found, it will return an alternate
+     * value provided by the "alternate" parameter. If
      * found, it will be returned. If more than one are found, an exception
      * will be thrown.  Use this tool when the data has been uniquely
      * indexed, like for example when setting a unique identifier into
@@ -429,9 +453,8 @@ public abstract class AbstractDb<T extends DbData<?>> {
      *                  set on this data
      * @param indexKey the key for this particular value, such as a UUID or a name
      *                 or any other way to partition the data
-     * @param alternate a functional interface that will be run if the result would
-     *                  have been null, useful for situations where you don't want
-     *                  the output to be null when nothing is found.
+     * @param alternate a functional interface that will be run if no result
+     *                  was found
      * @see #findExactlyOne(String, String)
      */
     public T findExactlyOne(String indexName, String indexKey, Callable<T> alternate) {

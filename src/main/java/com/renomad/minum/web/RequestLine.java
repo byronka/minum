@@ -121,22 +121,21 @@ public final class RequestLine {
     public RequestLine extractRequestLine(String value) {
         mustNotBeNull(value);
         if (value.isEmpty()) {
-            return RequestLine.EMPTY;
+            throw new BadRequestException("Error: The request line was empty");
         }
         RequestLineRawValues rawValues = requestLineTokenizer(value);
         if (rawValues == null) {
-            return RequestLine.EMPTY;
+            throw new BadRequestException("Unable to tokenize the request line into its constituent three parts, GET + path + protocol: " + value);
         }
         Method myMethod;
         myMethod = Method.getMethod(rawValues.method());
         if (myMethod.equals(Method.NONE)) {
-            logger.logDebug(() -> "Unable to convert method to enum.  Returning empty request line.  Method value provided: " + rawValues.method());
-            return RequestLine.EMPTY;
+            throw new BadRequestException("Unable to convert method to enum.  Returning empty request line.  Method value provided: " + rawValues.method());
         }
         PathDetails pd = extractPathDetails(rawValues.path());
         HttpVersion httpVersion = getHttpVersion(rawValues.protocol());
         if (httpVersion.equals(HttpVersion.NONE)) {
-            return RequestLine.EMPTY;
+            throw new BadRequestException("Did not recognize the HTTP protocol as one we handle: " + rawValues.protocol());
         }
 
         return new RequestLine(myMethod, pd, httpVersion, value, logger);
@@ -206,7 +205,10 @@ public final class RequestLine {
             // this should give us a key and value joined with an equal sign, e.g. foo=bar
             String currentKeyValue = tokenizer.nextToken();
             int equalSignLocation = currentKeyValue.indexOf("=");
-            if (equalSignLocation <= 0) return Map.of();
+
+            if (equalSignLocation == -1) {
+                throw new BadRequestException("Discovered invalid key-value pair in query string for key (\"%s\").  Full query string: %s".formatted(currentKeyValue, rawQueryString));
+            }
             String key = currentKeyValue.substring(0, equalSignLocation);
             String myRawValue = currentKeyValue.substring(equalSignLocation + 1);
             try {
@@ -214,10 +216,10 @@ public final class RequestLine {
                 final var result = queryStrings.put(key, value);
 
                 if (result != null) {
-                    logger.logDebug(() -> "Unexpected: key (" +key + ") was duplicated in the query line - previous value was " + result + " and was overwritten by " + value);
+                    throw new BadRequestException("Unexpected: key (" +key + ") was duplicated in the query line - previous value was " + result + " and was overwritten by " + value);
                 }
             } catch (IllegalArgumentException ex) {
-                logger.logDebug(() -> "Query string parsing failed for key: (%s) value: (%s).  Skipping to next key-value pair. error message: %s".formatted(key, myRawValue, ex.getMessage()));
+                throw new BadRequestException("Query string parsing failed for key: (%s) value: (%s)".formatted(key, myRawValue), ex);
             }
         }
         return queryStrings;

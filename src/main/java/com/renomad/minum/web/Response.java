@@ -1,18 +1,15 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.zip.GZIPOutputStream;
 
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_200_OK;
 import static com.renomad.minum.web.StatusLine.StatusCode.CODE_206_PARTIAL_CONTENT;
@@ -154,7 +151,7 @@ public final class Response implements IResponse {
      * A constructor for situations where the developer wishes to send a small (less than a megabyte) byte array
      * to the client.  If there is need to send something of larger size, choose one these
      * alternate constructors:
-     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Headers, String, Headers)}
+     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Headers, String, String, Headers, IFileUtils)}
      * Streaming - for more custom streaming control with a known body size: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer, long)}
      * Streaming - for more custom streaming control with body size unknown: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Map, ThrowingConsumer)}
      *
@@ -168,7 +165,7 @@ public final class Response implements IResponse {
      * A constructor for situations where the developer wishes to send a small (less than a megabyte) byte array
      * to the client.  If there is need to send something of larger size, choose one these
      * alternate constructors:
-     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Headers, String, Headers)}
+     * FileChannel - for sending a large file: {@link Response#buildLargeFileResponse(Headers, String, String, Headers, IFileUtils)}
      * Streaming - for more custom streaming control with a known body size: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Headers, ThrowingConsumer, long)}
      * Streaming - for more custom streaming control with body size unknown: {@link Response#buildStreamingResponse(StatusLine.StatusCode, Headers, ThrowingConsumer)}
      *
@@ -206,7 +203,7 @@ public final class Response implements IResponse {
     /**
      * This will send a large file to the client as a stream.
      * <em>Note that this does not check that the requested file is within a directory. If you expect the
-     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers)}</em>
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers, IFileUtils)}</em>
      * @param extraHeaders any extra headers for the response, such as the content-type, as a map, where the
      *                     key is the header key and the value is the header value. No colon necessary.
      *                     For example "Content-Type: video/mp4" or "Content-Type: application/zip"
@@ -214,23 +211,28 @@ public final class Response implements IResponse {
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders) throws IOException {
-        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, requestHeaders);
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, Headers requestHeaders, IFileUtils fileUtils) {
+        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, requestHeaders, fileUtils);
     }
 
     /**
      * This will send a large file to the client as a stream.
      * <em>Note that this does not check that the requested file is within a directory. If you expect the
-     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers)}</em>
+     * path value to be untrusted - that is, set by a user - use {@link #buildLargeFileResponse(Headers, String, String, Headers, IFileUtils)}</em>
      * @param extraHeaders extra headers you would like in the response, as key-value pairs in a map - for
      *                     example "Content-Type: video/mp4" or "Content-Type: application/zip"
      * @param filePath the string value of the path to this file. <em>Caution! if this is set by the user.  See notes above</em>
      * @param requestHeaders these are the headers from the request, which is needed here to set proper
      *                       response headers in some cases.
      */
-    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders) throws IOException {
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders, IFileUtils fileUtils) {
         Headers adjustedHeaders = extraHeaders;
-        long fileSize = Files.size(Path.of(filePath));
+        long fileSize = 0;
+        try {
+            fileSize = fileUtils.size(Path.of(filePath));
+        } catch (IOException e) {
+            throw new WebServerException("Error in Response.buildLargeFileResponse", e);
+        }
         var range = new Range(requestHeaders, fileSize);
         StatusLine.StatusCode responseCode = CODE_200_OK;
         long length = fileSize;
@@ -268,9 +270,14 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
-        Path path = FileUtils.safeResolve(parentDirectory, filePath);
-        return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders);
+    public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, IFileUtils fileUtils) {
+        Path path = null;
+        try {
+            path = fileUtils.safeResolve(parentDirectory, filePath);
+        } catch (IOException e) {
+            throw new WebServerException("Error at Response.buildLargeFileResponse", e);
+        }
+        return buildLargeFileResponse(extraHeaders, path.toString(), requestHeaders, fileUtils);
     }
 
     /**
@@ -287,8 +294,8 @@ public final class Response implements IResponse {
      * @param parentDirectory this value is presumed to be set by the developer, and thus isn't checked for safety. This
      *                        allows the developer to use directories anywhere in the system.
      */
-    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders) throws IOException {
-        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, parentDirectory, requestHeaders);
+    public static IResponse buildLargeFileResponse(Map<String,String> extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, IFileUtils fileUtils) {
+        return buildLargeFileResponse(convertMapToHeaders(extraHeaders), filePath, parentDirectory, requestHeaders, fileUtils);
     }
 
     /**
@@ -376,12 +383,8 @@ public final class Response implements IResponse {
     }
 
     @Override
-    public void sendBody(ISocketWrapper sw) throws IOException {
-        try {
-            outputGenerator.accept(sw);
-        } catch (Exception ex) {
-            throw new IOException(ex.getMessage(), ex);
-        }
+    public void sendBody(ISocketWrapper sw) throws Exception {
+        outputGenerator.accept(sw);
     }
 
     /**
@@ -414,7 +417,7 @@ public final class Response implements IResponse {
         }
     }
 
-    private static void sendByteArrayResponse(ISocketWrapper sw, byte[] body) throws IOException {
+    static void sendByteArrayResponse(ISocketWrapper sw, byte[] body) throws IOException{
         sw.send(body);
     }
 
@@ -423,24 +426,7 @@ public final class Response implements IResponse {
         return body;
     }
 
-    /**
-     * Compress the data in this body using gzip.
-     * <br>
-     * This operates by getting the body field from this instance of {@link Response} and
-     * creating a new Response with the compressed data.
-     */
-    Response compressBody() throws IOException {
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        var gos = new GZIPOutputStream(out);
-        gos.write(body);
-        gos.finish();
-        return (Response)Response.buildResponse(
-                statusCode,
-                extraHeaders,
-                out.toByteArray()
-        );
-    }
 
     @Override
     public boolean equals(Object o) {

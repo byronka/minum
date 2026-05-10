@@ -9,6 +9,7 @@ import com.renomad.minum.database.Db;
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.sampledomain.photo.Photograph;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.StacktraceUtils;
 import com.renomad.minum.web.IRequest;
 import com.renomad.minum.web.IResponse;
@@ -46,10 +47,14 @@ public class UploadPhoto {
         Constants constants = context.getConstants();
         this.auth = auth;
         this.logger = context.getLogger();
-        FileUtils fileUtils = new FileUtils(logger, constants);
+        IFileUtils fileUtils = new FileUtils(logger, constants);
         this.dbDir = Path.of(constants.dbDirectory);
-        uploadPhotoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_photo_template.html");
-        uploadVideoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_video_template.html");
+        try {
+            uploadPhotoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_photo_template.html");
+            uploadVideoTemplateHtml = fileUtils.readTextFile("src/test/webapp/templates/uploadphoto/upload_video_template.html");
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in UploadPhoto constructor", ex);
+        }
         this.db = db;
         this.videoDb = videoDb;
     }

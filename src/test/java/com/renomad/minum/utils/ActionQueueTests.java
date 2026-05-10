@@ -1,12 +1,16 @@
 package com.renomad.minum.utils;
 
 import com.renomad.minum.queue.ActionQueue;
+import com.renomad.minum.queue.QueueException;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.RegexUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -17,7 +21,7 @@ public class ActionQueueTests {
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("ActionQueueTests");
         logger = (TestLogger)context.getLogger();
     }
 
@@ -25,6 +29,13 @@ public class ActionQueueTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /*
      One major concern is that actions that are handled within ActionQueue
@@ -83,7 +94,7 @@ public class ActionQueueTests {
         var msg = logger.findFirstMessageThatContains("Queue Test ActionQueue has");
         assertFalse(RegexUtils.find("Queue Test ActionQueue has .? elements left but we're done waiting", msg).isEmpty());
         assertTrue(aq.isStopped());
-        assertThrows(UtilsException.class,
+        assertThrows(QueueException.class,
                 "failed to enqueue check if stopped - ActionQueue \"Test ActionQueue\" is stopped",
                 () ->  aq.enqueue("check if stopped", () -> System.out.println("testing if stopped")));
         assertEquals(aq.getQueue().size(), 0);

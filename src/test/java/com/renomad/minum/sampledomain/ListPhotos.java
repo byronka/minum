@@ -30,22 +30,27 @@ public class ListPhotos {
 
     private final UploadPhoto up;
     private final AuthUtils auth;
-    private final Map<String, byte[]> lruCache;
     private final FileReader fileReader;
+    private final IFileUtils fileUtils;
     private final long staticFileCacheTime;
+
 
     public ListPhotos(Context context, UploadPhoto up, AuthUtils auth) {
         this.logger = context.getLogger();
         Constants constants = context.getConstants();
-        FileUtils fileUtils = new FileUtils(logger, constants);
+        IFileUtils fileUtils = new FileUtils(logger, constants);
         this.dbDir = Path.of(constants.dbDirectory);
         this.staticFileCacheTime = constants.staticFileCacheTime;
-        listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/list_photos_template.html"));
-        videoHtmlTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/video_element_template.html"));
+        try {
+            listPhotosTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/list_photos_template.html"));
+            videoHtmlTemplateProcessor = TemplateProcessor.buildProcessor(fileUtils.readTextFile("src/test/webapp/templates/listphotos/video_element_template.html"));
+        } catch (IOException ex) {
+            throw new RuntimeException("Error in ListPhotos constructor", ex);
+        }
         this.up = up;
         this.auth = auth;
-        this.lruCache = LRUCache.getLruCache();
-        this.fileReader = new FileReader(lruCache, true, logger);
+        this.fileReader = new FileReader(LRUCache.getLruCache(), true, logger);
+        this.fileUtils = new FileUtils(logger, constants);
     }
 
     public IResponse ListPhotosPage(IRequest r) {
@@ -112,18 +117,7 @@ public class ListPhotos {
         if (filename == null || filename.isBlank()) {
             return Response.buildLeanResponse(CODE_404_NOT_FOUND);
         }
-
-        // first, is it already in our cache?
         Path photoPath = dbDir.resolve("photo_files").resolve(filename);
-        if (lruCache.containsKey(photoPath.toString())) {
-            logger.logDebug(() -> "Found " + filename + " in the cache. Serving.");
-            return Response.buildResponse(CODE_200_OK,
-                    Map.of(
-                            "Cache-Control","max-age=604800",
-                            "Content-Type", "image/jpeg"
-                    ),
-                    lruCache.get(photoPath.toString()));
-        }
 
         // if it's not in our cache, let's check to see whether the file is even there.
         boolean doesFileExist = Files.exists(photoPath);
@@ -192,13 +186,7 @@ public class ListPhotos {
         }
 
         try {
-            checkFileIsWithinDirectory(path, ".");
-        } catch (InvariantException ex) {
-            logger.logDebug(() -> String.format("Unable to find %s in allowed directories", path));
-            return Response.buildLeanResponse(CODE_404_NOT_FOUND);
-        }
-
-        try {
+            fileUtils.checkFileIsWithinDirectory(path, ".");
             // convert from a string to a path object for some valuable methods
             Path staticFilePath = Path.of(path);
             if (!Files.isRegularFile(staticFilePath)) {
@@ -234,7 +222,7 @@ public class ListPhotos {
      *
      * @param mimeType       a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType, Headers requestHeaders) throws IOException {
+    private IResponse createOkResponseForLargeStaticFiles(Path staticFilePath, String mimeType, Headers requestHeaders) {
         var extraHeaders = Map.of(
                 "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);
@@ -242,16 +230,22 @@ public class ListPhotos {
         return Response.buildLargeFileResponse(
                 extraHeaders,
                 staticFilePath.toString(),
-                requestHeaders);
+                requestHeaders,
+                fileUtils);
     }
 
     /**
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      * @param mimeType a mime type e.g. "image/jpg" or "video/mp4"
      */
-    private IResponse createOkResponseForStaticFiles(Path staticFilePath, String mimeType) throws IOException {
+    private IResponse createOkResponseForStaticFiles(Path staticFilePath, String mimeType) {
         // this mild-looking method, "readFile", will cache the file contents.
-        var fileContents = fileReader.readFile(staticFilePath.toString());
+        byte[] fileContents = null;
+        try {
+            fileContents = fileReader.readFile(staticFilePath.toString());
+        } catch (IOException e) {
+            throw new RuntimeException("Error in ListPhotos.createOkResponseForStaticFiles", e);
+        }
         var headers = Map.of(
                 "Content-Type", mimeType,
                 "cache-control", "max-age=" + staticFileCacheTime);

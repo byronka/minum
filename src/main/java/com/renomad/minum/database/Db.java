@@ -1,15 +1,15 @@
 package com.renomad.minum.database;
 
+import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.queue.AbstractActionQueue;
 import com.renomad.minum.queue.ActionQueue;
 import com.renomad.minum.state.Context;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +30,19 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      */
     static final String DATABASE_FILE_SUFFIX = ".ddps";
     private final AbstractActionQueue actionQueue;
+
+    /**
+     * A lock around loading the data - so we can't find ourselves
+     * in a situation where multiple threads are loading the data.
+     */
     private final ReentrantLock loadDataLock = new ReentrantLock();
+
+    /**
+     * A lock around any changes to the data of the database, such as
+     * creating, updating, or deleting, so that we don't encounter
+     * scenarios where our in-memory and on-disk data goes out of sync.
+     */
+    private final ReentrantLock dataChangeLock = new ReentrantLock();
 
     /**
      * The full path to the file that contains the most-recent index
@@ -40,14 +52,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      */
     private final Path fullPathForIndexFile;
 
-    /**
-     * An in-memory representation of the value of the current max index
-     * that we store in index.ddps, in memory, so we can compare whether
-     * we need to update the disk without checking the disk so often.
-     */
-    private long maxIndexOnDisk;
-
-    boolean hasLoadedData;
+    volatile boolean hasLoadedData;
 
     /**
      * Constructs an in-memory disk-persisted database.
@@ -63,26 +68,24 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      *                 data, which must be an implementation of {@link DbData}.
      */
     public Db(Path dbDirectory, Context context, T instance) {
-        super(dbDirectory, context, instance);
+        this(dbDirectory, context, instance, new FileUtils(context.getLogger(), context.getConstants()));
+    }
+
+    Db(Path dbDirectory, Context context, T instance, IFileUtils fileUtils) {
+        super(dbDirectory, context, instance, fileUtils);
         this.hasLoadedData = false;
         this.fullPathForIndexFile = dbDirectory.resolve("index" + DATABASE_FILE_SUFFIX);
         this.actionQueue = new ActionQueue("DatabaseWriter " + dbDirectory, context).initialize();
 
-        if (Files.exists(fullPathForIndexFile)) {
-            long indexValue;
-            try (var fileReader = new FileReader(fullPathForIndexFile.toFile(), StandardCharsets.UTF_8)) {
-                try (BufferedReader br = new BufferedReader(fileReader)) {
-                    String s = br.readLine();
-                    if (s == null) throw new DbException("index file at " + fullPathForIndexFile + " returned null when reading a line from it");
-                    mustBeFalse(s.isBlank(), "Unless something is terribly broken, we expect a numeric value here");
-                    String trim = s.trim();
-                    indexValue = Long.parseLong(trim);
-                }
-            } catch (Exception e) {
-                throw new DbException("Exception while reading "+fullPathForIndexFile+" in Db constructor", e);
+        if (fileUtils.exists(fullPathForIndexFile)) {
+            try {
+                long indexValue;
+                String indexValueString = fileUtils.readString(fullPathForIndexFile);
+                indexValue = Long.parseLong(indexValueString);
+                this.index = new AtomicLong(indexValue);
+            } catch (Exception ex) {
+                throw new DbException("Error in Db constructor", ex);
             }
-
-            this.index = new AtomicLong(indexValue);
 
         } else {
             this.index = new AtomicLong(1);
@@ -125,28 +128,40 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        boolean newElementCreated = processDataIndex(newData);
-        writeToMemory(newData, newElementCreated);
+        dataChangeLock.lock();
+        try {
+            boolean newElementCreated = processDataIndex(newData);
+            writeToMemory(newData, newElementCreated);
 
-        // *** now handle the disk portion ***
-        actionQueue.enqueue("persist data to disk", () -> writeToDisk(newData));
+            // *** now handle the disk portion ***
+            actionQueue.enqueue("persist data to disk",
+                    () -> writeToDisk(newData, dbDirectory, fileUtils, emptyInstance,
+                            newElementCreated, fullPathForIndexFile, logger));
 
-        // returning the data at this point is the most convenient
-        // way users will have access to the new index of the data.
-        return newData;
+            // returning the data at this point is the most convenient
+            // way users will have access to the new index of the data.
+            return newData;
+        } finally {
+            dataChangeLock.unlock();
+        }
     }
 
-    private void writeToDisk(T newData) {
+    static <T extends DbData<?>> void writeToDisk(T newData, Path dbDirectory, IFileUtils fileUtils, T emptyInstance,
+                                                  boolean newItemCreated, Path fullPathForIndexFile, ILogger logger) {
         final Path fullPath = dbDirectory.resolve(newData.getIndex() + DATABASE_FILE_SUFFIX);
         logger.logTrace(() -> String.format("writing data to %s", fullPath));
         String serializedData = newData.serialize();
         mustBeFalse(serializedData == null || serializedData.isBlank(),
                 "the serialized form of data must not be blank. " +
                         "Is the serialization code written properly? Our datatype: " + emptyInstance);
-        fileUtils.writeString(fullPath, serializedData);
-        if (maxIndexOnDisk < index.get()) {
-            maxIndexOnDisk = index.get();
-            fileUtils.writeString(fullPathForIndexFile, String.valueOf(maxIndexOnDisk));
+        try {
+            fileUtils.writeString(fullPath, serializedData);
+
+            if (newItemCreated) {
+                fileUtils.writeString(fullPathForIndexFile, String.valueOf(newData.getIndex() + 1));
+            }
+        } catch (IOException e) {
+            throw new DbException("Error in Db.writeToDisk", e);
         }
     }
 
@@ -163,28 +178,37 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        // deal with the in-memory portion
-        deleteFromMemory(dataToDelete);
+        dataChangeLock.lock();
+        try {
+            // deal with the in-memory portion
+            deleteFromMemory(dataToDelete);
 
-        // now handle the disk portion
-        actionQueue.enqueue("delete data from disk", () -> deleteFromDisk(dataToDelete));
+            // get the current index
+            boolean shouldResetIndexOnDisk = values().isEmpty();
+
+            actionQueue.enqueue("delete data from disk",
+                    () -> deleteFromDisk(dataToDelete, dbDirectory, fileUtils,
+                            shouldResetIndexOnDisk, fullPathForIndexFile, logger));
+        } finally {
+            dataChangeLock.unlock();
+        }
     }
 
-    private void deleteFromDisk(T dataToDelete) {
+    static <T extends DbData<?>> void deleteFromDisk(T dataToDelete, Path dbDirectory, IFileUtils fileUtils,
+                                                     boolean shouldResetIndexOnDisk, Path fullPathForIndexFile, ILogger logger) {
         final Path fullPath = dbDirectory.resolve(dataToDelete.getIndex() + DATABASE_FILE_SUFFIX);
         logger.logTrace(() -> String.format("deleting data at %s", fullPath));
         try {
-            if (!fullPath.toFile().exists()) {
+            if (!fileUtils.exists(fullPath)) {
                 throw new DbException(fullPath + " must already exist before deletion");
             }
-            Files.delete(fullPath);
-            if (maxIndexOnDisk > index.get()) {
-                maxIndexOnDisk = index.get();
-                fileUtils.writeString(fullPathForIndexFile, String.valueOf(maxIndexOnDisk));
+            fileUtils.delete(fullPath);
 
+            if (shouldResetIndexOnDisk) {
+                fileUtils.writeString(fullPathForIndexFile, "1");
             }
         } catch (Exception ex) {
-            logger.logAsyncError(() -> "failed to delete file " + fullPath + " during deleteOnDisk. Exception: " + ex);
+            throw new DbException("Error in Db.deleteFromDisk", ex);
         }
     }
 
@@ -192,16 +216,16 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * Grabs all the data from disk and returns it as a list.  This
      * method is run by various programs when the system first loads.
      */
-    private void loadDataFromDisk() throws IOException {
+    private void loadDataFromDisk() throws IOException, ParseException {
         logger.logDebug(() -> "Loading data from disk. Db classic. Directory: " + dbDirectory);
 
         // check if the folder has content for a DbEngine2 database, meaning we
         // need to convert it back to the classic DB file structure.
-        if (Files.exists(dbDirectory.resolve("currentAppendLog"))) {
-            new DbFileConverter(context, dbDirectory).convertFolderStructureToDbClassic();
+        if (fileUtils.exists(dbDirectory.resolve("currentAppendLog"))) {
+            new DbFileConverter(context, dbDirectory, fileUtils).convertFolderStructureToDbClassic();
         }
 
-        if (! Files.exists(dbDirectory)) {
+        if (! fileUtils.exists(dbDirectory)) {
             logger.logDebug(() -> dbDirectory + " directory missing, adding nothing to the data list");
             return;
         }
@@ -209,19 +233,17 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         walkAndLoad(dbDirectory);
     }
 
-    void walkAndLoad(Path dbDirectory) {
+    void walkAndLoad(Path dbDirectory) throws IOException {
         // walk through all the files in this directory, collecting
         // all regular files (non-subdirectories) except for index.ddps
-        try (final var pathStream = Files.walk(dbDirectory)) {
+        try (final var pathStream = fileUtils.walk(dbDirectory)) {
             final var listOfFiles = pathStream.filter(path ->
-                        Files.isRegularFile(path) &&
+                        fileUtils.isRegularFile(path) &&
                         !path.getFileName().toString().startsWith("index")
             ).toList();
             for (Path p : listOfFiles) {
                 readAndDeserialize(p);
             }
-        } catch (IOException e) {
-            throw new DbException(e);
         }
     }
 
@@ -229,7 +251,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * Carry out the process of reading data files into our in-memory structure
      * @param p the path of a particular file
      */
-    void readAndDeserialize(Path p) throws IOException {
+    void readAndDeserialize(Path p) {
         Path fileName = p.getFileName();
         if (fileName == null) throw new DbException("At readAndDeserialize, path " + p + " returned a null filename");
         String filename = fileName.toString();
@@ -237,7 +259,12 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         if(startOfSuffixIndex == -1) {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
-        String fileContents = Files.readString(p);
+        String fileContents = null;
+        try {
+            fileContents = fileUtils.readString(p);
+        } catch (IOException e) {
+            throw new DbException("Error at Db.readAndDeserialize", e);
+        }
         if (fileContents.isBlank()) {
             logger.logDebug( () -> fileName + " file exists but empty, skipping");
         } else {

@@ -1,12 +1,40 @@
 package com.renomad.minum.testing;
 
+import com.renomad.minum.logging.TestLogger;
+import com.renomad.minum.state.Context;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import static com.renomad.minum.testing.RegexUtils.find;
 import static com.renomad.minum.testing.RegexUtils.isFound;
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class RegexUtilsTests {
+
+    static private Context context;
+    static private TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("RegexUtilsTests");
+        logger = (TestLogger)context.getLogger();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * We should be able to do a quick search by regex

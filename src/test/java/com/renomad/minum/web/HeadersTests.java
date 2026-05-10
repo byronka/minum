@@ -5,6 +5,8 @@ import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.logging.ThrowingSupplier;
 import com.renomad.minum.state.Context;
 import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,24 +15,32 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
 public class HeadersTests {
 
-    private Context context;
-    private TestLogger logger;
+    private static Context context;
+    private static TestLogger logger;
 
-    @Before
-    public void init() {
-        this.context = buildTestingContext("header tests");
-        this.logger = (TestLogger) context.getLogger();
+    @BeforeClass
+    public static void init() {
+        context = buildTestingContext("HeadersTests");
+        logger = (TestLogger) context.getLogger();
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_GetAllHeaders_EdgeCase_TooMany() {
@@ -42,7 +52,7 @@ public class HeadersTests {
     }
 
     @Test
-    public void test_GetAllHeaders_EdgeCase_ValueIsNull() {
+    public void test_GetAllHeaders_EdgeCase_ValueIsNull() throws IOException {
         String input = """
                 foo: bar
                 biz: baz
@@ -53,25 +63,10 @@ public class HeadersTests {
         assertEquals(result, new ArrayList<>());
     }
 
-    @Test
-    public void test_GetAllHeaders_EdgeCase_IOException() {
-        String input = """
-                foo: bar
-                biz: baz
-                """;
-        InputStream inputStream = new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
-        IInputStreamUtils throwingInputStreamUtils = mockInputStreamUtils(() -> {
-            throw new IOException("just a test");
-        });
-
-        var ex = assertThrows(WebServerException.class, () -> Headers.getAllHeaders(inputStream, throwingInputStreamUtils));
-        assertEquals(ex.getMessage(), "java.io.IOException: just a test");
-    }
-
-    private IInputStreamUtils mockInputStreamUtils(ThrowingSupplier<String, IOException> readLineAction) {
+    private IInputStreamUtils mockInputStreamUtils(Supplier<String> readLineAction) {
 
         return new IInputStreamUtils() {
-            @Override public String readLine(InputStream inputStream) throws IOException { return readLineAction.get(); }
+            @Override public String readLine(InputStream inputStream) { return readLineAction.get(); }
             @Override public byte[] read(int lengthToRead, InputStream inputStream) {return new byte[0];}
         };
     }
@@ -82,8 +77,8 @@ public class HeadersTests {
      */
     @Test
     public void test_extractHeadersToMap_EdgeCase_Malformed() {
-        Map<String, List<String>> result = Headers.extractHeadersToMap(List.of("foo bar"));
-        assertEquals(result.size(), 0);
+        var ex = assertThrows(BadRequestException.class, () -> Headers.extractHeadersToMap(List.of("foo bar")));
+        assertEquals(ex.getMessage(), "Invalid formatting on header in request, was expecting to find a colon separating key from value: foo bar");
     }
 
     /**
@@ -102,7 +97,7 @@ public class HeadersTests {
     @Test
     public void test_ContentType_TooMany() {
         Headers headers = new Headers(List.of("content-type: foo", "content-type: bar"));
-        var ex = assertThrows(WebServerException.class, headers::contentType);
+        var ex = assertThrows(BadRequestException.class, () -> headers.contentType());
         assertEquals(ex.getMessage(), "The number of content-type headers must be exactly zero or one.  Received: [bar, foo]");
     }
 
@@ -111,46 +106,33 @@ public class HeadersTests {
      */
     @Test
     public void test_ContentLength_TooMany() {
-        Headers headers = new Headers(List.of("content-length: 44", "content-length: 12"), logger);
-        var result = headers.contentLength();
-        assertEquals(result, -1);
-        assertTrue(logger.doesMessageExist("Did not receive a valid content length.  Setting length to -1.  Received: [12, 44]"));
-    }
-
-    /**
-     * If they send more than one content length, it's invalid. Note that
-     * this test is the same as {@link #test_ContentLength_TooMany} but lacks logging.
-     */
-    @Test
-    public void test_ContentLength_TooMany_NoLogging() {
         Headers headers = new Headers(List.of("content-length: 44", "content-length: 12"));
-        var result = headers.contentLength();
-        assertEquals(result, -1);
+        var ex = assertThrows(BadRequestException.class, () -> headers.contentLength());
+        assertEquals(ex.getMessage(), "Received multiple content-length headers, which does not make sense.  Received: [12, 44]");
     }
 
     @Test
     public void test_ContentLength_Negative() {
-        Headers headers = new Headers(List.of("content-length: -123"), logger);
-        var result = headers.contentLength();
-        assertEquals(result, -1);
-        assertTrue(logger.doesMessageExist("Content length cannot be negative.  Setting length to -1.  Received: -123"));
+        var headers = new Headers(List.of("content-length: -123"));
+        var ex = assertThrows(BadRequestException.class, () ->  headers.contentLength());
+        assertEquals(ex.getMessage(), "Content length cannot be negative.  Received: -123");
     }
 
     /**
-     * Same as {@link test_ContentLength_Negative} but lacks logging
+     * If the content length is non-numeric, an exception gets thrown
      */
     @Test
-    public void test_ContentLength_Negative_NoLogging() {
-        Headers headers = new Headers(List.of("content-length: -123"));
-        var result = headers.contentLength();
-        assertEquals(result, -1);
+    public void test_ContentLength_NonNumeric() {
+        var headers = new Headers(List.of("content-length: abc"));
+        var ex = assertThrows(BadRequestException.class, () ->  headers.contentLength());
+        assertEquals(ex.getMessage(), "Received a non-numeric content length value. Received: abc");
     }
 
     @Test
     public void test_HasKeepAlive() {
         Headers headers = new Headers(List.of("connection: keep-alive"));
         assertTrue(headers.hasKeepAlive(), "should have keep-alive on");
-        Headers headers2 = new Headers(List.of(""));
+        Headers headers2 = new Headers(List.of("foo: bar"));
         assertFalse(headers2.hasKeepAlive(), "should not have keep-alive on");
     }
 

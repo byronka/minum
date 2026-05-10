@@ -10,7 +10,10 @@ import com.renomad.minum.testing.TestFailureException;
 import com.renomad.minum.utils.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.*;
 import java.net.Socket;
@@ -81,7 +84,7 @@ public class WebTests {
      * next server bind occurs.
      */
     static int SERVER_CLOSE_WAIT_TIME = 30;
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
 
     @BeforeClass
     public static void setUpClass() throws IOException {
@@ -99,12 +102,18 @@ public class WebTests {
         gettysburgAddress = Files.readString(Path.of("src/test/resources/gettysburg_address.txt"));
     }
 
-
     @AfterClass
-    public static void tearDownClass() {
+    public static void tearDownClass() throws IOException {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * What happens if we throw an exception in a thread?
@@ -387,11 +396,44 @@ public class WebTests {
 
     @Test
     public void test_StartLine_MissingMethod() {
-        assertEquals(RequestLine.EMPTY.extractRequestLine("/something HTTP/1.1"), RequestLine.EMPTY);
-        assertEquals(RequestLine.EMPTY.extractRequestLine("GET HTTP/1.1"), RequestLine.EMPTY);
-        assertEquals(RequestLine.EMPTY.extractRequestLine("GET /something HTTP/1.2"), RequestLine.EMPTY);
-        assertEquals(RequestLine.EMPTY.extractRequestLine("GET /something HTTP"), RequestLine.EMPTY);
-        assertEquals(RequestLine.EMPTY.extractRequestLine("GET /something"), RequestLine.EMPTY);
+        assertThrows(BadRequestException.class,
+                "Unable to tokenize the request line into its constituent three parts, GET + path + protocol: /something HTTP/1.1",
+                () -> RequestLine.EMPTY.extractRequestLine("/something HTTP/1.1"));
+
+        assertThrows(BadRequestException.class,
+                "Unable to tokenize the request line into its constituent three parts, GET + path + protocol: GET HTTP/1.1",
+                () -> RequestLine.EMPTY.extractRequestLine("GET HTTP/1.1"));
+
+        assertThrows(BadRequestException.class,
+                "Did not recognize the HTTP protocol as one we handle: HTTP/1.2",
+                () -> RequestLine.EMPTY.extractRequestLine("GET /something HTTP/1.2"));
+
+        assertThrows(BadRequestException.class,
+                "Did not recognize the HTTP protocol as one we handle: HTTP",
+                () -> RequestLine.EMPTY.extractRequestLine("GET /something HTTP"));
+
+        assertThrows(BadRequestException.class,
+                "Unable to tokenize the request line into its constituent three parts, GET + path + protocol: GET /something",
+                () -> RequestLine.EMPTY.extractRequestLine("GET /something"));
+
+        assertThrows(BadRequestException.class,
+                "Unable to tokenize the request line into its constituent three parts, GET + path + protocol: abcd",
+                () -> RequestLine.EMPTY.extractRequestLine("abcd"));
+
+        assertThrows(BadRequestException.class,
+                "Unable to tokenize the request line into its constituent three parts, GET + path + protocol: FOO FOO the FOO",
+                () -> RequestLine.EMPTY.extractRequestLine("FOO FOO the FOO"));
+
+        assertThrows(BadRequestException.class,
+                "Unable to convert method to enum.  Returning empty request line.  Method value provided: FOOP",
+                () -> RequestLine.EMPTY.extractRequestLine("FOOP FOOP FOOP"));
+
+        assertThrows(BadRequestException.class,
+                "Unable to convert method to enum.  Returning empty request line.  Method value provided: CONNECT",
+                () -> RequestLine.EMPTY.extractRequestLine("CONNECT foo.bar:80 HTTP/1.1"));
+
+
+
         assertThrows(InvariantException.class, () -> RequestLine.EMPTY.extractRequestLine(null));
     }
 
@@ -471,16 +513,17 @@ public class WebTests {
     @Test
     public void test_ParseForm_EdgeCase_BlankKey() {
         byte[] bytes = "=123".getBytes(StandardCharsets.US_ASCII);
-        new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
-        assertTrue(logger.doesMessageExist("Unable to parse this body. no key found during parsing"));
+        var ex = assertThrows(BadRequestException.class, () -> new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length));
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Unable to parse this body. no key found during parsing");
     }
 
     @Test
     public void test_ParseForm_EdgeCase_DuplicateKey() {
         byte[] bytes = "a=123&a=123".getBytes(StandardCharsets.US_ASCII);
-        new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length);
-        var logs = logger.findFirstMessageThatContains("Unexpected: key (a) was duplicated in the post body - previous value was 123 and was overwritten by 123");
-        assertTrue(!logs.isBlank());
+        var ex = assertThrows(BadRequestException.class, () -> new BodyProcessor(context).parseUrlEncodedForm(new ByteArrayInputStream(bytes), bytes.length));
+        assertEquals(ex.getMessage(), "Unable to parse the request body as a URL-encoded content type");
+        assertEquals(ex.getCause().getMessage(), "Unexpected: key (a) was duplicated in the post body - previous value was 123 and was overwritten by 123");
     }
 
     @Test
@@ -573,8 +616,9 @@ public class WebTests {
         byte[] multiPartData = makeTestMultiPartDataNoContentDisposition();
         var bp = new BodyProcessor(context);
 
-        bp.extractBodyFromInputStream(multiPartData.length, "multipart/form-data; boundary=i_am_a_boundary", new ByteArrayInputStream(multiPartData));
-        assertTrue(logger.doesMessageExist("Unable to parse this body. returning what we have so far.  Exception message: Error: no Content-Disposition header on partition in Multipart/form data"));
+        var ex = assertThrows(BadRequestException.class, () -> bp.extractBodyFromInputStream(multiPartData.length, "multipart/form-data; boundary=i_am_a_boundary", new ByteArrayInputStream(multiPartData)));
+        assertEquals(ex.getMessage(), "Unable to parse the body as a multipart/form-data content-type");
+        assertEquals(ex.getCause().getMessage(), "Error: no Content-Disposition header on partition in Multipart/form data");
     }
 
     /**
@@ -992,30 +1036,6 @@ public class WebTests {
 
     }
 
-    @Test
-    public void test_InvalidRequestLine() throws Exception {
-        var wf = new WebFramework(context, default_zdt);
-        var webEngine = new WebEngine(context, wf);
-
-        try (IServer primaryServer = webEngine.startServer()) {
-            try (Socket socket = new Socket(primaryServer.getHost(), primaryServer.getPort())) {
-                try (var client = getClient(socket)) {
-                    // send an invalid GET request
-                    client.sendHttpLine("FOOP FOOP FOOP");
-                    client.sendHttpLine("");
-                    client.flush();
-                    MyThread.sleep(10);
-                    assertTrue(logger.doesMessageExist("RequestLine was unparseable.  Returning.", 20));
-                }
-            }
-        }
-        assertTrue(logger.doesMessageExist("close called on http server", 20));
-        MyThread.sleep(10);
-
-        MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-    }
-
-
     /**
      * If there are errors when the server gets instantiated, it throws
      * an error
@@ -1241,8 +1261,8 @@ public class WebTests {
     @Test
     public void test_ExtractMapFromQueryString_NoEqualsSign() {
         RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
-        var result = requestLine.extractMapFromQueryString("foo");
-        assertEquals(result, Map.of());
+        var ex = assertThrows(BadRequestException.class, () -> requestLine.extractMapFromQueryString("foo"));
+        assertEquals(ex.getMessage(), "Discovered invalid key-value pair in query string for key (\"foo\").  Full query string: foo");
     }
 
     /**
@@ -1251,8 +1271,8 @@ public class WebTests {
     @Test
     public void test_ExtractMapFromQueryString_ParsingFailure_IncompleteTrailingEscapePattern() {
         RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
-        var result = requestLine.extractMapFromQueryString("name=baz%2&foo=bar");
-        assertEquals(result, Map.of("foo", "bar"));
+        var ex = assertThrows(BadRequestException.class, () -> requestLine.extractMapFromQueryString("name=baz%2&foo=bar"));
+        assertEquals(ex.getMessage(), "Query string parsing failed for key: (name) value: (baz%2)");
     }
 
     /**
@@ -1261,8 +1281,9 @@ public class WebTests {
     @Test
     public void test_ExtractMapFromQueryString_ParsingFailure_IllegalHexCharacters() {
         RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
-        var result = requestLine.extractMapFromQueryString("name=baz%2G&foo=bar");
-        assertEquals(result, Map.of("foo", "bar"));
+        var ex = assertThrows(BadRequestException.class, () -> requestLine.extractMapFromQueryString("name=baz%2G&foo=bar"));
+        assertEquals(ex.getMessage(), "Query string parsing failed for key: (name) value: (baz%2G)");
+        assertTrue(ex.getCause().getMessage().contains("URLDecoder: Illegal hex characters in escape"));
     }
 
     /**
@@ -1292,8 +1313,8 @@ public class WebTests {
     public void test_ParseQueryString_EdgeCase_DuplicateKey() {
         RequestLine requestLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger);
 
-        requestLine.extractMapFromQueryString("foo=bar&foo=baz");
-        assertTrue(logger.doesMessageExist("Unexpected: key (foo) was duplicated in the query line - previous value was bar and was overwritten by baz"));
+        var ex = assertThrows(BadRequestException.class, () -> requestLine.extractMapFromQueryString("foo=bar&foo=baz"));
+        assertEquals(ex.getMessage(), "Unexpected: key (foo) was duplicated in the query line - previous value was bar and was overwritten by baz");
     }
 
     private static byte[] makeTestMultiPartData() {
@@ -1471,7 +1492,7 @@ public class WebTests {
         }
     }
 
-    private String readBody(InputStream is, int length) {
+    private String readBody(InputStream is, int length) throws IOException {
         byte[] read = inputStreamUtils.read(length, is);
         return StringUtils.byteArrayToString(read);
     }
@@ -1481,7 +1502,7 @@ public class WebTests {
      * gzip, we won't compress.
      */
     @Test
-    public void testCompression_EdgeCase_NoGzip() throws IOException {
+    public void testCompression_EdgeCase_NoGzip() {
         var stringBuilder = new StringBuilder();
         Response response = (Response) Response.htmlOk(gettysburgAddress);
 
@@ -1510,27 +1531,6 @@ public class WebTests {
         assertEquals(response.apply(null), Response.buildLeanResponse(CODE_400_BAD_REQUEST));
     }
 
-
-    /**
-     * The authority component of a URL, consisting of the domain name
-     * and optionally the port (prefixed by a ':'), is called the
-     * authority form. It is only used with CONNECT when setting up
-     * an HTTP tunnel.
-     * <p>
-     *     We don't handle HTTP tunnels.
-     * </p>
-     */
-    @Test
-    public void testAuthorityComponent() {
-        String startLineString = "CONNECT foo.bar:80 HTTP/1.1";
-        var startLine = new RequestLine(NONE, PathDetails.empty, HttpVersion.NONE, "", logger).extractRequestLine(startLineString);
-        var webFramework = new WebFramework(context);
-
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
-
-        assertTrue(response == null);
-    }
-
     /**
      * The asterisk form, a simple asterisk ('*') is used
      * with OPTIONS, representing the server as a whole. OPTIONS * HTTP/1.1
@@ -1538,20 +1538,6 @@ public class WebTests {
     @Test
     public void testAsteriskForm() {
         String startLineString = "OPTIONS * HTTP/1.1";
-        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
-        var webFramework = new WebFramework(context);
-
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
-
-        assertTrue(response == null);
-    }
-
-    /**
-     * Checking on behavior when there are no spaces in the line
-     */
-    @Test
-    public void testLineWithNoSpaces() {
-        String startLineString = "abcd";
         var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
         var webFramework = new WebFramework(context);
 
@@ -1612,21 +1598,9 @@ public class WebTests {
         var webFramework = new WebFramework(context);
         RequestLine result;
         try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
-
-            result = webFramework.getProcessedRequestLine(sw, "");
+            var ex = assertThrows(BadRequestException.class, () -> webFramework.getProcessedRequestLine(sw, ""));
+            assertEquals(ex.getMessage(), "Error: The request line was empty");
         }
-        assertEquals(result, RequestLine.EMPTY);
-    }
-
-    @Test
-    public void testGettingProcessedStartLine_EdgeCase_InvalidStartLine() {
-        var webFramework = new WebFramework(context);
-        RequestLine result;
-        try (FakeSocketWrapper sw = new FakeSocketWrapper()) {
-
-            result = webFramework.getProcessedRequestLine(sw, "FOO FOO the FOO");
-        }
-        assertEquals(result, RequestLine.EMPTY);
     }
 
     /**

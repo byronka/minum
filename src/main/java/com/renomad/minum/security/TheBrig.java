@@ -6,6 +6,7 @@ import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.utils.ThrowingRunnable;
 import com.renomad.minum.utils.TimeUtils;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -106,7 +107,7 @@ public final class TheBrig implements ITheBrig {
     }
 
     @Override
-    public void stop() {
+    public void stop() throws IOException {
         logger.logDebug(() -> "TheBrig has been told to stop");
         if (myThread != null) {
             logger.logDebug(() -> "TheBrig: Sending interrupt to thread");

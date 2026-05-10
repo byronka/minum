@@ -5,7 +5,10 @@ import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.TestFailureException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.concurrent.Future;
 
@@ -18,7 +21,7 @@ public class ThrowingRunnableTests {
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("ThrowingRunnableTests");
         logger = (TestLogger) context.getLogger();
     }
 
@@ -26,6 +29,13 @@ public class ThrowingRunnableTests {
     public static void cleanup() {
         shutdownTestingContext(context);
     }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     /**
      * Trying to handle exceptions well in a multi-threaded system is a matter

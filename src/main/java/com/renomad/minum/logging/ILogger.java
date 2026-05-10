@@ -14,6 +14,12 @@ public interface ILogger {
     void logDebug(ThrowingSupplier<String, Exception> msg);
 
     /**
+     * Logs information regarding system integrity, such as overloaded
+     * or failing disks or operating system failures.
+     */
+    void logWarn(ThrowingSupplier<String, Exception> msg);
+
+    /**
      * Logs helpful debugging information
      * <p>
      *     Similar to {@link #logDebug(ThrowingSupplier)} but used

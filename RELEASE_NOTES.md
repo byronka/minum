@@ -1,10 +1,9 @@
 Release notes
 =============
 
-* This is a list of the major versions, which are those requiring the developer to adjust
-  their code.  From August 2023 to August 2024, there were 8 major versions. Version 8 has
-  remained stable.
-  * 9: Fix race condition in templates
+* Major versions:
+  * 10: Killing more bugs, better exception handling, _May 2026_
+  * 9: Fix race condition in templates, _March 2026_
   * 8: Streaming videos, _August 2024_
   * 7: Read bodies more efficiently, _August 2024_
   * 6: Streaming responses, _July 2024_
@@ -15,8 +14,78 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
-v9.0.0
-------
+v10.0.0
+--------
+
+Spring cleaning, 2026, turning up the lights
+
+Bug fixes found through AI analysis of the codebase.  Results of the analysis were
+used to build tests proving the bugs, which were then corrected by hand in the ordinary
+manner.
+
+Exception handling got a whole workover, in order to better illuminate exceptional
+cases in the code and to improve testability of them.  Now, much of the code that
+directly interacts with I/O (like implementations of `IFileUtils`) throw `IOException`
+and users are expected to handle these themselves, reminding them they are dealing with an
+important exception case.
+
+* Breaking changes
+  * In several spots, the system became a bit stricter than before, and will throw
+    a new exception, `BadRequestException`, if it receives something invalid.  See
+    further notes below.
+  * `IFileUtils`, `IFileReader`, `InputStreamUtils` and `ISocketWrapper` methods
+    had `throws IOException` added.
+  * Some exceptional situations switched to `ForbiddenUseException`.
+    There were several scenarios with paths that were wrapped in `InvariantException`, but if
+    the system gets a request for a path that is meant to escape the directory,
+    that is considered a forbidden situation, and should be tagged as such, allowing
+    the programmer to use any desired mechanisms to handle it (such as the Brig).
+  * New exception, `BadRequestException` will be thrown if we receive certain invalid
+    data in requests, and will return a 400 to the client. A debug message will be added
+    to the logs, prefixed with "Bad data in request.", and it will be thrown in these situations:
+    * Receiving a request using chunked transfer-encoding (Minum does not handle that)
+    * Lacking a properly-formed boundary value in a multipart form, or otherwise failing
+      to follow protocol for that form.
+    * Duplicate keys in a url-encoded form
+    * Excessive number of key-value pairs in a url-encoded form
+    * Malformed headers in request
+    * Multiple content-type headers
+    * Invalid content-length headers
+    * Multiple range headers
+    * Invalid range headers
+    * Empty request line
+    * Invalid request line
+
+* Bugs
+  * Index race condition - a concurrent add/remove was able to cause incorrect
+    data in the database index sets.
+
+* Performance related
+  * Removing two `synchronized` blocks in the `abstractDb` class.  Using
+    `synchronized` causes thread pinning with virtual threads in Java 21 to 23.
+  * Documenting that LRUCache is not thread-safe, and adjusting calls to
+    it from the web framework to use locking.
+  * Corrected a performance bug in the database code when looking for
+    existing entries. It was previously using a linear scan to find existing
+    data, which was unnecessary, the data being in a map collection already.
+
+* Minor fixes
+  * Making stop flag more visible to all threads in ActionQueue. This
+    issue only manifests when the system is shutting down - it causes
+    the shutdown to be less clean than otherwise.  Corrected by setting
+    the variable to be `volatile` so its value is more immediately available
+    to all threads.
+  * Fixing potential resource leak in `Response.compressBody()`. This is
+    a minor issue - the resource only leaks if GzipOutputStream throws
+    an exception, which should be rare.
+
+Additionally, spelling corrections in the documentation and a new `test_quiet` target
+in the Makefile that runs tests without showing the logs.
+
+Many thanks to Adam and Matt for their help!
+
+v9.0.0 Released on March 1
+--------------------------
 
 * Much appreciation to HSGamer for fantastic improvements and bug fixes! Among them:
   * Found a race condition in the templates, and provided a fix.  This is the

@@ -2,12 +2,14 @@ package com.renomad.minum.database;
 
 import com.renomad.minum.state.Context;
 import com.renomad.minum.utils.CryptoUtils;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -126,13 +128,17 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      *                 data, which must be an implementation of {@link DbData}.
      */
     public DbEngine2(Path dbDirectory, Context context, T instance) {
-        super(dbDirectory, context, instance);
+        this(dbDirectory, context, instance, new FileUtils(context.getLogger(), context.getConstants()));
+    }
 
-        this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context);
+    DbEngine2(Path dbDirectory, Context context, T instance, IFileUtils fileUtils) {
+        super(dbDirectory, context, instance, fileUtils);
+
         try {
-            this.databaseAppender = new DatabaseAppender(dbDirectory, context);
-        } catch (IOException e) {
-            throw new DbException("Error while initializing DatabaseAppender in DbEngine2", e);
+            this.databaseConsolidator = new DatabaseConsolidator(dbDirectory, context, fileUtils);
+            this.databaseAppender = new DatabaseAppender(dbDirectory, context, fileUtils);
+        } catch (IOException ex) {
+            throw new DbException("Error in DbEngine2 constructor", ex);
         }
         this.loadDataLock = new ReentrantLock();
         this.consolidateLock = new ReentrantLock();
@@ -180,7 +186,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             boolean newElementCreated = processDataIndex(newData);
             writeToDisk(newData);
             writeToMemory(newData, newElementCreated);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
            throw new DbException("failed to write data " + newData, ex);
         } finally {
             writeLock.unlock();
@@ -259,7 +265,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         try {
             deleteFromDisk(dataToDelete);
             deleteFromMemory(dataToDelete);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             throw new DbException("failed to delete data " + dataToDelete, ex);
         } finally {
             writeLock.unlock();
@@ -273,26 +279,17 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         consolidateIfNecessary();
     }
 
-
-    /**
-     * Tells the database to load its data into memory immediately rather
-     * than wait for a command that would require data (like {@link #write(DbData)},
-     * {@link #delete(DbData)}, or {@link #values()}). This may be valuable
-     * in cases where the developer wants greater control over the timing - such
-     * as getting the data loaded into memory immediately at program start.
-     */
-    private void loadDataFromDisk() throws IOException {
+    private void loadDataFromDisk() throws IOException, ParseException {
         logger.logDebug(() -> "Loading data from disk. Db Engine2. Directory: " + dbDirectory);
 
         // if we find the "index.ddps" file, it means we are looking at an old
         // version of the database.  Update it to the new version, and then afterwards
         // remove the old version files.
-        if (Files.exists(dbDirectory.resolve("index.ddps"))) {
-            new DbFileConverter(context, dbDirectory).convertClassicFolderStructureToDbEngine2Form();
+        if (fileUtils.exists(dbDirectory.resolve("index.ddps"))) {
+            new DbFileConverter(context, dbDirectory, fileUtils).convertClassicFolderStructureToDbEngine2Form();
         }
 
-        fileUtils.makeDirectory(dbDirectory);
-        // if there are any remnant items in the current append-only file, move them
+        // if there are any remaining items in the current append-only file, move them
         // to a new file
         databaseAppender.saveOffCurrentDataToReadyFolder();
         databaseAppender.flush();
@@ -340,7 +337,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             // build a hash for this data
             MessageDigest messageDigestSha256 = getMessageDigest("SHA-256");
 
-            try(Stream<String> fileStream = Files.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
+            try(Stream<String> fileStream = fileUtils.lines(consolidatedDataFile, StandardCharsets.US_ASCII)) {
 
                 fileStream.forEach(line -> {
                     messageDigestSha256.update(line.getBytes(StandardCharsets.US_ASCII));
@@ -348,8 +345,8 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
                 });
 
                 // check against the checksum for what we read, if applicable
-                if (Files.exists(checksumFilename)) {
-                    String checksum = Files.readString(checksumFilename);
+                if (fileUtils.exists(checksumFilename)) {
+                    String checksum = fileUtils.readString(checksumFilename);
                     byte[] hashBytes = messageDigestSha256.digest();
                     String hashString = CryptoUtils.bytesToHex(hashBytes);
                     if (!hashString.equals(checksum)) {
@@ -458,24 +455,13 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     }
 
     /**
-     * This command calls {@link DatabaseAppender#flush()}, which will
-     * force any in-memory-buffered data to be written to disk.  This is
-     * not commonly necessary to call for business purposes, but tests
-     * may require it if you want to be absolutely sure the data is written
-     * to disk at a particular moment.
-     */
-    public void flush() {
-        this.databaseAppender.flush();
-    }
-
-    /**
      * This is here to match the contract of {@link Db}
      * but all it does is tell the interior file writer
      * to write its data to disk.
      */
     @Override
-    public void stop() {
-        flush();
+    public void stop() throws IOException {
+        this.databaseAppender.flush();
     }
 
     /**
@@ -483,7 +469,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * to have a similar contract to {@link Db}
      */
     @Override
-    public void stop(int count, int sleepTime) {
-        flush();
+    public void stop(int count, int sleepTime) throws IOException {
+        this.stop();
     }
 }

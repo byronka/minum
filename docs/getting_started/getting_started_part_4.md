@@ -186,7 +186,7 @@ public class Book {
 
     private final TemplateProcessor bookTemplate;
 
-    public Book() throws IOException {
+    public Book() throws IOException{
         String myTemplate = Files.readString(Path.of("src/main/webapp/templates/bookentry.html"));
         this.bookTemplate = TemplateProcessor.buildProcessor(myTemplate);
     }

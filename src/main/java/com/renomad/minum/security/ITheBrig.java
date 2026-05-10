@@ -1,5 +1,6 @@
 package com.renomad.minum.security;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -18,7 +19,7 @@ public interface ITheBrig {
     /**
      * Kills the infinite loop running inside this class.
      */
-    void stop();
+    void stop() throws IOException;
 
     /**
      * Put a client in jail for some infraction, for a specified time.

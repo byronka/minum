@@ -5,7 +5,10 @@ import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.state.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -20,7 +23,7 @@ public class ServerTests {
 
     @BeforeClass
     public static void init() {
-        context = buildTestingContext("unit_tests");
+        context = buildTestingContext("ServerTests");
         logger = (TestLogger) context.getLogger();
     }
 
@@ -29,6 +32,12 @@ public class ServerTests {
         shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void testServerExceptionHandling() {

@@ -3,12 +3,18 @@ package com.renomad.minum.security;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
 import com.renomad.minum.web.FullSystem;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -18,7 +24,7 @@ public class TheBrigTests {
 
     private static Context context;
     private static TestLogger logger;
-    private static FileUtils fileUtils;
+    private static IFileUtils fileUtils;
 
     @BeforeClass
     public static void init() {
@@ -35,12 +41,19 @@ public class TheBrigTests {
         shutdownTestingContext(context);
     }
 
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
+
     /**
      * A user should be able to put a particular address in jail for
      * a time and after it has paid its dues, be released.
      */
     @Test
-    public void test_TheBrig_Basic() {
+    public void test_TheBrig_Basic() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -55,19 +68,19 @@ public class TheBrigTests {
         finalB.sendToJail("4.4.4.4_too_freq_downloads", 20);
 
         // what's the situation?
-        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"));
-        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"));
-        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"));
-        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"));
+        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"), "1.1.1.1_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"), "2.2.2.2_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"), "3.3.3.3_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"), "4.4.4.4_too_freq_downloads should be in jail");
         assertFalse(finalB.isInJail("DOES_NOT_EXIST"));
 
         MyThread.sleep(10);
 
         // after a short time, they should all still be in jail
-        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"));
-        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"));
-        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"));
-        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"));
+        assertTrue(finalB.isInJail("1.1.1.1_too_freq_downloads"), "1.1.1.1_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("2.2.2.2_too_freq_downloads"), "2.2.2.2_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("3.3.3.3_too_freq_downloads"), "3.3.3.3_too_freq_downloads should be in jail");
+        assertTrue(finalB.isInJail("4.4.4.4_too_freq_downloads"), "4.4.4.4_too_freq_downloads should be in jail");
 
         MyThread.sleep(80);
 
@@ -79,10 +92,10 @@ public class TheBrigTests {
         MyThread.sleep(30);
 
         // after their release time, they should all be out, except 1.1.1.1, who bugged us
-        assertTrue(b.isInJail("1.1.1.1_too_freq_downloads"));
-        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"));
-        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"));
-        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"));
+        assertTrue( b.isInJail("1.1.1.1_too_freq_downloads"), "1.1.1.1_too_freq_downloads should be in jail");
+        assertFalse(b.isInJail("2.2.2.2_too_freq_downloads"), "2.2.2.2_too_freq_downloads should not be in jail");
+        assertFalse(b.isInJail("3.3.3.3_too_freq_downloads"), "3.3.3.3_too_freq_downloads should not be in jail");
+        assertFalse(b.isInJail("4.4.4.4_too_freq_downloads"), "4.4.4.4_too_freq_downloads should not be in jail");
 
         // 1.1.1.1 bugged us some more.
         b.sendToJail("1.1.1.1_too_freq_downloads", 40);
@@ -113,7 +126,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_TheBrig_RegularStop() {
+    public void test_TheBrig_RegularStop() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -141,7 +154,7 @@ public class TheBrigTests {
      * of the new transgression.
      */
     @Test
-    public void test_TheBrig_ExistingInmate() {
+    public void test_TheBrig_ExistingInmate() throws IOException {
         MyThread.sleep(50);
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
@@ -166,7 +179,7 @@ public class TheBrigTests {
     }
 
     @Test
-    public void test_BrigDisabled() {
+    public void test_BrigDisabled() throws IOException {
         Properties properties = new Properties();
         properties.setProperty("IS_THE_BRIG_ENABLED", "false");
         var disabledBrigContext = buildTestingContext("testing brig disabled", properties);
@@ -177,5 +190,6 @@ public class TheBrigTests {
         assertTrue(fullSystem.getTheBrig() == null, "When the brig is disabled, it isn't initialized in FullSystem");
 
         shutdownTestingContext(disabledBrigContext);
+        Files.deleteIfExists(Path.of("SYSTEM_RUNNING"));
     }
 }

@@ -11,6 +11,14 @@ public enum LoggingLevel {
     DEBUG,
 
     /**
+     * This level is used when we catch an {@link Exception} that has bubbled up to
+     * the top of the call stack.  It reflects situations that cannot be easily
+     * anticipated by the developer, such as bugs in the operating system or hardware failures.
+     */
+    WARN,
+
+
+    /**
      * Represents an error that occurs in a separate thread, so
      * that we are not able to catch it bubbling up
      */

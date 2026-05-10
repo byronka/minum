@@ -43,8 +43,8 @@ public class EqualsTests {
 
         EqualsVerifier.forClass(Body.class)
                 .withPrefabValues(Headers.class,
-                        new Headers(List.of("a")),
-                        new Headers(List.of("b"))
+                        new Headers(List.of("content-length: 123")),
+                        new Headers(List.of("content-length: 456"))
                 ).verify();
 
         EqualsVerifier.forClass(RequestLine.class)

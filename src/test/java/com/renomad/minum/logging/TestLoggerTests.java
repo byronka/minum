@@ -1,9 +1,13 @@
 package com.renomad.minum.logging;
 
 import com.renomad.minum.state.Context;
+import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.utils.FileUtils;
+import com.renomad.minum.utils.IFileUtils;
 import com.renomad.minum.utils.MyThread;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -13,13 +17,29 @@ import static com.renomad.minum.testing.TestFramework.*;
 
 public class TestLoggerTests {
 
-    private TestLogger logger;
 
-    @Before
-    public void init() {
-        Context context = buildTestingContext("TestLogger tests");
-        logger = (TestLogger) context.getLogger();
+    static private IFileUtils fileUtils;
+    static private Context context;
+    static private TestLogger logger;
+
+    @BeforeClass
+    public static void init() {
+        context = TestFramework.buildTestingContext("TestLoggerTests");
+        fileUtils = new FileUtils(context.getLogger(), context.getConstants());
+        logger = (TestLogger)context.getLogger();
     }
+
+    @AfterClass
+    public static void cleanup() {
+        TestFramework.shutdownTestingContext(context);
+    }
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher watchman = new TestWatcher() {
+        protected void starting(Description description) {
+            logger.test(description.toString());
+        }
+    };
 
     @Test
     public void test_TestLogger_MaxLines() {
@@ -153,24 +173,6 @@ public class TestLoggerTests {
     }
 
     /**
-     * The {@link TestLogger} has a method, "test", that is used to
-     * display information about the test in the logs.  That way, the
-     * log message is displayed very close to the logs about the test.
-     * If instead we merely used printf, the output message would probably
-     * show up much earlier or later in the logs, which is pointless.
-     */
-    @Test
-    public void test_test() {
-        logger.test("testing the test method");
-        assertTrue(logger.doesMessageExist("testing the test method"));
-        assertEquals(logger.getTestCount(), 1);
-        logger.test("testing something else");
-        // wait time for queued log command to finish
-        MyThread.sleep(10);
-        assertEquals(logger.getTestCount(), 2);
-    }
-
-    /**
      * If we don't find the log message we expected, an
      * exception should be thrown.
      */
@@ -189,5 +191,17 @@ public class TestLoggerTests {
         assertTrue(tlq.add("abc"));
         assertTrue(tlq.add("123"));
         assertFalse(tlq.contains("abc"));
+    }
+
+    /**
+     * Heres where we play with the {@link TestLogger#test(String)} command
+     * and ensure it is recording the number of times it has been used.
+     */
+    @Test
+    public void test_test() {
+        var tl = new TestLogger(context.getConstants(), context.getExecutorService(), "test_test");
+        tl.test("Test a");
+        tl.test("Test b");
+        assertEquals(tl.getTestCount(), 2);
     }
 }

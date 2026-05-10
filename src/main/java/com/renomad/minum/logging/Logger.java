@@ -71,12 +71,21 @@ public class Logger implements ILogger {
         for (LoggingLevel t : LoggingLevel.values()) {
             activeLogLevels.put(t, enabledLoggingLevels.contains(t));
         }
+        // these are set specially - they must always be output, no matter what
+        // the user prefers, because of their critical importance.
+        activeLogLevels.put(LoggingLevel.ASYNC_ERROR, true);
+        activeLogLevels.put(LoggingLevel.WARN, true);
         return activeLogLevels;
     }
 
     @Override
     public void logDebug(ThrowingSupplier<String, Exception> msg) {
         logHelper(msg, LoggingLevel.DEBUG, activeLogLevels, loggingActionQueue);
+    }
+
+    @Override
+    public void logWarn(ThrowingSupplier<String, Exception> msg) {
+        logHelper(msg, LoggingLevel.WARN, activeLogLevels, loggingActionQueue);
     }
 
     @Override

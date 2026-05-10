@@ -1,6 +1,5 @@
 package com.renomad.minum.web;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -39,8 +38,12 @@ public interface IResponse {
     /**
      * By calling this method with a {@link ISocketWrapper} parameter, the method
      * will send bytes on the associated socket.
+     * @throws Exception so that when this is called in {@link WebFramework#httpProcessing(ISocketWrapper)},
+     * the exception type can be examined and some {@link java.io.IOException} types
+     * like {@link java.net.SocketException} can be recorded more quietly, instead of
+     * rendering a whole stack trace in the logs.
      */
-    void sendBody(ISocketWrapper sw) throws IOException;
+    void sendBody(ISocketWrapper sw) throws Exception;
 
     /**
      * Returns the bytes of the Response body being sent to the client
