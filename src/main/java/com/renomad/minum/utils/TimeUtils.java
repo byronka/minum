@@ -5,6 +5,9 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Static helper methods for working with time data
+ */
 public final class TimeUtils {
 
     private TimeUtils() {

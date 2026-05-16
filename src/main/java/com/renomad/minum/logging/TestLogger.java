@@ -224,6 +224,10 @@ public final class TestLogger extends Logger {
         }
     }
 
+    /**
+     * Returns the count of calls to the {@link TestLogger#test(String)} method
+     * for an instance of this class.
+     */
     public int getTestCount() {
         return testCount.get();
     }

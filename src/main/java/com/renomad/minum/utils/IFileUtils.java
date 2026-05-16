@@ -72,7 +72,17 @@ public interface IFileUtils {
      * <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      * the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     *
+     * <p>
+     *     This calls to {@link IFileReader#readFile(String)} for its work, and that
+     *     method calls to {@link FileUtils#checkForBadFilePatterns(String)} to ensure
+     *     the requested method is definitely in the allowed directory, and not
+     *     escaping it using characters like ".." or "//".
+     * </p>
+     * <p>
+     *     Also, {@link IFileReader#readFile(String)} uses the {@link LRUCache}
+     *     to cache data.
+     * </p>
+     * @throws IllegalArgumentException if the path is blank
      */
     byte[] readBinaryFile(String path) throws IOException;
 
@@ -88,7 +98,16 @@ public interface IFileUtils {
      * <em>Note: This does *not* protect against untrusted data on its own.  Call {@link #safeResolve(String, String)} first against
      * the path to ensure it uses valid characters and prevent it escaping the expected directory.</em>
      * </p>
-     *
+     * <p>
+     *     This calls to {@link IFileReader#readFile(String)} for its work, and that
+     *     method calls to {@link FileUtils#checkForBadFilePatterns(String)} to ensure
+     *     the requested method is definitely in the allowed directory, and not
+     *     escaping it using characters like ".." or "//".
+     * </p>
+     * <p>
+     *     this uses the {@link LRUCache} to cache data.
+     * </p>
+     * @throws IllegalArgumentException if the path is blank
      */
     String readTextFile(String path) throws IOException;
 

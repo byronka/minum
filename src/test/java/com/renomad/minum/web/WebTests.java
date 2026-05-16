@@ -405,11 +405,11 @@ public class WebTests {
                 () -> RequestLine.EMPTY.extractRequestLine("GET HTTP/1.1"));
 
         assertThrows(BadRequestException.class,
-                "Did not recognize the HTTP protocol as one we handle: HTTP/1.2",
+                "Did not recognize the HTTP protocol as one we handle: HTTP/1.2.  Full line: GET /something HTTP/1.2",
                 () -> RequestLine.EMPTY.extractRequestLine("GET /something HTTP/1.2"));
 
         assertThrows(BadRequestException.class,
-                "Did not recognize the HTTP protocol as one we handle: HTTP",
+                "Did not recognize the HTTP protocol as one we handle: HTTP.  Full line: GET /something HTTP",
                 () -> RequestLine.EMPTY.extractRequestLine("GET /something HTTP"));
 
         assertThrows(BadRequestException.class,
@@ -425,11 +425,11 @@ public class WebTests {
                 () -> RequestLine.EMPTY.extractRequestLine("FOO FOO the FOO"));
 
         assertThrows(BadRequestException.class,
-                "Unable to convert method to enum.  Returning empty request line.  Method value provided: FOOP",
+                "Unable to convert method to enum.  Returning empty request line.  Method value provided: FOOP.  Full line: FOOP FOOP FOOP",
                 () -> RequestLine.EMPTY.extractRequestLine("FOOP FOOP FOOP"));
 
         assertThrows(BadRequestException.class,
-                "Unable to convert method to enum.  Returning empty request line.  Method value provided: CONNECT",
+                "Unable to convert method to enum.  Returning empty request line.  Method value provided: CONNECT.  Full line: CONNECT foo.bar:80 HTTP/1.1",
                 () -> RequestLine.EMPTY.extractRequestLine("CONNECT foo.bar:80 HTTP/1.1"));
 
 
@@ -1518,32 +1518,24 @@ public class WebTests {
 
     /**
      * A complete URL, known as the absolute form, is mostly used with
-     * GET when connected to a proxy.
+     * GET when connected to a proxy.  Minum does not handle this, as it
+     * is not a proxy.
      */
     @Test
-    public void testAbsoluteForm() throws Exception {
+    public void testAbsoluteForm() {
         String startLineString = "GET https://foo.bar.baz HTTP/1.1";
-        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
-        var webFramework = new WebFramework(context);
-
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
-
-        assertEquals(response.apply(null), Response.buildLeanResponse(CODE_400_BAD_REQUEST));
+        assertThrows(BadRequestException.class, () -> RequestLine.EMPTY.extractRequestLine(startLineString));
     }
 
     /**
      * The asterisk form, a simple asterisk ('*') is used
      * with OPTIONS, representing the server as a whole. OPTIONS * HTTP/1.1
+     * Minum does not provide this feature.
      */
     @Test
     public void testAsteriskForm() {
         String startLineString = "OPTIONS * HTTP/1.1";
-        var startLine = RequestLine.EMPTY.extractRequestLine(startLineString);
-        var webFramework = new WebFramework(context);
-
-        ThrowingFunction<IRequest, IResponse> response = webFramework.findEndpointForThisStartline(startLine, defaultHeader);
-
-        assertTrue(response == null);
+        assertThrows(BadRequestException.class, () -> RequestLine.EMPTY.extractRequestLine(startLineString));
     }
 
     /**

@@ -6,6 +6,10 @@ import com.renomad.minum.security.Inmate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A container for static serialization methods.
+ * These are primarily used in the database code.
+ */
 public final class SerializationUtils {
 
     private SerializationUtils() {

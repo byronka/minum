@@ -80,86 +80,12 @@ public class WebPerformanceTests {
         context.getExecutorService().shutdownNow();
     }
 
-    /**
-     * A plain performance test - just GET a bunch of times to an endpoint that hardly does anything.
-     */
-    @Test
-    public void test1() {
-        int countParallelism = 5;
-        int countRequestsToSend = 5;
-        requestCounter = new AtomicInteger();
-
-        // disable all logging
-        for (var key : logger.getActiveLogLevels().keySet()) {
-            logger.getActiveLogLevels().put(key, false);
-        }
-        StopwatchUtils stopwatchUtils = new StopwatchUtils().startTimer();
-
-        IntStream.range(0, countParallelism).boxed().parallel().forEach(
-                x -> {
-                    for (int i = 0; i < countRequestsToSend; i++) {
-                        StatusLine.StatusCode status = ft.get("hello?name=byron").statusLine().status();
-                        requestCounter.incrementAndGet();
-                        assertEquals(status, CODE_200_OK);
-                    }
-                }
-        );
-
-        long l = stopwatchUtils.stopTimer();
-        System.out.println("Took this many millis for test1: " + l + ", or " + (countParallelism * countRequestsToSend / (l / 1000.0)) + " requests per second");
-        System.out.println("Ran this many iterations: " + (countParallelism * countRequestsToSend) + " and the counter is at " + requestCounter.get());
-
-    }
-
-    /*
-     * This tests the performance of a small number of sockets, with many
-     * requests being handled on each.  To see a test where each request has
-     * its own socket, see {@link #test1}
-     */
-    @Test
-    public void test2() {
-        int countParallelism = 5;
-        int countRequests = 5;
-        requestCounter = new AtomicInteger();
-
-        // disable all logging
-        for (var key : logger.getActiveLogLevels().keySet()) {
-            logger.getActiveLogLevels().put(key, false);
-        }
-        StopwatchUtils stopwatchUtils = new StopwatchUtils().startTimer();
-        String host = context.getConstants().hostName;
-        int port = context.getConstants().serverPort;
-        IntStream.range(0, countParallelism).boxed().parallel().forEach(
-                x -> {
-                    try (Socket socket = new Socket(host, port)) {
-                        try (ISocketWrapper client = new SocketWrapper(socket, null, logger, 0, "localhost")) {
-                            for (int i = 0; i < countRequests; i++) {
-                                FunctionalTesting.TestResponse testResponse = ft.innerClientSend(
-                                        client,
-                                        RequestLine.Method.GET,
-                                        "hello?name=byron", new byte[0], List.of());
-                                requestCounter.incrementAndGet();
-                                assertEquals(testResponse.body().asString(), "hello byron");
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.logDebug(() -> "Error during client send: " + StacktraceUtils.stackTraceToString(e));
-                    }
-                }
-        );
-
-        long l = stopwatchUtils.stopTimer();
-        System.out.println("Took this many millis for test2: " + l + ", or " + (countParallelism * countRequests / (l / 1000.0)) + " requests per second");
-        System.out.println("Ran this many iterations: " + (countParallelism * countRequests) + " and the counter is at " + requestCounter.get());
-
-    }
-
     /*
      * A third kind of performance test - this one creates a bunch of virtual threads
      * and submits them using an {@link ExecutorService} using virtual threads
      */
     @Test
-    public void test3() throws ExecutionException, InterruptedException {
+    public void webPerfTest() throws ExecutionException, InterruptedException {
         int countParallelism = 5;
         int countRequests = 5;
         requestCounter = new AtomicInteger();

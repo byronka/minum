@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.database.DbException;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
@@ -18,6 +19,8 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.utils.FileUtils.*;
@@ -206,9 +209,23 @@ public class FileUtilsTests {
     /**
      * A {@link FileReader} that always throws an IOException
      */
-    IFileReader throwingFileReader = path -> {
-        throw new UtilsException("Testing");
+    IFileReader throwingFileReader = new IFileReader() {
+        @Override
+        public byte[] readFile(String path) throws IOException {
+            throw new UtilsException("Testing");
+        }
+
+        @Override
+        public ReentrantLock getCacheLock() {
+            return new ReentrantLock();
+        }
+
+        @Override
+        public Map<String, byte[]> getLruCache() {
+            return Map.of();
+        }
     };
+
 
     @Test
     public void test_walkPathDeleting() {

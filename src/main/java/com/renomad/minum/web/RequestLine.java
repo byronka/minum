@@ -118,27 +118,27 @@ public final class RequestLine {
      * Given the string value of a Request Line (like GET /hello HTTP/1.1)
      * validate and extract the values for our use.
      */
-    public RequestLine extractRequestLine(String value) {
-        mustNotBeNull(value);
-        if (value.isEmpty()) {
+    public RequestLine extractRequestLine(String rawFullStartLine) {
+        mustNotBeNull(rawFullStartLine);
+        if (rawFullStartLine.isEmpty()) {
             throw new BadRequestException("Error: The request line was empty");
         }
-        RequestLineRawValues rawValues = requestLineTokenizer(value);
+        RequestLineRawValues rawValues = requestLineTokenizer(rawFullStartLine);
         if (rawValues == null) {
-            throw new BadRequestException("Unable to tokenize the request line into its constituent three parts, GET + path + protocol: " + value);
+            throw new BadRequestException("Unable to tokenize the request line into its constituent three parts, GET + path + protocol: " + rawFullStartLine);
         }
         Method myMethod;
         myMethod = Method.getMethod(rawValues.method());
         if (myMethod.equals(Method.NONE)) {
-            throw new BadRequestException("Unable to convert method to enum.  Returning empty request line.  Method value provided: " + rawValues.method());
+            throw new BadRequestException("Unable to convert method to enum.  Returning empty request line.  Method value provided: " + rawValues.method() + ".  Full line: " + rawFullStartLine);
         }
-        PathDetails pd = extractPathDetails(rawValues.path());
+        PathDetails pd = extractPathDetails(rawValues.path(), rawFullStartLine);
         HttpVersion httpVersion = getHttpVersion(rawValues.protocol());
         if (httpVersion.equals(HttpVersion.NONE)) {
-            throw new BadRequestException("Did not recognize the HTTP protocol as one we handle: " + rawValues.protocol());
+            throw new BadRequestException("Did not recognize the HTTP protocol as one we handle: " + rawValues.protocol() + ".  Full line: " + rawFullStartLine);
         }
 
-        return new RequestLine(myMethod, pd, httpVersion, value, logger);
+        return new RequestLine(myMethod, pd, httpVersion, rawFullStartLine, logger);
     }
 
     /**
@@ -171,10 +171,14 @@ public final class RequestLine {
         return new RequestLineRawValues(myMethod, path, protocol);
     }
 
-    private PathDetails extractPathDetails(String path) {
+    private PathDetails extractPathDetails(String path, String rawFullStartLine) {
         PathDetails pd;
         // the request line will have a forward slash at the beginning of
         // the path.  Remove that here.
+        if (path.charAt(0) != '/') {
+            throw new BadRequestException("Minum only handles origin-form request targets. Our input: " + path + ". Full line: " + rawFullStartLine);
+        }
+
         String adjustedPath = path.substring(1);
         int locationOfQueryBegin = adjustedPath.indexOf("?");
         if (locationOfQueryBegin >= 0) {

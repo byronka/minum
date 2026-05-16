@@ -14,8 +14,24 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
-v10.0.0
---------
+
+v10.0.1 May 16, 2026
+--------------------
+
+Performance and testing
+
+* Noticed an opportunity to improve static file reads with some caching
+  at an earlier point in the code, leading to significant improvements
+  for static file processing.
+* Improved logging surrounding the caching for greater clarity at runtime.
+* Better documentation
+* Minum does not handle request targets other than origin-form. Reply with
+  400 if the user tries it. See the HTTP spec for Request Target
+* Slim down web perf tests
+
+
+v10.0.0 May 10, 2026
+--------------------
 
 Spring cleaning, 2026, turning up the lights
 

@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.zip.GZIPOutputStream;
 
@@ -48,6 +49,12 @@ public final class WebFramework {
     private final RequestLine validRequestLine;
     private final ITheBrig theBrig;
     private final IFileUtils fileUtils;
+
+    /**
+     * This contains the directory path to the static files, as
+     * specified in the configuration file.  See {@link Constants#staticFilesDirectory}
+     */
+    private final Path staticFilesDirectoryPathBase;
 
     public Map<String,String> getSuffixToMimeMappings() {
         return new HashMap<>(fileSuffixToMime);
@@ -101,6 +108,15 @@ public final class WebFramework {
     private final ILogger logger;
 
     /**
+     * For static files (See {@link Constants#staticFilesDirectory}), This is
+     * the cutoff for the maximum quantity of bytes where we will
+     * use {@link FileReader#readFile(String)} and caching for the data.
+     * Past this point, we will use {@link #createOkResponseForLargeStaticFiles}
+     * and not use caching.
+     */
+    private static final int MAX_CACHED_BYTES = 100_000;
+
+    /**
      * This is the minimum number of bytes in a text response to apply gzip.
      */
     private static final int MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS = 2048;
@@ -120,11 +136,11 @@ public final class WebFramework {
 
                 // set some basic variables we'll need access to throughout
                 long startMillis = System.currentTimeMillis();
-                RequestLine requestLine = RequestLine.EMPTY;
+                RequestLine requestLine;
                 IRequest request;
-                Headers headers = Headers.EMPTY;
+                Headers headers;
                 IResponse response;
-                boolean isKeepAlive = false;
+                boolean isKeepAlive;
                 IResponse adjustedResponse;
                 boolean isHeadRequest = false;
 
@@ -411,7 +427,7 @@ public final class WebFramework {
      * Prepare some of the basic server response headers, like the status code, the
      * date-time stamp, the server name.
      */
-    private StringBuilder addDefaultHeaders(IResponse response, StringBuilder headerStringBuilder) {
+    private void addDefaultHeaders(IResponse response, StringBuilder headerStringBuilder) {
         String date = Objects.requireNonNullElseGet(overrideForDateTime,
                 () -> ZonedDateTime.now(ZoneId.of("UTC"))).format(DateTimeFormatter.RFC_1123_DATE_TIME);
 
@@ -423,8 +439,6 @@ public final class WebFramework {
 
         // add the server name
         headerStringBuilder.append("Server: minum").append(HTTP_CRLF);
-
-        return headerStringBuilder;
     }
 
     /**
@@ -517,11 +531,10 @@ public final class WebFramework {
      * creating a new Response with the compressed data.
      * @param out this is provided as a parameter for better control during testing
      */
-    static GZIPOutputStream compressBody(OutputStream out, byte[] body) {
+    static void compressBody(OutputStream out, byte[] body) {
         try (var gos = new GZIPOutputStream(out)) {
             gos.write(body);
             gos.finish();
-            return gos;
         } catch (IOException e) {
             throw new WebServerException("Error in Response.compressBody", e);
         }
@@ -563,14 +576,16 @@ public final class WebFramework {
     /**
      * last ditch effort - look on disk.  This response will either
      * be the file to return, or null if we didn't find anything.
+     * The request method has to be GET or HEAD.
      */
     private ThrowingFunction<IRequest, IResponse> findHandlerByFilesOnDisk(RequestLine sl, Headers requestHeaders) {
-        if (sl.getMethod() != RequestLine.Method.GET && sl.getMethod() != RequestLine.Method.HEAD) {
+        if (sl.getMethod() == RequestLine.Method.GET || sl.getMethod() == RequestLine.Method.HEAD) {
+            String requestedPath = sl.getPathDetails().getIsolatedPath();
+            IResponse response = readStaticFile(requestedPath, requestHeaders);
+            return request -> response;
+        } else {
             return null;
         }
-        String requestedPath = sl.getPathDetails().getIsolatedPath();
-        IResponse response = readStaticFile(requestedPath, requestHeaders);
-        return request -> response;
     }
 
 
@@ -585,13 +600,34 @@ public final class WebFramework {
      *  if the path has invalid characters, we'll return a "bad request" response.
      */
     IResponse readStaticFile(String path, Headers requestHeaders) {
+        String mimeType = getMimeString(path);
+        Path staticFilePath;
+        try {
+            staticFilePath = staticFilesDirectoryPathBase.resolve(path);
+        } catch (Exception e) {
+            throw new BadRequestException("Error creating a valid path from: " + path);
+        }
+
+        if (constants.useCacheForStaticFiles) {
+            ReentrantLock cacheLock = fileReader.getCacheLock();
+            cacheLock.lock();
+            try {
+                byte[] fileContents = fileReader.getLruCache().get(staticFilePath.toString());
+                if (fileContents != null) {
+                    logger.logTrace(() -> "creating an OK HTTP response for %d bytes of data found in cache for %s".formatted(fileContents.length, staticFilePath));
+                    return createOkResponseForStaticFiles(fileContents, mimeType);
+                }
+            } finally {
+                cacheLock.unlock();
+            }
+        }
+
         try {
             checkForBadFilePatterns(path);
         } catch (Exception ex) {
             logger.logDebug(() -> String.format("Bad path requested at readStaticFile: %s.  Exception: %s", path, ex.getMessage()));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
-        String mimeType = null;
 
         try {
             fileUtils.checkFileIsWithinDirectory(path, constants.staticFilesDirectory);
@@ -601,31 +637,18 @@ public final class WebFramework {
         }
 
         try {
-            Path staticFilePath = Path.of(constants.staticFilesDirectory).resolve(path);
             if (!fileUtils.isRegularFile(staticFilePath)) {
                 logger.logDebug(() -> String.format("No readable regular file found at %s", path));
                 return Response.buildLeanResponse(CODE_404_NOT_FOUND);
             }
 
-            // if the provided path has a dot in it, use that
-            // to obtain a suffix for determining file type
-            int suffixBeginIndex = path.lastIndexOf('.');
-            if (suffixBeginIndex > 0) {
-                String suffix = path.substring(suffixBeginIndex+1);
-                mimeType = fileSuffixToMime.get(suffix);
-            }
-
-            // if we don't find any registered mime types for this
-            // suffix, or if it doesn't have a suffix, set the mime type
-            // to application/octet-stream
-            if (mimeType == null) {
-                mimeType = "application/octet-stream";
-            }
-
-            if (fileUtils.size(staticFilePath) < 100_000) {
+            long size = fileUtils.size(staticFilePath);
+            if (size < MAX_CACHED_BYTES) {
+                logger.logTrace(() -> "Size of static file, %s was %d bytes.  Since less than max allowed (%d), caching allowed.".formatted(staticFilePath, size, MAX_CACHED_BYTES));
                 var fileContents = fileReader.readFile(staticFilePath.toString());
                 return createOkResponseForStaticFiles(fileContents, mimeType);
             } else {
+                logger.logTrace(() -> "Size of static file, %s was %d bytes.  Since greater max allowed (%d), no caching allowed.".formatted(staticFilePath, size, MAX_CACHED_BYTES));
                 return createOkResponseForLargeStaticFiles(mimeType, staticFilePath, requestHeaders);
             }
 
@@ -633,6 +656,25 @@ public final class WebFramework {
             logger.logAsyncError(() -> String.format("Error while reading file: %s. %s", path, StacktraceUtils.stackTraceToString(e)));
             return Response.buildLeanResponse(CODE_400_BAD_REQUEST);
         }
+    }
+
+    private String getMimeString(String path) {
+        String mimeType = null;
+        // if the provided path has a dot in it, use that
+        // to obtain a suffix for determining file type
+        int suffixBeginIndex = path.lastIndexOf('.');
+        if (suffixBeginIndex > 0) {
+            String suffix = path.substring(suffixBeginIndex+1);
+            mimeType = fileSuffixToMime.get(suffix);
+        }
+
+        // if we don't find any registered mime types for this
+        // suffix, or if it doesn't have a suffix, set the mime type
+        // to application/octet-stream
+        if (mimeType == null) {
+            mimeType = "application/octet-stream";
+        }
+        return mimeType;
     }
 
     /**
@@ -733,6 +775,8 @@ public final class WebFramework {
         this.registeredPathFunctions = new EnumMap<>(RequestLine.Method.class);
         this.inputStreamUtils = new InputStreamUtils(constants.maxReadLineSizeBytes);
         this.bodyProcessor = new BodyProcessor(context);
+        this.staticFilesDirectoryPathBase = Path.of(constants.staticFilesDirectory);
+
         if (fileUtils != null) {
             this.fileUtils = fileUtils;
         } else {

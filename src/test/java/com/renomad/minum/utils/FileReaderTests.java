@@ -1,5 +1,6 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
@@ -94,6 +95,27 @@ public class FileReaderTests {
     public void test_readTheFile_NoFileFound() {
         var fileReader = new FileReader(lruCache, false, logger);
         assertThrows(FileNotFoundException.class, () -> fileReader.readTheFile("target/wahooooo.txt", logger, false, lruCache));
+    }
+
+    /**
+     * It is possible to put more than one value to a key in the
+     * cache, in which case the logging will show different results
+     */
+    @Test
+    public void test_readTheFile_AddSecondEntryToCacheSameKey() throws IOException {
+        context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, true);
+        var fileReader = new FileReader(lruCache, true, logger);
+        Path path = Path.of("src/test/resources/gettysburg_address.txt");
+
+        byte[] bytes = fileReader.readTheFile(path.toString(), logger, true, lruCache);
+        assertEquals(Files.readString(path), new String(bytes));
+        assertTrue(logger.doesMessageExist("No previous value for this key existed"));
+
+        byte[] bytes2 = fileReader.readTheFile(path.toString(), logger, true, lruCache);
+        assertEquals(Files.readString(path), new String(bytes2));
+        assertTrue(logger.doesMessageExist("The previous length of data for this key was 1510 bytes"));
+
+        context.getLogger().getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
 }

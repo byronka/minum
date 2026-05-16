@@ -2,6 +2,9 @@ package com.renomad.minum.utils;
 
 import java.io.Serial;
 
+/**
+ * An exception class used for some utility method scenarios
+ */
 public class UtilsException extends RuntimeException{
 
     @Serial

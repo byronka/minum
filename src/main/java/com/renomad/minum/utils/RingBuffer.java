@@ -5,6 +5,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+/**
+ * A minimalist implementation of a ring buffer
+ * For use with web mechanisms like the multipart body processor
+ * and the HTML processor.
+ */
 public class RingBuffer<T> implements Iterable<T>{
 
     /**

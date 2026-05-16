@@ -33,7 +33,9 @@ public final class FileReader implements IFileReader {
         if (useCacheForStaticFiles && lruCache.containsKey(path)) {
             cacheLock.lock();
             try {
-                return lruCache.get(path);
+                byte[] bytes = lruCache.get(path);
+                logger.logTrace(() -> "in FileReader.readFile, just obtained %d bytes from the cache using a path of %s".formatted(bytes.length, path));
+                return bytes;
             } finally {
                 cacheLock.unlock();
             }
@@ -69,7 +71,11 @@ public final class FileReader implements IFileReader {
                     logger.logDebug(() -> "Storing " + path + " in the cache");
                     cacheLock.lock();
                     try {
-                        lruCache.put(path, bytes);
+                        byte[] putResult = lruCache.put(path, bytes);
+                        logger.logTrace(() -> ("in FileReader.readTheFile, just added %d bytes with a key " +
+                                "of %s. %s").formatted(bytes.length, path,
+                                putResult == null ? "No previous value for this key existed" :
+                                        ("The previous length of data for this key was " + putResult.length + " bytes")));
                     } finally {
                         cacheLock.unlock();
                     }
@@ -88,7 +94,13 @@ public final class FileReader implements IFileReader {
      * will cause the data to mutate, and which requires to
      * be protected with locks.
      */
+    @Override
     public ReentrantLock getCacheLock() {
         return cacheLock;
+    }
+
+    @Override
+    public Map<String, byte[]> getLruCache() {
+        return this.lruCache;
     }
 }

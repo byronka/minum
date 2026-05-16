@@ -1,6 +1,5 @@
 package com.renomad.minum.web;
 
-import com.renomad.minum.database.DbException;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.logging.TestLoggerException;
 import com.renomad.minum.security.ForbiddenUseException;
@@ -8,10 +7,7 @@ import com.renomad.minum.security.ITheBrig;
 import com.renomad.minum.security.Inmate;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
-import com.renomad.minum.utils.FakeFileUtils;
-import com.renomad.minum.utils.FileReader;
-import com.renomad.minum.utils.IFileReader;
-import com.renomad.minum.utils.ThrowingFileUtils;
+import com.renomad.minum.utils.*;
 import org.junit.*;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -22,10 +18,8 @@ import java.net.SocketTimeoutException;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.testing.TestFramework.*;
 import static com.renomad.minum.web.StatusLine.StatusCode.*;
@@ -108,9 +102,8 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_ReadFile_Edge_ForwardSlashes() {
-        IResponse response = webFramework.readStaticFile("//index.html", defaultHeaders);
-
-        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
+        var ex = assertThrows(BadRequestException.class, () -> webFramework.readStaticFile("//index.html", defaultHeaders));
+        assertEquals(ex.getMessage(), "Error creating a valid path from: //index.html");
     }
 
     /**
@@ -118,9 +111,8 @@ public class WebFrameworkTests {
      */
     @Test
     public void test_readStaticFile_Edge_Colon() {
-        IResponse response = webFramework.readStaticFile(":", defaultHeaders);
-
-        assertEquals(response.getStatusCode(), CODE_400_BAD_REQUEST);
+        var ex = assertThrows(BadRequestException.class, () -> webFramework.readStaticFile(":", defaultHeaders));
+        assertEquals(ex.getMessage(), "Error creating a valid path from: :");
     }
 
     /**
@@ -160,7 +152,7 @@ public class WebFrameworkTests {
     public void test_readStaticFile_IOException() {
         webFramework = new WebFramework(context, default_zdt, throwingFileReader, null);
 
-        var ex = assertThrows(DbException.class, () -> webFramework.readStaticFile("Foo", defaultHeaders));
+        var ex = assertThrows(UtilsException.class, () -> webFramework.readStaticFile("Foo", defaultHeaders));
         assertEquals(ex.getMessage(), "Testing");
     }
 
@@ -188,6 +180,32 @@ public class WebFrameworkTests {
         var webFramework = new WebFramework(context, default_zdt, null, fileUtils);
         webFramework.readStaticFile("Foo", defaultHeaders);
         assertTrue(logger.doesMessageExist("Error while reading file:"));
+    }
+
+    /**
+     * The way this test works is to throw an exception if we
+     * try using the cache lock or getting the LRU Cache, in
+     * the anonymous IFileReader class implemented.
+     * <br>
+     * In other words, if we built things right, no exception gets
+     * thrown. If you want to see this test fail, just set the
+     * property USE_CACHE_FOR_STATIC_FILES to true.
+     */
+    @Test
+    public void test_readStaticFile_AlternateCase_NotCached() {
+        var fileUtils = new FakeFileUtils();
+        fileUtils.isRegularFileValue = true;
+        var fileReader = new IFileReader() {
+            @Override public byte[] readFile(String path) throws IOException {return new byte[0];}
+            @Override public ReentrantLock getCacheLock() {return null;} // this will cause an exception if hit
+            @Override public Map<String, byte[]> getLruCache() {throw new RuntimeException("FAIL");} // exception!
+        };
+        var properties = new Properties();
+        properties.setProperty("USE_CACHE_FOR_STATIC_FILES", "false");
+        var customContext = TestFramework.buildTestingContext("test_GeneralCapability", properties);
+        var webFramework = new WebFramework(customContext, default_zdt, fileReader, fileUtils);
+
+        webFramework.readStaticFile("Foo", defaultHeaders);
     }
 
     /**
@@ -242,8 +260,21 @@ public class WebFrameworkTests {
     /**
      * A {@link FileReader} that always throws an IOException
      */
-    IFileReader throwingFileReader = path -> {
-        throw new DbException("Testing");
+    IFileReader throwingFileReader = new IFileReader() {
+        @Override
+        public byte[] readFile(String path) throws IOException {
+            throw new UtilsException("Testing");
+        }
+
+        @Override
+        public ReentrantLock getCacheLock() {
+            return new ReentrantLock();
+        }
+
+        @Override
+        public Map<String, byte[]> getLruCache() {
+            return Map.of();
+        }
     };
 
 
