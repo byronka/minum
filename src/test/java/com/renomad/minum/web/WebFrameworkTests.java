@@ -98,25 +98,20 @@ public class WebFrameworkTests {
     }
 
     /**
-     * Edge case - forward slashes
+     * Edge case - invalid file name requested, and upon running
+     * Path.resolve, an exception is thrown and converted to a {@link BadRequestException}
+     * The implementation of Path.resolve differs by operating system,
+     * so this test is especially written to get an exception thrown on
+     * as many as possible.
      */
     @Test
-    public void test_ReadFile_Edge_ForwardSlashes() {
-        var ex = assertThrows(BadRequestException.class, () -> webFramework.readStaticFile("//index.html", defaultHeaders));
-        assertEquals(ex.getMessage(), "Error creating a valid path from: //index.html");
+    public void test_readStaticFile_Edge_invalidName() {
+        var ex = assertThrows(BadRequestException.class, () -> webFramework.readStaticFile("foo\0o", defaultHeaders));
+        assertTrue(ex.getMessage().contains("Error creating a valid path"), "Error was " + ex.getMessage());
     }
 
     /**
-     * Edge case - colon
-     */
-    @Test
-    public void test_readStaticFile_Edge_Colon() {
-        var ex = assertThrows(BadRequestException.class, () -> webFramework.readStaticFile(":", defaultHeaders));
-        assertEquals(ex.getMessage(), "Error creating a valid path from: :");
-    }
-
-    /**
-     * Edge case - a directory
+     * Edge case - can't read a directory, has to be a regular file
      */
     @Test
     public void test_readStaticFile_Edge_Directory() {
@@ -136,17 +131,7 @@ public class WebFrameworkTests {
     }
 
     /**
-     * Edge case - current directory
-     */
-    @Test
-    public void test_readStaticFile_EdgeCase() {
-        IResponse response = webFramework.readStaticFile("./", defaultHeaders);
-
-        assertEquals(response.getStatusCode(), CODE_404_NOT_FOUND);
-    }
-
-    /**
-     * Edge case - current directory
+     * Negative case - IO Exception thrown during read
      */
     @Test
     public void test_readStaticFile_IOException() {

@@ -22,6 +22,7 @@ In case the web page is down, here's the gist of it:
 Deployment checklist
 --------------------
 - [ ] local testing with new version number
+- [ ] run tests on Windows and Mac
 - [ ] ensure release notes are properly updated
 - [ ] spot-check test logs
 - [ ] confirm howtos
