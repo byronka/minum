@@ -231,15 +231,17 @@ framework.
 
 [Memoria project](https://github.com/byronka/memoria_project)
 
-This is a family-tree project.  It demonstrates the kind of approach
-this framework is meant to foster.
+This is a large and sophisticated program, about 15,000 lines of code,
+and is an example of the intended end-goal state of a Minum
+application.  It is a family-tree video and sharing application.
 
 <hr>
 
 [Restaurants](https://github.com/byronka/restaurants)
 
 Restaurants is a prototype project to provide a customizable ranked
-list of restaurants.
+list of restaurants. On this project's README, there is a link to a
+video of its construction.
 
 <hr>
 
