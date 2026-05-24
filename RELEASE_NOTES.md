@@ -14,6 +14,14 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+v10.0.2 May 24, 2026
+--------------------
+
+Compression on static files
+
+* Noticed that static files were not being compressed.  Corrected
+  by examining the mime-type of what we are sending, and compressing
+  when the mime indicates a file known to be text.
 
 v10.0.1 May 16, 2026
 --------------------

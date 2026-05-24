@@ -100,7 +100,18 @@ public final class WebFramework {
     private ThrowingFunction<LastMinuteHandlerInputs, IResponse> lastMinuteHandler;
 
     private final IFileReader fileReader;
+
+    /**
+     * A map between a key of file suffixes and a value of mime type,
+     * used for determining a proper mime for response on a file in
+     * the static files directory
+     */
     private final Map<String, String> fileSuffixToMime;
+
+    /**
+     * a set of mime types we know to be textual and therefore compressible.
+     */
+    private final Set<String> mimeIsStringSet;
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
@@ -678,20 +689,23 @@ public final class WebFramework {
     }
 
     /**
+     * A method used for handling smaller files in the static files directory
+     * (less than {@link #MAX_CACHED_BYTES})
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
         var headers = new Headers(List.of(
                 "Cache-Control: max-age=" + constants.staticFileCacheTime,
                 "Content-Type: " + mimeType));
-
-        return Response.buildResponse(
-                CODE_200_OK,
-                headers,
-                fileContents);
+        // set whether the result should be compressed when sending
+        boolean shouldCompress = mimeIsStringSet.contains(mimeType);
+        return new Response(CODE_200_OK, headers, fileContents,
+                socketWrapper -> socketWrapper.send(fileContents), fileContents.length, shouldCompress);
     }
 
     /**
+     * A method used for handling larger files in the static files directory
+     * (greater-than or equal to {@link #MAX_CACHED_BYTES})
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
     private IResponse createOkResponseForLargeStaticFiles(String mimeType, Path filePath, Headers requestHeaders) {
@@ -722,6 +736,19 @@ public final class WebFramework {
         fileSuffixToMime.put("jpeg", "image/jpeg");
         fileSuffixToMime.put("htm", "text/html");
         fileSuffixToMime.put("html", "text/html");
+        fileSuffixToMime.put("txt", "text/plain");
+    }
+
+    /**
+     * We will keep a data structure in memory of which mimes
+     * correspond to text-based files, which we will
+     * have compressed during send.
+     */
+    private void addToStringMimeData() {
+        mimeIsStringSet.add("text/css");
+        mimeIsStringSet.add("application/javascript");
+        mimeIsStringSet.add("text/html");
+        mimeIsStringSet.add("text/plain");
     }
 
 
@@ -802,7 +829,9 @@ public final class WebFramework {
                     logger);
         }
         this.fileSuffixToMime = new HashMap<>();
+        this.mimeIsStringSet = new HashSet<>();
         addDefaultValuesForMimeMap();
+        addToStringMimeData();
         readExtraMimeMappings(constants.extraMimeMappings);
     }
 
