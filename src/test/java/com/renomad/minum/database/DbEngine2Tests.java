@@ -1833,4 +1833,58 @@ public class DbEngine2Tests {
         }
     }
 
+    /**
+     * A capability we would really need is to run multiple
+     * actions in one grouping, locking against changes to
+     * particular values in as many databases as needed.
+     */
+    @Test
+    public void test_LockingMultipleActions() {
+        var db1 = context.getDb2("stuff", new Foo(0, 0, ""));
+        var db2 = context.getDb2("moar", new Foo(0, 0, ""));
+        Set<DbLock> toLock = Set.of(new Future<DbLock>(db1, foo.getIndex()),new DbLock(db1, bar.getIndex()),new DbLock(db2, baz.getIndex()));
+        runMultiple(toLock, () -> {
+            db1.write(foo);
+            db1.delete(bar);
+            db2.write(baz);
+        });
+    }
+
+    private void runMultiple(Set<DbLock> toLock, Runnable runnable) {
+
+        // only allow one thread to set this at a time
+        lock();
+        try {
+            // set what databases and items within are locked
+            context.setLocks(toLock);
+            // actually execute the multiple statements now
+            runnable.run();
+        } finally {
+            // clear those locks
+            context.removeLocks(toLock);
+            // let other threads do this
+            unlock();
+        }
+    }
+
+    /**
+     * This is an example of the write method, adjusted to check the locks.
+     * This is mainly a pseudocode implementation.
+     */
+    public void write() throws InterruptedException {
+        lock.lock();
+        try {
+            // check if there's a hold on this database and data item
+            boolean hasLock = context.hasLock(this, data.getIndex);
+            if (hasLock) {
+                // the thread will wait here until allowed to proceed
+                context.getLock(this, data.getIndex).await();
+            }
+
+            // proceed with normal behavior
+        } finally {
+            lock.unlock();
+        }
+    }
+
 }
