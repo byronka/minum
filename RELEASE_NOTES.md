@@ -14,6 +14,16 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+
+v10.0.3 May 30, 2026
+--------------------
+
+Better compression algorithm
+
+After some time thinking about it, I realized that by caching a check of the compression
+ratio of each file in the static directory, we had a better way to tell which
+files were worth compressing than relying on file suffix.
+
 v10.0.2 May 24, 2026
 --------------------
 

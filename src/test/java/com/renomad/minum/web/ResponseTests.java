@@ -3,10 +3,8 @@ package com.renomad.minum.web;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.security.ForbiddenUseException;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.FileUtils;
 import com.renomad.minum.utils.IFileUtils;
-import com.renomad.minum.utils.InvariantException;
 import com.renomad.minum.utils.ThrowingFileUtils;
 import org.junit.*;
 import org.junit.rules.TestWatcher;
@@ -261,7 +259,7 @@ public class ResponseTests {
             @Override public void close() throws IOException {}
         };
 
-        var ex = assertThrows(IOException.class, () -> Response.sendByteArrayResponse(sw, new byte[0]));
+        var ex = assertThrows(IOException.class, () -> sw.send(new byte[0]));
 
         assertEquals(ex.getMessage(), "JUST A TEST");
     }

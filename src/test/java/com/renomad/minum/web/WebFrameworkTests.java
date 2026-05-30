@@ -355,7 +355,7 @@ public class WebFrameworkTests {
     public void test_compressIfRequested() {
         StringBuilder stringBuilder = new StringBuilder();
         Response incomingResponse = (Response)Response.buildResponse(CODE_200_OK, Map.of("content-type", "text/plain"), "a".repeat(1000));
-        IResponse compressedResponse = WebFramework.compressBodyIfRequested(incomingResponse, List.of("accept-encoding: gzip"), stringBuilder, 999);
+        IResponse compressedResponse = WebFramework.compressBodyIfRequested(incomingResponse, List.of("accept-encoding: gzip"), stringBuilder, logger, "foo");
         assertTrue(incomingResponse.getBody().length > compressedResponse.getBody().length);
     }
 

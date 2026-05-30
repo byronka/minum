@@ -1509,7 +1509,9 @@ public class WebTests {
         WebFramework.compressBodyIfRequested(
                 response,
                 List.of("deflate"),
-                stringBuilder, 0);
+                stringBuilder,
+                logger,
+                "foo");
 
         String body = new String(response.getBody(), StandardCharsets.UTF_8);
         assertEquals(body, gettysburgAddress);

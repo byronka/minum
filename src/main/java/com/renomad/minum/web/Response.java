@@ -158,7 +158,7 @@ public final class Response implements IResponse {
      * @param extraHeaders any extra headers for the response, such as the content-type.
      */
     public static IResponse buildResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, byte[] body) {
-        return new Response(statusCode, extraHeaders, body, socketWrapper -> sendByteArrayResponse(socketWrapper, body), body.length, false);
+        return new Response(statusCode, extraHeaders, body, socketWrapper -> socketWrapper.send(body), body.length, false);
     }
 
     /**
@@ -187,7 +187,7 @@ public final class Response implements IResponse {
      */
     public static IResponse buildResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, String body) {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        return new Response(statusCode, extraHeaders, bytes, socketWrapper -> sendByteArrayResponse(socketWrapper, bytes), bytes.length, true);
+        return new Response(statusCode, extraHeaders, bytes, socketWrapper -> socketWrapper.send(bytes), bytes.length, true);
     }
 
     /**
@@ -415,10 +415,6 @@ public final class Response implements IResponse {
         } finally {
             fileChannel.close();
         }
-    }
-
-    static void sendByteArrayResponse(ISocketWrapper sw, byte[] body) throws IOException{
-        sw.send(body);
     }
 
     @Override

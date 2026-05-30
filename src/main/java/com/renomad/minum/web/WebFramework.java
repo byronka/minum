@@ -109,9 +109,10 @@ public final class WebFramework {
     private final Map<String, String> fileSuffixToMime;
 
     /**
-     * a set of mime types we know to be textual and therefore compressible.
+     * This is a map of path to a boolean valuable for whether the
+     * file benefits from compression.
      */
-    private final Set<String> mimeIsStringSet;
+    private final Map<String, Boolean> fileIsCompressible;
 
     // This is just used for testing.  If it's null, we use the real time.
     private final ZonedDateTime overrideForDateTime;
@@ -125,12 +126,7 @@ public final class WebFramework {
      * Past this point, we will use {@link #createOkResponseForLargeStaticFiles}
      * and not use caching.
      */
-    private static final int MAX_CACHED_BYTES = 100_000;
-
-    /**
-     * This is the minimum number of bytes in a text response to apply gzip.
-     */
-    private static final int MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS = 2048;
+    static final int MAX_CACHED_BYTES = 100_000;
 
     void httpProcessing(ISocketWrapper sw) {
         try (sw) {
@@ -187,8 +183,15 @@ public final class WebFramework {
                     response.getExtraHeaders().appendHeadersToBuilder(headerStringBuilder);
                     addKeepAliveTimeout(isKeepAlive, headerStringBuilder);
 
-                    // inspect the response being sent, see whether we can compress the data.
-                    adjustedResponse = potentiallyCompress(headers, response, headerStringBuilder);
+                    // if the response is text (i.e. probably good compressibility) and large enough
+                    // to be worth compressing, we'll compress it.
+                    if (response.isBodyText() && response.getBodyLength() > 500) {
+                        List<String> acceptEncoding = headers.valueByKey("accept-encoding");
+                        adjustedResponse = compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, logger, request.getRequestLine().getRawValue());
+                    } else {
+                        adjustedResponse = response;
+                    }
+
                     applyContentLength(headerStringBuilder, adjustedResponse.getBodyLength());
                     confirmBodyHasContentType(request, response);
 
@@ -490,26 +493,9 @@ public final class WebFramework {
     }
 
     /**
-     * This method will examine the request headers and response content-type, and
-     * compress the outgoing data if necessary.
-     */
-    static IResponse potentiallyCompress(Headers requestHeaders, IResponse response, StringBuilder headerStringBuilder) {
-        // we may make modifications to the response body at this point, specifically
-        // we may compress the data, if the client requested it.
-        // see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-encoding
-        List<String> acceptEncoding = requestHeaders.valueByKey("accept-encoding");
-
-        if (response.isBodyText()) {
-            return compressBodyIfRequested(response, acceptEncoding, headerStringBuilder, MINIMUM_NUMBER_OF_BYTES_TO_COMPRESS);
-        }
-        return response;
-    }
-
-    /**
      * This method will examine the content-encoding headers, and if "gzip" is
      * requested by the client, we will replace the body bytes with compressed
-     * bytes, using the GZIP compression algorithm, as long as the response body
-     * is greater than minNumberBytes bytes.
+     * bytes, using the GZIP compression algorithm.
      *
      * @param acceptEncoding headers sent by the client about what compression
      *                       algorithms will be understood.
@@ -517,15 +503,18 @@ public final class WebFramework {
      *                       the client for the status line and headers. We'll use it
      *                       here if we need to append a content-encoding - that is,
      *                       if we successfully compress data as gzip.
-     * @param minNumberBytes number of bytes must be larger than this to compress.
+     * @param endpointPath the endpoint whose data we are compressing, e.g. "foo?bar=baz",
+     *                     used for logging.
      */
-    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, int minNumberBytes) {
+    static IResponse compressBodyIfRequested(IResponse response, List<String> acceptEncoding, StringBuilder stringBuilder, ILogger logger, String endpointPath) {
         String allContentEncodingHeaders = acceptEncoding != null ? String.join(";", acceptEncoding) : "";
-        if (response.getBodyLength() >= minNumberBytes && allContentEncodingHeaders.contains("gzip")) {
+        if (allContentEncodingHeaders.contains("gzip")) {
             stringBuilder.append("Content-Encoding: gzip").append(HTTP_CRLF);
             stringBuilder.append("Vary: accept-encoding").append(HTTP_CRLF);
             var out = new ByteArrayOutputStream();
             compressBody(out, response.getBody());
+            logger.logTrace(() -> "Compressing results of %s.  Compression ratio: %d%%. Original size: %d bytes. Compressed size: %d bytes".formatted(endpointPath,
+                    Math.round(((double) out.size() / (double) response.getBodyLength()) * 100), response.getBodyLength(), out.size()));
             return Response.buildResponse(
                     response.getStatusCode(),
                     response.getExtraHeaders(),
@@ -619,14 +608,17 @@ public final class WebFramework {
             throw new BadRequestException("Error creating a valid path from: " + path);
         }
 
+        // move value to a variable - used in several places, may as well
+        String staticFilePathString = staticFilePath.toString();
+
         if (constants.useCacheForStaticFiles) {
             ReentrantLock cacheLock = fileReader.getCacheLock();
             cacheLock.lock();
             try {
-                byte[] fileContents = fileReader.getLruCache().get(staticFilePath.toString());
+                byte[] fileContents = fileReader.getLruCache().get(staticFilePathString);
                 if (fileContents != null) {
-                    logger.logTrace(() -> "creating an OK HTTP response for %d bytes of data found in cache for %s".formatted(fileContents.length, staticFilePath));
-                    return createOkResponseForStaticFiles(fileContents, mimeType);
+                    logger.logTrace(() -> "%d bytes of data found in cache for request of %s".formatted(fileContents.length, staticFilePath));
+                    return createOkResponseForStaticFiles(fileContents, mimeType, staticFilePathString);
                 }
             } finally {
                 cacheLock.unlock();
@@ -654,12 +646,15 @@ public final class WebFramework {
             }
 
             long size = fileUtils.size(staticFilePath);
-            if (size < MAX_CACHED_BYTES) {
+            if (size == 0) {
+                logger.logTrace(() -> "Requested file, %s, was empty.  Returning 200 OK, content-length 0, with mime of %s".formatted(staticFilePath, mimeType));
+                return Response.buildLeanResponse(CODE_200_OK, Map.of("Content-Type", mimeType));
+            } else if (size < MAX_CACHED_BYTES) {
                 logger.logTrace(() -> "Size of static file, %s was %d bytes.  Since less than max allowed (%d), caching allowed.".formatted(staticFilePath, size, MAX_CACHED_BYTES));
-                var fileContents = fileReader.readFile(staticFilePath.toString());
-                return createOkResponseForStaticFiles(fileContents, mimeType);
+                var fileContents = fileReader.readFile(staticFilePathString);
+                return createOkResponseForStaticFiles(fileContents, mimeType, staticFilePathString);
             } else {
-                logger.logTrace(() -> "Size of static file, %s was %d bytes.  Since greater max allowed (%d), no caching allowed.".formatted(staticFilePath, size, MAX_CACHED_BYTES));
+                logger.logTrace(() -> "Size of static file, %s was %d bytes.  Since greater than max allowed (%d), no caching allowed.".formatted(staticFilePath, size, MAX_CACHED_BYTES));
                 return createOkResponseForLargeStaticFiles(mimeType, staticFilePath, requestHeaders);
             }
 
@@ -693,14 +688,27 @@ public final class WebFramework {
      * (less than {@link #MAX_CACHED_BYTES})
      * All static responses will get a cache time of STATIC_FILE_CACHE_TIME seconds
      */
-    private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType) {
+    private IResponse createOkResponseForStaticFiles(byte[] fileContents, String mimeType, String path) {
         var headers = new Headers(List.of(
                 "Cache-Control: max-age=" + constants.staticFileCacheTime,
                 "Content-Type: " + mimeType));
-        // set whether the result should be compressed when sending
-        boolean shouldCompress = mimeIsStringSet.contains(mimeType);
+        // if the map does not have this key, then we haven't analyzed this file yet.
+        if (!fileIsCompressible.containsKey(path)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            compressBody(out, fileContents);
+
+            // we only want to compress it if we get a decent compression.
+            // 30% smaller seems fine.
+            long compressionRatio = Math.round(((double) out.size() / (double) fileContents.length) * 100);
+            boolean isWorthCompressing = compressionRatio < 70;
+            logger.logTrace(() -> "static file %s worth compressing? %s.  Compression ratio: %d%%.  Original size: %d bytes. Compressed size: %d bytes".formatted(
+                    path, isWorthCompressing, compressionRatio, fileContents.length, out.size()));
+            fileIsCompressible.put(path, isWorthCompressing);
+        }
+        logger.logTrace(() -> "Creating OK response for file %s, mime: %s, length: %s, fileIsCompressible: %s".formatted(
+                path, mimeType, fileContents.length, fileIsCompressible.get(path)));
         return new Response(CODE_200_OK, headers, fileContents,
-                socketWrapper -> socketWrapper.send(fileContents), fileContents.length, shouldCompress);
+                socketWrapper -> socketWrapper.send(fileContents), fileContents.length, fileIsCompressible.get(path));
     }
 
     /**
@@ -738,19 +746,6 @@ public final class WebFramework {
         fileSuffixToMime.put("html", "text/html");
         fileSuffixToMime.put("txt", "text/plain");
     }
-
-    /**
-     * We will keep a data structure in memory of which mimes
-     * correspond to text-based files, which we will
-     * have compressed during send.
-     */
-    private void addToStringMimeData() {
-        mimeIsStringSet.add("text/css");
-        mimeIsStringSet.add("application/javascript");
-        mimeIsStringSet.add("text/html");
-        mimeIsStringSet.add("text/plain");
-    }
-
 
     /**
      * let's see if we can match the registered paths against a path function
@@ -829,9 +824,8 @@ public final class WebFramework {
                     logger);
         }
         this.fileSuffixToMime = new HashMap<>();
-        this.mimeIsStringSet = new HashSet<>();
+        this.fileIsCompressible = new HashMap<>();
         addDefaultValuesForMimeMap();
-        addToStringMimeData();
         readExtraMimeMappings(constants.extraMimeMappings);
     }
 
