@@ -1842,12 +1842,28 @@ public class DbEngine2Tests {
     public void test_LockingMultipleActions() {
         var db1 = context.getDb2("stuff", new Foo(0, 0, ""));
         var db2 = context.getDb2("moar", new Foo(0, 0, ""));
-        Set<DbLock> toLock = Set.of(new Future<DbLock>(db1, foo.getIndex()),new DbLock(db1, bar.getIndex()),new DbLock(db2, baz.getIndex()));
-        runMultiple(toLock, () -> {
-            db1.write(foo);
-            db1.delete(bar);
-            db2.write(baz);
-        });
+        db1.write(new Foo(0, 2, ""));
+        db2.write(new Foo(0, 2, ""));
+
+        Runnable racer1 = () -> {
+            // create a call to run multiple commands as one single unit
+            Set<DbLock> toLock = Set.of(new DbLock(db1, 123), new DbLock(db1, 456), new DbLock(db2, 789));
+            runMultiple(toLock, () -> {
+                db1.write(new Foo(1, 2, "a"));
+                db1.delete(new Foo(1, 2, "a"));
+                db2.write(new Foo(1, 2, "a"));
+            });
+        };
+
+        Runnable racer2 = () -> {
+            // here is a call that would interfere.  Let's make sure it doesn't.
+            db1.write(new Foo(1, 2, "c"));
+        };
+
+        // on your marks, get set, go!
+        racer1.run();
+        racer2.run();
+
     }
 
     private void runMultiple(Set<DbLock> toLock, Runnable runnable) {
@@ -1875,6 +1891,7 @@ public class DbEngine2Tests {
         lock.lock();
         try {
             // check if there's a hold on this database and data item
+            // this needs to be O(1) and insane fast.
             boolean hasLock = context.hasLock(this, data.getIndex);
             if (hasLock) {
                 // the thread will wait here until allowed to proceed

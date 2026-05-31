@@ -1,11 +1,11 @@
 package com.renomad.minum.database;
 
 public class DbLock {
-    final DbData<?> dataObject;
+    final AbstractDb<?> database;
     final long index;
 
-    public DbLock(DbData<?> dataObject, long index) {
-        this.dataObject = dataObject;
+    public DbLock(AbstractDb<?> database, long index) {
+        this.database = database;
         this.index = index;
     }
 }
