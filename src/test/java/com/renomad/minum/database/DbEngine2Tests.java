@@ -1839,71 +1839,71 @@ public class DbEngine2Tests {
      * actions in one grouping, locking against changes to
      * particular values in as many databases as needed.
      */
-    @Test
-    public void test_LockingMultipleActions() {
-        var db1 = context.getDb2("stuff", new Foo(0, 0, ""));
-        var db2 = context.getDb2("moar", new Foo(0, 0, ""));
-        db1.write(new Foo(0, 2, ""));
-        db2.write(new Foo(0, 2, ""));
+//    @Test
+//    public void test_LockingMultipleActions() {
+//        var db1 = context.getDb2("stuff", new Foo(0, 0, ""));
+//        var db2 = context.getDb2("moar", new Foo(0, 0, ""));
+//        db1.write(new Foo(0, 2, ""));
+//        db2.write(new Foo(0, 2, ""));
+//
+//        Runnable racer1 = () -> {
+//            // create a call to run multiple commands as one single unit
+//            Set<DbLock> toLock = Set.of(new DbLock(db1, 123), new DbLock(db1, 456), new DbLock(db2, 789));
+//            runMultiple(toLock, () -> {
+//                db1.write(new Foo(1, 2, "a"));
+//                db1.delete(new Foo(1, 2, "a"));
+//                db2.write(new Foo(1, 2, "a"));
+//            });
+//        };
+//
+//        Runnable racer2 = () -> {
+//            // here is a call that would interfere.  Let's make sure it doesn't.
+//            db1.write(new Foo(1, 2, "c"));
+//        };
+//
+//        // on your marks, get set, go!
+//        racer1.run();
+//        racer2.run();
+//
+//    }
 
-        Runnable racer1 = () -> {
-            // create a call to run multiple commands as one single unit
-            Set<DbLock> toLock = Set.of(new DbLock(db1, 123), new DbLock(db1, 456), new DbLock(db2, 789));
-            runMultiple(toLock, () -> {
-                db1.write(new Foo(1, 2, "a"));
-                db1.delete(new Foo(1, 2, "a"));
-                db2.write(new Foo(1, 2, "a"));
-            });
-        };
+//    private void runMultiple(Set<DbLock> toLock, Runnable runnable) {
+//
+//        var lock = new ReentrantLock();
+//        // only allow one thread to set this at a time
+//        lock.lock();
+//        try {
+//            // set what databases and items within are locked
+//            context.setLocks(toLock);
+//            // actually execute the multiple statements now
+//            runnable.run();
+//        } finally {
+//            // clear those locks
+//            context.removeLocks(toLock);
+//            // let other threads do this
+//            lock.unlock();
+//        }
+//    }
 
-        Runnable racer2 = () -> {
-            // here is a call that would interfere.  Let's make sure it doesn't.
-            db1.write(new Foo(1, 2, "c"));
-        };
-
-        // on your marks, get set, go!
-        racer1.run();
-        racer2.run();
-
-    }
-
-    private void runMultiple(Set<DbLock> toLock, Runnable runnable) {
-
-        var lock = new ReentrantLock();
-        // only allow one thread to set this at a time
-        lock.lock();
-        try {
-            // set what databases and items within are locked
-            context.setLocks(toLock);
-            // actually execute the multiple statements now
-            runnable.run();
-        } finally {
-            // clear those locks
-            context.removeLocks(toLock);
-            // let other threads do this
-            lock.unlock();
-        }
-    }
-
-    /**
-     * This is an example of the write method, adjusted to check the locks.
-     * This is mainly a pseudocode implementation.
-     */
-    public void write() throws InterruptedException {
-        lock.lock();
-        try {
-            // check if there's a hold on this database and data item
-            // this needs to be O(1) and insane fast.
-            boolean hasLock = context.hasLock(this, data.getIndex);
-            if (hasLock) {
-                // the thread will wait here until allowed to proceed
-                context.getLock(this, data.getIndex).await();
-            }
-
-            // proceed with normal behavior
-        } finally {
-            lock.unlock();
-        }
-    }
+//    /**
+//     * This is an example of the write method, adjusted to check the locks.
+//     * This is mainly a pseudocode implementation.
+//     */
+//    public void write() throws InterruptedException {
+//        lock.lock();
+//        try {
+//            // check if there's a hold on this database and data item
+//            // this needs to be O(1) and insane fast.
+//            boolean hasLock = context.hasLock(this, data.getIndex);
+//            if (hasLock) {
+//                // the thread will wait here until allowed to proceed
+//                context.getLock(this, data.getIndex).await();
+//            }
+//
+//            // proceed with normal behavior
+//        } finally {
+//            lock.unlock();
+//        }
+//    }
 
 }

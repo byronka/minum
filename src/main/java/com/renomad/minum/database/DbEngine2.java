@@ -1,9 +1,7 @@
 package com.renomad.minum.database;
 
 import com.renomad.minum.state.Context;
-import com.renomad.minum.utils.CryptoUtils;
-import com.renomad.minum.utils.FileUtils;
-import com.renomad.minum.utils.IFileUtils;
+import com.renomad.minum.utils.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +9,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -179,17 +178,26 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     public T write(T newData) {
         if (newData.getIndex() < 0) throw new DbException("Negative indexes are disallowed");
         // load data if needed
-        if (!hasLoadedData) loadData();
+        if (!hasLoadedData) {
+            logger.logTrace(() -> "DbEngine2 data has not been loaded in thread " + Thread.currentThread());
+            loadData();
+        }
 
-        writeLock.lock();
+        Future<?> future = executor.submit(() -> {
+            try {
+                boolean newElementCreated = processDataIndex(newData);
+                writeToDisk(newData);
+                writeToMemory(newData, newElementCreated);
+            } catch (Exception e) {
+                throw new DbException("failed to write data " + newData, e);
+            }
+        });
+
         try {
-            boolean newElementCreated = processDataIndex(newData);
-            writeToDisk(newData);
-            writeToMemory(newData, newElementCreated);
-        } catch (Exception ex) {
-           throw new DbException("failed to write data " + newData, ex);
-        } finally {
-            writeLock.unlock();
+            future.get();
+        } catch (Exception e) {
+            // unwrap and re-create to avoid having exception type / message get too deeply buried
+            throw new DbException(e.getCause().getMessage(), e.getCause().getCause());
         }
 
         // returning the data at this point is the most convenient
@@ -197,6 +205,27 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         return newData;
     }
 
+    /**
+     * Write database data into memory
+     * @param newData the new data may be totally new or an update
+     * @param newElementCreated if true, this is a create.  If false, an update.
+     */
+    protected void writeToMemory(T newData, boolean newElementCreated) {
+        // if we got here, we are safe to proceed with putting the data into memory and disk
+        logger.logTrace(() -> String.format("in thread %s, writing data %s", Thread.currentThread().getName(), newData));
+        T oldData = data.put(newData.getIndex(), newData);
+
+        // handle the indexes differently depending on whether this is a create or delete
+        if (newElementCreated) {
+            addToIndexes(newData);
+        } else {
+            removeFromIndexes(oldData);
+            addToIndexes(newData);
+        }
+    }
+
+    // Creates a single background thread with a FIFO queue
+    ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private void writeToDisk(T newData) throws IOException {
         logger.logTrace(() -> String.format("writing data to disk: %s", newData));
@@ -261,14 +290,20 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        writeLock.lock();
+        Future<?> future = executor.submit(() -> {
+            try {
+                deleteFromDisk(dataToDelete);
+                deleteFromMemory(dataToDelete);
+            } catch (Exception e) {
+                throw new DbException("failed to delete data " + dataToDelete, e);
+            }
+        });
+
         try {
-            deleteFromDisk(dataToDelete);
-            deleteFromMemory(dataToDelete);
-        } catch (Exception ex) {
-            throw new DbException("failed to delete data " + dataToDelete, ex);
-        } finally {
-            writeLock.unlock();
+            future.get();
+        } catch (Exception e) {
+            // unwrap and re-create to avoid having exception type / message get too deeply buried
+            throw new DbException(e.getCause().getMessage(), e.getCause().getCause());
         }
     }
 
@@ -280,7 +315,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     }
 
     private void loadDataFromDisk() throws IOException, ParseException {
-        logger.logDebug(() -> "Loading data from disk. Db Engine2. Directory: " + dbDirectory);
+        logger.logDebug(() -> "Loading data from disk for DbEngine2. Directory: " + dbDirectory + " Thread: " + Thread.currentThread());
 
         // if we find the "index.ddps" file, it means we are looking at an old
         // version of the database.  Update it to the new version, and then afterwards
@@ -390,6 +425,55 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
 
         } catch (Exception e) {
             throw new DbException("Failed to deserialize " + lineOfData + " with data (\"" + fileName + "\"). Caused by: " + e);
+        }
+    }
+
+
+    /**
+     *  add the data to registered indexes.
+     *  <br>
+     *  For each of the registered indexes,
+     *  get the stored function to obtain a string value which helps divide
+     *  the overall data into partitions.
+     */
+    @Override
+    protected void addToIndexes(T dbData) {
+
+        for (var entry : partitioningMap.entrySet()) {
+            // a function provided by the user to obtain an index-key: a unique or semi-unique
+            // value to help partition / index the data
+            Function<T, String> indexStringFunction = entry.getValue();
+            String propertyAsString = indexStringFunction.apply(dbData);
+            Map<String, Set<T>> stringIndexMap = registeredIndexes.get(entry.getKey());
+            stringIndexMap.computeIfAbsent(propertyAsString, k -> new HashSet<>());
+            // if the index-key provides a 1-to-1 mapping to items, like UUIDs, then
+            // each value will have only one item in the collection.  In other cases,
+            // like when partitioning the data into multiple groups, there could easily
+            // be many items per index value.
+            Set<T> dataSet = stringIndexMap.get(propertyAsString);
+            dataSet.add(dbData);
+        }
+    }
+
+
+    /**
+     * Run when an item is deleted from the database
+     */
+    @Override
+    protected void removeFromIndexes(T dbData) {
+        for (var entry : partitioningMap.entrySet()) {
+            // a function provided by the user to obtain an index-key: a unique or semi-unique
+            // value to help partition / index the data
+            Function<T, String> indexStringFunction = entry.getValue();
+            String propertyAsString = indexStringFunction.apply(dbData);
+            Map<String, Set<T>> stringIndexMap = registeredIndexes.get(entry.getKey());
+            stringIndexMap.get(propertyAsString).removeIf(x -> x.getIndex() == dbData.getIndex());
+
+            // in certain cases, we're removing one of the items that is indexed but
+            // there are more left.  If there's nothing left though, we'll remove the mapping.
+            if (stringIndexMap.get(propertyAsString).isEmpty()) {
+                stringIndexMap.remove(propertyAsString);
+            }
         }
     }
 

@@ -276,7 +276,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
     /**
      * Run when an item is deleted from the database
      */
-    private void removeFromIndexes(T dbData) {
+    protected void removeFromIndexes(T dbData) {
         for (var entry : partitioningMap.entrySet()) {
             // a function provided by the user to obtain an index-key: a unique or semi-unique
             // value to help partition / index the data
