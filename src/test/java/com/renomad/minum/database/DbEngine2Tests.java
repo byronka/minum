@@ -22,6 +22,7 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.database.DbEngine2Tests.Foo.INSTANCE;
 import static com.renomad.minum.database.DatabaseChangeAction.DELETE;
@@ -1868,8 +1869,9 @@ public class DbEngine2Tests {
 
     private void runMultiple(Set<DbLock> toLock, Runnable runnable) {
 
+        var lock = new ReentrantLock();
         // only allow one thread to set this at a time
-        lock();
+        lock.lock();
         try {
             // set what databases and items within are locked
             context.setLocks(toLock);
@@ -1879,7 +1881,7 @@ public class DbEngine2Tests {
             // clear those locks
             context.removeLocks(toLock);
             // let other threads do this
-            unlock();
+            lock.unlock();
         }
     }
 
