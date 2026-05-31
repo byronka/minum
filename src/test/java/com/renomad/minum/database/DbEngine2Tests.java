@@ -22,7 +22,6 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.database.DbEngine2Tests.Foo.INSTANCE;
 import static com.renomad.minum.database.DatabaseChangeAction.DELETE;

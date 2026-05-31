@@ -94,7 +94,6 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
 
     private final ReentrantLock loadDataLock;
     private final ReentrantLock consolidateLock;
-    private final ReentrantLock writeLock;
     int maxLinesPerAppendFile;
     boolean hasLoadedData;
     final DatabaseAppender databaseAppender;
@@ -141,7 +140,6 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         }
         this.loadDataLock = new ReentrantLock();
         this.consolidateLock = new ReentrantLock();
-        this.writeLock = new ReentrantLock();
         this.maxLinesPerAppendFile = context.getConstants().maxAppendCount;
     }
 
