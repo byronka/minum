@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.zip.GZIPOutputStream;
@@ -824,7 +825,7 @@ public final class WebFramework {
                     logger);
         }
         this.fileSuffixToMime = new HashMap<>();
-        this.fileIsCompressible = new HashMap<>();
+        this.fileIsCompressible = new ConcurrentHashMap<>();
         addDefaultValuesForMimeMap();
         readExtraMimeMappings(constants.extraMimeMappings);
     }

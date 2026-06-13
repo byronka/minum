@@ -14,6 +14,12 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+v10.0.4 June 13, 2026
+---------------------
+
+Fixing bug - Map for recording whether a static file was compressible was not correctly handling
+concurrent usage.  Switched to a ConcurrentHashMap to fix.
+
 
 v10.0.3 May 30, 2026
 --------------------
