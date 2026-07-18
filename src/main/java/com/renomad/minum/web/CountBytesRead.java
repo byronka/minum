@@ -1,14 +1,14 @@
 package com.renomad.minum.web;
 
 class CountBytesRead{
-    private int count;
+    private long count;
     public void increment() {count += 1;}
 
-    public void incrementBy(int i) {
+    public void incrementBy(long i) {
         count += i;
     }
 
-    public int getCount() {
+    public long getCount() {
         return count;
     }
 }

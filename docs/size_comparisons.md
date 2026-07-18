@@ -12,6 +12,7 @@ Size statistics, in the form of production lines of code:
   * [Testing](#testing)
   * [Background task processing](#background-task-processing)
   * [Various helpful utilities](#various-helpful-utilities)
+  * [Security](#security)
   * [Javascript utilities](#javascript-utilities)
   * [Javascript framework](#javascript-framework)
   * [Javascript form handling](#javascript-form-handling)
@@ -28,14 +29,14 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,715 | 148,744 | 1,085,405   |
+| 6,856 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
 which bills itself as "A simple web framework for Java and Kotlin".
 
 Minum does not require a separate web server, database, or HTML
-parsing - it is all built-in.  It even includes a testing framework!
+parsing - it is all built-in.
 
 
 Web server
@@ -48,7 +49,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2,859 | 163,000 | 242,000 |
+| 2,875 | 163,000 | 242,000 |
 
 
 Templating
@@ -75,7 +76,7 @@ to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 1,153 | 1,300,000  | 1,500,000 | 116,000 |
+| 1,231 | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -136,7 +137,7 @@ basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 769   | 18,045            |
+| 774   | 18,045            |
 
 
 Security
@@ -154,7 +155,7 @@ in the minum.config.
 
 | Minum | OWASP AppSensor | Spring Security |
 |-------|-----------------|-----------------|
-| 210   | 24,668          | 100,544         |
+| 201   | 24,668          | 100,544         |
 
 
 Javascript utilities

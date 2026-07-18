@@ -1,9 +1,6 @@
 package com.renomad.minum.database;
 
-import com.renomad.minum.logging.Logger;
-import com.renomad.minum.logging.LoggingLevel;
-import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.logging.TestLoggerException;
+import com.renomad.minum.logging.*;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.StopwatchUtils;
@@ -22,6 +19,7 @@ import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.renomad.minum.database.DbEngine2Tests.Foo.INSTANCE;
 import static com.renomad.minum.database.DatabaseChangeAction.DELETE;
@@ -203,7 +201,7 @@ public class DbEngine2Tests {
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(null));
-        assertEquals(ex.getMessage(), "failed to delete data null");
+        assertEquals(ex.getMessage(), "Incoming data was null");
     }
 
     /**
@@ -707,6 +705,17 @@ public class DbEngine2Tests {
         assertEquals(exactlyOne, writtenFoo);
     }
 
+    /**
+     * For reference:
+     * Results on the Windows Intel Core i5 4590 3.30 Ghz with 16Gb ram:
+     *         int originalFooCount = 100;
+     *         int loopCount = 10000;
+     *         (a million updates)
+     * 2026-06-06T18:29:28.782446Z	DEBUG	It took 1600 milliseconds to make the updates in memory
+     * 2026-06-06T18:29:28.783445Z	DEBUG	It took 1601 milliseconds to finish writing everything to disk
+     *
+     * Result: a million in 1600 milliseconds is 625k updates per second
+     */
     @Test
     public void test_Performance() throws IOException {
         int originalFooCount = 10;
@@ -742,7 +751,7 @@ public class DbEngine2Tests {
                 /*
                 loop through the old foos and update them to new values,
                 creating a new list in the process.  There should only
-                ever be 10 foos.
+                ever be originalFooCount foos.
                  */
             for (var foo : foos) {
                 final var newFoo = new DbEngine2Tests.Foo(foo.getIndex(), foo.getA() + 1, foo.getB() + "_updated");
@@ -1007,7 +1016,7 @@ public class DbEngine2Tests {
 
         var ex = assertThrows(DbException.class, () -> fooDbEngine2.loadData());
 
-        assertEquals(ex.getMessage(), "Failed to load data from disk.");
+        assertTrue(ex.getMessage().contains("Failed to load data from disk for database with path"));
     }
 
     /**
@@ -1072,7 +1081,7 @@ public class DbEngine2Tests {
     public void test_readAndDeserialize_NegativeCase_LackingSerializer() throws IOException {
         // instantiate a database, give it data, then shutdown the database
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
-        Path path = Path.of("out/test_readAndDeserialize_NegativeCase/");
+        Path path = Path.of("out/test_readAndDeserialize_NegativeCase_LackingSerializer/");
         fileUtils.deleteDirectoryRecursivelyIfExists(path);
         DbEngine2<Fubar3> db = new DbEngine2<>(path, context, new Fubar3(0, 0, ""));
 
@@ -1102,7 +1111,7 @@ public class DbEngine2Tests {
         // now ask the database to load, expecting failure
         var ex = assertThrows(DbException.class, () -> db.loadData());
 
-        assertEquals(ex.getMessage(), "Failed to load data from disk.");
+        assertTrue(ex.getMessage().contains("Failed to load data from disk for database with path"));
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
@@ -1495,6 +1504,111 @@ public class DbEngine2Tests {
     }
 
 
+
+    /**
+     * If you need to run multiple statements without the possibility of
+     * having other database change commands interfere, use the same lock
+     * that wraps the underlying {@link DbEngine2#write(DbData)} and {@link DbEngine2#delete(DbData)}
+     * This is possible by providing a getter to it, at {@link AbstractDb#getDbLock()}
+     */
+    @Test
+    public void testMultipleStatements() throws IOException, ExecutionException, InterruptedException {
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("testMultipleStatements");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        DbEngine2<Foo> db = new DbEngine2<>(dbPathForTest, context, Foo.INSTANCE).loadData();
+
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
+        Foo first = db.write(new Foo(0, 101, "MULTIPLE first"));
+
+        var f1 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 333, "mixing in attempt")));
+        var f2 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 444, "mixing in attempt")));
+        var f3 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 666, "mixing in attempt")));
+        var f4 = context.getExecutorService().submit(() -> runMultipleStatements(db, first, logger));
+        var f5 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 777, "mixing in attempt")));
+        var f6 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 888, "mixing in attempt")));
+        var f7 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 999, "mixing in attempt")));
+
+        f1.get();
+        f2.get();
+        f3.get();
+        f4.get();
+        f5.get();
+        f6.get();
+        f7.get();
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
+    }
+
+    /**
+     * An example of code where various database change commands must be run together,
+     * and must not allow any other changes to occur in the database while they run.
+     */
+    private static void runMultipleStatements(AbstractDb<Foo> db, Foo first, ILogger logger) {
+        ReentrantLock dbLock = db.getDbLock();
+        dbLock.lock();
+        try {
+            logger.logDebug(() -> "MULTIPLE STATEMENTS START ---------------");
+
+            var second = db.write(new Foo(first.getIndex(), first.getA() + 1, "MULTIPLE second"));
+            var third = db.write(new Foo(first.getIndex(), second.getA() + 1, "MULTIPLE third"));
+            var fourth = db.write(new Foo(first.getIndex(), third.getA() + 1, "MULTIPLE fourth"));
+            var fifth = db.write(new Foo(first.getIndex(), fourth.getA() + 1, "MULTIPLE alpha"));
+            var sixth = db.write(new Foo(first.getIndex(), fifth.getA() + 1, "MULTIPLE beta"));
+            int result = db.write(new Foo(first.getIndex(), sixth.getA() + 1, "MULTIPLE gamma")).getA();
+            assertEquals(first.getA() + 6, result);
+            logger.logDebug(() -> "MULTIPLE STATEMENTS END ==================");
+        } finally {
+            dbLock.unlock();
+        }
+    }
+
+    @Test
+    public void test_NegativeCase_MultipleDatabasesTargetingOneDirectory() throws IOException {
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_NegativeCase_MultipleDatabasesTargetingOneDirectory");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        new DbEngine2<>(dbPathForTest, context, DbEngine2Tests.Foo.INSTANCE).loadData();
+
+        var ex = assertThrows(DbException.class, () -> new DbEngine2<>(dbPathForTest, context, DbEngine2Tests.Foo.INSTANCE).loadData());
+
+        assertTrue(ex.getMessage().contains("Attempted to register more than one database to the same path:"),
+                "Should get a message indicating there are multiple databases registered to one path.  Instead, got this: "+ ex.getMessage());
+    }
+
+    @Test
+    public void test_MultiThreadedWriteAndDelete() throws IOException {
+
+        Path dbPathForTest = foosDirectory.resolve("test_MultiThreadedWriteAndDelete");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
+        int outerLoopCount = 50;
+        int innerLoopCount = 50;
+
+
+        // The try-with-resources statement ensures all virtual threads finish before continuing
+//        logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
+
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int j = 0; j < outerLoopCount; j++) {
+                for (int i = innerLoopCount * j; i < ((innerLoopCount * j) + innerLoopCount); i++) {
+                    final int counter = i; // Must be effectively final to use inside the lambda
+
+                    // Submits the task to a new virtual thread immediately
+                    executor.submit(() -> {
+                        var createdFoo = db.write(new Foo(0, counter, "for testing: " + counter));
+                        db.write(new Foo(createdFoo.getIndex(), createdFoo.getA() + 1, "updated: " + createdFoo.getA() + 1));
+                        db.delete(createdFoo);
+                    });
+                }
+            }
+        } // Execution blocks here until ALL submitted virtual threads are fully complete
+
+        assertEquals(db.values().size(), 0);
+        db.stop(100, 500);
+
+//        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
+    }
+
     private static class BrokenBufferedWriter extends BufferedWriter {
 
         public BrokenBufferedWriter(Writer out) {
@@ -1762,14 +1876,25 @@ public class DbEngine2Tests {
      * seeing what happens when we add millions of files to the
      * disk, around several hundred megabytes worth, so it is not
      * a test that is typically run.
-     * For 11,500 rows of small data, it takes 2 seconds to load, or 5750 files per second
-     * For 61,272 rows, it takes 9.771 seconds, or 6270 files per second
-     * <br>
-     * With those values, we can extrapolate that it will take 159 seconds to read a million files,
-     * or almost 3 minutes.
+     * Results on the Windows Intel Core i5 4590 3.30 Ghz with 16Gb ram:
+     * Input:
+     *         int outerLoopCount = 5000;
+     *         int innerLoopCount = 1000;
+     *         (5,000,000 data entries)
+     * total testing time: 38 seconds
+     *
+     * For single threaded:
+     * Time to write database: 12,215 milliseconds (5 million / 15 seconds is 410k writes per second)
+     * Time to load database: 10,456 milliseconds (5 million / 11 seconds is 400k reads per second)
+     * Time to load database on second start: 9,913 milliseconds (5 million / 10 seconds is 500k reads per second)
+     *
+     * For multi-threaded:
+     * Time to write database: 52,450 milliseconds (5 million / 53 seconds is 94,339 writes per second)
+     * (loading is effectively the same as single-thread)
      */
     @Ignore("This is a lab, not a test")
     public void test_LargeDatabasePerformance() throws IOException {
+//        logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
         Path dbPathForTest = foosDirectory.resolve("test_large_database");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new DbEngine2<>(dbPathForTest, context, INSTANCE);
@@ -1779,11 +1904,26 @@ public class DbEngine2Tests {
         {
             var timer = new StopwatchUtils().startTimer();
 
+            // THIS SECTION IS MULTI-THREADED
+//            // The try-with-resources statement ensures all virtual threads finish before continuing
+//            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+//                for (int j = 0; j < outerLoopCount; j++) {
+//                    for (int i = innerLoopCount * j; i < ((innerLoopCount * j) + innerLoopCount); i++) {
+//                        final int index = i; // Must be effectively final to use inside the lambda
+//
+//                        // Submits the task to a new virtual thread immediately
+//                        executor.submit(() -> db.write(new Foo(0, index, "for testing: " + index)));
+//                    }
+//                }
+//            } // Execution blocks here until ALL submitted virtual threads are fully complete
+
+            // THIS SECTION IS SINGLE-THREADED
             for (int j = 0; j < outerLoopCount; j++) {
                 for (int i = innerLoopCount * j; i < ((innerLoopCount * j) + innerLoopCount); i++) {
                     db.write(new Foo(0, i, "for testing: " + i));
                 }
             }
+
             db.stop(100, 500);
             System.out.println("Time to write database " + timer.stopTimer());
         }
@@ -1809,6 +1949,7 @@ public class DbEngine2Tests {
             assertEquals(foundFoo2.getA(), 60000);
             long timeToFindData = stopwatchUtils2.stopTimer();
             System.out.println("Time to find data after loading: " + timeToFindData);
+            db2.stop(100,50);
         }
 
 
@@ -1831,6 +1972,8 @@ public class DbEngine2Tests {
             long timeToFindData = stopwatchUtils2.stopTimer();
             System.out.println("Time to find data after loading: " + timeToFindData);
         }
+
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }
 
 }

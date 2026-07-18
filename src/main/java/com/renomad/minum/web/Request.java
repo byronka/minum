@@ -17,22 +17,24 @@ public final class Request implements IRequest {
     private boolean hasStartedReadingBody;
 
     /**
-     * Constructor for a HTTP request
-     * @param  remoteRequester This is the remote address making the request
+     * Constructor for a HTTP request.
+     * @param remoteRequester This is the remote address making the request
      */
     public Request(Headers headers,
             RequestLine requestLine,
             String remoteRequester,
             ISocketWrapper socketWrapper,
-            IBodyProcessor bodyProcessor
+            IBodyProcessor bodyProcessor,
+            boolean hasStartedReadingBody
     ) {
         this.headers = headers;
         this.requestLine = requestLine;
         this.remoteRequester = remoteRequester;
         this.socketWrapper = socketWrapper;
         this.bodyProcessor = bodyProcessor;
-        this.hasStartedReadingBody = false;
+        this.hasStartedReadingBody = hasStartedReadingBody;
     }
+
 
     @Override
     public Headers getHeaders() {
@@ -124,7 +126,7 @@ public final class Request implements IRequest {
         String boundaryKey = "boundary=";
         String contentType = getHeaders().contentType();
         int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
-        String boundaryValue = "";
+        String boundaryValue;
         if (indexOfBoundaryKey > 0) {
             // grab all the text after the key to obtain the boundary value
             boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
@@ -142,5 +144,15 @@ public final class Request implements IRequest {
     @Override
     public boolean hasAccessedBody() {
         return hasStartedReadingBody || body != null;
+    }
+
+    @Override
+    public IBodyProcessor getBodyProcessor() {
+        return bodyProcessor;
+    }
+
+    @Override
+    public boolean isHasStartedReadingBody() {
+        return hasStartedReadingBody;
     }
 }

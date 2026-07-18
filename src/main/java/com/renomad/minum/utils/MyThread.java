@@ -1,5 +1,7 @@
 package com.renomad.minum.utils;
 
+import com.renomad.minum.logging.Logger;
+
 /**
  * This class exists just to avoid needing to handle
  * the exception when I use a regular Thread.sleep()
@@ -28,7 +30,7 @@ public final class MyThread {
     }
 
     static void handleInterrupted(InterruptedException e) {
-        System.out.println("Interruption during MyThread.sleep: " + e);
+        System.out.println("Interruption during MyThread.sleep: " + Logger.showWhiteSpace(StacktraceUtils.stackTraceToString(e)));
         Thread.currentThread().interrupt();
     }
 }

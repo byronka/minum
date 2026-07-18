@@ -956,7 +956,8 @@ public class WebTests {
                 startLine,
                 "",
                 new FakeSocketWrapper(),
-                new BodyProcessor(context));
+                new BodyProcessor(context),
+                false);
 
         // when we run that handler against the request, it works.
         IResponse response = endpoint.apply(request);
@@ -1044,14 +1045,8 @@ public class WebTests {
     public void test_InvalidPort() {
         var properties = new Properties();
         properties.setProperty("SERVER_PORT", "999999999");
-        Context context = buildTestingContext("testing invalid port",properties);
-        try {
-            WebEngine webEngine = new WebEngine(context, null);
-            assertThrows(WebServerException.class, () -> webEngine.startServer());
-            MyThread.sleep(SERVER_CLOSE_WAIT_TIME);
-        } finally {
-            shutdownTestingContext(context);
-        }
+        var ex = assertThrows(WebServerException.class, () -> buildTestingContext("testing invalid port",properties));
+        assertEquals(ex.getMessage(), "SERVER_PORT must be between -1 and 65,535.  Value was: 999999999");
     }
 
     /**
@@ -1492,8 +1487,8 @@ public class WebTests {
         }
     }
 
-    private String readBody(InputStream is, int length) throws IOException {
-        byte[] read = inputStreamUtils.read(length, is);
+    private String readBody(InputStream is, long length) throws IOException {
+        byte[] read = inputStreamUtils.read(Math.toIntExact(length), is);
         return StringUtils.byteArrayToString(read);
     }
 
@@ -1557,6 +1552,8 @@ public class WebTests {
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
             @Override public boolean hasAccessedBody() {return false;}
+            @Override public IBodyProcessor getBodyProcessor() {return null;}
+            @Override public boolean isHasStartedReadingBody() {return false;}
         };
 
         try (var sw = new FakeSocketWrapper()) {
@@ -1750,6 +1747,8 @@ public class WebTests {
             @Override public Iterable<UrlEncodedKeyValue> getUrlEncodedIterable() {return null;}
             @Override public Iterable<StreamingMultipartPartition> getMultipartIterable() {return null;}
             @Override public boolean hasAccessedBody() {return false;}
+            @Override public IBodyProcessor getBodyProcessor() {return null;}
+            @Override public boolean isHasStartedReadingBody() {return false;}
         };
     }
 

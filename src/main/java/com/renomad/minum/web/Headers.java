@@ -30,7 +30,7 @@ public final class Headers {
 
     public static final Headers EMPTY = new Headers(List.of());
     private static final int MAX_HEADERS_COUNT = 70;
-    private Integer contentLength;
+    private Long contentLength;
 
     /**
      * Each line of the headers is read into this data structure
@@ -99,22 +99,22 @@ public final class Headers {
      * body of the POST and return that value as an integer. If
      * we do not find a content length, return -1.
      */
-    public int contentLength() {
+    public long contentLength() {
         // if we have a saved value for content length, use that
         if (contentLength != null) return contentLength;
 
         List<String> cl = Objects.requireNonNullElse(headersMap.get("content-length"), List.of());
         if (cl.isEmpty()) {
-            contentLength = -1;
+            contentLength = -1L;
         } else if (cl.size() > 1) {
             throw new BadRequestException("Received multiple content-length headers, which does not make sense.  Received: " + cl);
         } else {
             try {
-                contentLength = Integer.parseInt(cl.getFirst());
+                contentLength = Long.parseLong(cl.getFirst());
             } catch (NumberFormatException ex) {
                 throw new BadRequestException("Received a non-numeric content length value. Received: " + cl.getFirst(), ex);
             }
-            if (contentLength < 0) {
+            if (contentLength < 0L) {
                 throw new BadRequestException("Content length cannot be negative.  Received: " + contentLength);
             }
         }

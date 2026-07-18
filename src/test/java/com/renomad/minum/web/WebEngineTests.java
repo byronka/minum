@@ -11,6 +11,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 import java.net.MalformedURLException;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -114,25 +115,27 @@ public class WebEngineTests {
     }
 
     /**
-     * If the user sets a port of -1 for the server (either normal or TLS-encrypted),
-     * then that server simply won't start.
+     * If an exception is thrown when the server socket is
+     * instantiated, it will be wrapped in a {@link WebServerException}
+     * <br>
+     * Here, we will set the port of both servers to the same value,
+     * so an exception will get thrown when we instantiate the second server.
      */
     @Test
-    public void test_DisabledServer_AlternateCase() {
+    public void test_NegativeCase() {
         Properties properties = new Properties();
-        properties.put("SERVER_PORT", "-2");
-        properties.put("SSL_SERVER_PORT", "-2");
+        properties.put("SERVER_PORT", "7777");
+        properties.put("SSL_SERVER_PORT", "7777");
 
-        var localContext = buildTestingContext("test_DisabledServer_AlternateCase", properties);
-        var webFramework = new WebFramework(localContext);
-        var myWebEngine = new WebEngine(localContext, webFramework);
+        var myContext = buildTestingContext("test_NegativeCase", properties);
 
-        var ex1 = assertThrows(WebServerException.class, () -> myWebEngine.startServer());
-        assertEquals(ex1.getMessage(), "Failed to create serversocket on port -2");
+        var webFramework = new WebFramework(myContext);
+        var myWebEngine = new WebEngine(myContext, webFramework);
+        myWebEngine.startSslServer();
 
-        var ex2 = assertThrows(WebServerException.class, () -> myWebEngine.startSslServer());
-        assertTrue(ex2.getMessage().contains("Exception during creation of SSL socket with port -2"));
+        var ex = assertThrows(WebServerException.class, () -> myWebEngine.startServer());
+        assertEquals(ex.getMessage(), "Failed to create serversocket on port 7777");
 
-        TestFramework.shutdownTestingContext(localContext);
+        TestFramework.shutdownTestingContext(myContext);
     }
 }

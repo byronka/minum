@@ -49,4 +49,26 @@ public interface IResponse {
      * Returns the bytes of the Response body being sent to the client
      */
     byte[] getBody();
+
+    /**
+     * The "OutputGenerator" is the code run to put data onto
+     * the socket.  A commonly provided output generator is
+     * a lambda like this: `socketWrapper -> socketWrapper.send(body)`
+     * <br>
+     * However, in some cases it is needed to provide greater sophistication.
+     * For example, see the output generator in {@link Response#buildLargeFileResponse},
+     * which looks like this:
+     * <pre>
+     * {@code
+     *         ThrowingConsumer<ISocketWrapper> outputGenerator = socketWrapper -> {
+     *             try (RandomAccessFile reader = new RandomAccessFile(filePath, "r")) {
+     *                 reader.seek(range.getOffset());
+     *                 var fileChannel = reader.getChannel();
+     *                 sendFileChannelResponse(socketWrapper, fileChannel, range.getLength());
+     *             }
+     *         };
+     * }
+     * </pre>
+     */
+    ThrowingConsumer<ISocketWrapper> getOutputGenerator();
 }

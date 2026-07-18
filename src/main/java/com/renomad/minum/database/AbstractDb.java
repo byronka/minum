@@ -69,7 +69,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * used to place locks around certain actions that need to avoid
      * thread interleaving.
      */
-    private final ReentrantLock dbLock;
+    protected final InspectableLock dbLock;
 
     /**
      * The current index, used when creating new data items.  Each item has its own
@@ -94,7 +94,13 @@ public abstract class AbstractDb<T extends DbData<?>> {
      */
     protected final Map<String, Function<T, String>> partitioningMap;
 
+    private final ReentrantLock indexLock;
+
     protected AbstractDb(Path dbDirectory, Context context, T instance, IFileUtils fileUtils) {
+        if (context.isDbPathRegistered(dbDirectory)) {
+            throw new DbException("Attempted to register more than one database to the same path: " + dbDirectory);
+        }
+        context.addToDbPaths(dbDirectory);
         this.dbDirectory = dbDirectory;
         this.context = context;
         this.emptyInstance = instance;
@@ -103,7 +109,8 @@ public abstract class AbstractDb<T extends DbData<?>> {
         this.registeredIndexes = new HashMap<>();
         this.partitioningMap = new HashMap<>();
         this.fileUtils = fileUtils;
-        this.dbLock = new ReentrantLock();
+        this.dbLock = new InspectableLock();
+        this.indexLock = new ReentrantLock();
     }
 
     /**
@@ -127,7 +134,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      *              and instead crash the instance closed.
      * @param sleepTime how long to wait, in milliseconds, for each iteration of the waiting loop.
      */
-    public abstract void stop(int count, int sleepTime) throws IOException;
+    public abstract void stop(int count, long sleepTime) throws IOException;
 
 
     /**
@@ -167,7 +174,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      */
     protected void writeToMemory(T newData, boolean newElementCreated) {
         // if we got here, we are safe to proceed with putting the data into memory and disk
-        logger.logTrace(() -> String.format("in thread %s, writing data %s", Thread.currentThread().getName(), newData));
+        logger.logTrace(() -> String.format("in thread %d, writing data %s", Thread.currentThread().threadId(), newData));
         T oldData = data.put(newData.getIndex(), newData);
 
         // handle the indexes differently depending on whether this is a create or delete
@@ -190,7 +197,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
         // *** deal with the in-memory portion ***
         boolean newElementCreated = false;
         // create a new index for the data, if needed
-        if (newData.getIndex() == 0) {
+        if (newData.getIndex() == 0L) {
             newData.setIndex(index.getAndIncrement());
             newElementCreated = true;
         } else {
@@ -223,22 +230,19 @@ public abstract class AbstractDb<T extends DbData<?>> {
      */
     protected void deleteFromMemory(T dataToDelete) {
         long dataIndex;
-        if (dataToDelete == null) {
-            throw new DbException("Invalid to be given a null value to delete");
-        }
         dataIndex = dataToDelete.getIndex();
         if (!data.containsKey(dataIndex)) {
             throw new DbException("no data was found with index of " + dataIndex);
         }
         long finalDataIndex = dataIndex;
-        logger.logTrace(() -> String.format("in thread %s, deleting data with index %d", Thread.currentThread().getName(), finalDataIndex));
+        logger.logTrace(() -> String.format("in thread %d, deleting data with index %d", Thread.currentThread().threadId(), finalDataIndex));
         data.remove(dataIndex);
         removeFromIndexes(dataToDelete);
 
         // if all the data was just now deleted, we need to
         // reset the index back to 1
         if (data.isEmpty()) {
-            index.set(1);
+            index.set(1L);
         }
     }
 
@@ -258,7 +262,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
             Function<T, String> indexStringFunction = entry.getValue();
             String propertyAsString = indexStringFunction.apply(dbData);
             Map<String, Set<T>> stringIndexMap = registeredIndexes.get(entry.getKey());
-            dbLock.lock();
+            indexLock.lock();
             try {
                 stringIndexMap.computeIfAbsent(propertyAsString, k -> new HashSet<>());
                 // if the index-key provides a 1-to-1 mapping to items, like UUIDs, then
@@ -268,7 +272,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
                 Set<T> dataSet = stringIndexMap.get(propertyAsString);
                 dataSet.add(dbData);
             } finally {
-                dbLock.unlock();
+                indexLock.unlock();
             }
         }
     }
@@ -283,7 +287,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
             Function<T, String> indexStringFunction = entry.getValue();
             String propertyAsString = indexStringFunction.apply(dbData);
             Map<String, Set<T>> stringIndexMap = registeredIndexes.get(entry.getKey());
-            dbLock.lock();
+            indexLock.lock();
             try {
                 stringIndexMap.get(propertyAsString).removeIf(x -> x.getIndex() == dbData.getIndex());
 
@@ -293,7 +297,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
                     stringIndexMap.remove(propertyAsString);
                 }
             } finally {
-                dbLock.unlock();
+                indexLock.unlock();
             }
         }
     }
@@ -397,7 +401,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
         if (!registeredIndexes.containsKey(indexName)) {
             throw new DbException("There is no index registered on the database Db<"+this.emptyInstance.getClass().getSimpleName()+"> with a name of \""+indexName+"\"");
         }
-        dbLock.lock();
+        indexLock.lock();
         try {
             Set<T> ts = registeredIndexes.get(indexName).get(key);
             if (ts != null) {
@@ -406,7 +410,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
                 return Set.of();
             }
         } finally {
-            dbLock.unlock();
+            indexLock.unlock();
         }
     }
 
@@ -472,4 +476,41 @@ public abstract class AbstractDb<T extends DbData<?>> {
                     .formatted(emptyInstance.getClass().getSimpleName(), indexName, indexKey));
         }
     }
+
+    /**
+     * Provides access to the lock that is used around all
+     * modifications to the database.  Useful for wrapping
+     * around multiple statements when you need to ensure
+     * nothing else can intervene while they run.
+     * <br>
+     * Here is an example of usage:
+     * <pre>
+     * {@code
+     *     ReentrantLock dbLock = db.getDbLock();
+     *     dbLock.lock();
+     *     try {
+     *         db.write(foo);
+     *         db.write(bar);
+     *     } finally {
+     *         dbLock.unlock();
+     *     }
+     * }
+     * </pre>
+     */
+    public InspectableLock getDbLock() {
+        return dbLock;
+    }
+
+    /**
+     * Check that the input is non-null and has a positive index
+     */
+    protected static <T extends DbData<?>> void basicDataChecks(T newData) {
+        // disallowed to be null input
+        if (newData == null) {
+            throw new DbException("Incoming data was null");
+        }
+        // disallowed for input to have a negative index
+        if (newData.getIndex() < 0L) throw new DbException("Negative indexes are disallowed");
+    }
+
 }

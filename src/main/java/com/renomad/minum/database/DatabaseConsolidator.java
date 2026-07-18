@@ -141,7 +141,7 @@ final class DatabaseConsolidator {
     static void rewriteFiles(Map<Long, Collection<DatabaseChangeInstruction>> groupedInstructions,
                              IFileUtils fileUtils, int maxLinesPerFile, ILogger logger, Path consolidatedDataDirectory) throws IOException {
         for (Map.Entry<Long, Collection<DatabaseChangeInstruction>> instructions : groupedInstructions.entrySet()) {
-            String filename = String.format("%d_to_%d", instructions.getKey(), instructions.getKey() + (maxLinesPerFile - 1));
+            String filename = String.format("%d_to_%d", instructions.getKey(), instructions.getKey() + (long) (maxLinesPerFile - 1));
             logger.logTrace(() -> "Writing consolidated data to " + filename);
             List<String> data;
             // if the file doesn't exist, we'll just start with an empty list. If it
@@ -193,21 +193,9 @@ final class DatabaseConsolidator {
     static Collection<String> updateData(String filename, List<String> linesOfData, Collection<DatabaseChangeInstruction> instructions) {
         SortedMap<Long, String> result = new TreeMap<>();
         // put the original data into a map
-        for (String data : linesOfData) {
-            // the first pipe symbol is where the index number ends.  Apologies for
-            // the overlap of terms here, index and index.
-            int indexOfFirstPipe = data.indexOf('|');
-            if (indexOfFirstPipe == -1) {
-                throw new DbException(String.format("Error parsing line in file.  File: %s line: %s", filename, data));
-            }
-            String dataIndexString = data.substring(0, indexOfFirstPipe);
-            long dataIndexLong;
-            try {
-                dataIndexLong = Long.parseLong(dataIndexString);
-            } catch (NumberFormatException ex) {
-                throw new DbException(String.format("Failed to parse index from line in file. File: %s line: %s", filename, data), ex);
-            }
-            result.put(dataIndexLong, data);
+        for (String line : linesOfData) {
+            long dataIndexLong = getDataIndexFromLine(filename, line);
+            result.put(dataIndexLong, line);
         }
 
         // change that data per instructions
@@ -220,6 +208,23 @@ final class DatabaseConsolidator {
             }
         }
         return result.values();
+    }
+
+    private static long getDataIndexFromLine(String filename, String line) {
+        // the first pipe symbol is where the index number ends.  Apologies for
+        // the overlap of terms here, index and index.
+        int indexOfFirstPipe = line.indexOf('|');
+        if (indexOfFirstPipe == -1) {
+            throw new DbException(String.format("Error parsing line in file.  File: %s line: %s", filename, line));
+        }
+        String dataIndexString = line.substring(0, indexOfFirstPipe);
+        long dataIndexLong;
+        try {
+            dataIndexLong = Long.parseLong(dataIndexString);
+        } catch (NumberFormatException ex) {
+            throw new DbException(String.format("Failed to parse index from line in file. File: %s line: %s", filename, line), ex);
+        }
+        return dataIndexLong;
     }
 
     /**

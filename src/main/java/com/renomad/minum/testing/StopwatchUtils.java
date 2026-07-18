@@ -28,7 +28,7 @@ public final class StopwatchUtils {
     }
 
     public StopwatchUtils() {
-        startTime = 0;
+        startTime = 0L;
     }
 
 

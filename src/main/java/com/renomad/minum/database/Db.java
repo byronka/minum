@@ -23,7 +23,7 @@ import static com.renomad.minum.utils.Invariants.mustBeTrue;
  * a memory-based disk-persisted database class.
  * @param <T> the type of data we'll be persisting (must extend from {@link DbData}
  */
-public class Db<T extends DbData<?>> extends AbstractDb<T> {
+public final class Db<T extends DbData<?>> extends AbstractDb<T> {
 
     /**
      * The suffix we will apply to each database file
@@ -36,13 +36,6 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * in a situation where multiple threads are loading the data.
      */
     private final ReentrantLock loadDataLock = new ReentrantLock();
-
-    /**
-     * A lock around any changes to the data of the database, such as
-     * creating, updating, or deleting, so that we don't encounter
-     * scenarios where our in-memory and on-disk data goes out of sync.
-     */
-    private final ReentrantLock dataChangeLock = new ReentrantLock();
 
     /**
      * The full path to the file that contains the most-recent index
@@ -88,7 +81,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             }
 
         } else {
-            this.index = new AtomicLong(1);
+            this.index = new AtomicLong(1L);
         }
 
         actionQueue.enqueue("create directory" + dbDirectory, () -> fileUtils.makeDirectory(dbDirectory));
@@ -124,11 +117,12 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public T write(T newData) {
-        if (newData.getIndex() < 0) throw new DbException("Negative indexes are disallowed");
+        basicDataChecks(newData);
+
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        dataChangeLock.lock();
+        dbLock.lock();
         try {
             boolean newElementCreated = processDataIndex(newData);
             writeToMemory(newData, newElementCreated);
@@ -141,8 +135,10 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             // returning the data at this point is the most convenient
             // way users will have access to the new index of the data.
             return newData;
+        } catch (Exception ex) {
+            throw new DbException("failed to write data " + newData, ex);
         } finally {
-            dataChangeLock.unlock();
+            dbLock.unlock();
         }
     }
 
@@ -175,10 +171,12 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public void delete(T dataToDelete) {
+        basicDataChecks(dataToDelete);
+
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        dataChangeLock.lock();
+        dbLock.lock();
         try {
             // deal with the in-memory portion
             deleteFromMemory(dataToDelete);
@@ -189,8 +187,10 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             actionQueue.enqueue("delete data from disk",
                     () -> deleteFromDisk(dataToDelete, dbDirectory, fileUtils,
                             shouldResetIndexOnDisk, fullPathForIndexFile, logger));
+        } catch (Exception ex) {
+            throw new DbException("failed to delete data " + dataToDelete, ex);
         } finally {
-            dataChangeLock.unlock();
+            dbLock.unlock();
         }
     }
 
@@ -259,7 +259,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
         if(startOfSuffixIndex == -1) {
             throw new DbException("the files must have a ddps suffix, like 1.ddps.  filename: " + filename);
         }
-        String fileContents = null;
+        String fileContents;
         try {
             fileContents = fileUtils.readString(p);
         } catch (IOException e) {
@@ -273,7 +273,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
                 T deserializedData = (T) emptyInstance.deserialize(fileContents);
                 mustBeTrue(deserializedData != null, "deserialization of " + emptyInstance +
                         " resulted in a null value. Was the serialization method implemented properly?");
-                int fileNameIdentifier = Integer.parseInt(filename.substring(0, startOfSuffixIndex));
+                long fileNameIdentifier = Long.parseLong(filename.substring(0, startOfSuffixIndex));
                 mustBeTrue(deserializedData.getIndex() == fileNameIdentifier,
                         "The filename must correspond to the data's index. e.g. 1.ddps must have an id of 1");
 
@@ -303,7 +303,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * and the second will encounter a branch which skips loading.
      */
     @Override
-    public AbstractDb<T> loadData() {
+    public Db<T> loadData() {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
@@ -312,7 +312,7 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
             hasLoadedData = true;
             return this;
         } catch (Exception ex) {
-            throw new DbException("Failed to load data from disk.", ex);
+            throw new DbException("Failed to load data from disk for database with path " + this.dbDirectory, ex);
         } finally {
             loadDataLock.unlock();
         }
@@ -346,12 +346,13 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      * registerIndex command is run before any data is loaded.
      */
     @Override
-    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public Db<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (hasLoadedData) {
             throw new DbException("This method must be run before the database loads data from disk.  Typically, " +
                     "it should be run immediately after the database is created.  See this method's documentation");
         }
-        return super.registerIndex(indexName, keyObtainingFunction);
+        super.registerIndex(indexName, keyObtainingFunction);
+        return this;
     }
 
     /**
@@ -381,15 +382,16 @@ public class Db<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public void stop() {
-        actionQueue.stop();
+        this.stop(5, 20);
     }
 
     /**
      * Similar to {@link #stop()} but gives more control over how long
-     * we'll wait before crashing it closed.  See {@link ActionQueue#stop(int, int)}
+     * we'll wait before crashing it closed.  See {@link ActionQueue#stop(int, long)}
      */
     @Override
-    public void stop(int count, int sleepTime) {
+    public void stop(int count, long sleepTime) {
+        context.removeFromPaths(this.dbDirectory);
         actionQueue.stop(count, sleepTime);
     }
 

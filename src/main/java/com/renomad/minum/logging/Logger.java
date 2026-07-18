@@ -146,7 +146,7 @@ public class Logger implements ILogger {
     /**
      * Given a string that may have whitespace chars, render it in a way we can see
      */
-    static String showWhiteSpace(String msg) {
+    public static String showWhiteSpace(String msg) {
         if (msg == null) return "(NULL)";
         if (msg.isEmpty()) return "(EMPTY)";
 

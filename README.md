@@ -67,15 +67,22 @@ The high level characteristics
 
 Minum has zero dependencies, and is built of ordinary and well-tested
 code: hashmaps, sockets, and so on. The "minimalist" competitors range
-from 400,000 to 700,000 lines when accounting for their dependencies.
+from 400,000 to 700,000 lines (when accounting for their dependencies)
+versus 7,000 for Minum.  That is 100 times smaller!  This means that
+understanding, testing, and debugging become magnitudes easier than
+the prevailing frameworks.  On the other hand, it doesn't hold your
+hand or provide guardrails like the others do.  It is a sharp knife,
+if you know how to wield it.
 
-Applying a minimalist approach enables easier debugging,
-maintainability, and lower overall cost. Most frameworks trade faster
-start-up for a higher overall cost. If you need sustainable quality,
-the software must be well-tested and documented from the onset.  As an
-example, this project's ability to attain such high test coverage was
-greatly enabled by the minimalism paradigm. The plentiful tests and
-comments help to make intent and implementation clearer.
+Applying a minimalist approach, as this does, enables easier debugging,
+maintainability, and lower overall cost. Most frameworks offer faster
+early stages, in exchange for difficulty and intractability as the 
+project progresses.
+
+If the need is sustainable quality, the software must be well-tested 
+and documented from the onset.  As an example, this project's focus 
+on excellent testing was enabled by the minimalism paradigm. It makes
+intent and implementation clearer.
 
 Minum follows _semantic versioning_.
 
@@ -107,7 +114,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>10.0.4</version>
+    <version>11.0.0</version>
 </dependency>
 ```
 
@@ -170,7 +177,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,715 | 141,048 | 1,085,405   |
+| 6,856 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 

@@ -37,7 +37,7 @@ public final class UrlEncodedDataGetter extends InputStream {
             isFinished = true;
             return -1;
         }
-        int result = 0;
+        int result;
         try {
             result = inputStream.read();
         } catch (IOException e) {

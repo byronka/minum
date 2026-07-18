@@ -1,7 +1,8 @@
 Release notes
 =============
 
-* Major versions:
+* Major versions
+  * 11: Full access to Response/Request properties, _July 2026_
   * 10: Killing more bugs, better exception handling, _May 2026_
   * 9: Fix race condition in templates, _March 2026_
   * 8: Streaming videos, _August 2024_
@@ -13,6 +14,121 @@ Release notes
   * 2: Refactoring, _September 2023_
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
+
+
+v11.0.0 July 18, 2026
+---------------------
+
+1.  Breaking change: Response and Request were adjusted to enable duplication - getters and constructors provided.
+
+    Was trying out some techniques in the pre and post handlers (See WebFramework.registerPreHandler 
+    and .registerLastMinuteHandler), when I noticed there was no way to properly modify a Request or
+    Response, something that would make sense in those situations.  Getters and constructors were
+    added to those classes so it becomes possible to precisely re-create an instance, which allows
+    customizing it.  In my case, I wanted to add the duration in milliseconds for server-side
+    processing as a header to all responses.  Now that becomes possible.
+
+2.  Breaking change: database commands "loadData" and "registerIndex" return types are
+    their class (Db or DbEngine2), not their parent class (AbstractDb).
+
+    One of the practices this framework recommends is to instantiate a database, then register any
+    necessary indexes, then load the data.  That documentation has been around a while, for 
+    example see the `com.renomad.minum.database` package documentation.  
+    
+    It turns out this was not possible - those methods previously returned an 
+    AbstractDb.  This change allowed the documentation to be correct, returning whatever type
+    was instantiated, like seen here:
+
+```java
+  Db<PersonName> db = context.getDb("names", PersonName.EMPTY)
+                      .registerIndex("myIndex", x -> x.getName())
+                      .loadData();
+```
+
+3.  New feature: possible to access the lock, "dbLock", which surrounds database change methods, and which
+    can be used by developers to wrap multiple-statements, knowing that no other database calls can
+    interfere while they run.  This is particularly important for "transactional" changes, where multiple
+    changes have to be made.  This does not make the database ACID compliant, but it is a big step
+    forwards in robustness.
+
+    In some situations, it is absolutely needed for multiple database commands to happen without the
+    possibility of other commands interfering - that is, nothing else should be allowed to alter the
+    relevant data during a "transaction" of multiple commands.  That word, transaction, is key - it
+    is an aspect of ACID-compliant databases.  Ours does not provide the same level of robustness as
+    the big kids, but we do need to provide this particular functionality, that is, of preventing
+    interference.
+    
+    In order to enable this, the lock that wraps database changes in the database class is made available
+    for users.  An example can be seen in DbEngine2Tests.testMultipleStatements.
+    
+    If the lock is not properly handled, it can deadlock the database.  However, the normal pattern
+    seen here should suffice for most situations:
+
+```java
+dbLock.lock();
+try {
+    // do things
+} finally {
+    dbLock.unlock();
+}
+```
+
+
+4.  Correctness: Noticed a few classes were unintentionally left non-final.  Made final.
+
+    Most of the classes in this framework are marked with the "final" keyword to restrict extension, 
+    such as `class Foo extends WebFramework`.
+    
+    The classes in this framework, by and large, were not designed for that use and there is no telling
+    how many bugs would result.
+
+5.  Correctness: if the user tries registering multiple databases to the same path, an exception will be thrown.
+
+    It is simply a bug to register multiple databases to the same path - doing so would probably create
+    corrupted data.  By keeping track of which databases are registered, we can prevent this from happening.
+
+6.  Better logging, brig startup improved
+    
+    Noticed that the brig startup did not follow best practices, adjusted to fit.
+
+    The brig's database initialization was adjusted so any failures at startup would cause an exception
+    to bubble to the top.
+
+7.  Removed superfluous locks around some methods in the brig, simplifying the code
+8.  Allow the brig to return its database values more directly, avoiding unnecessary memory usage
+
+    Previously we would convert the values of the brig to a List and return that to users.  The intention was
+    to provide a copy of the data to users, to prevent access to the underlying database at all.  However,
+    the way we are making this data available was already a read-only view, and by creating a new list it
+    would take up potentially a lot of memory.
+
+9.  Fix: Realized that the dumpAttacker() method was too early if the client was using a keep-alive socket.
+
+    the `dumpAttacker` command was happening at the top, so multiple keep-alive calls could run through
+    and avoid getting dumped.  Fixed.
+
+10. In system constants, convert some ints to longs
+
+    There were several constants that should have been longs, in particular items like some values
+    for time in milliseconds or allowable count of bytes.  Adjusted.
+
+11. Stricter correctness handling on system constants
+
+    Checks were added around many of the constants so invalid values would cause an exception
+    at startup, rather than allowing those to roll through until some obscure exception was
+    thrown deeper in the guts.  For example, the value for server port is now restricted to
+    being between -1 and 65,535.  -1 means the server is disabled, but that has always been there.
+    But now, a user cannot enter -2 or 1,000,000 - the server will halt with an exception
+    at the onset.
+
+12. Fix: Content-Length header was being interpreted as an integer (32 bits) rather than
+    as a long (64 bits), preventing handling of data larger than about 2 gigabytes.  Converted
+    to being a long value.
+
+13. Integer versus Long - several spots in the code were set as integers, unnecessarily restricting
+    certain situations to being 32 bit.  Switched to 64 bit values where reasonable.
+
+
 
 v10.0.4 June 13, 2026
 ---------------------

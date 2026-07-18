@@ -16,7 +16,7 @@ public class FakeBodyProcessor implements IBodyProcessor {
     }
 
     @Override
-    public Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, int contentLength) {
+    public Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, long contentLength) {
         return null;
     }
 }

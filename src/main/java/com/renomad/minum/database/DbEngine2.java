@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 
 import static com.renomad.minum.database.ChecksumUtility.generateChecksumErrorMessage;
 import static com.renomad.minum.database.ChecksumUtility.getMessageDigest;
+import static com.renomad.minum.database.InspectableLock.getLockOwnerIdString;
 import static com.renomad.minum.utils.Invariants.mustBeFalse;
 import static com.renomad.minum.utils.Invariants.mustBeTrue;
 
@@ -95,9 +96,20 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
 
     private final ReentrantLock loadDataLock;
     private final ReentrantLock consolidateLock;
-    private final ReentrantLock writeLock;
+
+    /**
+     * The maximum count of lines going into an append-only file before we consolidate
+     */
     int maxLinesPerAppendFile;
+
+    /**
+     * Whether this database has loaded data.  It is preferable to load data
+     * immediately after initializing the database, using the {@link #loadData()}
+     * method, so that any failures will bubble up to the main method and make
+     * the error obvious.
+     */
     boolean hasLoadedData;
+
     final DatabaseAppender databaseAppender;
     final DatabaseConsolidator databaseConsolidator;
 
@@ -142,7 +154,6 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         }
         this.loadDataLock = new ReentrantLock();
         this.consolidateLock = new ReentrantLock();
-        this.writeLock = new ReentrantLock();
         this.maxLinesPerAppendFile = context.getConstants().maxAppendCount;
     }
 
@@ -177,11 +188,31 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public T write(T newData) {
-        if (newData.getIndex() < 0) throw new DbException("Negative indexes are disallowed");
+        basicDataChecks(newData);
+
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        writeLock.lock();
+        boolean hasBeenBLocked;
+        long startWaitingTime;
+        long threadId = Thread.currentThread().threadId();
+        if (!dbLock.tryLock()) {
+            Thread lockOwner = dbLock.getLockOwner();
+            logger.logTrace(() -> "Thread %d encountered a lock held by Thread %s during write()".formatted(threadId, getLockOwnerIdString(lockOwner)));
+            hasBeenBLocked = true;
+            startWaitingTime = System.currentTimeMillis();
+            dbLock.lock();
+        } else {
+            hasBeenBLocked = false;
+            startWaitingTime = 0;
+            logger.logTrace(() -> "Thread %d has acquired the dbLock lock for DbEngine2.write()".formatted(threadId));
+        }
+
+        if (hasBeenBLocked) {
+            long waitTimeMillis = System.currentTimeMillis() - startWaitingTime;
+            logger.logTrace(() -> "Thread %d successfully acquired the lock after waiting %d milliseconds".formatted(threadId, waitTimeMillis));
+        }
+        long startProcessingTime = System.currentTimeMillis();
         try {
             boolean newElementCreated = processDataIndex(newData);
             writeToDisk(newData);
@@ -189,7 +220,9 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         } catch (Exception ex) {
            throw new DbException("failed to write data " + newData, ex);
         } finally {
-            writeLock.unlock();
+            long processingTime = System.currentTimeMillis() - startProcessingTime;
+            logger.logTrace(() -> "Thread %d releasing lock for writing.  Time taken in millis: %d".formatted(Thread.currentThread().threadId(), processingTime));
+            dbLock.unlock();
         }
 
         // returning the data at this point is the most convenient
@@ -197,9 +230,8 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         return newData;
     }
 
-
     private void writeToDisk(T newData) throws IOException {
-        logger.logTrace(() -> String.format("writing data to disk: %s", newData));
+        logger.logTrace(() -> String.format("Thread %d is writing data to disk: %s", Thread.currentThread().threadId(), newData));
         String serializedData = newData.serialize();
         mustBeFalse(serializedData == null || serializedData.isBlank(),
                 "the serialized form of data must not be blank. " +
@@ -258,22 +290,45 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public void delete(T dataToDelete) {
+        basicDataChecks(dataToDelete);
+
         // load data if needed
         if (!hasLoadedData) loadData();
 
-        writeLock.lock();
+        boolean hasBeenBLocked;
+        long startWaitingTime;
+        long threadId = Thread.currentThread().threadId();
+        if (!dbLock.tryLock()) {
+            Thread lockOwner = dbLock.getLockOwner();
+            logger.logTrace(() -> "Thread %d encountered a lock held by Thread %s during delete()".formatted(threadId, getLockOwnerIdString(lockOwner)));
+            hasBeenBLocked = true;
+            startWaitingTime = System.currentTimeMillis();
+            dbLock.lock();
+        } else {
+            hasBeenBLocked = false;
+            startWaitingTime = 0;
+            logger.logTrace(() -> "Thread %d has acquired the dbLock lock for DbEngine2.delete()".formatted(threadId));
+        }
+
+        if (hasBeenBLocked) {
+            long waitTimeMillis = System.currentTimeMillis() - startWaitingTime;
+            logger.logTrace(() -> "Thread %d successfully acquired the lock after waiting %d milliseconds".formatted(threadId, waitTimeMillis));
+        }
+        long startProcessingTime = System.currentTimeMillis();
         try {
             deleteFromDisk(dataToDelete);
             deleteFromMemory(dataToDelete);
         } catch (Exception ex) {
             throw new DbException("failed to delete data " + dataToDelete, ex);
         } finally {
-            writeLock.unlock();
+            long processingTime = System.currentTimeMillis() - startProcessingTime;
+            logger.logTrace(() -> "Thread %d releasing lock for writing.  Time taken in millis: %d".formatted(Thread.currentThread().threadId(), processingTime));
+            dbLock.unlock();
         }
     }
 
     private void deleteFromDisk(T dataToDelete) throws IOException {
-        logger.logTrace(() -> String.format("deleting data from disk: %s", dataToDelete));
+        logger.logTrace(() -> String.format("Thread %d deleting data from disk: %s", Thread.currentThread().threadId(), dataToDelete));
         databaseAppender.appendToDatabase(DatabaseChangeAction.DELETE, dataToDelete.serialize());
         appendCount.incrementAndGet();
         consolidateIfNecessary();
@@ -402,7 +457,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * and the second will encounter a branch which skips loading.
      */
     @Override
-    public AbstractDb<T> loadData() {
+    public DbEngine2<T> loadData() {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
@@ -411,7 +466,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
             hasLoadedData = true;
             return this;
         } catch (Exception ex) {
-            throw new DbException("Failed to load data from disk.", ex);
+            throw new DbException("Failed to load data from disk for database with path " + this.dbDirectory, ex);
         } finally {
             loadDataLock.unlock();
         }
@@ -438,12 +493,13 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
     }
 
     @Override
-    public AbstractDb<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
+    public DbEngine2<T> registerIndex(String indexName, Function<T, String> keyObtainingFunction) {
         if (hasLoadedData) {
             throw new DbException("This method must be run before the database loads data from disk.  Typically, " +
                     "it should be run immediately after the database is created.  See this method's documentation");
         }
-        return super.registerIndex(indexName, keyObtainingFunction);
+        super.registerIndex(indexName, keyObtainingFunction);
+        return this;
     }
 
 
@@ -461,6 +517,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      */
     @Override
     public void stop() throws IOException {
+        context.removeFromPaths(this.dbDirectory);
         this.databaseAppender.flush();
     }
 
@@ -469,7 +526,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * to have a similar contract to {@link Db}
      */
     @Override
-    public void stop(int count, int sleepTime) throws IOException {
+    public void stop(int count, long sleepTime) throws IOException {
         this.stop();
     }
 }

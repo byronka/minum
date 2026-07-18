@@ -149,6 +149,7 @@ public final class TestLogger extends Logger {
      * @param lines how many lines back to examine
      * @return whether this string was found, even if there
      *      were multiple places it was found.
+     * @throws TestLoggerException if value was not found.
      */
     public boolean doesMessageExist(String value, int lines) {
         if (! findMessage(value, lines, recentLogLines).isEmpty()) {

@@ -2,6 +2,7 @@ package com.renomad.minum.state;
 
 import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.utils.TimeUtils;
+import com.renomad.minum.web.WebServerException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -20,31 +21,36 @@ public final class Constants {
     }
 
     public Constants(Properties props) {
+        startTime = System.currentTimeMillis();
         properties = Objects.requireNonNullElseGet(props, Constants::getConfiguredProperties);
+        serverPort = Math.toIntExact(getProp("SERVER_PORT", 8080));
+        if (serverPort < -1 || serverPort > 65_535) throw new WebServerException("SERVER_PORT must be between -1 and 65,535.  Value was: " + serverPort);
 
-        serverPort = getProp("SERVER_PORT",  8080);
-        secureServerPort = getProp("SSL_SERVER_PORT",  8443);
-        hostName = properties.getProperty("HOST_NAME",  "localhost");
-        dbDirectory = properties.getProperty("DB_DIRECTORY",  "db");
-        staticFilesDirectory = properties.getProperty("STATIC_FILES_DIRECTORY",  "static");
+        secureServerPort = Math.toIntExact(getProp("SSL_SERVER_PORT", 8443));
+        if (secureServerPort < -1 || secureServerPort > 65_535) throw new WebServerException("SSL_SERVER_PORT must be between -1 and 65,535.  Value was: " + secureServerPort);
+
+        hostName = getNonEmptyProperty("HOST_NAME",  "localhost");
+        dbDirectory = getNonEmptyProperty("DB_DIRECTORY",  "db");
+        staticFilesDirectory = getNonEmptyProperty("STATIC_FILES_DIRECTORY",  "static");
         logLevels = convertLoggingStringsToEnums(getProp("LOG_LEVELS", "DEBUG,AUDIT"));
         keystorePath = properties.getProperty("KEYSTORE_PATH",  "");
         keystorePassword = properties.getProperty("KEYSTORE_PASSWORD",  "");
-        maxReadSizeBytes = getProp("MAX_READ_SIZE_BYTES",  10 * 1024 * 1024);
-        maxReadLineSizeBytes = getProp("MAX_READ_LINE_SIZE_BYTES",  1024);
-        socketTimeoutMillis = getProp("SOCKET_TIMEOUT_MILLIS", 7 * 1000);
-        keepAliveTimeoutSeconds = getProp("KEEP_ALIVE_TIMEOUT_SECONDS", 3);
-        vulnSeekingJailDuration = getProp("VULN_SEEKING_JAIL_DURATION", 10 * 1000);
+        maxReadSizeBytes = Math.toIntExact(getPositiveNonZeroProp("MAX_READ_SIZE_BYTES", 10 * 1024 * 1024));
+        maxReadLineSizeBytes = Math.toIntExact(getPositiveNonZeroProp("MAX_READ_LINE_SIZE_BYTES", 1024));
+        socketTimeoutMillis = Math.toIntExact(getProp("SOCKET_TIMEOUT_MILLIS", 7 * 1000));
+        if (socketTimeoutMillis < 0) throw new WebServerException("SOCKET_TIMEOUT_MILLIS must be a positive value.  Value was: " + socketTimeoutMillis);
+
+        keepAliveTimeoutSeconds = getPositiveNonZeroProp("KEEP_ALIVE_TIMEOUT_SECONDS", 3);
+        vulnSeekingJailDuration = getPositiveNonZeroProp("VULN_SEEKING_JAIL_DURATION", 10 * 1000);
         isTheBrigEnabled = getProp("IS_THE_BRIG_ENABLED", true);
         suspiciousErrors = new HashSet<>(getProp("SUSPICIOUS_ERRORS", ""));
         suspiciousPaths = new HashSet<>(getProp("SUSPICIOUS_PATHS", ""));
-        startTime = System.currentTimeMillis();
         extraMimeMappings = getProp("EXTRA_MIME_MAPPINGS", "");
-        staticFileCacheTime = getProp("STATIC_FILE_CACHE_TIME", 60 * 5);
+        staticFileCacheTime = getPositiveNonZeroProp("STATIC_FILE_CACHE_TIME", 60 * 5);
         useCacheForStaticFiles = getProp("USE_CACHE_FOR_STATIC_FILES", true);
-        maxElementsLruCacheStaticFiles = getProp("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", 1000);
-        maxAppendCount = getProp("MAX_DATABASE_APPEND_COUNT", 100_000);
-        maxLinesPerConsolidatedDatabaseFile = getProp("MAX_DATABASE_CONSOLIDATED_FILE_LINES", 100_000);
+        maxElementsLruCacheStaticFiles = Math.toIntExact(getPositiveNonZeroProp("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", 1000));
+        maxAppendCount = Math.toIntExact(getPositiveNonZeroProp("MAX_DATABASE_APPEND_COUNT", 100_000));
+        maxLinesPerConsolidatedDatabaseFile = Math.toIntExact(getPositiveNonZeroProp("MAX_DATABASE_CONSOLIDATED_FILE_LINES", 100_000));
         enableSystemRunningMarker = getProp("ENABLE_SYSTEM_RUNNING_MARKER", true);
     }
 
@@ -111,13 +117,13 @@ public final class Constants {
      * browser know how long to hold the socket open, in seconds,
      * before it decides we aren't sending anything else and closes it.
      */
-    public final int keepAliveTimeoutSeconds;
+    public final long keepAliveTimeoutSeconds;
 
     /**
      * If a client does something that we consider an indicator for attacking, put them in
      * jail for a longer duration.
      */
-    public final int vulnSeekingJailDuration;
+    public final long vulnSeekingJailDuration;
 
     /**
      * TheBrig is what puts client ip's in jail, if we feel they are attacking us.
@@ -221,8 +227,14 @@ public final class Constants {
      * A helper method to remove some redundant boilerplate code for grabbing
      * configuration values from minum.config
      */
-    private int getProp(String propName, int propDefault) {
-        return Integer.parseInt(properties.getProperty(propName, String.valueOf(propDefault)));
+    private long getProp(String propName, long propDefault) {
+        return Long.parseLong(properties.getProperty(propName, String.valueOf(propDefault)));
+    }
+
+    private long getPositiveNonZeroProp(String propName, long propDefault) {
+        long value = getProp(propName, propDefault);
+        if (value <= 0L) throw new WebServerException(propName + " must be a positive non-zero value.  Value was: " + value);
+        return value;
     }
 
     /**
@@ -240,6 +252,12 @@ public final class Constants {
     private List<String> getProp(String propName, String propDefault) {
         String propValue = properties.getProperty(propName);
         return extractList(propValue, propDefault);
+    }
+
+    private String getNonEmptyProperty(String propName, String propDefault) {
+        String propValue = properties.getProperty(propName, propDefault);
+        if (propValue.isBlank()) throw new WebServerException(propName + " must be a non-empty string");
+        return propValue;
     }
 
     /**

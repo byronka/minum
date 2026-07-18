@@ -145,12 +145,7 @@ public final class FileUtils implements IFileUtils {
         boolean isPreviousCharDot = false;
         boolean isPreviousCharSlash = false;
         for (int i = 0; i < path.length(); i++) {
-            char c = path.charAt(i);
-            boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
-                    c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
-            if (!isWhitelistedChar) {
-                throw new ForbiddenUseException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
-            }
+            char c = checkAgainstWhitelistChars(path, i);
             if (c == '.') {
                 if (isPreviousCharDot) {
                     throw new ForbiddenUseException("filename ("+path+") contained invalid characters");
@@ -168,6 +163,16 @@ public final class FileUtils implements IFileUtils {
                 isPreviousCharSlash = false;
             }
         }
+    }
+
+    private static char checkAgainstWhitelistChars(String path, int i) {
+        char c = path.charAt(i);
+        boolean isWhitelistedChar = c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' ||
+                c == '-' || c == '_' || c == '.' || c == '\\' || c == '/';
+        if (!isWhitelistedChar) {
+            throw new ForbiddenUseException("filename (" + path + ") contained invalid characters (" + c + ").  Allowable characters are alpha-numeric ascii both cases, underscore, forward and backward-slash, period, and dash");
+        }
+        return c;
     }
 
     @Override

@@ -43,4 +43,14 @@ public class FakeRequest implements IRequest {
         return false;
     }
 
+    @Override
+    public IBodyProcessor getBodyProcessor() {
+        return null;
+    }
+
+    @Override
+    public boolean isHasStartedReadingBody() {
+        return false;
+    }
+
 }

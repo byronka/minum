@@ -153,4 +153,21 @@ public interface IRequest {
      * or by running {@link Request#getMultipartIterable()} or {@link Request#getUrlEncodedIterable()}
      */
     boolean hasAccessedBody();
+
+    /**
+     * The body processor injected into Requests is typically
+     * the same for each one, instantiated just once when the
+     * WebFramework class is built.  However, this is provided
+     * here in the interface for uniform access to all parts.
+     */
+    IBodyProcessor getBodyProcessor();
+
+    /**
+     * Returns a boolean for whether the body has started
+     * to be read from this Request, which means that the
+     * socket pointer has moved past the headers into the
+     * body section.  This is an important state change
+     * that the system must know about.
+     */
+    boolean isHasStartedReadingBody();
 }

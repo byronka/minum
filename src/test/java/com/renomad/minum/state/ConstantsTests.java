@@ -3,6 +3,7 @@ package com.renomad.minum.state;
 import com.renomad.minum.logging.LoggingLevel;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.testing.TestFramework;
+import com.renomad.minum.web.WebServerException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -103,4 +104,132 @@ public class ConstantsTests {
         List<LoggingLevel> result = Constants.convertLoggingStringsToEnums(logLevels);
         assertEquals(result.toString(), List.of().toString());
     }
+
+    @Test
+    public void test_ServerPortConstant() {
+        {
+            var properties = new Properties();
+            properties.setProperty("SERVER_PORT", "-2");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "SERVER_PORT must be between -1 and 65,535.  Value was: -2");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SERVER_PORT", "-1");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SERVER_PORT", "0");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SERVER_PORT", "65535");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SERVER_PORT", "65536");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "SERVER_PORT must be between -1 and 65,535.  Value was: 65536");
+        }
+    }
+
+    @Test
+    public void test_SecureServerPortConstant() {
+        {
+            var properties = new Properties();
+            properties.setProperty("SSL_SERVER_PORT", "-2");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "SSL_SERVER_PORT must be between -1 and 65,535.  Value was: -2");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SSL_SERVER_PORT", "-1");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SSL_SERVER_PORT", "0");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SSL_SERVER_PORT", "65535");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SSL_SERVER_PORT", "65536");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "SSL_SERVER_PORT must be between -1 and 65,535.  Value was: 65536");
+        }
+    }
+
+    @Test
+    public void test_HostNameConstant() {
+        {
+            var properties = new Properties();
+            properties.setProperty("HOST_NAME", "");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "HOST_NAME must be a non-empty string");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("HOST_NAME", "   ");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "HOST_NAME must be a non-empty string");
+        }
+    }
+
+    @Test
+    public void test_maxElementsLruCacheStaticFiles() {
+        {
+            var properties = new Properties();
+            properties.setProperty("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", "");
+            var ex = assertThrows(NumberFormatException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "For input string: \"\"");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", "0");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "MAX_ELEMENTS_LRU_CACHE_STATIC_FILES must be a positive non-zero value.  Value was: 0");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", "-1");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "MAX_ELEMENTS_LRU_CACHE_STATIC_FILES must be a positive non-zero value.  Value was: -1");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("MAX_ELEMENTS_LRU_CACHE_STATIC_FILES", String.valueOf(Long.MAX_VALUE));
+            var ex = assertThrows(ArithmeticException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "integer overflow");
+        }
+    }
+
+    @Test
+    public void testSocketTimeoutMillis() {
+        {
+            var properties = new Properties();
+            properties.setProperty("SOCKET_TIMEOUT_MILLIS", "0");
+            new Constants(properties);
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SOCKET_TIMEOUT_MILLIS", "-1");
+            var ex = assertThrows(WebServerException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "SOCKET_TIMEOUT_MILLIS must be a positive value.  Value was: -1");
+        }
+        {
+            var properties = new Properties();
+            properties.setProperty("SOCKET_TIMEOUT_MILLIS", String.valueOf(Long.MAX_VALUE));
+            var ex = assertThrows(ArithmeticException.class, () -> new Constants(properties));
+            assertEquals(ex.getMessage(), "integer overflow");
+        }
+    }
+
 }

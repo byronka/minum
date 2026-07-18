@@ -40,7 +40,7 @@ public interface AbstractActionQueue {
      * @param count how many loops to wait before we crash it closed
      * @param sleepTime how long to wait in milliseconds between loops
      */
-    void stop(int count, int sleepTime);
+    void stop(int count, long sleepTime);
 
     /**
      * This will prevent any new actions being

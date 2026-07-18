@@ -85,7 +85,7 @@ public final class Response implements IResponse {
      *                   from being compressed before sending (presuming sufficiently large
      *                   to make it worth the time for compression)
      */
-    Response(StatusLine.StatusCode statusCode, Headers extraHeaders, byte[] body,
+    public Response(StatusLine.StatusCode statusCode, Headers extraHeaders, byte[] body,
              ThrowingConsumer<ISocketWrapper> outputGenerator, long bodyLength, boolean isBodyText) {
         if (statusCode == null) throw new IllegalArgumentException("Status code must not be null");
         if (extraHeaders == null) throw new IllegalArgumentException("Extra headers must not be null (may use Headers.EMPTY)");
@@ -106,7 +106,7 @@ public final class Response implements IResponse {
      *                        ability to send bytes on the socket.
      */
     public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
-        return new Response(statusCode, extraHeaders, null, outputGenerator, 0, false);
+        return new Response(statusCode, extraHeaders, null, outputGenerator, 0L, false);
     }
 
     /**
@@ -227,7 +227,7 @@ public final class Response implements IResponse {
      */
     public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, Headers requestHeaders, IFileUtils fileUtils) {
         Headers adjustedHeaders = extraHeaders;
-        long fileSize = 0;
+        long fileSize;
         try {
             fileSize = fileUtils.size(Path.of(filePath));
         } catch (IOException e) {
@@ -271,7 +271,7 @@ public final class Response implements IResponse {
      *                        allows the developer to use directories anywhere in the system.
      */
     public static IResponse buildLargeFileResponse(Headers extraHeaders, String filePath, String parentDirectory, Headers requestHeaders, IFileUtils fileUtils) {
-        Path path = null;
+        Path path;
         try {
             path = fileUtils.safeResolve(parentDirectory, filePath);
         } catch (IOException e) {
@@ -402,7 +402,7 @@ public final class Response implements IResponse {
                 if (countBytesRead <= 0) {
                     break;
                 } else {
-                    if (countBytesLeftToSend < countBytesRead) {
+                    if (countBytesLeftToSend < (long) countBytesRead) {
                         sw.send(buff.array(), 0, (int)countBytesLeftToSend);
                         break;
                     } else {
@@ -410,7 +410,7 @@ public final class Response implements IResponse {
                     }
                     buff.clear();
                 }
-                countBytesLeftToSend -= countBytesRead;
+                countBytesLeftToSend = countBytesLeftToSend - countBytesRead;
             }
         } finally {
             fileChannel.close();
@@ -422,21 +422,21 @@ public final class Response implements IResponse {
         return body;
     }
 
-
+    @Override
+    public ThrowingConsumer<ISocketWrapper> getOutputGenerator() {
+        return outputGenerator;
+    }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Response response = (Response) o;
-        return bodyLength == response.bodyLength && isBodyText == response.isBodyText && statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Arrays.equals(body, response.body);
+        return bodyLength == response.bodyLength && isBodyText == response.isBodyText && statusCode == response.statusCode && Objects.equals(extraHeaders, response.extraHeaders) && Objects.deepEquals(body, response.body);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(statusCode, extraHeaders, bodyLength, isBodyText);
-        result = 31 * result + Arrays.hashCode(body);
-        return result;
+        return Objects.hash(statusCode, extraHeaders, Arrays.hashCode(body), bodyLength, isBodyText);
     }
 
     @Override

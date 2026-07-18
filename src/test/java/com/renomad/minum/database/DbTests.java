@@ -1,11 +1,8 @@
 package com.renomad.minum.database;
 
-import com.renomad.minum.logging.TestLoggerException;
+import com.renomad.minum.logging.*;
 import com.renomad.minum.state.Constants;
 import com.renomad.minum.state.Context;
-import com.renomad.minum.logging.Logger;
-import com.renomad.minum.logging.TestLogger;
-import com.renomad.minum.testing.RegexUtils;
 import com.renomad.minum.testing.StopwatchUtils;
 import com.renomad.minum.testing.TestFramework;
 import com.renomad.minum.utils.*;
@@ -25,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 
 import static com.renomad.minum.database.DbTests.Foo.INSTANCE;
@@ -269,7 +267,8 @@ public class DbTests {
         final var db_throwaway = new Db<>(dbPathForTest, context, INSTANCE);
 
         var ex = assertThrows(DbException.class, () -> db_throwaway.delete(new Foo(123, 123, "")));
-        assertEquals(ex.getMessage(), "no data was found with index of 123");
+        assertEquals(ex.getMessage(), "failed to delete data Foo{index=123, a=123, b=''}");
+        assertEquals(ex.getCause().getMessage(), "no data was found with index of 123");
 
         db_throwaway.stop();
         MyThread.sleep(FINISH_TIME);
@@ -317,7 +316,7 @@ public class DbTests {
         // create a corrupted file, to create that edge condition
         Files.writeString(pathToSampleFile, "invalid data", StandardCharsets.UTF_8);
         final var ex = assertThrows(DbException.class, () -> db.loadData());
-        assertEquals(ex.getMessage(), "Failed to load data from disk.");
+        assertTrue(ex.getMessage().contains("Failed to load data from disk for database with path"));
         db.stop();
         MyThread.sleep(FINISH_TIME);
     }
@@ -536,7 +535,8 @@ public class DbTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"));
         var db = new Db<>(foosDirectory.resolve("test_Db_Delete_EdgeCase_DoesNotExist"), context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(new Foo(1, 2, "a")));
-        assertEquals(ex.getMessage(), "no data was found with index of 1");
+        assertEquals(ex.getMessage(), "failed to delete data Foo{index=1, a=2, b='a'}");
+        assertEquals(ex.getCause().getMessage(), "no data was found with index of 1");
         db.stop();
         MyThread.sleep(FINISH_TIME);
     }
@@ -576,7 +576,7 @@ public class DbTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         var ex = assertThrows(DbException.class, () -> db.delete(null));
-        assertEquals(ex.getMessage(), "Invalid to be given a null value to delete");
+        assertEquals(ex.getMessage(), "Incoming data was null");
         db.stop();
         MyThread.sleep(FINISH_TIME);
     }
@@ -778,9 +778,10 @@ public class DbTests {
 
         Foo foo1 = new Foo(1, 2, "a");
 
-        assertThrows(DbException.class,
-                "Positive indexes are only allowed when updating existing data. Index: 1",
+        var ex = assertThrows(DbException.class,
+                "failed to write data Foo{index=1, a=2, b='a'}",
                 () -> db.write(foo1));
+        assertEquals(ex.getCause().getMessage(), "Positive indexes are only allowed when updating existing data. Index: 1");
         db.stop();
         MyThread.sleep(FINISH_TIME);
     }
@@ -1084,8 +1085,9 @@ public class DbTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("indexes_by_a_value", x -> String.valueOf(0/0));
-        var ex = assertThrows(ArithmeticException.class, () -> db.write(new Foo(0, 30, "for testing indexes")));
-        assertEquals(ex.getMessage(), "/ by zero");
+        var ex = assertThrows(DbException.class, () -> db.write(new Foo(0, 30, "for testing indexes")));
+        assertEquals(ex.getMessage(), "failed to write data Foo{index=1, a=30, b='for testing indexes'}");
+        assertEquals(ex.getCause().getMessage(), "/ by zero");
 
         db.stop();
         MyThread.sleep(FINISH_TIME);
@@ -1154,7 +1156,7 @@ public class DbTests {
 
     @Test
     public void testSearchUtility_EdgeCase_NoIndexRegistered() throws IOException {
-        Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
+        Path dbPathForTest = foosDirectory.resolve("testSearchUtility_EdgeCase_NoIndexRegistered");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
 
@@ -1168,7 +1170,7 @@ public class DbTests {
 
     @Test
     public void testSearchUtility_EdgeCases_Various() throws IOException {
-        Path dbPathForTest = foosDirectory.resolve("testSearchUtility");
+        Path dbPathForTest = foosDirectory.resolve("testSearchUtility_EdgeCases_Various");
         fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
         var db = new Db<>(dbPathForTest, context, INSTANCE);
         db.registerIndex("indexes_by_a_value", x -> String.valueOf(x.getA()));
@@ -1409,6 +1411,8 @@ public class DbTests {
         listRestarted.sort(Comparator.comparingLong(Foo::getIndex));
         assertEquals(listRestarted.toString(), foos.toString());
 
+        dbClassicRestarted.stop();
+
         // convert it back and forth
         for (int i = 0; i < 2; i++) {
             // start database of DbEngine2
@@ -1443,6 +1447,76 @@ public class DbTests {
             assertEquals(d1Values.toString(), foos.toString());
         }
         TestFramework.shutdownTestingContext(customContext);
+    }
+
+    @Test
+    public void test_NegativeCase_MultipleDatabasesTargetingOneDirectory() throws IOException {
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("test_NegativeCase_MultipleDatabasesTargetingOneDirectory");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        new Db<>(dbPathForTest, context, Foo.INSTANCE).loadData();
+
+        var ex = assertThrows(DbException.class, () -> new Db<>(dbPathForTest, context, Foo.INSTANCE).loadData());
+
+        assertTrue(ex.getMessage().contains("Attempted to register more than one database to the same path:"),
+                "Should get a message indicating there are multiple databases registered to one path.  Instead, got this: "+ ex.getMessage());
+    }
+
+
+    /**
+     * If you need to run multiple statements without the possibility of
+     * having other database change commands interfere, use the same lock
+     * that wraps the underlying {@link DbEngine2#write(DbData)} and {@link DbEngine2#delete(DbData)}
+     * This is possible by providing a getter to it, at {@link AbstractDb#getDbLock()}
+     */
+    @Test
+    public void testMultipleStatements() throws IOException, ExecutionException, InterruptedException {
+        // create a database
+        Path dbPathForTest = foosDirectory.resolve("testMultipleStatements");
+        fileUtils.deleteDirectoryRecursivelyIfExists(dbPathForTest);
+        Db<Foo> db = new Db<>(dbPathForTest, context, Foo.INSTANCE).loadData();
+
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, true);
+        Foo first = db.write(new Foo(0, 101, "MULTIPLE first"));
+
+        var f1 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 333, "mixing in attempt")));
+        var f2 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 444, "mixing in attempt")));
+        var f3 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 666, "mixing in attempt")));
+        var f4 = context.getExecutorService().submit(() -> runMultipleStatements(db, first, logger));
+        var f5 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 777, "mixing in attempt")));
+        var f6 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 888, "mixing in attempt")));
+        var f7 = context.getExecutorService().submit(() -> db.write(new Foo(first.getIndex(), 999, "mixing in attempt")));
+
+        f1.get();
+        f2.get();
+        f3.get();
+        f4.get();
+        f5.get();
+        f6.get();
+        f7.get();
+        logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
+    }
+
+    /**
+     * An example of code where various database change commands must be run together,
+     * and must not allow any other changes to occur in the database while they run.
+     */
+    private static void runMultipleStatements(AbstractDb<Foo> db, Foo first, ILogger logger) {
+        ReentrantLock dbLock = db.getDbLock();
+        dbLock.lock();
+        try {
+            logger.logDebug(() -> "MULTIPLE STATEMENTS START ---------------");
+            var second = db.write(new Foo(first.getIndex(), first.getA() + 1, "MULTIPLE second"));
+            var third = db.write(new Foo(first.getIndex(), second.getA() + 1, "MULTIPLE third"));
+            var fourth = db.write(new Foo(first.getIndex(), third.getA() + 1, "MULTIPLE fourth"));
+            var fifth = db.write(new Foo(first.getIndex(), fourth.getA() + 1, "MULTIPLE alpha"));
+            var sixth = db.write(new Foo(first.getIndex(), fifth.getA() + 1, "MULTIPLE beta"));
+            int result = db.write(new Foo(first.getIndex(), sixth.getA() + 1, "MULTIPLE gamma")).getA();
+            assertEquals(first.getA() + 6, result);
+            logger.logDebug(() -> "MULTIPLE STATEMENTS END ==================");
+        } finally {
+            dbLock.unlock();
+        }
     }
 
     public static class Bar extends DbData<Bar> {

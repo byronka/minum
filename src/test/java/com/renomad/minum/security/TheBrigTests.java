@@ -16,7 +16,10 @@ import org.junit.runner.Description;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.*;
 
 import static com.renomad.minum.testing.TestFramework.*;
 
@@ -142,10 +145,11 @@ public class TheBrigTests {
      * If the brig isn't initialized, there's no thread to stop
      */
     @Test
-    public void test_TheBrig_Uninitialized() {
+    public void test_TheBrig_Uninitialized() throws IOException {
         var b = new TheBrig(10, context);
         var ex = assertThrows(MinumSecurityException.class, b::stop);
         assertEquals(ex.getMessage(), "TheBrig was told to stop, but it was uninitialized");
+        context.clearDatabasePaths();
     }
 
     /**
@@ -159,11 +163,11 @@ public class TheBrigTests {
         fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
         var b = new TheBrig(10, context).initialize();
         b.sendToJail("1.2.3.4_too_freq_downloads", 20);
-        Long releaseTime = b.getInmates().getFirst().getReleaseTime();
+        Long releaseTime = b.getInmates().stream().toList().getFirst().getReleaseTime();
         assertTrue(b.isInJail("1.2.3.4_too_freq_downloads"));
         assertEquals(b.getInmates().size(), 1);
         b.sendToJail("1.2.3.4_too_freq_downloads", 20);
-        assertEquals(releaseTime + 20, b.getInmates().getFirst().getReleaseTime());
+        assertEquals(releaseTime + 20, b.getInmates().stream().toList().getFirst().getReleaseTime());
         MyThread.sleep(70);
         assertFalse(b.isInJail("1.2.3.4_too_freq_downloads"));
         assertEquals(b.getInmates().size(), 0);
@@ -191,5 +195,73 @@ public class TheBrigTests {
 
         shutdownTestingContext(disabledBrigContext);
         Files.deleteIfExists(Path.of("SYSTEM_RUNNING"));
+    }
+
+    /**
+     * I encountered an issue where, after removing some locks from the
+     * brig's code, it appeared to be possible to add multiple of the same
+     * client id to the brig.  Not a great outcome.  The exception thrown
+     * started like this:
+     *
+     * <pre>
+     * Exception caught in WebFramework.finalExceptionHandler:
+     * com.renomad.minum.database.DbException: More than one item found when
+     * searching database Db<Inmate> on index "client_identifier_index" with
+     * key 123.123.123.123_vuln_seeking...
+     * </pre>
+     *
+     * And which pointed to the {@link TheBrig#isInJail(String)} method as
+     * the culprit.  For that to happen, multiple threads must have ended
+     * up putting the same ip address in.
+     *
+     * For this test, I will temporarily remove the locks and see that issue
+     * manifest, and then replace the locks and expect it not to occur.
+     */
+    @Test
+    public void test_MultiThreadedIssues() throws IOException, ExecutionException, InterruptedException, TimeoutException {
+        MyThread.sleep(50);
+        fileUtils.deleteDirectoryRecursivelyIfExists(Path.of(context.getConstants().dbDirectory));
+        TheBrig b = new TheBrig(10, context).initialize();
+        // give the database time to start
+        MyThread.sleep(20);
+
+
+        int countOfThreads = 20;
+        ExecutorService executor = Executors.newFixedThreadPool(countOfThreads);
+
+        // CyclicBarrier is a async-thread tool that we'll use to cause all our threads
+        // to line up together at the starting line, as it were. This will maximize
+        // our chances of catching a race condition.
+        CyclicBarrier barrier = new CyclicBarrier(countOfThreads);
+
+        // collect the futures of each thread to manage it later.
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < countOfThreads; i++) {
+            futures.add(executor.submit(() -> {
+                try {
+                    // this await command will unlock once all 20 threads are awaiting,
+                    // so they all get released to move forward at the exact same time,
+                    // which will be likely to cause a race condition if one exists.
+                    barrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    throw new RuntimeException(e);
+                }
+                b.sendToJail("foo", 100_000);
+            }));
+        }
+
+        // wait here for all our threads to finish.
+        for (Future<?> f : futures) {
+            f.get(5, TimeUnit.SECONDS);
+        }
+
+        // Now, the test.  If our locks protected against multi-threaded
+        // race conditions, then our method here won't throw an exception.
+        // If it *does* fail, it will be because it found multiple foo's
+        // in the database when our code should have prevented that.
+        assertTrue(b.isInJail("foo"));
+
+        b.stop();
     }
 }

@@ -34,8 +34,8 @@ final class BodyProcessor implements IBodyProcessor {
     public Body extractData(InputStream is, Headers h) {
         final var contentType = h.contentType();
 
-        if (h.contentLength() >= 0) {
-            if (h.contentLength() >= constants.maxReadSizeBytes) {
+        if (h.contentLength() >= 0L) {
+            if (h.contentLength() >= (long) constants.maxReadSizeBytes) {
                 throw new ForbiddenUseException("It is disallowed to process a body with a length more than " + constants.maxReadSizeBytes + " bytes");
             }
         } else {
@@ -60,9 +60,9 @@ final class BodyProcessor implements IBodyProcessor {
      *                    cases where this makes sense - if the user is sending us plain text,
      *                    html, json, or css, we want to simply accept the data and not try to parse it.
      */
-    Body extractBodyFromInputStream(int contentLength, String contentType, InputStream is) {
+    Body extractBodyFromInputStream(long contentLength, String contentType, InputStream is) {
         // if the body is zero bytes long, just return
-        if (contentLength == 0) {
+        if (contentLength == 0L) {
             logger.logDebug(() -> "the length of the body was 0, returning an empty Body");
             return Body.EMPTY;
         }
@@ -76,7 +76,7 @@ final class BodyProcessor implements IBodyProcessor {
             logger.logDebug(() -> "did not recognize a key-value pattern content-type, returning the raw bytes for the body.  Content-Type was: " + contentType);
             // we can return the whole byte array here because we never read from it
             try {
-                return new Body(Map.of(), inputStreamUtils.read(contentLength, is), List.of(), BodyType.UNRECOGNIZED);
+                return new Body(Map.of(), inputStreamUtils.read((int) contentLength, is), List.of(), BodyType.UNRECOGNIZED);
             } catch (IOException e) {
                 throw new WebServerException("Error in BodyProcessor.extractBodyFromInputStream", e);
             }
@@ -90,7 +90,7 @@ final class BodyProcessor implements IBodyProcessor {
      *                      multipart/form data protocol for further information.
      * @param inputStream A stream of bytes coming from the socket.
      */
-    private Body parseMultipartForm(int contentLength, String boundaryValue, InputStream inputStream) {
+    private Body parseMultipartForm(long contentLength, String boundaryValue, InputStream inputStream) {
 
         if (boundaryValue.isBlank()) {
             throw new BadRequestException("The boundary value was blank for the multipart input");
@@ -152,8 +152,8 @@ final class BodyProcessor implements IBodyProcessor {
      * <p>
      * for example, {@code valuea=3&valueb=this+is+something}
      */
-    Body parseUrlEncodedForm(InputStream is, int contentLength) {
-        if (contentLength == 0) {
+    Body parseUrlEncodedForm(InputStream is, long contentLength) {
+        if (contentLength == 0L) {
             return Body.EMPTY;
         }
         final var postedPairs = new HashMap<String, byte[]>();
@@ -223,7 +223,7 @@ final class BodyProcessor implements IBodyProcessor {
                 String key = "";
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 while(true) {
-                    int result = 0;
+                    int result;
                     try {
                         result = inputStream.read();
                         countBytesRead.increment();
@@ -261,7 +261,7 @@ final class BodyProcessor implements IBodyProcessor {
 
 
     @Override
-    public Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, int contentLength) {
+    public Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, long contentLength) {
         return () -> new Iterator<>() {
 
             final CountBytesRead countBytesRead = new CountBytesRead();
@@ -271,7 +271,7 @@ final class BodyProcessor implements IBodyProcessor {
             public boolean hasNext() {
                 // determining if we have more to read is a little tricky because we have a buffer
                 // filled by reading ahead, looking for the boundary value
-                return (contentLength - countBytesRead.getCount()) > boundaryValue.length();
+                return (contentLength - countBytesRead.getCount()) > (long) boundaryValue.length();
             }
 
             @Override
@@ -295,7 +295,7 @@ final class BodyProcessor implements IBodyProcessor {
                             throw new BadRequestException("Error: First line must contain the expected boundary value. Expected to find: " + boundaryValue + " in: " + s);
                         }
                     }
-                    List<String> allHeaders = null;
+                    List<String> allHeaders;
                     allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
                     int lengthOfHeaders = allHeaders.stream().map(String::length).reduce(0, Integer::sum);
                     // each line has a CR + LF (that's two bytes) and the headers end with a second pair of CR+LF.
@@ -313,7 +313,7 @@ final class BodyProcessor implements IBodyProcessor {
                     Matcher nameMatcher = multiformNameRegex.matcher(contentDisposition);
                     Matcher filenameMatcher = multiformFilenameRegex.matcher(contentDisposition);
 
-                    String name = "";
+                    String name;
                     if (nameMatcher.find()) {
                         name = nameMatcher.group("namevalue");
                     } else {

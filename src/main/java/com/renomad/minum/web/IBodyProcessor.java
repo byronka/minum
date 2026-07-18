@@ -76,5 +76,5 @@ public interface IBodyProcessor {
      * @param contentLength The length of data in the body.  This is obtained from the content-length
      *                      header.
      */
-    Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, int contentLength);
+    Iterable<StreamingMultipartPartition> getMultiPartIterable(InputStream inputStream, String boundaryValue, long contentLength);
 }

@@ -96,7 +96,7 @@ final class LoggingActionQueue implements AbstractActionQueue {
      * @param sleepTime how long to wait in milliseconds between loops
      */
     @Override
-    public void stop(int count, int sleepTime) {
+    public void stop(int count, long sleepTime) {
         Logger.logHelper(() -> String.format("%s Stopping queue %s%n", TimeUtils.getTimestampIsoInstant(), this), LoggingLevel.DEBUG, enabledLogLevels, this);
         stop = true;
         for (int i = 0; i < count; i++) {

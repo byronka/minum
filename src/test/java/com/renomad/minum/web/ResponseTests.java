@@ -264,4 +264,23 @@ public class ResponseTests {
         assertEquals(ex.getMessage(), "JUST A TEST");
     }
 
+    /**
+     * It should be possible to edit a response by creating a new response
+     * using the old properties
+     */
+    @Test
+    public void testCopyingResponse() {
+        IResponse oldResponse = Response.buildResponse(CODE_200_OK, Map.of("foo", "bar"), "hello world");
+
+        var newResponse = new Response(
+                oldResponse.getStatusCode(),
+                oldResponse.getExtraHeaders(),
+                oldResponse.getBody(),
+                oldResponse.getOutputGenerator(),
+                oldResponse.getBodyLength(),
+                oldResponse.isBodyText());
+
+        assertEquals(oldResponse, newResponse);
+    }
+
 }

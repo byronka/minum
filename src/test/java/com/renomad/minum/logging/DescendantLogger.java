@@ -27,14 +27,6 @@ public class DescendantLogger extends Logger {
         this.loggingLock = new ReentrantLock();
     }
 
-    /**
-     * Allow users to get the mutable map of logging levels, which will allow
-     * them to adjust it as they wish.
-     */
-    public Map<CustomLoggingLevel, Boolean> getLogLevels() {
-        return logLevels;
-    }
-
     public void logRequests(ThrowingSupplier<String, Exception> msg) {
         loggingLock.lock();
         try {
@@ -96,22 +88,6 @@ public class DescendantLogger extends Logger {
         }
     }
 
-    /**
-     * Given a string that may have whitespace chars, render it in a way we can see
-     */
-    static String showWhiteSpace(String msg) {
-        if (msg == null) return "(NULL)";
-        if (msg.isEmpty()) return "(EMPTY)";
-
-        // if we have tabs, returns, newlines in the text, show them
-        String text = msg
-                .replace("\t", "\\t")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n");
-
-        if (text.isBlank()) return "(BLANK)";
-        return text;
-    }
     /**
      * Whether the given string exists in the log messages. May
      * exist multiple times.

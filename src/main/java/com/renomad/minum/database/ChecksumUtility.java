@@ -19,7 +19,7 @@ import java.util.List;
  * If the value is different than expected while reading, an exception will be thrown
  * indicating data corruption.
  */
-public class ChecksumUtility {
+public final class ChecksumUtility {
 
     private ChecksumUtility() {
         // not intended to be instantiated

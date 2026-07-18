@@ -1,7 +1,7 @@
 package com.renomad.minum.security;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Monitors the inmates who have misbehaved in our system.
@@ -9,6 +9,18 @@ import java.util.List;
  * a client who needs addressing will be stored in a map in this class for as
  * long as required.  After they have served their time, they
  * are released.
+ * </p>
+ * <p>
+ *     It is expected that users of this program will add ip addresses plus
+ *     a string for a complaint identifier, like "123.123.123.123_brute_forcing_login"
+ *     or "123.123.123.123_failed_login_too_many_times" or some such. In
+ *     particular, adding a suffix of "_vuln_seeking" will cause a client's
+ *     connection to be immediately dropped at the
+ *     onset - see code for {@link com.renomad.minum.web.WebFramework#dumpIfAttacker}
+ * </p>
+ * <p>
+ *     From a technical standpoint, this program stores strings paired
+ *     with timestamps, and removes those entries when hitting that time.
  * </p>
  */
 public interface ITheBrig {
@@ -24,7 +36,13 @@ public interface ITheBrig {
     /**
      * Put a client in jail for some infraction, for a specified time.
      *
-     * @param clientIdentifier the client's address plus some feature identifier, like 1.2.3.4_too_freq_downloads
+     * @param clientIdentifier the client's ip address plus some complaint
+     *                         identifier, like 1.2.3.4_too_freq_downloads. One special
+     *                         string to use is "_vuln_seeking" - if this is appended
+     *                         to an ip address, then that client will have its
+     *                         connection immediately dropped upon connecting. For
+     *                         example, that would look like "123.123.123.123_vuln_seeking"
+     *
      * @param sentenceDuration length of stay, in milliseconds
      * @return whether we put this client in jail
      */
@@ -40,5 +58,5 @@ public interface ITheBrig {
      * Get the current list of ip addresses that have been
      * judged as having carried out attacks on the system.
      */
-    List<Inmate> getInmates();
+    Collection<Inmate> getInmates();
 }

@@ -21,7 +21,7 @@ public final class StreamingMultipartPartition extends InputStream {
     private final Headers headers;
     private final InputStream inputStream;
     private final ContentDisposition contentDisposition;
-    private final int contentLength;
+    private final long contentLength;
     /**
      * After we hit the boundary, we will set this flag to true, and all
      * subsequent reads will return -1.
@@ -59,7 +59,7 @@ public final class StreamingMultipartPartition extends InputStream {
                                        ContentDisposition contentDisposition,
                                        String boundaryValue,
                                        CountBytesRead countBytesRead,
-                                       int contentLength) {
+                                       long contentLength) {
 
         this.headers = headers;
         this.inputStream = inputStream;
@@ -159,7 +159,7 @@ public final class StreamingMultipartPartition extends InputStream {
     public byte[] readAllBytes() {
         var baos = new ByteArrayOutputStream();
         while (true) {
-            int result = 0;
+            int result;
             result = read();
             if (result == -1) {
                 return baos.toByteArray();

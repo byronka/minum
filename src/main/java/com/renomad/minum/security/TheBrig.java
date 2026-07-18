@@ -18,6 +18,13 @@ public final class TheBrig implements ITheBrig {
     private final ExecutorService es;
     private final AbstractDb<Inmate> inmatesDb;
     private final ILogger logger;
+
+    /**
+     * This lock is around edits to the inmate database, so it is not
+     * possible for two threads to be adding an inmate at the same
+     * time, or deleting an inmate at the same time, or adding an
+     * inmate while deleting an inmate.
+     */
     private final ReentrantLock lock = new ReentrantLock();
     private Thread myThread;
     private static final String CLIENT_IDENTIFIER_INDEX = "client_identifier_index";
@@ -31,8 +38,9 @@ public final class TheBrig implements ITheBrig {
     public TheBrig(int sleepTime, Context context) {
         this.es = context.getExecutorService();
         this.logger = context.getLogger();
-        this.inmatesDb = context.getDb2("the_brig", Inmate.EMPTY);
-        this.inmatesDb.registerIndex(CLIENT_IDENTIFIER_INDEX, Inmate::getClientId);
+        this.inmatesDb = context.getDb2("the_brig", Inmate.EMPTY)
+                .registerIndex(CLIENT_IDENTIFIER_INDEX, Inmate::getClientId)
+                .loadData();
         this.sleepTime = sleepTime;
     }
 
@@ -48,7 +56,7 @@ public final class TheBrig implements ITheBrig {
     // Regarding the BusyWait - indeed, we expect that the while loop
     // below is an infinite loop unless there's an exception thrown, that's what it is.
     @Override
-    public ITheBrig initialize() {
+    public TheBrig initialize() {
         logger.logDebug(() -> "Initializing TheBrig main loop");
         ThrowingRunnable innerLoopThread = () -> {
             Thread.currentThread().setName("TheBrigThread");
@@ -81,27 +89,30 @@ public final class TheBrig implements ITheBrig {
             logger.logTrace(() -> "TheBrig reviewing current inmates. Count: " + values.size());
         }
         var now = System.currentTimeMillis();
-        lock.lock();
-        try {
-            processInmateList(now, values, logger, inmatesDb);
-        } finally {
-            lock.unlock();
-        }
-        Thread.sleep(sleepTime);
+        processInmateList(now, values, logger, inmatesDb, lock);
+        Thread.sleep((long) sleepTime);
     }
 
     /**
      * figure out which clients have paid their dues
-     * @param now the current time, in milliseconds past the epoch
+     *
+     * @param now       the current time, in milliseconds past the epoch
      * @param inmatesDb the database of all inmates
+     * @param lock      a lock around deleting any inmate being released,
+     *                  to avoid conflicts with {@link #sendToJail(String, long)}
      */
-    static void processInmateList(long now, Collection<Inmate> inmates, ILogger logger, AbstractDb<Inmate> inmatesDb) {
+    static void processInmateList(long now, Collection<Inmate> inmates, ILogger logger, AbstractDb<Inmate> inmatesDb, ReentrantLock lock) {
         for (Inmate clientKeyAndDuration : inmates) {
             // if the release time is in the past (that is, the release time is
             // before / less-than now), add them to the list to be released.
             if (clientKeyAndDuration.getReleaseTime() < now) {
                 logger.logTrace(() -> "UnderInvestigation: " + clientKeyAndDuration.getClientId() + " has paid its dues as of " + clientKeyAndDuration.getReleaseTime() + " and is getting released. Current time: " + now);
-                inmatesDb.delete(clientKeyAndDuration);
+                lock.lock();
+                try {
+                    inmatesDb.delete(clientKeyAndDuration);
+                } finally {
+                    lock.unlock();
+                }
             }
         }
     }
@@ -120,7 +131,7 @@ public final class TheBrig implements ITheBrig {
 
     @Override
     public boolean sendToJail(String clientIdentifier, long sentenceDuration) {
-        lock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
+        lock.lock();
         try {
             long now = System.currentTimeMillis();
 
@@ -146,22 +157,12 @@ public final class TheBrig implements ITheBrig {
 
     @Override
     public boolean isInJail(String clientIdentifier) {
-        lock.lock();
-        try {
             return inmatesDb.findExactlyOne(CLIENT_IDENTIFIER_INDEX, clientIdentifier) != null;
-        } finally {
-            lock.unlock();
-        }
     }
 
     @Override
-    public List<Inmate> getInmates() {
-        lock.lock();
-        try {
-            return inmatesDb.values().stream().toList();
-        } finally {
-            lock.unlock();
-        }
+    public Collection<Inmate> getInmates() {
+            return inmatesDb.values();
     }
 
 }

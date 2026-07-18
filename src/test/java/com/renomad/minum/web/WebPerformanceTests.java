@@ -145,8 +145,8 @@ public class WebPerformanceTests {
         StatusLine statusLine = extractStatusLine(inputStreamUtils.readLine(is));
         List<String> allHeaders = Headers.getAllHeaders(is, inputStreamUtils);
         Headers headers = new Headers(allHeaders);
-        int bodyLength = headers.contentLength();
-        byte[] body = inputStreamUtils.read(bodyLength, is);
+        long bodyLength = headers.contentLength();
+        byte[] body = inputStreamUtils.read(Math.toIntExact(bodyLength), is);
         return new MyResponse(statusLine, headers, body);
     }
 

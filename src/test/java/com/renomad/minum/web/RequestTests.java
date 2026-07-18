@@ -68,7 +68,8 @@ public class RequestTests {
                                         context.getLogger()),
                                 "123.123.123.123",
                                 new FakeSocketWrapper(),
-                                new BodyProcessor(context)
+                                new BodyProcessor(context),
+                                false
                         ),
                         new Request(
                                 new Headers(List.of("content-length: 678","content-length: 987")),
@@ -80,7 +81,8 @@ public class RequestTests {
                                         context.getLogger()),
                                 "456.456.456.456",
                                 new FakeSocketWrapper(),
-                                new BodyProcessor(context)
+                                new BodyProcessor(context),
+                                false
                         )
                 )
                 .suppress(Warning.NONFINAL_FIELDS)
@@ -896,7 +898,7 @@ public class RequestTests {
         var bodyProcessor = new FakeBodyProcessor();
         bodyProcessor.data = Body.EMPTY;
 
-        return new Request(headers, requestLine, remoteRequester, socketWrapper, bodyProcessor);
+        return new Request(headers, requestLine, remoteRequester, socketWrapper, bodyProcessor, false);
     }
 
     void copy(InputStream source, OutputStream target) throws IOException {
@@ -913,7 +915,8 @@ public class RequestTests {
                 defaultRequestLine,
                 "456.456.456.456",
                 socketWrapper,
-                new BodyProcessor(context)
+                new BodyProcessor(context),
+                false
         );
     }
 
@@ -1055,13 +1058,17 @@ public class RequestTests {
     }
 
 
-    public static String boxedByteArrayToString(Byte[] boxedByteArray) {
-        var baos = new ByteArrayOutputStream();
-        for (int i = 0; i < boxedByteArray.length; i++) {
-            Byte b = boxedByteArray[i];
-            baos.write(b == null ? 0 : b);
-        }
-        return baos.toString(StandardCharsets.UTF_8);
-    }
 
+    /**
+     * It should be possible to create a copy of a request by using the
+     * old request's properties
+     */
+    @Test
+    public void testCopyingRequest() {
+        IRequest oldRequest = buildSimpleRequest(List.of("Content-Type: application/x-www-form-urlencoded"));
+
+        var newRequest = new Request(oldRequest.getHeaders(), oldRequest.getRequestLine(), oldRequest.getRemoteRequester(), oldRequest.getSocketWrapper(), oldRequest.getBodyProcessor(), oldRequest.isHasStartedReadingBody());
+
+        assertEquals(oldRequest, newRequest);
+    }
 }

@@ -118,7 +118,7 @@ public final class ActionQueue implements AbstractActionQueue {
      * @param sleepTime how long to wait in milliseconds between loops
      */
     @Override
-    public void stop(int count, int sleepTime) {
+    public void stop(int count, long sleepTime) {
         String timestamp = TimeUtils.getTimestampIsoInstant();
         logger.logDebug(() ->  String.format("%s Stopping queue %s", timestamp, this));
         stop = true;
@@ -140,7 +140,7 @@ public final class ActionQueue implements AbstractActionQueue {
      */
     @Override
     public void stop() {
-        stop(5, 20);
+        stop(5, 20L);
     }
 
     @Override

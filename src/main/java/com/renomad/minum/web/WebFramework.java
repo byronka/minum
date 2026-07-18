@@ -131,12 +131,12 @@ public final class WebFramework {
 
     void httpProcessing(ISocketWrapper sw) {
         try (sw) {
-            dumpIfAttacker(sw, fs);
             final var is = sw.getInputStream();
 
             // By default, browsers expect the server to run in keep-alive mode.
             // We'll break out later if we find that the browser doesn't do keep-alive
             while (true) {
+                dumpIfAttacker(sw, fs);
                 // we'll store the status line and headers in this
                 StringBuilder headerStringBuilder = new StringBuilder(600); // 600 is just a magic arbitrary number I picked, because our response headers
                 // are not usually too large - even if the user added a bunch, there is a good
@@ -168,7 +168,7 @@ public final class WebFramework {
 
                     // React to what the user requested, generate a result
                     headers = getHeaders(sw);
-                    request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor);
+                    request = new Request(headers, requestLine, sw.getRemoteAddr(), sw, bodyProcessor, false);
                     response = processRequest(request, sw, requestLine, headers);
 
                     // check that the response is non-null.  If it is null, that suggests
@@ -249,7 +249,7 @@ public final class WebFramework {
      * Last-chance handler for any exceptions originating in WebFramework.httpProcessing
      */
     static void finalExceptionHandler(ISocketWrapper sw, Throwable ex, ILogger logger, ITheBrig theBrig,
-                                      int vulnSeekingJailDuration, Set<String> suspiciousErrors) {
+                                      long vulnSeekingJailDuration, Set<String> suspiciousErrors) {
         // This first section catches a lot when clients make eager connections in anticipation of
         // parallel requests, but then let them time out.
         if (ex instanceof SocketException || ex instanceof SocketTimeoutException) {
@@ -270,7 +270,7 @@ public final class WebFramework {
         }
     }
 
-    static void handleForbiddenUse(ISocketWrapper sw, ForbiddenUseException ex, ILogger logger, ITheBrig theBrig, int vulnSeekingJailDuration) {
+    static void handleForbiddenUse(ISocketWrapper sw, ForbiddenUseException ex, ILogger logger, ITheBrig theBrig, long vulnSeekingJailDuration) {
         logger.logDebug(() -> sw.getRemoteAddr() + " is looking for vulnerabilities, for this: " + ex.getMessage());
         if (theBrig != null) {
             theBrig.sendToJail(sw.getRemoteAddr() + "_vuln_seeking", vulnSeekingJailDuration);
@@ -414,7 +414,8 @@ public final class WebFramework {
     /**
      * Drops the connection immediately if the client is recognized
      * as someone we consider an attacker, by dint of having been
-     * added to a blacklist in {@link com.renomad.minum.security.TheBrig}.
+     * added to a blacklist in {@link com.renomad.minum.security.TheBrig}
+     * with a suffix of "_vuln_seeking"
      */
     boolean dumpIfAttacker(ISocketWrapper sw, FullSystem fs) {
         if (fs == null) {
@@ -427,6 +428,9 @@ public final class WebFramework {
         }
     }
 
+    /**
+     * For documentation, see {@link #dumpIfAttacker(ISocketWrapper, FullSystem)}
+     */
     void dumpIfAttacker(ISocketWrapper sw, ITheBrig theBrig) {
         String remoteClient = sw.getRemoteAddr();
         if (theBrig.isInJail(remoteClient + "_vuln_seeking")) {
@@ -650,7 +654,7 @@ public final class WebFramework {
             if (size == 0) {
                 logger.logTrace(() -> "Requested file, %s, was empty.  Returning 200 OK, content-length 0, with mime of %s".formatted(staticFilePath, mimeType));
                 return Response.buildLeanResponse(CODE_200_OK, Map.of("Content-Type", mimeType));
-            } else if (size < MAX_CACHED_BYTES) {
+            } else if (size < (long) MAX_CACHED_BYTES) {
                 logger.logTrace(() -> "Size of static file, %s was %d bytes.  Since less than max allowed (%d), caching allowed.".formatted(staticFilePath, size, MAX_CACHED_BYTES));
                 var fileContents = fileReader.readFile(staticFilePathString);
                 return createOkResponseForStaticFiles(fileContents, mimeType, staticFilePathString);
