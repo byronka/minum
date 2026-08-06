@@ -16,6 +16,15 @@ Release notes
   * 0: Beta release, _August 2023_
 
 
+v11.0.1 Aug 6, 2026
+--------------------
+
+Documentation improvements on DbData
+
+The DbData class referred to the Db class, implying it was only used there, when in fact
+it is used in both Db and DbEngine2.  Made corrections and some general text improvements.
+
+
 v11.0.0 July 18, 2026
 ---------------------
 

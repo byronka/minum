@@ -1,7 +1,7 @@
 package com.renomad.minum.database;
 
 /**
- * An abstract data type meant to be used with {@link Db}
+ * An abstract data type meant to be used with the database
  * <p>
  *     The Minum database is very plain - data is stored in a strongly-typed
  *     Java data collection in memory, and also written to disk.
@@ -9,35 +9,22 @@ package com.renomad.minum.database;
  * <p>
  *     Each database is responsible for one type of data. For example,
  *     you might create a database for Person information, such as name,
- *     age, and favorite ice cream flavor.  To do so, you would need a
- *     class representing the Person, and that is where the DbData class comes into
- *     play.
+ *     age, and favorite ice cream flavor.  To do so, you would design a
+ *     class representing the Person, which would include those properties.
  * </p>
  * <p>
- *     The properties of a person are defined as an implementation of
- *     this abstract class.  It is necessary to supply an implementation
- *     of the serialize and deserialize methods, which are used to write
- *     this data to a string form, and back, respectively. There are examples
- *     provided on those methods suggesting serialization approaches, and
- *     it is highly recommended to stick close to that, since framework
- *     testing relied on it.
- * </p>
- * <p>
- *     See the code at {@link com.renomad.minum.security.Inmate} for a realistic example.
+ *     Users must supply an implementation of the {@link #serialize()} and
+ *     {@link #deserialize(String)} methods.
  * </p>
  */
 public abstract class DbData<T>{
 
     /**
-     * Serializes this object into a string representation.  It will be
-     * the values of this object as strings, encoded with URL encoding,
-     * separated by pipe symbols.
+     * Serializes this object into a string representation.
      * <p>
      *     <em>An example:</em>
      * </p>
      * {@snippet :
-     *         import static com.renomad.minum.utils.SerializationUtils.serializeHelper;
-     *
      *         public String serialize() {
      *             return serializeHelper(index, a, b);
      *         }
@@ -48,7 +35,7 @@ public abstract class DbData<T>{
     protected abstract String serialize();
 
     /**
-     * deserializes the text back into an object.  See helper
+     * Deserialize the string into a strongly-typed object.  See helper
      * method {@link com.renomad.minum.utils.SerializationUtils#deserializeHelper(String)} to split a serialized
      * string into tokens for rebuilding the object.  See
      * also {@link #serialize()}
@@ -57,51 +44,26 @@ public abstract class DbData<T>{
      *     <em>An example: </em>
      * </p>
      * {@snippet :
-     *         import static com.renomad.minum.utils.SerializationUtils.deserializeHelper;
-     *
-     *         public Foo deserialize(String serializedText) {
-     *             final var tokens =  deserializeHelper(serializedText);
-     *             return new Foo(
-     *                     Integer.parseInt(tokens.get(0)),
-     *                     Integer.parseInt(tokens.get(1)),
-     *                     tokens.get(2)
-     *                     );
-     *         }
+     * public Foo deserialize(String serializedText) {
+     *     final var tokens = deserializeHelper(serializedText);
+     *     return new Foo(
+     *         Integer.parseInt(tokens.get(0)),
+     *         Integer.parseInt(tokens.get(1)),
+     *         tokens.get(2)
+     *         );
+     * }
      * }
      * @param serializedText the serialized string
      * @return this type deserialized from a string
      * @see #serialize()
+     * @see com.renomad.minum.utils.SerializationUtils#deserializeHelper
      */
     protected abstract T deserialize(String serializedText);
 
     /**
-     * We need an index so that each piece of data is distinct, even if it has the same data.
-     *
-     * @return an index for this data, used to name a file for this particular instance of data
+     * Each piece of data is made unique by having its own index value
      */
     protected abstract long getIndex();
 
-    /**
-     * It is necessary for this method to exist because it is used
-     * by the {@link Db} code to add the new index into this data.
-     * <p>
-     *     Let me unpack that a bit.
-     * </p>
-     * <p>
-     *     The way our database works, it's expected that when you are creating
-     *     a new instance of data, you won't know its index yet, because that
-     *     is something the database manages for you.
-     * </p>
-     * <p>
-     *     The index is an {@link java.util.concurrent.atomic.AtomicLong} value
-     *     that allows us to create new data without worrying about race
-     *     conditions between threads (that is, we don't have to worry about
-     *     two threads accidentally adding the same index value to two different datas).
-     * </p>
-     * <p>
-     *     This value is also used as the name for the file of this data stored on disk,
-     *     when using the {@link Db} database. (The {@link DbEngine2} uses a different approach)
-     * </p>
-     */
     protected abstract void setIndex(long index);
 }
