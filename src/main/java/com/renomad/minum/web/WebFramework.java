@@ -1036,28 +1036,25 @@ public final class WebFramework {
      * <p>Here is an example</p>
      * <pre>{@code
      *
+     *     webFramework.registerLastMinuteHandler(TheRegister::lastMinuteHandlerCode);
      *
-     *      webFramework.registerLastMinuteHandler(TheRegister::lastMinuteHandlerCode);
-     *
-     * ...
+     *     ...
      *
      *     private static IResponse lastMinuteHandlerCode(LastMinuteHandlerInputs inputs) {
-     *         switch (inputs.response().statusCode()) {
+     *         return switch (inputs.response().getStatusCode()) {
      *             case CODE_404_NOT_FOUND -> {
-     *                 return Response.buildResponse(
+     *                 yield Response.buildResponse(
      *                         CODE_404_NOT_FOUND,
      *                         Map.of("Content-Type", "text/html; charset=UTF-8"),
-     *                         "<p>No document was found</p>"));
+     *                         "<p>No document was found</p>");
      *             }
      *             case CODE_500_INTERNAL_SERVER_ERROR -> {
-     *                 return Response.buildResponse(
+     *                 yield Response.buildResponse(
      *                         CODE_500_INTERNAL_SERVER_ERROR,
      *                         Map.of("Content-Type", "text/html; charset=UTF-8"),
-     *                         "<p>Server error occurred.</p>" ));
+     *                         "<p>Server error occurred.</p>" );
      *             }
-     *             default -> {
-     *                 return inputs.response();
-     *             }
+     *             default -> inputs.response();
      *         }
      *     }
      * }
