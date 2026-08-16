@@ -16,6 +16,15 @@ Release notes
   * 0: Beta release, _August 2023_
 
 
+v11.0.2 Aug 16, 2026
+--------------------
+
+Documentation improvement for `lastMinuteHandlerCode`
+
+Noticed the example had obsolete method calls and could take advantage of
+a more concise coding style.
+
+
 v11.0.1 Aug 6, 2026
 --------------------
 
