@@ -91,11 +91,6 @@ final class BodyProcessor implements IBodyProcessor {
      * @param inputStream A stream of bytes coming from the socket.
      */
     private Body parseMultipartForm(long contentLength, String boundaryValue, InputStream inputStream) {
-
-        if (boundaryValue.isBlank()) {
-            throw new BadRequestException("The boundary value was blank for the multipart input");
-        }
-
         List<Partition> partitions = new ArrayList<>();
 
         try {
@@ -124,23 +119,24 @@ final class BodyProcessor implements IBodyProcessor {
      * Given the "content-type" header, determine the boundary value.  A typical
      * multipart content-type header might look like this: <pre>Content-Type: multipart/form-data; boundary=i_am_a_boundary</pre>
      */
-    private static String determineBoundaryValue(String contentType) {
+    static String determineBoundaryValue(String contentType) {
         String boundaryKey = "boundary=";
-        String boundaryValue = "";
+        String boundaryValue;
         int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
         if (indexOfBoundaryKey >= 0) {
             // grab all the text after the key to obtain the boundary value
             boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
             // the index after the end of the boundary value, used to trim the string if necessary
             int indexEndOfBoundaryValue = 0;
-            for (char c : boundaryValue.toCharArray()) {
+            for (int i = 0; i < boundaryValue.length(); i++) {
+                char c = boundaryValue.charAt(i);
                 if (c == ' ') break;
                 if (c == ';') break;
                 indexEndOfBoundaryValue += 1;
             }
-            boundaryValue = boundaryValue.substring(0, indexEndOfBoundaryValue);
+            return boundaryValue.substring(0, indexEndOfBoundaryValue);
         }
-        return boundaryValue;
+        throw new BadRequestException("Did not find a valid boundary value for the multipart input. Header was: " + contentType);
     }
 
 
@@ -288,7 +284,7 @@ final class BodyProcessor implements IBodyProcessor {
                         if (s == null) {
                             throw new BadRequestException("Unexpectedly encountered end of stream while reading in BodyProcessor.next()");
                         }
-                        countBytesRead.incrementBy(s.length() + 2);
+                        countBytesRead.incrementBy(s.getBytes(StandardCharsets.UTF_8).length + 2);
                         hasReadFirstPartition = true;
 
                         if (!s.contains(boundaryValue)) {
@@ -297,7 +293,7 @@ final class BodyProcessor implements IBodyProcessor {
                     }
                     List<String> allHeaders;
                     allHeaders = Headers.getAllHeaders(inputStream, inputStreamUtils);
-                    int lengthOfHeaders = allHeaders.stream().map(String::length).reduce(0, Integer::sum);
+                    int lengthOfHeaders = allHeaders.stream().map(x -> x.getBytes(StandardCharsets.UTF_8).length).reduce(0, Integer::sum);
                     // each line has a CR + LF (that's two bytes) and the headers end with a second pair of CR+LF.
                     int extraCrLfs = (2 * allHeaders.size()) + 2;
                     countBytesRead.incrementBy(lengthOfHeaders + extraCrLfs);

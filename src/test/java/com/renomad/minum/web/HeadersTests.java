@@ -111,21 +111,26 @@ public class HeadersTests {
         assertEquals(ex.getMessage(), "Received multiple content-length headers, which does not make sense.  Received: [12, 44]");
     }
 
+    /**
+     * Our code will disallow negative values because it disallows any symbols
+     * other than pure ascii digits.
+     */
     @Test
     public void test_ContentLength_Negative() {
         var headers = new Headers(List.of("content-length: -123"));
         var ex = assertThrows(BadRequestException.class, () ->  headers.contentLength());
-        assertEquals(ex.getMessage(), "Content length cannot be negative.  Received: -123");
+        assertEquals(ex.getMessage(), "Content length was not pure ascii digits.  Received: -123");
     }
 
     /**
-     * If the content length is non-numeric, an exception gets thrown
+     * Provide a string for a number larger than acceptable
      */
     @Test
-    public void test_ContentLength_NonNumeric() {
-        var headers = new Headers(List.of("content-length: abc"));
+    public void test_ContentLength_NumberFormatException() {
+        // Long maximum value is 9223372036854775807, we're providing way more.
+        var headers = new Headers(List.of("content-length: 99999999999999999999999999999999999"));
         var ex = assertThrows(BadRequestException.class, () ->  headers.contentLength());
-        assertEquals(ex.getMessage(), "Received a non-numeric content length value. Received: abc");
+        assertEquals(ex.getMessage(), "NumberFormatException thrown on : 99999999999999999999999999999999999");
     }
 
     @Test

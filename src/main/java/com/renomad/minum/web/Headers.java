@@ -1,6 +1,7 @@
 package com.renomad.minum.web;
 
 import com.renomad.minum.security.ForbiddenUseException;
+import com.renomad.minum.utils.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -109,13 +110,14 @@ public final class Headers {
         } else if (cl.size() > 1) {
             throw new BadRequestException("Received multiple content-length headers, which does not make sense.  Received: " + cl);
         } else {
+            String contentLengthString = cl.getFirst();
             try {
-                contentLength = Long.parseLong(cl.getFirst());
+                if (!StringUtils.isPureDigits(contentLengthString)) {
+                    throw new BadRequestException("Content length was not pure ascii digits.  Received: " + contentLengthString);
+                }
+                contentLength = Long.parseLong(contentLengthString);
             } catch (NumberFormatException ex) {
-                throw new BadRequestException("Received a non-numeric content length value. Received: " + cl.getFirst(), ex);
-            }
-            if (contentLength < 0L) {
-                throw new BadRequestException("Content length cannot be negative.  Received: " + contentLength);
+                throw new BadRequestException("NumberFormatException thrown on : " + contentLengthString, ex);
             }
         }
         return contentLength;

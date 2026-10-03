@@ -7,13 +7,14 @@ import com.renomad.minum.utils.IFileUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.text.ParseException;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.renomad.minum.database.AbstractDb.DATE_TIME_FORMATTER;
 import static com.renomad.minum.database.ChecksumUtility.buildChecksum;
 import static com.renomad.minum.database.ChecksumUtility.compareWithChecksum;
-import static com.renomad.minum.database.DatabaseAppender.simpleDateFormat;
 
 /**
  * Consolidates the database append logs.
@@ -63,14 +64,16 @@ final class DatabaseConsolidator {
     /**
      * Loop through all the append-only files
      */
-    void consolidate() throws IOException, ParseException {
+    void consolidate() throws IOException {
         logger.logDebug(() -> "Starting database consolidator");
-        List<Date> sortedList = getSortedAppendLogs(appendLogDirectory);
+        List<Instant> sortedList = getSortedAppendLogs(appendLogDirectory);
         if (sortedList.isEmpty()) {
             logger.logDebug(() -> "No database files found to consolidate - exiting");
             return;
         } else {
-            logger.logDebug(() -> "Files to consolidate: " + sortedList.stream().map(simpleDateFormat::format).collect(Collectors.joining(";")));
+            logger.logDebug(() -> "Files to consolidate: " + sortedList.stream()
+                    .map(x -> x.atZone(ZoneId.of("UTC")).format(DATE_TIME_FORMATTER))
+                    .collect(Collectors.joining(";")));
         }
 
         // process the files in order.  This does potentially cause
@@ -80,8 +83,8 @@ final class DatabaseConsolidator {
         // so there should only be one write to each file per loop.
         //
         // after each append-only file is fully processed, it gets deleted.
-        for (Date date : sortedList) {
-            String filename = simpleDateFormat.format(date);
+        for (Instant instant : sortedList) {
+            String filename = instant.atZone(ZoneId.of("UTC")).format(DATE_TIME_FORMATTER);
             logger.logDebug(() -> "consolidator processing file " + filename + " in " + appendLogDirectory);
             processAppendLogFile(filename, appendLogDirectory, fileUtils, maxLinesPerFile, logger, consolidatedDataDirectory);
             logger.logDebug(() -> "consolidator finished with file " + filename + " in " + appendLogDirectory);
@@ -267,7 +270,13 @@ final class DatabaseConsolidator {
      * read the rest of the content
      */
     static DatabaseChangeInstruction parseDatabaseChangeInstructionString(String databaseInstructionString, String filename) {
-        String actionString = databaseInstructionString.substring(0, 6);
+        String actionString;
+        try {
+            actionString = databaseInstructionString.substring(0, 6);
+        } catch (IndexOutOfBoundsException ex) {
+            // If the system encounters a crash mid-write, the resulting data could end up unreadable
+            throw new DbException("Failed to parse database instruction string in file %s.  Data was: %s".formatted(filename, databaseInstructionString));
+        }
         DatabaseChangeAction action;
         if ("UPDATE".equals(actionString)) {
             action = DatabaseChangeAction.UPDATE;
@@ -295,7 +304,7 @@ final class DatabaseConsolidator {
      * list of dates.
      * @return a sorted list of dates, or an empty list if nothing found
      */
-    static List<Date> getSortedAppendLogs(Path appendLogDirectory) throws ParseException {
+    static List<Instant> getSortedAppendLogs(Path appendLogDirectory) {
         // get the list of file names, which are date-time stamps
         String[] fileList = appendLogDirectory.toFile().list();
 
@@ -304,25 +313,25 @@ final class DatabaseConsolidator {
             return List.of();
         }
 
-        List<Date> appendLogDates = convertFileListToDateList(fileList);
+        List<Instant> appendLogDates = convertFileListToInstantList(fileList);
 
         // sort
         return appendLogDates.stream().sorted().toList();
     }
 
     /**
-     * Convert a list of filenames to a list of dates
+     * Convert a list of filenames to a list of instants
      */
-    static List<Date> convertFileListToDateList(String[] listOfFiles) throws ParseException {
+    static List<Instant> convertFileListToInstantList(String[] listOfFiles) {
         // initialize a list which will hold the dates associated with each file name
-        List<Date> appendLogDates = new ArrayList<>();
+        List<Instant> appendLogInstants = new ArrayList<>();
 
         // convert the names to dates
         for (String file : listOfFiles) {
-            Date date = simpleDateFormat.parse(file);
-            appendLogDates.add(date);
+            Instant instant = DATE_TIME_FORMATTER.parse(file, Instant::from);
+            appendLogInstants.add(instant);
         }
 
-        return appendLogDates;
+        return appendLogInstants;
     }
 }

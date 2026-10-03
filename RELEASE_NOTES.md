@@ -16,6 +16,15 @@ Release notes
   * 0: Beta release, _August 2023_
 
 
+v11.0.3 October 3, 2026
+-----------------------
+
+Another round of static analysis by LLM, like version 10.0.0, except no breaking
+changes nor additional functionality is added.
+
+Many thanks to Matt for applying his AI wizardry.
+
+
 v11.0.2 Aug 16, 2026
 --------------------
 

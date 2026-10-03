@@ -432,6 +432,10 @@ public class WebTests {
                 "Unable to convert method to enum.  Returning empty request line.  Method value provided: CONNECT.  Full line: CONNECT foo.bar:80 HTTP/1.1",
                 () -> RequestLine.EMPTY.extractRequestLine("CONNECT foo.bar:80 HTTP/1.1"));
 
+        assertThrows(BadRequestException.class,
+                "No path provided in request line.  Raw value: GET  HTTP/1.1",
+                () -> RequestLine.EMPTY.extractRequestLine("GET  HTTP/1.1"));
+
 
 
         assertThrows(InvariantException.class, () -> RequestLine.EMPTY.extractRequestLine(null));

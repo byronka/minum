@@ -104,7 +104,10 @@ public final class Response implements IResponse {
      * @param extraHeaders any extra headers for the response, such as the content-type
      * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
      *                        ability to send bytes on the socket.
+     * @deprecated analysis showed that this will return a content-length of zero, thus will
+     * malfunction when used with clients.  See AIFindingsWebTests#test_Finding_StreamingResponseAdvertisesZeroContentLength
      */
+    @Deprecated
     public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Headers extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
         return new Response(statusCode, extraHeaders, null, outputGenerator, 0L, false);
     }
@@ -117,7 +120,10 @@ public final class Response implements IResponse {
      *                     key is the header key and the value is the header value. No colon necessary.
      * @param outputGenerator a function that will be given a {@link ISocketWrapper}, providing the
      *                        ability to send bytes on the socket.
+     * @deprecated analysis showed that this will return a content-length of zero, thus will
+     * malfunction when used with clients.  See AIFindingsWebTests#test_Finding_StreamingResponseAdvertisesZeroContentLength
      */
+    @Deprecated
     public static IResponse buildStreamingResponse(StatusLine.StatusCode statusCode, Map<String,String> extraHeaders, ThrowingConsumer<ISocketWrapper> outputGenerator) {
         return buildStreamingResponse(statusCode, convertMapToHeaders(extraHeaders), outputGenerator);
     }

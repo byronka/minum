@@ -14,23 +14,19 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.renomad.minum.database.AbstractDb.DATE_TIME_FORMATTER;
 
 /**
  * This class provide the capability of appending database changes
  * to the disk, quickly and efficiently.
  */
 final class DatabaseAppender {
-
-    /**
-     * Results in output like "2025_08_30_13_01_49_123", which is year_month_day_hour_minute_second_millisecond.
-     * This can be used to parse the file names to {@link java.util.Date} so we can process the oldest
-     * file first.
-     */
-    static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS");
 
     private final Path persistenceDirectory;
     private final IFileUtils fileUtils;
@@ -118,6 +114,10 @@ final class DatabaseAppender {
             appendBytes = 0;
         }
 
+        if (bufferedWriter != null) {
+            // Close the writer to avoid file descriptor leaks
+            bufferedWriter.close();
+        }
         bufferedWriter = fileUtils.newBufferedWriter(currentAppendFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
@@ -204,7 +204,7 @@ final class DatabaseAppender {
      * @return the name of the new file
      */
     static String moveToReadyFolder(IFileUtils fileUtils, Path persistenceDirectory, Path appendLogDirectory) throws IOException {
-        String appendFile = simpleDateFormat.format(new java.util.Date());
+        String appendFile = DATE_TIME_FORMATTER.format(Instant.now().atZone(ZoneId.of("UTC")));
         fileUtils.move(persistenceDirectory.resolve("currentAppendLog"), appendLogDirectory.resolve(appendFile));
         return appendFile;
     }

@@ -90,6 +90,7 @@ public final class TemplateProcessor {
      * Given a map of key names -> value, render a template.
      */
     public String renderTemplate(Map<String, String> myMap) {
+        if (myMap == null) throw new TemplateRenderException("Input to renderTemplate(Map myMap) was null");
         return renderTemplate(List.of(myMap), "");
     }
 
@@ -111,6 +112,13 @@ public final class TemplateProcessor {
      * </p>
      */
     public String renderTemplate(List<Map<String, String>> data, String delimiter) {
+        if (data == null) throw new TemplateRenderException("Input to renderTemplate(List data) was null");
+
+        // if we are given no information, return an empty string.
+        if (data.isEmpty()) {
+            return "";
+        }
+
         correctnessCheck(data);
 
         // build an appropriately-sized buffer for output

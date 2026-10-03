@@ -275,7 +275,12 @@ public final class Constants {
                 return Arrays.asList(propDefault.trim().split("\\s*,\\s*"));
             }
         } else {
-            return Arrays.asList(propValue.trim().split("\\s*,\\s*"));
+            if (propValue.isBlank()) {
+                return List.of();
+            } else {
+                return Arrays.asList(propValue.trim().split("\\s*,\\s*"));
+            }
+
         }
     }
 

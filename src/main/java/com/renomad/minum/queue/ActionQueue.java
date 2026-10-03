@@ -123,7 +123,10 @@ public final class ActionQueue implements AbstractActionQueue {
         logger.logDebug(() ->  String.format("%s Stopping queue %s", timestamp, this));
         stop = true;
         for (int i = 0; i < count; i++) {
-            if (queue.isEmpty()) return;
+            if (queue.isEmpty()) {
+                isStoppedStatus = true;
+                return;
+            }
             logger.logDebug(() ->  String.format("%s Queue not yet empty, has %d elements. waiting...%n",timestamp, queue.size()));
             MyThread.sleep(sleepTime);
         }

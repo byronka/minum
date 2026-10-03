@@ -76,19 +76,10 @@ public class RingBuffer<T> implements Iterable<T>{
         if (myList == null || myList.isEmpty()) {
             throw new UtilsException("expected a valid non-empty list to search for in the RingBuffer");
         }
-        int myListIndex = 0;
-        int myListLength = myList.size();
-        for (var value : this) {
-            if (myList.get(myListIndex).equals(value)) {
-                myListIndex += 1;
-            } else {
-                myListIndex = 0;
-            }
-
-            if (myListIndex == myListLength) {
+        for (int i = 0; i < this.limit; i++) {
+            if (this.containsAt(myList, i)) {
                 return true;
             }
-
         }
         return false;
     }

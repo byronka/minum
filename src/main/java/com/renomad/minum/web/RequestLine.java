@@ -2,11 +2,12 @@ package com.renomad.minum.web;
 
 import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.security.ForbiddenUseException;
-import com.renomad.minum.utils.StringUtils;
 
+import java.net.URLDecoder;
 import java.util.*;
 
 import static com.renomad.minum.utils.Invariants.mustNotBeNull;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * This class holds data and methods for dealing with the
@@ -132,6 +133,9 @@ public final class RequestLine {
         if (myMethod.equals(Method.NONE)) {
             throw new BadRequestException("Unable to convert method to enum.  Returning empty request line.  Method value provided: " + rawValues.method() + ".  Full line: " + rawFullStartLine);
         }
+        if (rawValues.path().isBlank()) {
+            throw new BadRequestException("No path provided in request line.  Raw value: " + rawFullStartLine);
+        }
         PathDetails pd = extractPathDetails(rawValues.path(), rawFullStartLine);
         HttpVersion httpVersion = getHttpVersion(rawValues.protocol());
         if (httpVersion.equals(HttpVersion.NONE)) {
@@ -216,7 +220,7 @@ public final class RequestLine {
             String key = currentKeyValue.substring(0, equalSignLocation);
             String myRawValue = currentKeyValue.substring(equalSignLocation + 1);
             try {
-                String value = StringUtils.decode(myRawValue);
+                String value = URLDecoder.decode(myRawValue, UTF_8);
                 final var result = queryStrings.put(key, value);
 
                 if (result != null) {

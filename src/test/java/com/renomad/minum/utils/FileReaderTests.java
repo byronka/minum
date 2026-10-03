@@ -56,13 +56,6 @@ public class FileReaderTests {
     }
 
     @Test
-    public void test_ReadFile_BadPath() {
-        var fileReader = new FileReader(lruCache, true, logger);
-        var ex = assertThrows(ForbiddenUseException.class, () -> fileReader.readFile("../testingreadfile.txt"));
-        assertEquals(ex.getMessage(), "filename (../testingreadfile.txt) contained invalid characters");
-    }
-
-    @Test
     public void test_ReadFile_InCache() throws IOException {
         byte[] value = {1, 2, 3};
         lruCache.put("testingreadfile.txt", value);

@@ -96,4 +96,51 @@ public class StringUtilsTests {
         String shouldBeNull = StringUtils.byteArrayToString(null);
         assertTrue(shouldBeNull == null);
     }
+
+    /**
+     * Some basic behaviors of the {@link StringUtils#isPureDigits(String)} method
+     */
+    @Test
+    public void testIsPureDigits() {
+        // valid
+        assertTrue(StringUtils.isPureDigits("0"));
+        assertTrue(StringUtils.isPureDigits("123"));
+
+        // invalid
+        assertFalse(StringUtils.isPureDigits("+5"));
+        assertFalse(StringUtils.isPureDigits("12.34"));
+        assertFalse(StringUtils.isPureDigits("abc"));
+        assertFalse(StringUtils.isPureDigits("123a"));
+        assertFalse(StringUtils.isPureDigits(""));
+        assertFalse(StringUtils.isPureDigits(null));
+    }
+
+    /**
+     * What happens when we ask for a large random number?
+     * We allow users to request up to a thousand characters, which
+     * is gargantuan, probably far more than would ever be necessary
+     * for this one-off utility method's purposes.  Setting to a maximum
+     * value just provides basic range control.
+     */
+    @Test
+    public void testGeneratingSecureRandomNumber_EdgeCase_Large() {
+        assertEquals(StringUtils.generateSecureRandomString(999).length(), 999);
+        assertEquals(StringUtils.generateSecureRandomString(1000).length(), 1000);
+        var ex = assertThrows(UtilsException.class, () -> StringUtils.generateSecureRandomString(1001));
+        assertEquals(ex.getMessage(), "Input must be less than 1000");
+    }
+
+
+    /**
+     * If the user requests zero or negative length values, we'll throw an exception
+     */
+    @Test
+    public void testGeneratingSecureRandomNumber_EdgeCase_Small() {
+        var ex = assertThrows(UtilsException.class, () -> StringUtils.generateSecureRandomString(0));
+        assertEquals(ex.getMessage(), "Input must be a positive non-zero number");
+
+        var ex2 = assertThrows(UtilsException.class, () -> StringUtils.generateSecureRandomString(-1));
+        assertEquals(ex2.getMessage(), "Input must be a positive non-zero number");
+    }
+
 }

@@ -1178,7 +1178,7 @@ public class DbEngine2Tests {
 
         db.delete(foo);
 
-        assertTrue(logger1.doesMessageExist("Error during consolidation: java.text.ParseException: Unparseable date: \"foofoo\""));
+        assertTrue(logger1.doesMessageExist("Error during consolidation: java.time.format.DateTimeParseException: Text 'foofoo' could not be parsed at index 0"));
         TestFramework.shutdownTestingContext(customContext);
         logger.getActiveLogLevels().put(LoggingLevel.TRACE, false);
     }

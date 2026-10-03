@@ -65,7 +65,7 @@ public class ConstantsTests {
     public void testGetProps_Array() {
         List<String> extraMimeMappings = Constants.extractList(" a,b, c, d, foo bar   , biz", "");
         assertEquals(extraMimeMappings, List.of("a","b","c","d", "foo bar","biz"));
-        assertEquals(Constants.extractList("", ""), List.of(""));
+        assertEquals(Constants.extractList("", ""), List.of());
     }
 
     /**

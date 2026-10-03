@@ -2,6 +2,8 @@ package com.renomad.minum.web;
 
 import java.util.Objects;
 
+import static com.renomad.minum.web.BodyProcessor.determineBoundaryValue;
+
 /**
  * An implementation of {@link IRequest}.
  * Contains implementations for behaviors dealing with the request data.
@@ -123,16 +125,8 @@ public final class Request implements IRequest {
     @Override
     public Iterable<StreamingMultipartPartition> getMultipartIterable() {
         checkForExistingBody();
-        String boundaryKey = "boundary=";
         String contentType = getHeaders().contentType();
-        int indexOfBoundaryKey = contentType.indexOf(boundaryKey);
-        String boundaryValue;
-        if (indexOfBoundaryKey > 0) {
-            // grab all the text after the key to obtain the boundary value
-            boundaryValue = contentType.substring(indexOfBoundaryKey + boundaryKey.length());
-        } else {
-            throw new BadRequestException("Did not find a valid boundary value for the multipart input. Header was: " + contentType);
-        }
+        String boundaryValue = determineBoundaryValue(contentType);
 
         if (boundaryValue.isBlank()) {
             throw new BadRequestException("Boundary value was blank. Header was: " + contentType);

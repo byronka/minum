@@ -10,8 +10,6 @@ import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.renomad.minum.utils.FileUtils.checkForBadFilePatterns;
-
 /**
  * Reads files from disk, optionally storing into a LRU cache.
  */
@@ -30,17 +28,18 @@ public final class FileReader implements IFileReader {
 
     @Override
     public byte[] readFile(String path) throws IOException {
-        if (useCacheForStaticFiles && lruCache.containsKey(path)) {
+        if (useCacheForStaticFiles) {
             cacheLock.lock();
             try {
-                byte[] bytes = lruCache.get(path);
-                logger.logTrace(() -> "in FileReader.readFile, just obtained %d bytes from the cache using a path of %s".formatted(bytes.length, path));
-                return bytes;
+                if (lruCache.containsKey(path)) {
+                    byte[] bytes = lruCache.get(path);
+                    logger.logTrace(() -> "in FileReader.readFile, just obtained %d bytes from the cache using a path of %s".formatted(bytes.length, path));
+                    return bytes;
+                }
             } finally {
                 cacheLock.unlock();
             }
         }
-        checkForBadFilePatterns(path);
         return readTheFile(path, logger, useCacheForStaticFiles, lruCache);
     }
 

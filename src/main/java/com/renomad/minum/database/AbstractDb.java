@@ -6,9 +6,10 @@ import com.renomad.minum.utils.IFileUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -63,7 +64,7 @@ public abstract class AbstractDb<T extends DbData<?>> {
      * The internal data structure of the database that resides in memory.  The beating heart
      * of the database while it runs.
      */
-    protected final Map<Long, T> data;
+    protected Map<Long, T> data;
 
     /**
      * used to place locks around certain actions that need to avoid
@@ -96,6 +97,14 @@ public abstract class AbstractDb<T extends DbData<?>> {
 
     private final ReentrantLock indexLock;
 
+    /**
+     * Results in output like "2025_08_30_13_01_49_123", which is year_month_day_hour_minute_second_millisecond.
+     * This can be used to parse the file names to {@link java.time.Instant} so we can process the oldest
+     * file first.
+     */
+    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss_SSS").withZone(ZoneId.of("UTC"));
+
+
     protected AbstractDb(Path dbDirectory, Context context, T instance, IFileUtils fileUtils) {
         if (context.isDbPathRegistered(dbDirectory)) {
             throw new DbException("Attempted to register more than one database to the same path: " + dbDirectory);
@@ -104,7 +113,6 @@ public abstract class AbstractDb<T extends DbData<?>> {
         this.dbDirectory = dbDirectory;
         this.context = context;
         this.emptyInstance = instance;
-        this.data = new ConcurrentHashMap<>();
         this.logger = context.getLogger();
         this.registeredIndexes = new HashMap<>();
         this.partitioningMap = new HashMap<>();
@@ -236,8 +244,11 @@ public abstract class AbstractDb<T extends DbData<?>> {
         }
         long finalDataIndex = dataIndex;
         logger.logTrace(() -> String.format("in thread %d, deleting data with index %d", Thread.currentThread().threadId(), finalDataIndex));
-        data.remove(dataIndex);
-        removeFromIndexes(dataToDelete);
+
+        // this will never be null, because we check earlier in this method
+        // that the data contains this key, and it throws an exception if not
+        T removed = data.remove(dataIndex);
+        removeFromIndexes(removed);
 
         // if all the data was just now deleted, we need to
         // reset the index back to 1

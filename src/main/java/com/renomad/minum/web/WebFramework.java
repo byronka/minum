@@ -373,6 +373,8 @@ public final class WebFramework {
      *         the handler, set keep-alive to false</li>
      *     </ul>
      * </p>
+     * @param hasAccessedBody pulled from request.hasAccessedBody(), which is set true if the handler
+     *                        has accessed the body of this request.
      */
     static boolean determineIfKeepAlive(IRequest request, ILogger logger, boolean hasAccessedBody) {
         boolean isKeepAlive = false;

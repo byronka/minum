@@ -52,6 +52,16 @@ public final class StringUtils {
      * <br><br>
      * If we get a null string, just return an empty string
      * <br><br>
+     * <p>
+     *     Note: When cleaning data which will be used in an HTML
+     *     attribute, ensure that the output of this method will
+     *     be placed inside single or double quotes. <br><br>
+     *
+     *     Valid use: the key word HERE in the following: {@code <foo class="HERE">} or
+     *     {@code <foo class='HERE'>}<br><br>
+     *
+     *     Invalid use: {@code <foo class=HERE>}
+     * </p>
      * <pre>{@code
      * example:
      *   Given
@@ -93,7 +103,18 @@ public final class StringUtils {
         return URLDecoder.decode(str, UTF_8);
     }
 
+    /**
+     * Returns a string of random characters.
+     * @param length a positive non-zero number less than 1000
+     */
     public static String generateSecureRandomString(int length) {
+        int maximum = 1000;
+        if (length <= 0) {
+            throw new UtilsException("Input must be a positive non-zero number");
+        }
+        if (length > maximum) {
+            throw new UtilsException("Input must be less than " + maximum);
+        }
         final var allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         final var sr = new SecureRandom();
 
@@ -122,6 +143,26 @@ public final class StringUtils {
     public static String byteArrayToString(byte[] byteArray) {
         if (byteArray == null) return null;
         return new String(byteArray, UTF_8);
+    }
+
+    /**
+     * A helper method to assess whether the input consists of only digits.
+     * This helps us in the case of checking the content-length header, since
+     * it must be pure numbers, no "-" or "+" symbols preceding it.
+     * @return true if the given string consists exclusively of digits, like "1234",
+     * false if anything else, like "+1234" or "12.34" or "" or null.
+     */
+    public static boolean isPureDigits(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
 

@@ -227,6 +227,10 @@ public final class FullSystem {
     static void closeCore(ILogger logger, Context context, IServer server, IServer sslServer, String fullSystemName, IFileUtils fileUtils) throws IOException {
         logger.logDebug(() -> "Received shutdown command");
 
+        if (context.getFullSystem() != null && context.getFullSystem().getTheBrig() != null) {
+            context.getFullSystem().getTheBrig().stop();
+        }
+
         if (server != null) {
             logger.logDebug(() -> " Stopping the server: " + server);
             server.close();

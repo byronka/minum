@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -307,6 +309,17 @@ public final class Db<T extends DbData<?>> extends AbstractDb<T> {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
+                // the following statements get the database's state initialized,
+                // so in the edge case that the data load fails, then when it is
+                // tried again, the containers will be clean and ready.
+
+                // Initialize the database to an empty map
+                this.data = new ConcurrentHashMap<>();
+
+                // Initialize each of the registered indexes to a new empty map
+                registeredIndexes.replaceAll((key, value) -> new HashMap<>());
+
+                // now actually load the data from disk
                 loadDataFromDisk();
             }
             hasLoadedData = true;

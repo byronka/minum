@@ -352,4 +352,34 @@ public class TemplatingTests {
                 () -> templateProcessor.renderTemplate(Map.of()));
     }
 
+    @Test
+    public void test_EdgeCase_ListIsEmpty() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        assertEquals("", templateProcessor.renderTemplate(List.of()));
+    }
+
+    /**
+     * If we provide a null map to the renderTemplate method, what happens?
+     */
+    @Test
+    public void test_NegativeCase_NullMap() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        Map<String, String> input = null;
+        assertThrows(TemplateRenderException.class,
+                "Input to renderTemplate(Map myMap) was null",
+                () -> templateProcessor.renderTemplate(input));
+    }
+
+    /**
+     * If we provide a null list to the renderTemplate method, what happens?
+     */
+    @Test
+    public void test_NegativeCase_NullList() {
+        TemplateProcessor templateProcessor = TemplateProcessor.buildProcessor("I am {{ foo }}");
+        List<Map<String, String>> input = null;
+        assertThrows(TemplateRenderException.class,
+                "Input to renderTemplate(List data) was null",
+                () -> templateProcessor.renderTemplate(input));
+    }
+
 }

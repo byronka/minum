@@ -29,7 +29,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,856 | 148,744 | 1,085,405   |
+| 6,919 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -49,7 +49,7 @@ are examples of its use linked on the top-level README.
 
 | Minum | Nginx   | Tomcat  |
 |-------|---------|---------|
-| 2,875 | 163,000 | 242,000 |
+| 2,887 | 163,000 | 242,000 |
 
 
 Templating
@@ -64,7 +64,7 @@ See an example of sophisticated use [here](https://github.com/byronka/template-b
 
 | Minum | Mustache | Pebble | Rocker | Thymeleaf |
 |-------|----------|--------|--------|-----------|
-| 214   | 11,346   | 16,876 | 11,996 | 43,056    |
+| 222   | 11,346   | 16,876 | 11,996 | 43,056    |
 
 
 Database
@@ -76,7 +76,7 @@ to hinder that choice.
 
 | Minum | Postgresql | MySQL     | SQLite  |
 |-------|------------|-----------|---------|
-| 1,231 | 1,300,000  | 1,500,000 | 116,000 |
+| 1,252 | 1,300,000  | 1,500,000 | 116,000 |
 
 
 Logging
@@ -124,7 +124,7 @@ development_handbook in the docs.
 
 | Minum | Jobrunr |
 |-------|---------|
-| 154   | 22,581  |
+| 157   | 22,581  |
 
 
 Various helpful utilities
@@ -137,7 +137,7 @@ basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 774   | 18,045            |
+| 789   | 18,045            |
 
 
 Security

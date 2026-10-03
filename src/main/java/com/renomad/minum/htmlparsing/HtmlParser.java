@@ -22,6 +22,20 @@ import java.util.*;
  *     by this implementation.  Nevertheless, this program
  *     should suit many needs for ordinary web applications.
  * </p>
+ * <p>
+ *      Note: This class is intended for trusted documents. It does
+ *      not handle pathological extremes, i.e. something intentionally
+ *      designed to hack the system.  For example, it will not handle
+ *      HTML which has thousands of layers of nesting, nor which
+ *      uses script elements with varying upper and lower case characters.
+ * </p>
+ * <p>
+ *     For untrusted HTML, it is recommended to involve a more robust
+ *     HTML parsing framework.
+ * </p>
+ * <p>
+ *     For trusted ordinary HTML this parser is sufficient.
+ * </p>
  */
 public final class HtmlParser {
 

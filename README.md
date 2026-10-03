@@ -28,6 +28,15 @@ public class Main {
 }
 ```
 
+AI usage statement
+------------------
+
+Large Language Models (LLM) were used for static analysis of the code, and any found bugs 
+were fixed manually.  It is the principle of this project to aim for the highest quality
+reasonably possible.  At the present stage of LLM capability, this requires that all 
+lines of production code are primarily constructed and reviewed by a human.
+
+
 The high level characteristics
 -------------------------------
 
@@ -114,7 +123,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>11.0.2</version>
+    <version>11.0.3</version>
 </dependency>
 ```
 
@@ -177,7 +186,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,856 | 141,048 | 1,085,405   |
+| 6,919 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 

@@ -259,7 +259,7 @@ public class BodyProcessorTests {
         // the content type should be multipart form data and also mention the boundary value -
         // we are not including it, leading to this edge case branch being invoked.
         var ex = assertThrows(BadRequestException.class, () -> bodyProcessor.extractBodyFromInputStream(25, "multipart/form-data", new ByteArrayInputStream(new byte[0])));
-        assertEquals(ex.getMessage(), "The boundary value was blank for the multipart input");
+        assertEquals(ex.getMessage(), "Did not find a valid boundary value for the multipart input. Header was: multipart/form-data");
     }
 
     /**

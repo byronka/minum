@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -123,8 +123,10 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
      * Used to determine whether to kick off consolidation.  If it is
      * already running, we don't want to kick it off again. This would
      * only affect us if we are updating the database very fast.
+     * Setting to volatile since it is used as a flag, and changes from multiple
+     * threads means we want the freshest status possible for any caller.
      */
-    boolean consolidationIsRunning;
+    volatile boolean consolidationIsRunning;
 
     /**
      * Constructs an in-memory disk-persisted database.
@@ -270,9 +272,10 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
                 try {
                     consolidationIsRunning = true;
                     databaseConsolidator.consolidate();
-                    consolidationIsRunning = false;
                 } catch (Exception e) {
                     logger.logAsyncError(() -> "Error during consolidation: " + e);
+                } finally {
+                    consolidationIsRunning = false;
                 }
             });
             appendCount.set(0);
@@ -334,7 +337,7 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         consolidateIfNecessary();
     }
 
-    private void loadDataFromDisk() throws IOException, ParseException {
+    private void loadDataFromDisk() throws IOException {
         logger.logDebug(() -> "Loading data from disk. Db Engine2. Directory: " + dbDirectory);
 
         // if we find the "index.ddps" file, it means we are looking at an old
@@ -461,6 +464,17 @@ public final class DbEngine2<T extends DbData<?>> extends AbstractDb<T> {
         loadDataLock.lock(); // block threads here if multiple are trying to get in - only one gets in at a time
         try {
             if (!hasLoadedData) {
+                // the following statements get the database's state initialized,
+                // so in the edge case that the data load fails, then when it is
+                // tried again, the containers will be clean and ready.
+
+                // Initialize the database to an empty map
+                this.data = new ConcurrentHashMap<>();
+
+                // Initialize each of the registered indexes to a new empty map
+                registeredIndexes.replaceAll((key, value) -> new HashMap<>());
+
+                // now actually load the data from disk
                 loadDataFromDisk();
             }
             hasLoadedData = true;

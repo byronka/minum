@@ -32,6 +32,9 @@ public final class SerializationUtils {
      * </p>
      */
     public static String serializeHelper(Object... values) {
+        if (values.length == 0) {
+            throw new UtilsException("No values provided to serializeHelper");
+        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < values.length-1; i++) {
             String value = values[i] == null ? null : values[i].toString();

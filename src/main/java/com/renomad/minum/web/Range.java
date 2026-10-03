@@ -14,6 +14,11 @@ final class Range {
     private final Long offset;
     private final boolean hasRangeHeader;
 
+    /**
+     * Constructor for a range.
+     * @param fullLength the actual length of the file, as determined by requesting
+     *                   data from the operating system.
+     */
     public Range(Headers requestHeaders, long fullLength) {
         List<String> rangeHeaders = requestHeaders.valueByKey("range");
         if (rangeHeaders == null) {
@@ -30,7 +35,8 @@ final class Range {
             // the "Range:" header provides a desired range, and can request multiple ranges.
             // this server does not currently handle multiple ranges, so if that is requested we
             // will ignore the range header and return a 200 with the entire contents.
-            Matcher matcher = rangeHeaderPattern.matcher(rangeHeaders.getFirst());
+            String rangeHeader = rangeHeaders.getFirst();
+            Matcher matcher = rangeHeaderPattern.matcher(rangeHeader);
             if (matcher.matches()) {
                 String firstPart = matcher.group("first");
                 String secondPart = matcher.group("second");
@@ -53,19 +59,34 @@ final class Range {
                 // 3: only a first part
                 // 4: (invalid) the first part is larger than the second part
                 // 5: (invalid) either of the range values are invalid longs
+                // 6: missing both first and second part - return whole file
+
+                // option 1
                 if (rangeFirstPart != null && rangeSecondPart != null) {
                     if (rangeFirstPart > rangeSecondPart) {
                         throw new BadRequestException("Error: The value of the first part of the range was larger than the second.");
                     } else {
                         length = (rangeSecondPart - rangeFirstPart) + 1;
+                        if (length > fullLength) {
+                            throw new BadRequestException("Invalid Range header: %s. file length: %d".formatted(rangeHeader, fullLength));
+                        }
                         offset = rangeFirstPart;
                     }
+                // option 3
                 } else if (rangeFirstPart != null) {
                     offset = rangeFirstPart;
                     length = fullLength - offset;
+                    if (length < 0) {
+                        throw new BadRequestException("Invalid Range header: %s. file length: %d".formatted(rangeHeader, fullLength));
+                    }
+                // option 2
                 } else if (rangeSecondPart != null) {
                     offset = fullLength - rangeSecondPart;
+                    if (offset < 0) {
+                        throw new BadRequestException("Invalid Range header: %s. file length: %d".formatted(rangeHeader, fullLength));
+                    }
                     length = rangeSecondPart;
+                // option 6
                 } else {
                     length = fullLength;
                     offset = 0L;

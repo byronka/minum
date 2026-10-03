@@ -1,6 +1,5 @@
 package com.renomad.minum.database;
 
-import com.renomad.minum.logging.ILogger;
 import com.renomad.minum.logging.TestLogger;
 import com.renomad.minum.state.Context;
 import com.renomad.minum.testing.TestFramework;
@@ -14,6 +13,7 @@ import org.junit.runner.Description;
 import java.io.IOException;
 import java.nio.file.*;
 import java.text.ParseException;
+import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -84,8 +84,8 @@ public class DatabaseConsolidatorTests {
      */
     @Test
     public void testParsingAppendLogs_EdgeCase_InvalidFilename() {
-        var ex = assertThrows(ParseException.class, () -> DatabaseConsolidator.convertFileListToDateList(new String[]{"NOT_A_DATE"}));
-        assertEquals(ex.getMessage(), "Unparseable date: \"NOT_A_DATE\"");
+        var ex = assertThrows(DateTimeParseException.class, () -> DatabaseConsolidator.convertFileListToInstantList(new String[]{"NOT_A_DATE"}));
+        assertEquals(ex.getMessage(), "Text 'NOT_A_DATE' could not be parsed at index 0");
     }
 
     /**

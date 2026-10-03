@@ -20,8 +20,7 @@
 ##
 PROJ_NAME := minum
 HOST_NAME := minum.com
-VERSION=11.0.2
-
+VERSION=11.0.3
 MAVEN := ./mvnw
 
 ##
@@ -47,12 +46,12 @@ clean:
 	 @rm -fr target
 
 .PHONY: test
-#: test the whole system, and build a coverage report in target/site/jacoco
+#: run tests with code coverage
 test:
 	 @${MAVEN} jacoco:prepare-agent test jacoco:report
 
 .PHONY: test_quiet
-#: run tests with minimal output, and build a coverage report
+#: run tests with minimal output
 test_quiet:
 	@${MAVEN} jacoco:prepare-agent test jacoco:report -DLOG_LEVELS=NONE 2>&1 | grep -E "Running com\.|Tests run:|BUILD SUCCESS|BUILD FAILURE" || true
 
@@ -74,7 +73,7 @@ mutation_test:
 	 @${MAVEN} test-compile org.pitest:pitest-maven:mutationCoverage
 
 .PHONY: javadoc
-#: build the javadoc documentation in the out/javadoc directory
+#: build the javadoc documentation
 javadoc:
 	 @mkdir -p $(OUT_DIR)
 	 @javadoc -Xdoclint:none --source-path src/main/java -d out/javadoc -subpackages com.renomad.minum
@@ -95,7 +94,7 @@ jar_sources:
  		mv $(PROJ_NAME)-$(VERSION)-sources.jar ../../../$(OUT_DIR)/$(PROJ_NAME)-$(VERSION)-sources.jar
 
 .PHONY: test
-#: Build a jar of the project for use as a library
+#: Build a jar for use as a library
 jar: test
 	 @mkdir -p $(OUT_DIR_MAIN)/META-INF/
 	 @cp -r target/classes/* $(OUT_DIR_MAIN)
@@ -116,7 +115,7 @@ mvnlocalrepo: clean set_primary_pom_version set_version_of_published_pom jar jar
 	 ./mvnw org.apache.maven.plugins:maven-install-plugin:3.1.1:install-file -Dfile=out/$(PROJ_NAME)-$(VERSION)-javadoc.jar -DpomFile=out/$(PROJ_NAME)-$(VERSION).pom -Dclassifier=javadoc
 
 .PHONY: mvnprep
-#: prepares the jars for sending to Maven central
+#: prepares for publishing
 mvnprep: clean set_primary_pom_version set_version_of_published_pom jar jar_sources jar_javadoc
 	 mkdir -p out/com/renomad/minum/$(VERSION)
 	 mv out/minum-* out/com/renomad/minum/$(VERSION)
@@ -142,12 +141,12 @@ JMX_PROPERTIES=-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmx
 DEBUG_PROPERTIES=-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y
 
 .PHONY: run_sampledomain
-#: this will run the sample domain program, used for testing
+#: run sample program, used for testing
 run_sampledomain:
 	MAVEN_OPTS="$(JMX_PROPERTIES)" ${MAVEN} -Dexec.mainClass=com.renomad.minum.sampledomain.SampleDomain -Dexec.classpathScope=test test-compile exec:java
 
 .PHONY: run_sampledomain_debug
-#: this will run the sample domain program in debug mode
+#: run sample program in debug mode
 run_sampledomain_debug:
 	MAVEN_OPTS="$(DEBUG_PROPERTIES) $(JMX_PROPERTIES)" ${MAVEN} -Dexec.mainClass=com.renomad.minum.sampledomain.SampleDomain -Dexec.classpathScope=test test-compile exec:java
 
@@ -175,3 +174,14 @@ help:
      | sed 'N;s/\n/###/' \
      | sed -n 's/^#: \(.*\)###\(.*\):.*/\2###\1/p' \
      | column -t  -s '###'
+
+# This configures Make to show a more helpful message when the
+# user enters an invalid target.
+%:
+	@echo ""
+	@echo "Error: Invalid target '$@'."
+	@echo ""
+	@$(MAKE) --silent --no-print-directory help
+	@echo ""
+	@echo ""
+	@exit 0
