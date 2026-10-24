@@ -71,26 +71,40 @@ public final class SerializationUtils {
     /**
      * Splits up a string into tokens.
      *
-     * @param serializedText the string we are splitting up
+     * @param text the string we are splitting up
      * @param delimiter the character acting as a boundary between sections
      * @param maxTokens the maximum tokens allowable.  Probably smart to include a number
      *                  here, since otherwise you could get into some infinite loops.
      * @return a list of strings.  If the delimiter is not found, we will just return the whole string
      */
-    public static List<String> tokenizer(String serializedText, char delimiter, int maxTokens) {
+    public static List<String> tokenizer(String text, char delimiter, int maxTokens) {
+        return tokenizer(text, delimiter, maxTokens, false);
+    }
+
+
+    /**
+     * Splits up a string into tokens, allows including the delimiter
+     * @param text the string we are splitting up
+     * @param delimiter the character acting as a boundary between sections
+     * @param maxTokens the maximum tokens allowable.  Probably smart to include a number
+     *                  here, since otherwise you could get into some infinite loops.
+     * @param includeDelimiter if true, the resulting strings will include the delimiter
+     * @return a list of strings.  If the delimiter is not found, we will just return the whole string
+     */
+    public static List<String> tokenizer(String text, char delimiter, int maxTokens, boolean includeDelimiter) {
         final var resultList = new ArrayList<String>();
         var currentPlace = 0;
         for(int i = 0; ; i++) {
             if (i >= maxTokens) {
                 throw new ForbiddenUseException("Asked to split content into too many partitions in the tokenizer.  Current max: " + maxTokens);
             }
-            final var nextDelimiterIndex = serializedText.indexOf(delimiter, currentPlace);
+            final var nextDelimiterIndex = text.indexOf(delimiter, currentPlace);
             if (nextDelimiterIndex == -1) {
                 // if we don't see any delimiters ahead, grab the rest of the text from our current place
-                resultList.add(serializedText.substring(currentPlace));
+                resultList.add(text.substring(currentPlace));
                 break;
             }
-            resultList.add(serializedText.substring(currentPlace, nextDelimiterIndex));
+            resultList.add(text.substring(currentPlace, nextDelimiterIndex + (includeDelimiter ? 1 : 0)));
             currentPlace = nextDelimiterIndex + 1;
         }
 

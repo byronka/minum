@@ -29,7 +29,7 @@ Web frameworks
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,919 | 148,744 | 1,085,405   |
+| 6,922 | 148,744 | 1,085,405   |
 
 
 Our project is 22 times smaller than [Javalin](https://javalin.io/),
@@ -137,7 +137,7 @@ basic-Java-only approach that obviates an extra dependency.
 
 | Minum | Apache Commons IO |
 |-------|-------------------|
-| 789   | 18,045            |
+| 792   | 18,045            |
 
 
 Security

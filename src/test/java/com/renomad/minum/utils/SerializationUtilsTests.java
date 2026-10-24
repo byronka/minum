@@ -68,4 +68,30 @@ public class SerializationUtilsTests {
         assertEquals(ex.getMessage(), "Asked to split content into too many partitions in the tokenizer.  Current max: 2" );
         assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%|%NULL%", '|', 2));
     }
+
+    /**
+     * The normal tokenizer excludes the delimiter that was found.
+     * The one we're testing now includes it.
+     */
+    @Test
+    public void testTokenizerWithDelimiter() {
+        List<String> tokens = SerializationUtils.tokenizer("a|b|%NULL%|%NULL%", '|', 100, true);
+        assertEquals(tokens.size(), 4);
+        assertEquals(tokens.get(0), "a|");
+        assertEquals(tokens.get(1), "b|");
+        assertEquals(tokens.get(2), "%NULL%|");
+        assertEquals(tokens.get(3), "%NULL%");
+    }
+
+    @Test
+    public void testTokenizerWithDelimiter_OverMaxTokenCount() {
+        // first two should run fine...
+        assertEquals(SerializationUtils.tokenizer("a", '|', 2, true).size(), 1);
+        assertEquals(SerializationUtils.tokenizer("a|b", '|', 2, true).size(), 2);
+
+        // third and further tokens should throw exceptions...
+        var ex = assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%", '|', 2, true));
+        assertEquals(ex.getMessage(), "Asked to split content into too many partitions in the tokenizer.  Current max: 2" );
+        assertThrows(ForbiddenUseException.class, () -> SerializationUtils.tokenizer("a|b|%NULL%|%NULL%", '|', 2, true));
+    }
 }

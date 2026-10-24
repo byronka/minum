@@ -7,15 +7,18 @@
  *     <li><a href="WebFramework.html">WebFramework</a> - Provides methods to register endpoints</li>
  *     <li>The <a href="IRequest.html">IRequest</a> interface for HTTP requests, primarily the request line (including query strings), headers, and body</li>
  *     <li>The <a href="Response.html">Response</a> class, which provides methods to build an HTTP response</li>
+ *     <li>The <a href="FullSystem.html">FullSystem</a> class, providing access to whole-system state</li>
  * </ol>
  * <p>
  *     Most other classes provide capabilities to branch off those core concepts.
  * </p>
  * </div>
  * <p>
- * Here is a typical "main" method for an application. The important thing to note is we are initializing {@link com.renomad.minum.web.FullSystem} and
- * using it to register endpoints.  A more organized approach is to put the endpoint registrations
- * into another file.  See the example project in the Minum codebase or any of the other example projects.
+ * Here is a typical "main" method for an application. We initialize {@link com.renomad.minum.web.FullSystem}, which constructs
+ * necessary state and starts socket listeners for the TLS and non-encrypted servers.  We then use the {@link com.renomad.minum.web.WebFramework}
+ * object to register endpoints.
+ * A more organized approach is to put the endpoint registrations
+ * into another file.  An example is "TheRegister.java", in the test directory.
  * </p>
  * <pre>
  * {@code

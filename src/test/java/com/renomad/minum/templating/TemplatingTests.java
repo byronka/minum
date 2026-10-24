@@ -382,4 +382,57 @@ public class TemplatingTests {
                 () -> templateProcessor.renderTemplate(input));
     }
 
+
+    /**
+     * On Linux, the end-of-line (eol) is usually /n (newline).
+     * We want to ensure that when indenting, we properly
+     * indent - that is, we *don't* indent a blank line,
+     * and we keep it with the original eol.
+     */
+    @Test
+    public void test_EdgeCase_AlternateEol_Linux() {
+        String internal = "abc\n\ndef";
+        String external = """
+                beginning
+                   {{internal_goes_here}}
+                end""";
+        TemplateProcessor p = TemplateProcessor.buildProcessor(external);
+        String expected = """
+                beginning
+                   abc
+                
+                   def
+                end""";
+
+        String result = p.renderTemplate(Map.of("internal_goes_here", internal));
+
+        assertEquals(result, expected);
+    }
+
+    /**
+     * On windows, the end-of-line (eol) is /r/n (carriage return plus linefeed).
+     * We want to ensure that when indenting, we properly
+     * indent - that is, we *don't* indent a blank line,
+     * and we keep it with the original eol.
+     */
+    @Test
+    public void test_EdgeCase_AlternateEol_Windows() {
+        String internal = "abc\r\n\r\ndef";
+        String external = """
+                beginning\r
+                   {{internal_goes_here}}\r
+                end""";
+        TemplateProcessor p = TemplateProcessor.buildProcessor(external);
+        String expected = """
+                beginning\r
+                   abc\r
+                \r
+                   def\r
+                end""";
+
+        String result = p.renderTemplate(Map.of("internal_goes_here", internal));
+
+        assertEquals(result, expected);
+    }
+
 }

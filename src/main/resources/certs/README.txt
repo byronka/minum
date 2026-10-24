@@ -1,6 +1,16 @@
-This keystore was found at https://github.com/openjdk/jdk/tree/master/test/jdk/javax/net/ssl/etc
+The file in this directory, "keystore", is used as a certificate when the user has
+not specified their own certificate and wants to use the TLS 1.3 encrypted endpoint.
 
-_Following is a copy of the README section for keystores there:_
+For real production server use, use a well-known certificate provider for a keystore.
+
+For example: Let's Encrypt is the top-rated free and automated certificate authority.
+
+
+------------------------------
+
+This keystore file was found at https://github.com/openjdk/jdk/tree/master/test/jdk/javax/net/ssl/etc
+
+Following is a copy of the README section for keystores there:
 
 Keystores used for the JSSE regression test suite.
 

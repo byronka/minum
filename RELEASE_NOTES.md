@@ -15,6 +15,56 @@ Release notes
   * 1: Refactoring, Maven as buildtool, _September 2023_
   * 0: Beta release, _August 2023_
 
+v11.0.4 October 24, 2026
+------------------------
+
+Fixed a subtle bug in the template processor.
+
+When providing a value for a template where the key is indented on the 
+line, and the injected value is multiline, the processor did not respect the 
+existing end-of-lines if they are not single linefeeds (aka linux/mac style, "\n"), 
+replacing the original end-of-line characters in many cases.  
+
+In other cases, it would add whitespace in front of the end-of-line characters 
+on blank lines.  This was noticed when working with Windows end-of-line characters.
+
+To clarify further with an example:
+
+The template:
+
+    START
+        {{ poem }}
+    END
+
+The value to inject:
+
+    Beragamo Jo…he aint no mo,
+
+    Lived in these here parts
+    Many a year ago
+
+The resulting value, with end-of-line characters:
+
+_BAD_:
+
+    START
+    ....Beragamo Jo…he aint no mo,
+    ....\r\n  <-=------------------------- spaces before the end-of-line  
+    ....Lived in these here parts
+    ....Many a year ago
+    END
+
+
+_GOOD_:
+
+    START
+    ....Beragamo Jo…he aint no mo,
+    \r\n  <-=------------------------------ set at beginning, properly  
+    ....Lived in these here parts
+    ....Many a year ago
+    END
+
+
 
 v11.0.3 October 3, 2026
 -----------------------

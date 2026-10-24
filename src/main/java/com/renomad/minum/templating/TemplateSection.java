@@ -65,16 +65,16 @@ final class TemplateSection {
             if (value == null) {
                 throw new TemplateRenderException("Received null value for key: " + key);
             }
-            List<String> lines = tokenizer(value, '\n', MAXIMUM_LINES_ALLOWED);
+            List<String> lines = tokenizer(value, '\n', MAXIMUM_LINES_ALLOWED, true);
 
             // if, after splitting on newlines, we have more than one line, we'll indent the remaining
             // lines so that they end up at the same column as the first line.
             stringBuilder.append(lines.getFirst());
             for (int i = 1; i < lines.size(); i++) {
-                if (lines.get(i).isEmpty()) {
-                    stringBuilder.append('\n');
+                if (lines.get(i).isBlank()) {
+                    stringBuilder.append(lines.get(i));
                 } else {
-                    stringBuilder.append('\n').append(" ".repeat(indent - 1)).append(lines.get(i));
+                    stringBuilder.append(" ".repeat(indent - 1)).append(lines.get(i));
                 }
             }
         }

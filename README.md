@@ -17,24 +17,28 @@ the _example projects_ below.
 Here is a small Minum program (see more _code samples_ below):
 
 ```Java
+import com.renomad.minum.web.*;
+
 public class Main {
     public static void main(String[] args) {
-        var minum = FullSystem.initialize();
-        var wf = minum.getWebFramework();
-        wf.registerPath(GET, "",
+        FullSystem fullSystem = FullSystem.initialize();
+        WebFramework wf = fullSystem.getWebFramework();
+        wf.registerPath(RequestLine.Method.GET, "",
                 r -> Response.htmlOk("<p>Hi there world!</p>"));
-        minum.block();
+        fullSystem.block();  // main thread instruction pointer waits here
     }
 }
 ```
 
-AI usage statement
-------------------
+AI policy
+---------
 
-Large Language Models (LLM) were used for static analysis of the code, and any found bugs 
-were fixed manually.  It is the principle of this project to aim for the highest quality
-reasonably possible.  At the present stage of LLM capability, this requires that all 
-lines of production code are primarily constructed and reviewed by a human.
+It is the principle of this project to aim for the highest quality 
+possible.  Given the present state of AI technology, this requires 
+all lines of production code to be carefully written by a human.
+
+Large Language Models (LLM) were exclusively used for
+static analysis, and resulting bugs were fixed manually.
 
 
 The high level characteristics
@@ -123,7 +127,7 @@ Maven
 <dependency>
     <groupId>com.renomad</groupId>
     <artifactId>minum</artifactId>
-    <version>11.0.3</version>
+    <version>11.0.4</version>
 </dependency>
 ```
 
@@ -186,7 +190,7 @@ _Lines of production code (including required dependencies)_
 
 | Minum | Javalin | Spring Boot |
 |-------|---------|-------------|
-| 6,919 | 141,048 | 1,085,405   |
+| 6,922 | 141,048 | 1,085,405   |
 
 See [a size comparison in finer detail](docs/size_comparisons.md)
 
